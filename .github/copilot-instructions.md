@@ -6,10 +6,13 @@
 - Actual Phase: Initial setup of the project, including the creation of the repository, initial commit, and basic project structure.
 
 ## Documentation References
-- docs/functional-requirements.md
-- docs/ui-guidelines.md
-- docs/testing-guidelines.md
-- docs/coding-guidelines.md
+
+Read the following files before generating code, tests, or UI for this project:
+
+- **docs/functional-requirements.md** — normative requirements ("The system shall…"); defines what the application must do and what is out of scope for the MVP.
+- **docs/coding-guidelines.md** — formatting rules, import organization, naming conventions, and KISS/DRY principles for Go (backend) and React/TypeScript (frontend).
+- **docs/testing-guidelines.md** — three-layer testing strategy (unit, integration, E2E), folder structure, naming conventions, and coverage targets for Go and React.
+- **docs/ui-guidelines.md** — design tokens (color, spacing, typography), component layers (Atomic Design), responsive breakpoints, accessibility rules (WCAG 2.1 AA), and loading/error/empty state requirements.
 
 ## Language Policy (MANDATORY)
 - Conversation with the developer may be in English or Spanish; respond in whichever
