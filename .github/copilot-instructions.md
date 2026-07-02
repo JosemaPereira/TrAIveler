@@ -6,10 +6,13 @@
 - Actual Phase: Initial setup of the project, including the creation of the repository, initial commit, and basic project structure.
 
 ## Documentation References
-- docs/functional-requirements.md
-- docs/ui-guidelines.md
-- docs/testing-guidelines.md
-- docs/coding-guidelines.md
+
+Read the following files before generating code, tests, or UI for this project:
+
+- **docs/functional-requirements.md** — normative requirements ("The system shall…"); defines what the application must do and what is out of scope for the MVP.
+- **docs/coding-guidelines.md** — formatting rules, import organization, naming conventions, and KISS/DRY principles for Go (backend) and React/TypeScript (frontend).
+- **docs/testing-guidelines.md** — three-layer testing strategy (unit, integration, E2E), folder structure, naming conventions, and coverage targets for Go and React.
+- **docs/ui-guidelines.md** — design tokens (color, spacing, typography), component layers (Atomic Design), responsive breakpoints, accessibility rules (WCAG 2.1 AA), and loading/error/empty state requirements.
 
 ## Language Policy (MANDATORY)
 - Conversation with the developer may be in English or Spanish; respond in whichever
@@ -31,3 +34,12 @@
 - Feature branches: feature/<descriptive-name>  (branch names in English)
 - Never commit directly to main
 - Versioning: Semantic Versioning (SemVer) 2.0.0
+
+## Memory System
+- Persistent memory: this file (.github/copilot-instructions.md) holds foundational
+  principles and workflows.
+- Working memory: the .github/memory/ directory holds discoveries and patterns.
+- During active work, take notes in .github/memory/scratch/working-notes.md (not committed).
+- When a reusable pattern emerges, document it in .github/memory/patterns-discovered.md (committed).
+- At the end of a session, summarize key findings into .github/memory/session-notes.md (committed).
+- Reference these files when giving context-aware suggestions.
