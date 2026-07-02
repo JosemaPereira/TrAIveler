@@ -1,14 +1,15 @@
 <!--
 SYNC IMPACT REPORT
 ==================
-Version change: (none — initial ratification) → 1.0.0
-Modified principles: N/A (first version)
-Added sections: Core Principles, Technology Stack, Development Workflow, Governance
-Removed sections: N/A
+Version change: 1.1.0 → 1.2.0
+Modified principles: none
+Added sections: Team Structure (new section before Team Collaboration)
+Modified sections: Team Collaboration → Pull Requests (review routing by role added)
+Removed sections: none
 Templates requiring updates:
   ✅ .specify/templates/plan-template.md — Constitution Check section is generic; no update required
-  ✅ .specify/templates/spec-template.md — no principle-driven mandatory sections need updating
-  ✅ .specify/templates/tasks-template.md — task categories (testing, linting, setup) align with principles
+  ✅ .specify/templates/spec-template.md — no impact; specs ownership already implicit in PM role
+  ✅ .specify/templates/tasks-template.md — no new task categories required
 Follow-up TODOs: none
 -->
 
@@ -106,6 +107,78 @@ constitutes a blocking defect.
 - Pull requests MUST have all tests passing and all lint checks clean before merge.
 - Quality gate order: lint → unit tests → integration tests → E2E tests.
 
+## Team Structure
+
+TrAIveler is developed by a team of four roles. Each role has a defined **primary ownership
+boundary** — the area of the codebase and process for which that role is the first decision-maker
+and required reviewer.
+
+| Role | Primary Ownership | Secondary Involvement |
+|------|------------------|----------------------|
+| **Frontend Engineer** | `frontend/`, design tokens, Playwright E2E tests | API contracts, accessibility review |
+| **Backend Engineer** | `backend/`, REST API contracts, business logic, unit/integration tests | CI pipeline for backend jobs |
+| **Infrastructure Engineer** | `infra/`, `.github/workflows/`, deployment pipelines, AWS resources | Backend Dockerfile, environment config (`.env.example`) |
+| **Product Manager (PM)** | `specs/`, `docs/functional-requirements.md`, user stories, acceptance criteria | Feature branch naming, spec quality reviews |
+
+**Ownership rules**:
+- A role's primary owner MUST be consulted before their ownership boundary is modified by another
+  role. Unilateral changes to another role's area are blocked.
+- Roles are not silos. Every engineer is encouraged to review and understand work outside their
+  boundary, but accountability follows the table above.
+- One person MAY hold multiple roles in a small team. In that case, a peer from any other role
+  fulfils the required review obligation.
+
+## Team Collaboration
+
+Good engineering is a team sport. These rules govern how work flows from idea to merged code and
+protect every contributor's time and focus.
+
+### Pull Requests
+
+- Every PR MUST receive at least one peer review and approval before it can be merged into `main`.
+- A PR author MUST NOT merge their own PR, except for emergency hotfixes — which MUST receive a
+  post-merge review within one working day.
+- PR descriptions MUST explain **why** the change is needed, not just what changed. Link to the
+  relevant spec (`specs/NNN-*/spec.md`) if one exists.
+- PRs MUST be kept small and focused on a single concern. A PR that touches more than one
+  unrelated concern MUST be split unless doing so would make the change incoherent.
+- Draft PRs are encouraged for work in progress. Convert to "Ready for Review" only when all CI
+  checks pass and the author considers the code complete.
+
+**Review routing by role**: Reviewers MUST be assigned according to the ownership boundaries
+defined in *Team Structure*. At minimum:
+
+| PR touches… | Required reviewer role |
+|-------------|------------------------|
+| `frontend/` | Frontend Engineer |
+| `backend/` | Backend Engineer |
+| `infra/` or `.github/workflows/` | Infrastructure Engineer |
+| `specs/` or `docs/functional-requirements.md` | Product Manager |
+| Multiple domains | One reviewer per affected role |
+
+If the author is the only person with a required role, they MUST request review from the
+next-closest role and document the exception in the PR description.
+
+### Code Reviews
+
+- Reviewers MUST verify compliance with all five Core Principles. A principle violation is a
+  blocking comment, not a suggestion.
+- Non-blocking feedback MUST be prefixed with `nit:` or `suggestion:` so the author can clearly
+  distinguish blocking from advisory comments.
+- Reviews MUST be completed within one working day of the "Ready for Review" status being set.
+  If a reviewer cannot meet this timeline, they MUST say so in the PR thread so the author can
+  request a different reviewer.
+- Approval means the reviewer accepts responsibility for the change landing in `main`. Rubber-stamp
+  approvals without reading the diff are a constitution violation.
+
+### Branch Hygiene
+
+- Branches MUST be deleted after merge. Stale branches older than 30 days with no open PR are
+  subject to deletion without notice.
+- Branches MUST be rebased (not merged) onto `main` before opening a PR to keep history linear
+  and readable.
+- Force-pushes to `main` are forbidden under all circumstances.
+
 ## Governance
 
 This constitution supersedes all other written or informal practices. Any conflict between this
@@ -124,4 +197,4 @@ blocking. Complexity that cannot be justified against Principle II (Simplicity) 
 For runtime development guidance refer to `docs/coding-guidelines.md`, `docs/testing-guidelines.md`,
 and `docs/ui-guidelines.md`.
 
-**Version**: 1.0.0 | **Ratified**: 2026-07-02 | **Last Amended**: 2026-07-02
+**Version**: 1.2.0 | **Ratified**: 2026-07-02 | **Last Amended**: 2026-07-02
