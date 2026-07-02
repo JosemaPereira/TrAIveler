@@ -34,3 +34,12 @@ Read the following files before generating code, tests, or UI for this project:
 - Feature branches: feature/<descriptive-name>  (branch names in English)
 - Never commit directly to main
 - Versioning: Semantic Versioning (SemVer) 2.0.0
+
+## Memory System
+- Persistent memory: this file (.github/copilot-instructions.md) holds foundational
+  principles and workflows.
+- Working memory: the .github/memory/ directory holds discoveries and patterns.
+- During active work, take notes in .github/memory/scratch/working-notes.md (not committed).
+- When a reusable pattern emerges, document it in .github/memory/patterns-discovered.md (committed).
+- At the end of a session, summarize key findings into .github/memory/session-notes.md (committed).
+- Reference these files when giving context-aware suggestions.
