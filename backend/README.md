@@ -31,7 +31,7 @@ The backend exposes a RESTful JSON API consumed by the frontend SPA. Its primary
 |---------|----------------|
 | Language | Go 1.24 |
 | HTTP router | `github.com/go-chi/chi/v5` |
-| Database driver | `github.com/jackc/pgx/v5` (PostgreSQL 16, no ORM) |
+| Database driver | `github.com/jackc/pgx/v5` (PostgreSQL 15.4, no ORM) |
 | Migrations | `github.com/pressly/goose/v3` |
 | Auth tokens | `github.com/golang-jwt/jwt/v5` (HTTP-only cookies) |
 | AI provider | `github.com/anthropics/anthropic-sdk-go` (streaming, multi-turn, tool-use) |
@@ -49,7 +49,7 @@ The backend exposes a RESTful JSON API consumed by the frontend SPA. Its primary
 ```
 backend/
 ├── cmd/
-│   └── server/
+│   └── api/
 │       └── main.go                   # Process entry point: wires config, DB, router, and starts server
 ├── internal/                         # Domain packages — not importable outside this module
 │   ├── auth/
@@ -144,10 +144,10 @@ docker compose up -d postgres
 
 # 2. Run database migrations
 cd backend
-go run ./cmd/migrate up
+goose -dir migrations postgres "$DATABASE_URL" up
 
 # 3. Start the API server
-go run ./cmd/server
+go run ./cmd/api
 ```
 
 API is available at `http://localhost:8080`. The `/healthz` endpoint confirms it is ready:
