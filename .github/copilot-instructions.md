@@ -43,3 +43,4 @@ Read the following files before generating code, tests, or UI for this project:
 - When a reusable pattern emerges, document it in .github/memory/patterns-discovered.md (committed).
 - At the end of a session, summarize key findings into .github/memory/session-notes.md (committed).
 - Reference these files when giving context-aware suggestions.
+- At the start of every session, read session-notes.md, patterns-discovered.md, and working-notes.md before doing any work.

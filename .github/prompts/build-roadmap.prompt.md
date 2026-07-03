@@ -20,6 +20,12 @@ Every roadmap task has a global stable ID: `<spec-number>-<source-task-id>`.
 - Example global ID: `001-T003`.
 This ID is what links a roadmap row to its source task AND to a future GitHub issue. It must never change for the same underlying task.
 
+## Task grouping (avoid backlog fragmentation)
+To prevent a bloated backlog of tiny tickets, tasks can be grouped into a single **work item** that becomes ONE issue. The roadmap has a human-owned `Group` column:
+- Tasks that share a `Group` value (e.g. `G-AUTH-1`) are handled by a single issue; the individual tasks become a checklist inside that issue.
+- A blank `Group` means the task is its own standalone work item (1 task = 1 issue).
+- Grouping is a human/PM decision curated in the roadmap. `/build-roadmap` NEVER auto-groups or ungroups; it only preserves whatever `Group` values already exist. Group tasks only when they share context, the same area, and are small enough that separate tickets would add noise. Do not group across different specs or across a dependency boundary that must be tracked separately.
+
 ## Step 1 — Discover sources
 - Find every spec task file: `specs/*/tasks.md`.
 - Record each spec's number, folder name, and human-readable title (from the spec's `spec.md` if available).
@@ -30,12 +36,12 @@ This ID is what links a roadmap row to its source task AND to a future GitHub is
 For each `tasks.md`, extract every task with: source task id, title/description, phase/grouping if present, `[P]` parallelizable flag, and intra-spec dependencies. Normalize into candidate rows keyed by the global stable ID.
 
 ## Step 3 — Load the existing roadmap (if any)
-If `docs/roadmap.md` exists, parse its task table into a map keyed by global stable ID, capturing BOTH source-derived fields and human-owned fields (Sprint, Priority, Status, Phase, Issue, Notes). If it does not exist, treat the existing set as empty and create the file in Step 5.
+If `docs/roadmap.md` exists, parse its task table into a map keyed by global stable ID, capturing BOTH source-derived fields and human-owned fields (Group, Sprint, Priority, Status, Phase, Issue, Notes). If it does not exist, treat the existing set as empty and create the file in Step 5.
 
 ## Step 4 — Reconcile (compute the diff)
 Classify every global ID:
 - **ADD** — present in a source `tasks.md`, absent from the roadmap. Insert a new row. Set source-derived fields from the source. Set human-owned fields to sensible defaults: Priority = inherit from spec/phase default or `TBD`, Status = `Backlog`, Issue = empty.
-- **UPDATE** — present in both, but source-derived fields (title or dependencies) changed. Refresh ONLY the source-derived fields. Preserve Sprint, Priority, Status, Phase override, Issue, and Notes exactly. Append a short note in a "Changed" log if the title materially changed.
+- **UPDATE** — present in both, but source-derived fields (title or dependencies) changed. Refresh ONLY the source-derived fields. Preserve Group, Sprint, Priority, Status, Phase override, Issue, and Notes exactly. Append a short note in a "Changed" log if the title materially changed.
 - **UNCHANGED** — present in both, source identical. Leave the row untouched.
 - **REMOVE** — present in the roadmap, no longer in any source (refined away). Do NOT hard-delete blindly:
   - If the task has NO Issue link and Status is `Backlog`/`TBD`: remove the row.
@@ -56,22 +62,23 @@ Produce a clean, human-readable AND machine-parseable file with this structure:
 Last reconciled: <YYYY-MM-DD>
 
 ## Legend
+- Group: shared value = tasks handled by ONE issue (checklist inside); empty = standalone (1 task = 1 issue)
 - Priority: P1 (critical) | P2 | P3 | TBD
 - Status: Backlog | Ready | In Progress | In Review | Done
-- Issue: link to the tracker issue once created (empty = not yet created)
+- Issue: link to the tracker issue once created (empty = not yet created). Grouped tasks share the same issue URL.
 
 ## Foundation phase (specs 001-00X)
 <!-- Ordered by cross-spec dependency: vision -> nfrs -> cloud/iac -> security -> architecture -> domain -->
 
 ### Spec 001 — <title>  (source: specs/001-*/tasks.md)
-| ID | Task | Sprint | Priority | Status | Depends on | Parallel | Issue | Notes |
-|----|------|--------|----------|--------|------------|----------|-------|-------|
-| 001-T001 | ... | - | P1 | Backlog | - | no | | |
+| ID | Task | Group | Sprint | Priority | Status | Depends on | Parallel | Issue | Notes |
+|----|------|-------|--------|----------|--------|------------|----------|-------|-------|
+| 001-T001 | ... | | - | P1 | Backlog | - | no | | |
 
 ## Feature phase
 ### Spec 00N — <title>  (source: specs/00N-*/tasks.md)
-| ID | Task | Sprint | Priority | Status | Depends on | Parallel | Issue | Notes |
-|----|------|--------|----------|--------|------------|----------|-------|-------|
+| ID | Task | Group | Sprint | Priority | Status | Depends on | Parallel | Issue | Notes |
+|----|------|-------|--------|----------|--------|------------|----------|-------|-------|
 
 ## Critical path
 <!-- Ordered list of the must-do-in-sequence tasks/specs derived from dependencies -->
