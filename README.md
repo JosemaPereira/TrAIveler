@@ -1,185 +1,86 @@
-# TrAIveler
+# TrAIveler ✈️
 
-> **Plan smarter trips. Discover hidden gems. Travel together.**
+> **Your AI travel companion for planning unforgettable trips**
 
-TrAIveler is an AI-powered web application that helps travelers generate, customize, and
-collaboratively refine travel itineraries. It turns an overwhelming planning process — researching
-destinations, sequencing visits, finding local food, and coordinating with companions — into a
-guided, personalized, and shareable experience.
-
-This project is the capstone of the AI Bootcamp at Slalom.
+_Capstone project for the AI Bootcamp at Slalom_
 
 ---
 
-## The Problem
+## Why TrAIveler?
 
-Planning a trip from scratch is time-consuming and fragmented. Travelers either over-plan (hours in
-spreadsheets) or under-plan (missing local gems). TrAIveler removes that friction by generating a
-coherent, day-by-day itinerary tailored to the traveler's style, experience level, and timeframe —
-with no prior knowledge of the destination required.
+Remember the last time you planned a trip? Hours lost in browser tabs, spreadsheets filling up with half-researched destinations, the nagging feeling that you're missing the _real_ local spots everyone raves about once they return. Planning shouldn't feel like work.
 
-## Core Value Proposition
-
-A traveler describes where they want to go and for how long. Through a **conversational,
-multi-turn AI flow**, the system asks targeted questions to understand their preferences, then
-produces a complete itinerary covering must-see attractions, off-the-beaten-path discoveries, local
-gastronomy, and inter-city logistics — which they can refine and share with companions.
+**TrAIveler transforms travel planning into a conversation.** Tell it where you want to go and for how long. It asks the right questions — your travel style, what excites you, whether you prefer hidden gems or iconic landmarks — then crafts a complete day-by-day itinerary with visits, local food recommendations, and logistics. No overwhelming research. No missed opportunities.
 
 ---
 
-## Project Status
+## The Experience
 
-**POC / MVP** — Currently in the planning and specification phase.
+### 🗣️ **Start with a conversation**
+"I want to explore Japan for 10 days." That's all you need. TrAIveler's AI guides you through a natural dialogue to understand your preferences, pace, and priorities.
 
-| Artifact | Status |
-|----------|--------|
-| Product vision & scope | ✅ Complete — [`specs/001-product-vision-scope/spec.md`](specs/001-product-vision-scope/spec.md) |
-| Implementation plan (001) | ✅ Complete — [`specs/001-product-vision-scope/plan.md`](specs/001-product-vision-scope/plan.md) |
-| Technology research (001) | ✅ Complete — [`specs/001-product-vision-scope/research.md`](specs/001-product-vision-scope/research.md) |
-| Data model | ✅ Complete — [`specs/001-product-vision-scope/data-model.md`](specs/001-product-vision-scope/data-model.md) |
-| REST API contract | ✅ Complete — [`specs/001-product-vision-scope/contracts/api.md`](specs/001-product-vision-scope/contracts/api.md) |
-| Task list — 001 (81 tasks) | ✅ Complete — [`specs/001-product-vision-scope/tasks.md`](specs/001-product-vision-scope/tasks.md) |
-| NFR & system constraints | ✅ Complete — [`specs/002-nfr-system-constraints/spec.md`](specs/002-nfr-system-constraints/spec.md) |
-| NFR implementation plan (002) | ✅ Complete — [`specs/002-nfr-system-constraints/plan.md`](specs/002-nfr-system-constraints/plan.md) |
-| NFR research (002) | ✅ Complete — [`specs/002-nfr-system-constraints/research.md`](specs/002-nfr-system-constraints/research.md) |
-| Task list — 002 (46 tasks) | ✅ Complete — [`specs/002-nfr-system-constraints/tasks.md`](specs/002-nfr-system-constraints/tasks.md) |
-| Project roadmap (127 tasks) | ✅ Complete — [`docs/roadmap.md`](docs/roadmap.md) |
-| Backend implementation | 🔲 Not started |
-| Frontend implementation | 🔲 Not started |
+### 🎯 **Get a personalized itinerary**
+Receive a complete plan tailored to your style — whether you're a gastronomy enthusiast hunting for authentic ramen shops, a sports lover seeking local stadiums, or an art devotee chasing hidden galleries. Every day includes must-see attractions _and_ off-the-beaten-path discoveries.
+
+### 🤝 **Travel together**
+Invite a travel companion to view your itinerary and suggest changes. Review their ideas, approve what fits, and keep everything in one place. No more group chat chaos or lost messages.
+
+### ✏️ **Refine as you go**
+Already have a list of places you want to visit? Share it. TrAIveler anchors your itinerary around them and fills the gaps with complementary suggestions. Edit, reorder, or add activities anytime.
 
 ---
 
-## MVP Scope
+## What's Inside (MVP)
 
-1. **User authentication + subscription** — account registration with a visible stub checkout flow;
-   basic plan (1 admin + 1 partner collaborator per subscription).
-2. **AI itinerary generation** — conversational multi-turn flow; free-form natural language input;
-   day-by-day plan with visits, food, logistics, and inter-city transfers.
-3. **Travel style personalization** — gastronomy, sports, technology, museums & art, film &
-   audiovisual media.
-4. **Itinerary customization** — add, edit, remove, and reorder destinations and activities.
-5. **Existing plan enrichment** — provide a list of places; AI anchors around them and fills gaps.
-6. **Collaboration** — admin invites one partner; partner submits suggestions; admin approves or
-   rejects; full suggestion history preserved.
+This first version focuses on the core planning experience:
 
-**Out of scope (MVP)**: real payment processing, native mobile apps, real-time booking, third-party
-map integrations (Google Maps, etc.), offline access, social feeds.
+- **Smart authentication** — secure sign-up with subscription management
+- **Conversational AI planning** — multi-turn dialogue that understands context and refines suggestions
+- **Travel style personalization** — gastronomy, sports, tech, museums, film & audiovisual
+- **Flexible itineraries** — add, edit, remove, and reorder destinations and activities
+- **Collaborative planning** — invite one companion to suggest changes; you approve or pass
+- **Anchor-based enrichment** — bring your own list of must-visit places; we build around them
 
 ---
 
-## Tech Stack
+## Built With Care
 
-| Layer | Technology |
-|-------|-----------|
-| Backend | Go 1.24, Chi router, pgx/v5 (PostgreSQL), Goose migrations, JWT (HTTP-only cookies) |
-| AI provider | Anthropic Claude (`anthropic-sdk-go`) — streaming, multi-turn, tool-use |
-| Frontend | React 19, TypeScript strict, React Router v7, TanStack Query v5, Zustand |
-| Testing | Go `testing` + testify + `net/http/httptest`; Vitest + RTL + MSW; Playwright E2E |
-| Database | PostgreSQL 16 |
-| Infrastructure | Docker + Docker Compose (local), single Linux instance |
+TrAIveler is crafted following modern development best practices:
 
----
+- **Go backend** powering a robust REST API with PostgreSQL
+- **React + TypeScript frontend** for a smooth, type-safe user experience
+- **Anthropic Claude** as the AI engine, delivering natural conversations and intelligent recommendations
+- **Test-driven development** ensuring every feature works reliably
+- **Accessibility-first design** meeting WCAG 2.1 AA standards
+- **Security by design** with prompt injection defense, secret scanning, and sanitized outputs
 
-## Planned Repository Structure
-
-```
-backend/          # Go 1.24 REST API
-  cmd/server/     # main entrypoint
-  internal/       # domain packages: auth, trip, itinerary, conversation, suggestion, subscription
-  pkg/            # shared middleware and response helpers
-  config/         # environment-based configuration
-  migrations/     # Goose SQL migration files
-
-frontend/         # React 19 + TypeScript SPA
-  src/
-    features/     # domain slices: auth, trips, itinerary, suggestions, subscription
-    components/   # Atomic Design layers: primitives, composites, features
-    pages/        # route-level page components
-    services/     # typed API client functions
-    styles/       # CSS custom property design tokens
-
-e2e/              # Playwright end-to-end test specs
-
-specs/            # Feature specifications, plans, research, data models, contracts
-  001-product-vision-scope/
-
-.github/
-  copilot-instructions.md   # project-wide AI coding standards
-  prompts/                  # reusable agent prompts
-  agents/                   # custom agent definitions
-```
+The entire codebase follows strict quality gates — automated linting, testing, and security checks run on every change.
 
 ---
 
-## Development Workflow
+## Current Status
 
-- **Branching**: all work on `feature/<descriptive-name>` branches — never commit directly to `main`.
-- **Commits**: [Conventional Commits](https://www.conventionalcommits.org/) in English (`feat:`, `fix:`, `chore:`, `docs:`, etc.).
-- **TDD**: Red → Green → Refactor, mandatory. Tests are written before implementation.
-- **Quality gates** (must pass before merge): `golangci-lint` (backend) · Prettier + ESLint (frontend) · unit tests · integration tests · E2E tests.
-- **Versioning**: [Semantic Versioning 2.0.0](https://semver.org/).
+🔨 **In active development** — Planning and architecture complete; implementation in progress.
+
+The project has comprehensive specifications covering product vision, technical design, data models, API contracts, and a detailed roadmap with 127 prioritized tasks. All foundational documentation is complete and ready to guide the build.
 
 ---
 
-## Key Design Decisions
+## The Vision
 
-| Topic | Decision |
-|-------|---------|
-| AI provider | Anthropic Claude — Go 1.24+ native SDK, first-class multi-turn support |
-| HTTP router | `go-chi/chi/v5` — idiomatic, net/http compatible, fully testable |
-| DB driver | `jackc/pgx/v5` — context-first, built-in connection pool, no ORM |
-| Auth | `golang-jwt/jwt/v5` in HTTP-only cookies (XSS-safe, CSRF-mitigated) |
-| Payment | Visible mock stub (always succeeds); same Go interface as real provider for post-MVP swap |
-| Collaboration | Suggest-then-approve: partner submits; admin approves/rejects; history never deleted |
-| Structured logging | `log/slog` (Go stdlib) — zero deps, JSON handler, context-scoped correlation IDs |
-| AI output sanitisation | `bluemonday` (Go) + React default JSX escaping — sanitise before DB storage |
-| Prompt injection defence | Pattern-based server-side deny-list (`prompt-rules.yml`) — zero AI cost per rejection |
-| Accessibility scanning | `@axe-core/playwright` + Lighthouse CI — WCAG 2.1 AA gated on every PR |
-| Secret scanning | `gitleaks` — runs on every commit and PR, blocks merge on any finding |
-
-See [`specs/001-product-vision-scope/research.md`](specs/001-product-vision-scope/research.md) and
-[`specs/002-nfr-system-constraints/research.md`](specs/002-nfr-system-constraints/research.md) for
-full rationale on every decision.
+TrAIveler starts as a web application for individual and small group travel planning. The long-term vision? A platform where travelers discover not just where to go, but _how_ to experience a destination authentically — through AI that learns from real journeys, local insights, and the hidden stories that make travel meaningful.
 
 ---
 
-## Non-Functional Requirements
+## Want to Know More?
 
-The system is governed by 26 measurable NFRs across 6 quality attributes. Key targets:
+This repository contains the full specification and implementation plan. If you're interested in the technical details, architecture decisions, or want to contribute, explore the `docs/` and `specs/` directories.
 
-| Attribute | Target | Validation |
-|-----------|--------|------------|
-| Performance | p95 API latency ≤ 500 ms at 100 RPS; LCP ≤ 2.5 s | k6 load test + Lighthouse CI |
-| Scalability | 500 concurrent users sustained for 10 min without degradation | k6 500-VU load test on staging |
-| Availability | ≥ 99.5% monthly uptime; RPO ≤ 24 h | Uptime monitoring + daily backup |
-| Accessibility | WCAG 2.1 AA on all pages; Lighthouse score ≥ 90 | axe-core in Playwright E2E + LHCI |
-| Security | Zero committed secrets; zero `gosec` high findings; prompt injection blocked | gitleaks + gosec + PromptValidator |
-| Maintainability | ≥ 80% line coverage for backend business logic and frontend shared components | go test -coverprofile + Vitest coverage |
-
-Full NFR catalogue: [`specs/002-nfr-system-constraints/spec.md`](specs/002-nfr-system-constraints/spec.md)
+**Key links:**
+- [Project Roadmap](docs/roadmap.md) — 127 tasks organized into clear phases
+- [Product Vision](specs/001-product-vision-scope/spec.md) — detailed feature scope and user stories
+- [Technical Decisions](specs/001-product-vision-scope/research.md) — rationale for every technology choice
 
 ---
 
-## Documentation
-
-| Document | Description |
-|----------|-------------|
-| [`specs/001-product-vision-scope/spec.md`](specs/001-product-vision-scope/spec.md) | Product vision, personas, MVP scope, success criteria |
-| [`specs/001-product-vision-scope/plan.md`](specs/001-product-vision-scope/plan.md) | Implementation plan, tech context, constitution check, project structure |
-| [`specs/001-product-vision-scope/research.md`](specs/001-product-vision-scope/research.md) | Technology decisions with rationale |
-| [`specs/001-product-vision-scope/data-model.md`](specs/001-product-vision-scope/data-model.md) | PostgreSQL schema for all 11 entities |
-| [`specs/001-product-vision-scope/contracts/api.md`](specs/001-product-vision-scope/contracts/api.md) | Full REST API contract (endpoints, request/response shapes) |
-| [`specs/001-product-vision-scope/quickstart.md`](specs/001-product-vision-scope/quickstart.md) | Local setup and end-to-end validation scenarios |
-| [`specs/001-product-vision-scope/tasks.md`](specs/001-product-vision-scope/tasks.md) | 81 dependency-ordered implementation tasks across 7 phases |
-| [`docs/functional-requirements.md`](docs/functional-requirements.md) | Normative functional requirements |
-| [`specs/002-nfr-system-constraints/spec.md`](specs/002-nfr-system-constraints/spec.md) | 26 measurable NFRs: performance, scalability, availability, accessibility, security, maintainability |
-| [`specs/002-nfr-system-constraints/plan.md`](specs/002-nfr-system-constraints/plan.md) | NFR implementation plan: observability middleware, prompt validator, CI gates |
-| [`specs/002-nfr-system-constraints/research.md`](specs/002-nfr-system-constraints/research.md) | NFR tool decisions: slog, bluemonday, k6, gitleaks, axe-core |
-| [`specs/002-nfr-system-constraints/data-model.md`](specs/002-nfr-system-constraints/data-model.md) | Operational schemas: StructuredLogEntry, HealthCheckResponse, PromptValidationRule |
-| [`specs/002-nfr-system-constraints/contracts/api.md`](specs/002-nfr-system-constraints/contracts/api.md) | NFR API contracts: GET /healthz, X-Request-ID convention, prompt rejection response |
-| [`specs/002-nfr-system-constraints/quickstart.md`](specs/002-nfr-system-constraints/quickstart.md) | 12 validation scenarios covering every NFR category |
-| [`specs/002-nfr-system-constraints/tasks.md`](specs/002-nfr-system-constraints/tasks.md) | 46 dependency-ordered NFR implementation tasks across 8 phases |
-| [`docs/roadmap.md`](docs/roadmap.md) | Consolidated project roadmap: 127 tasks across both specs, dependency-ordered |
-| [`docs/coding-guidelines.md`](docs/coding-guidelines.md) | Go and TypeScript formatting and style rules |
-| [`docs/testing-guidelines.md`](docs/testing-guidelines.md) | Three-layer testing strategy and coverage targets |
-| [`docs/ui-guidelines.md`](docs/ui-guidelines.md) | Design tokens, Atomic Design layers, accessibility rules |
+**Let's make travel planning joyful again.** 🌍

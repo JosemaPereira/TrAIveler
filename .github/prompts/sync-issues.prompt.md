@@ -18,11 +18,17 @@ Turn the consolidated roadmap into GitHub issues and keep them in sync. Read `do
 - Confirm the repo has a remote on GitHub (`gh repo view`). If not, stop and report.
 
 ## Step 1 — Parse the roadmap
-Read `docs/roadmap.md` and load every task row with: stable ID, task title, spec origin, Priority, Status, Depends on, Parallel, Issue, Notes. Also read the `## Archived / Removed` section.
+Read `docs/roadmap.md` and load every task row with: stable ID, task title, spec origin, Group, Priority, Status, Depends on, Parallel, Issue, Notes. Also read the `## Archived / Removed` section.
 
-## Step 2 — Classify each row
-- **TO CREATE** — `Issue` field is empty AND the row is not in Archived. These will become new issues.
-- **ALREADY TRACKED** — `Issue` field has a URL. Skip creation; only reconcile labels (Step 5).
+## Step 1b — Resolve work items (grouping)
+Collapse tasks into **work items** before creating anything, to avoid a fragmented backlog:
+- Tasks that share a non-empty `Group` value form ONE work item = ONE issue. The individual tasks become a checklist inside that single issue.
+- Tasks with an empty `Group` are standalone work items (1 task = 1 issue).
+- A work item is considered ALREADY TRACKED if any of its member rows already has an `Issue` URL; in that case, all members should share that same URL (fill in any blank members with it) — never open a second issue for the same group.
+
+## Step 2 — Classify each work item
+- **TO CREATE** — no member has an `Issue` URL AND not archived. Becomes one new issue.
+- **ALREADY TRACKED** — at least one member has an `Issue` URL. Skip creation; ensure all members share it; reconcile labels (Step 5).
 - **ARCHIVED** — in the Archived/Removed section with an `Issue` link. Candidate for closing (Step 6).
 
 ## Step 3 — Preview and confirm (MANDATORY)
@@ -38,18 +44,21 @@ For labels used below, create any that are missing (idempotent): `gh label creat
 - Phase: `foundation`, `feature`
 - Priority: `P1`, `P2`, `P3` (skip if `TBD`)
 
-## Step 5 — Create issues (only for TO CREATE rows)
-For each row to create, in roadmap order (foundation specs first, respecting `Depends on`):
-1. Build the issue body in English with this structure:
-   - A first line marker: `Stable-ID: <stable-id>` (used for matching on future runs).
-   - `Spec:` link/path to the source spec (e.g. `specs/001-*/spec.md`).
-   - `Task:` the task description.
-   - `Depends on:` the stable IDs from the roadmap. If those dependencies already have issue URLs, reference them so the relationship is visible.
-   - `Acceptance:` a short line pointing to the spec's acceptance criteria if available.
-2. Create the issue:
-   `gh issue create --title "<stable-id> — <task title>" --body "<body>" --label "<labels>"`
+## Step 5 — Create issues (one per TO CREATE work item)
+For each work item to create, in roadmap order (foundation specs first, respecting `Depends on`):
+1. Build the issue body in English:
+   - **Standalone task**: first line `Stable-ID: <stable-id>`, then `Spec:`, `Task:`, `Depends on:` (reference dependency issue URLs if they exist), `Acceptance:`.
+   - **Grouped work item**: first line `Group-ID: <group>` followed by `Stable-IDs: <id1>, <id2>, ...` (both used for matching on future runs). Then `Spec:` and a Markdown task-list checklist, one line per member task:
+     ```
+     - [ ] <stable-id>: <task description>
+     ```
+     Add the union of the members' `Depends on` and an `Acceptance:` reference.
+2. Create ONE issue for the work item:
+   `gh issue create --title "<title>" --body "<body>" --label "<labels>"`
+   - Title for standalone: `<stable-id> — <task title>`.
+   - Title for group: `<group> — <short group summary>`.
 3. Capture the returned issue URL.
-4. Write that URL back into the `Issue` column of the corresponding row in `docs/roadmap.md`.
+4. Write that URL back into the `Issue` column of EVERY member row of the work item in `docs/roadmap.md` (grouped tasks all share the same URL).
 
 Do not batch-create silently: create sequentially and keep the roadmap write-back in step, so an interruption never loses track of what was already created.
 
