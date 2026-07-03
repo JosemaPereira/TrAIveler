@@ -4,7 +4,7 @@
 > titles, and dependencies is `specs/*/tasks.md`. Priority, Status, Phase, Issue, and
 > Notes are human-owned and preserved across runs. Do not hand-edit the stable IDs.
 
-**Last reconciled**: 2026-07-03 (updated with spec 004)
+**Last reconciled**: 2026-07-03 (updated with spec 005)
 
 ## Legend
 
@@ -534,9 +534,184 @@
 
 ---
 
+### Spec 005 — System Architecture and Technology Stack &nbsp; `specs/005-system-architecture/tasks.md`
+
+> Cross-spec note: Architecture implementation establishes foundations for all subsequent feature work.
+> Backend patterns align with 001/002 application code. Frontend integrates design tokens and accessibility
+> requirements from 002. Infrastructure modules depend on 003 cloud strategy decisions. Integration patterns
+> unify error handling across all layers.
+
+#### Phase 1 — Setup (Project Initialization)
+
+| ID | Task | Group | Sprint | Priority | Status | Depends on | Parallel | Issue | Notes |
+|----|------|-------|--------|----------|--------|------------|----------|-------|-------|
+| 005-T001 | Create backend directory structure per plan.md: backend/{cmd/api,internal/{middleware,database,ai,errors},pkg,config,migrations,tests/{integration,fixtures}} | | | P1 | Backlog | - | no | | |
+| 005-T002 | Create frontend directory structure per plan.md: frontend/src/{components/{primitives,composites},features,hooks,lib,stores,styles,routes} | G-ARCH-SETUP-DIRS | | P1 | Backlog | - | yes | | |
+| 005-T003 | Create e2e directory structure: e2e/{tests,fixtures,playwright.config.ts} | G-ARCH-SETUP-DIRS | | P1 | Backlog | - | yes | | |
+| 005-T004 | Create infrastructure directory structure: infra/{modules/{vpc,ecs,rds,alb,cloudfront,secrets},environments} | G-ARCH-SETUP-DIRS | | P1 | Backlog | - | yes | | |
+| 005-T005 | Initialize Go module in backend/go.mod with Go 1.24+ and core dependencies (Chi, pgx/v5, goose/v3, google/uuid, log/slog) | | | P1 | Backlog | 005-T001 | no | | |
+| 005-T006 | Initialize React project in frontend/ with Vite, TypeScript strict mode, and core dependencies (TanStack Query v5, Zustand, React Router v7, Lucide React) | G-ARCH-SETUP-INIT | | P1 | Backlog | 005-T002 | yes | | |
+| 005-T007 | Initialize E2E project in e2e/ with Playwright and axe-core dependencies | G-ARCH-SETUP-INIT | | P1 | Backlog | 005-T003 | yes | | |
+| 005-T008 | Create backend/.env.example with required environment variables (DATABASE_URL, HTTP_PORT, LOG_LEVEL, ANTHROPIC_API_KEY) | G-ARCH-SETUP-CONFIG | | P1 | Backlog | 005-T001 | yes | | |
+| 005-T009 | Create frontend/.env.example with VITE_API_BASE_URL variable | G-ARCH-SETUP-CONFIG | | P1 | Backlog | 005-T002 | yes | | |
+| 005-T010 | Create backend/README.md with quickstart instructions, directory structure explanation, and development workflow | G-ARCH-SETUP-DOCS | | P1 | Backlog | 005-T001 | yes | | |
+| 005-T011 | Create frontend/README.md with development server instructions, component guidelines, and testing commands | G-ARCH-SETUP-DOCS | | P1 | Backlog | 005-T002 | yes | | |
+| 005-T012 | Create infra/README.md with Terraform initialization instructions and environment deployment guide | G-ARCH-SETUP-DOCS | | P1 | Backlog | 005-T004 | yes | | |
+
+#### Phase 2 — Foundational (Blocking Prerequisites)
+
+| ID | Task | Group | Sprint | Priority | Status | Depends on | Parallel | Issue | Notes |
+|----|------|-------|--------|----------|--------|------------|----------|-------|-------|
+| 005-T013 | Create backend/config/config.go with configuration struct and environment variable loading using os.Getenv with validation | | | P1 | Backlog | 005-T001 | no | | |
+| 005-T014 | Create backend/Dockerfile with multi-stage build (builder stage with Go 1.24+, runtime stage with minimal Alpine) | G-ARCH-FOUNDATIONAL-DOCKER | | P1 | Backlog | 005-T001 | yes | | |
+| 005-T015 | Create .gitignore files for backend/ (exclude vendor/, .env, binary), frontend/ (exclude node_modules/, dist/, .env), and infra/ (exclude .terraform/, *.tfstate) | G-ARCH-FOUNDATIONAL-DOCKER | | P1 | Backlog | 005-T001 | yes | | |
+| 005-T016 | Create docker-compose.yml for local development with PostgreSQL 15.4 service and backend service configuration | G-ARCH-FOUNDATIONAL-DOCKER | | P1 | Backlog | 005-T001 | yes | | |
+| 005-T017 | Create .github/workflows/backend-ci.yml skeleton (lint, test, build jobs without full implementation) | G-ARCH-FOUNDATIONAL-CI | | P1 | Backlog | 005-T001 | yes | | |
+| 005-T018 | Create .github/workflows/frontend-ci.yml skeleton (lint, test, build, accessibility jobs without full implementation) | G-ARCH-FOUNDATIONAL-CI | | P1 | Backlog | 005-T002 | yes | | |
+| 005-T019 | Create .github/workflows/infra-plan.yml skeleton (validate, format check, plan jobs) | G-ARCH-FOUNDATIONAL-CI | | P1 | Backlog | 005-T004 | yes | | |
+| 005-T020 | Configure golangci-lint in backend/.golangci.yml with required linters (errcheck, govet, staticcheck, revive, gosec) | | | P1 | Backlog | 005-T001 | yes | | |
+| 005-T021 | Configure ESLint and Prettier in frontend/ with TypeScript strict mode rules and no-any enforcement | | | P1 | Backlog | 005-T002 | yes | | |
+| 005-T022 | Create infra/backend.tf with S3 backend configuration for remote state (bucket: traveler-terraform-state, DynamoDB table: traveler-terraform-locks) | | | P1 | Backlog | 005-T004 | yes | | |
+| 005-T023 | Create infra/versions.tf with Terraform >= 1.5 and AWS provider ~> 5.0 version constraints | | | P1 | Backlog | 005-T004 | yes | | |
+
+#### Phase 3 — User Story 1: Backend Service Architecture (Priority: P1) 🎯 MVP
+
+| ID | Task | Group | Sprint | Priority | Status | Depends on | Parallel | Issue | Notes |
+|----|------|-------|--------|----------|--------|------------|----------|-------|-------|
+| 005-T024 | Create backend/internal/middleware/request_id.go implementing UUID v4 generation, context injection, and X-Request-ID response header | G-ARCH-BACKEND-MIDDLEWARE | | P1 | Backlog | 005-T013 | yes | | |
+| 005-T025 | Create backend/internal/middleware/logger.go using log/slog for structured JSON logging with method, path, status, duration, correlation ID | G-ARCH-BACKEND-MIDDLEWARE | | P1 | Backlog | 005-T013 | yes | | |
+| 005-T026 | Create backend/internal/middleware/recovery.go implementing panic recovery with stack trace logging and 500 response | G-ARCH-BACKEND-MIDDLEWARE | | P1 | Backlog | 005-T013 | yes | | |
+| 005-T027 | Create backend/internal/middleware/cors.go with configurable allowed origins from environment variable | G-ARCH-BACKEND-MIDDLEWARE | | P1 | Backlog | 005-T013 | yes | | |
+| 005-T028 | Create backend/internal/middleware/body_size.go limiting request body to 10 MB with 413 response on violation | G-ARCH-BACKEND-MIDDLEWARE | | P1 | Backlog | 005-T013 | yes | | |
+| 005-T029 | Create backend/internal/database/client.go implementing pgx connection pool with min 5, max 25 connections, health check (Ping), and graceful closure | | | P1 | Backlog | 005-T013 | yes | | |
+| 005-T030 | Create backend/internal/ai/client.go defining AIClient interface with GenerateItinerary and StreamItinerary methods | G-ARCH-BACKEND-AI | | P1 | Backlog | 005-T013 | yes | | |
+| 005-T031 | Create backend/internal/ai/validator.go implementing prompt validation stub (to be enhanced with injection detection rules later) | G-ARCH-BACKEND-AI | | P1 | Backlog | 005-T013 | yes | | |
+| 005-T032 | Create backend/internal/ai/sanitizer.go implementing output sanitization stub (HTML/script stripping to be enhanced later) | G-ARCH-BACKEND-AI | | P1 | Backlog | 005-T013 | yes | | |
+| 005-T033 | Create backend/internal/errors/handler.go implementing domain error-to-HTTP status mapping (404, 400, 401, 403, 409, 500) with structured JSON responses | G-ARCH-BACKEND-ERRORS | | P1 | Backlog | 005-T013 | yes | | |
+| 005-T034 | Create backend/internal/errors/types.go defining domain error types (ErrNotFound, ErrValidation, ErrUnauthorized, ErrForbidden, ErrConflict) | G-ARCH-BACKEND-ERRORS | | P1 | Backlog | 005-T013 | yes | | |
+| 005-T035 | Create backend/cmd/api/main.go implementing HTTPServer with Chi router, middleware chain registration (RequestID → Logger → Recovery → CORS → BodySize), health check endpoint, and graceful shutdown | | | P1 | Backlog | 005-T024, 005-T029 | no | | |
+| 005-T036 | Integrate backend/internal/database/client.go initialization in main.go with configuration from config package and connection pool lifecycle management | | | P1 | Backlog | 005-T035 | no | | |
+| 005-T037 | Add /healthz endpoint to main.go verifying database Ping() succeeds before returning 200 OK | | | P1 | Backlog | 005-T036 | no | | |
+| 005-T038 | Create backend/internal/example/model.go with sample domain model struct demonstrating naming conventions and field tags | G-ARCH-BACKEND-EXAMPLE | | P1 | Backlog | 005-T013 | yes | | |
+| 005-T039 | Create backend/internal/example/repository.go implementing repository interface pattern with Create, FindByID, Update, Delete, List methods using pgx connection pool | G-ARCH-BACKEND-EXAMPLE | | P1 | Backlog | 005-T029 | yes | | |
+| 005-T040 | Create backend/internal/example/service.go implementing service interface pattern with business logic, repository dependency injection, and domain error returns | G-ARCH-BACKEND-EXAMPLE | | P1 | Backlog | 005-T039 | yes | | |
+| 005-T041 | Create backend/internal/example/handler.go implementing HTTP handler calling service layer, using errors.HandleError for error responses, and demonstrating context value extraction (requestID, userID) | | | P1 | Backlog | 005-T040 | no | | |
+
+#### Phase 4 — User Story 2: Frontend Application Structure (Priority: P1) 🎯 MVP
+
+| ID | Task | Group | Sprint | Priority | Status | Depends on | Parallel | Issue | Notes |
+|----|------|-------|--------|----------|--------|------------|----------|-------|-------|
+| 005-T042 | Create frontend/src/styles/tokens.css defining CSS custom properties for colors (primary, surface, text), spacing (sm, md, lg), typography (font-size-base, font-size-lg, font-weight-bold), border-radius (radius-md), and shadows (shadow-sm, shadow-md) | | | P1 | Backlog | 005-T002 | yes | | |
+| 005-T043 | Create frontend/src/styles/global.css importing tokens.css and setting base styles (font-family, box-sizing, CSS reset) | | | P1 | Backlog | 005-T042 | yes | | |
+| 005-T044 | Create frontend/src/lib/api-client.ts implementing fetch wrapper with base URL from env var, Content-Type and X-Request-ID headers, credentials include, and APIError class (status, message, requestId fields) | | | P1 | Backlog | 005-T002 | yes | | |
+| 005-T045 | Create frontend/src/lib/query-client.ts configuring TanStack Query defaults (staleTime: 5 min, retry: 1, refetchOnWindowFocus: false) | | | P1 | Backlog | 005-T002 | yes | | |
+| 005-T046 | Create frontend/src/stores/auth-store.ts implementing Zustand store with isAuthenticated, user, login, logout, refreshSession actions (no persistence for MVP - session storage can be added later) | | | P1 | Backlog | 005-T002 | yes | | |
+| 005-T047 | Create frontend/src/App.tsx wrapping application with QueryClientProvider from lib/query-client.ts and importing global.css | | | P1 | Backlog | 005-T043, 005-T045 | no | | |
+| 005-T048 | Create frontend/src/components/primitives/Button.tsx with variant prop (primary, secondary, danger), size prop (sm, md, lg), CSS Module styling using design tokens, and aria-label support | G-ARCH-FRONTEND-PRIMITIVES | | P1 | Backlog | 005-T042 | yes | | |
+| 005-T049 | Create frontend/src/components/primitives/Button.module.css referencing var(--color-primary), var(--space-md), var(--radius-md) from tokens.css | G-ARCH-FRONTEND-PRIMITIVES | | P1 | Backlog | 005-T042 | yes | | |
+| 005-T050 | Create frontend/src/components/primitives/Input.tsx with label, id, name, required props, CSS Module styling, and associated label for accessibility | G-ARCH-FRONTEND-PRIMITIVES | | P1 | Backlog | 005-T042 | yes | | |
+| 005-T051 | Create frontend/src/components/primitives/Card.tsx with children prop and CSS Module styling using var(--color-surface), var(--shadow-sm), var(--space-lg) | G-ARCH-FRONTEND-PRIMITIVES | | P1 | Backlog | 005-T042 | yes | | |
+| 005-T052 | Create frontend/src/components/primitives/LoadingSpinner.tsx with aria-label prop for screen readers | G-ARCH-FRONTEND-PRIMITIVES | | P1 | Backlog | 005-T042 | yes | | |
+| 005-T053 | Create frontend/src/components/primitives/ErrorMessage.tsx displaying error with retry button (optional onClick prop) | G-ARCH-FRONTEND-PRIMITIVES | | P1 | Backlog | 005-T042 | yes | | |
+| 005-T054 | Create frontend/src/components/primitives/EmptyState.tsx with message and optional action button | G-ARCH-FRONTEND-PRIMITIVES | | P1 | Backlog | 005-T042 | yes | | |
+| 005-T055 | Create frontend/src/components/composites/Form.tsx composing Button and Input primitives, handling onSubmit with loading state, error display, and validation error mapping | | | P1 | Backlog | 005-T048, 005-T050 | no | | |
+| 005-T056 | Create frontend/src/features/.gitkeep as placeholder (actual features will be added in subsequent specs) | | | P1 | Backlog | 005-T002 | yes | | |
+| 005-T057 | Create frontend/src/components/ErrorBoundary.tsx implementing React.Component error boundary with fallback UI showing error message and "Go Home" action | | | P1 | Backlog | 005-T002 | yes | | |
+| 005-T058 | Create frontend/src/routes/index.tsx defining React Router v7 routes configuration (root route returning simple "TrAIveler" heading as placeholder) | | | P1 | Backlog | 005-T002 | no | | |
+| 005-T059 | Update frontend/src/App.tsx to include RouterProvider with routes from routes/index.tsx | | | P1 | Backlog | 005-T047, 005-T058 | no | | |
+| 005-T060 | Wrap App.tsx with ErrorBoundary component | | | P1 | Backlog | 005-T057, 005-T059 | no | | |
+
+#### Phase 5 — User Story 3: Infrastructure as Code Foundations (Priority: P1) 🎯 MVP
+
+| ID | Task | Group | Sprint | Priority | Status | Depends on | Parallel | Issue | Notes |
+|----|------|-------|--------|----------|--------|------------|----------|-------|-------|
+| 005-T061 | Create infra/modules/vpc/main.tf defining aws_vpc resource with CIDR from var.vpc_cidr, enable_dns_hostnames, enable_dns_support | G-ARCH-INFRA-VPC | | P1 | Backlog | 005-T022 | yes | | |
+| 005-T062 | Add aws_subnet.public resources in infra/modules/vpc/main.tf creating 2 public subnets across 2 AZs with cidrsubnet() and count | G-ARCH-INFRA-VPC | | P1 | Backlog | 005-T022 | yes | | |
+| 005-T063 | Add aws_subnet.private resources in infra/modules/vpc/main.tf creating 2 private subnets across 2 AZs | G-ARCH-INFRA-VPC | | P1 | Backlog | 005-T022 | yes | | |
+| 005-T064 | Add aws_internet_gateway and aws_route_table resources for public subnet routing in infra/modules/vpc/main.tf | G-ARCH-INFRA-VPC | | P1 | Backlog | 005-T022 | yes | | |
+| 005-T065 | Add conditional NAT resource (aws_instance for staging, aws_nat_gateway for production) based on var.enable_nat_gateway in infra/modules/vpc/main.tf | G-ARCH-INFRA-VPC | | P1 | Backlog | 005-T022 | yes | | |
+| 005-T066 | Create infra/modules/vpc/variables.tf defining environment, vpc_cidr, availability_zones, enable_nat_gateway variables | | | P1 | Backlog | 005-T061 | no | | |
+| 005-T067 | Create infra/modules/vpc/outputs.tf exporting vpc_id, public_subnet_ids, private_subnet_ids | | | P1 | Backlog | 005-T066 | no | | |
+| 005-T068 | Add resource tagging in infra/modules/vpc/main.tf with Environment, ManagedBy, Project tags per FR-023 | | | P1 | Backlog | 005-T061 | no | | |
+| 005-T069 | Create infra/modules/ecs/main.tf defining aws_ecs_cluster resource | G-ARCH-INFRA-ECS | | P1 | Backlog | 005-T022 | yes | | |
+| 005-T070 | Add aws_ecs_task_definition in infra/modules/ecs/main.tf with ARM64 architecture, task_cpu and task_memory from variables, container definition with ECR image URL, environment variables, CloudWatch log configuration | G-ARCH-INFRA-ECS | | P1 | Backlog | 005-T022 | yes | | |
+| 005-T071 | Add aws_ecs_service in infra/modules/ecs/main.tf with desired_count, launch_type FARGATE, network_configuration using private subnets, load_balancer attachment to ALB target group, health_check_grace_period_seconds 60 | G-ARCH-INFRA-ECS | | P1 | Backlog | 005-T022 | yes | | |
+| 005-T072 | Add aws_appautoscaling_target and aws_appautoscaling_policy in infra/modules/ecs/main.tf for CPU-based target tracking at 70% with min_tasks and max_tasks from variables | G-ARCH-INFRA-ECS | | P1 | Backlog | 005-T022 | yes | | |
+| 005-T073 | Add aws_cloudwatch_log_group in infra/modules/ecs/main.tf with retention_in_days from variable | G-ARCH-INFRA-ECS | | P1 | Backlog | 005-T022 | yes | | |
+| 005-T074 | Add aws_security_group for ECS tasks in infra/modules/ecs/main.tf allowing ingress from ALB security group on port 8080 | G-ARCH-INFRA-ECS | | P1 | Backlog | 005-T022 | yes | | |
+| 005-T075 | Create infra/modules/ecs/variables.tf defining environment, vpc_id, private_subnet_ids, task_cpu, task_memory, min_tasks, max_tasks, log_retention_days, ecr_repository_url variables | | | P1 | Backlog | 005-T069 | no | | |
+| 005-T076 | Create infra/modules/ecs/outputs.tf exporting cluster_name, service_name, task_definition_family, log_group_name | | | P1 | Backlog | 005-T075 | no | | |
+| 005-T077 | Add resource tagging in infra/modules/ecs/main.tf with Environment, ManagedBy, Project tags | | | P1 | Backlog | 005-T069 | no | | |
+| 005-T078 | Create infra/modules/rds/main.tf defining aws_db_subnet_group using private subnets | G-ARCH-INFRA-RDS | | P1 | Backlog | 005-T022 | yes | | |
+| 005-T079 | Add aws_db_instance in infra/modules/rds/main.tf with engine postgresql, engine_version 15.4, instance_class from variable, allocated_storage 20, multi_az from variable, backup_retention_period from variable, backup_window 03:00-04:00, maintenance_window sun:04:00-sun:05:00 | G-ARCH-INFRA-RDS | | P1 | Backlog | 005-T022 | yes | | |
+| 005-T080 | Add aws_security_group for RDS in infra/modules/rds/main.tf allowing ingress from ECS security group on port 5432 | G-ARCH-INFRA-RDS | | P1 | Backlog | 005-T022 | yes | | |
+| 005-T081 | Add aws_secretsmanager_secret and aws_secretsmanager_secret_version in infra/modules/rds/main.tf for database credentials (username, password generated with random_password) | G-ARCH-INFRA-RDS | | P1 | Backlog | 005-T022 | yes | | |
+| 005-T082 | Create infra/modules/rds/variables.tf defining environment, vpc_id, private_subnet_ids, instance_class, multi_az, backup_retention_days, db_name variables | | | P1 | Backlog | 005-T078 | no | | |
+| 005-T083 | Create infra/modules/rds/outputs.tf exporting db_endpoint, db_name, db_secret_arn (marked sensitive) | | | P1 | Backlog | 005-T082 | no | | |
+| 005-T084 | Add resource tagging in infra/modules/rds/main.tf with Environment, ManagedBy, Project tags | | | P1 | Backlog | 005-T078 | no | | |
+| 005-T085 | Create infra/modules/alb/main.tf defining aws_lb resource with load_balancer_type application, subnets from public_subnet_ids, security_groups | G-ARCH-INFRA-ALB | | P1 | Backlog | 005-T022 | yes | | |
+| 005-T086 | Add aws_lb_target_group in infra/modules/alb/main.tf with target_type ip, port 8080, protocol HTTP, health_check path /healthz, interval 30, timeout 5, healthy_threshold 2, unhealthy_threshold 3 | G-ARCH-INFRA-ALB | | P1 | Backlog | 005-T022 | yes | | |
+| 005-T087 | Add aws_lb_listener for HTTPS (port 443) in infra/modules/alb/main.tf with ssl_policy, certificate_arn from variable, default_action forward to target group | G-ARCH-INFRA-ALB | | P1 | Backlog | 005-T022 | yes | | |
+| 005-T088 | Add aws_lb_listener for HTTP (port 80) in infra/modules/alb/main.tf with redirect action to HTTPS | G-ARCH-INFRA-ALB | | P1 | Backlog | 005-T022 | yes | | |
+| 005-T089 | Add aws_security_group for ALB in infra/modules/alb/main.tf allowing ingress on ports 80 and 443 from 0.0.0.0/0 | G-ARCH-INFRA-ALB | | P1 | Backlog | 005-T022 | yes | | |
+| 005-T090 | Create infra/modules/alb/variables.tf defining environment, vpc_id, public_subnet_ids, certificate_arn, ecs_security_group_id variables | | | P1 | Backlog | 005-T085 | no | | |
+| 005-T091 | Create infra/modules/alb/outputs.tf exporting alb_dns_name, alb_zone_id, target_group_arn | | | P1 | Backlog | 005-T090 | no | | |
+| 005-T092 | Add resource tagging in infra/modules/alb/main.tf with Environment, ManagedBy, Project tags | | | P1 | Backlog | 005-T085 | no | | |
+| 005-T093 | Create infra/modules/cloudfront/main.tf defining aws_s3_bucket for frontend builds with private ACL | G-ARCH-INFRA-CLOUDFRONT | | P1 | Backlog | 005-T022 | yes | | |
+| 005-T094 | Add aws_cloudfront_origin_access_identity and bucket policy in infra/modules/cloudfront/main.tf granting OAI read access to S3 | G-ARCH-INFRA-CLOUDFRONT | | P1 | Backlog | 005-T022 | yes | | |
+| 005-T095 | Add aws_cloudfront_distribution in infra/modules/cloudfront/main.tf with S3 origin, default_cache_behavior (viewer_protocol_policy redirect-to-https, allowed_methods GET HEAD OPTIONS), custom_error_response for SPA routing (404 → /index.html), aliases from domain_name variable, viewer_certificate with certificate_arn | G-ARCH-INFRA-CLOUDFRONT | | P1 | Backlog | 005-T022 | yes | | |
+| 005-T096 | Create infra/modules/cloudfront/variables.tf defining environment, domain_name, certificate_arn variables | | | P1 | Backlog | 005-T093 | no | | |
+| 005-T097 | Create infra/modules/cloudfront/outputs.tf exporting s3_bucket_name, cloudfront_distribution_id, cloudfront_domain_name | | | P1 | Backlog | 005-T096 | no | | |
+| 005-T098 | Add resource tagging in infra/modules/cloudfront/main.tf with Environment, ManagedBy, Project tags | | | P1 | Backlog | 005-T093 | no | | |
+| 005-T099 | Create infra/modules/secrets/main.tf defining aws_secretsmanager_secret resources for db_credentials, ai_api_key, jwt_signing_key (secrets created empty, values populated manually post-apply) | G-ARCH-INFRA-SECRETS | | P1 | Backlog | 005-T022 | yes | | |
+| 005-T100 | Create infra/modules/secrets/variables.tf defining environment variable | | | P1 | Backlog | 005-T099 | no | | |
+| 005-T101 | Create infra/modules/secrets/outputs.tf exporting db_secret_arn, ai_api_key_secret_arn, jwt_signing_key_secret_arn (all marked sensitive) | | | P1 | Backlog | 005-T100 | no | | |
+| 005-T102 | Create infra/main.tf calling vpc, ecs, rds, alb, cloudfront, secrets modules with dependency injection via module outputs | | | P1 | Backlog | 005-T067, 005-T076, 005-T083, 005-T091, 005-T097, 005-T101 | no | | |
+| 005-T103 | Create infra/variables.tf defining all root-level variables (environment, vpc_cidr, availability_zones, enable_nat_gateway, task_cpu, task_memory, min_tasks, max_tasks, log_retention_days, instance_class, multi_az, backup_retention_days, backend_domain, frontend_domain) | | | P1 | Backlog | 005-T102 | no | | |
+| 005-T104 | Create infra/outputs.tf exporting CI/CD-relevant outputs (ecr_repository_url, ecs_cluster_name, ecs_service_name, s3_bucket_name, cloudfront_distribution_id) | | | P1 | Backlog | 005-T103 | no | | |
+| 005-T105 | Create infra/environments/staging.tfvars with cost-optimized configuration (vpc_cidr 10.0.0.0/16, enable_nat_gateway false, task_cpu 256, task_memory 512, min_tasks 1, max_tasks 2, log_retention_days 7, instance_class db.t4g.micro, multi_az false, backup_retention_days 1) | | | P1 | Backlog | 005-T103 | yes | | |
+| 005-T106 | Create infra/environments/production.tfvars with production configuration (vpc_cidr 10.1.0.0/16, enable_nat_gateway true, task_cpu 1024, task_memory 2048, min_tasks 2, max_tasks 20, log_retention_days 30, instance_class db.t4g.small, multi_az true, backup_retention_days 30) | | | P1 | Backlog | 005-T103 | yes | | |
+| 005-T107 | Update .github/workflows/infra-plan.yml implementing terraform init, terraform validate, terraform fmt -check, terraform plan for both staging and production .tfvars, and PR comment with plan output | | | P1 | Backlog | 005-T019, 005-T104 | no | | |
+| 005-T108 | Create .github/workflows/infra-apply.yml implementing terraform apply -auto-approve for staging on main merge, with output export to GitHub Secrets for backend-ci.yml and frontend-ci.yml | | | P1 | Backlog | 005-T107 | no | | |
+| 005-T109 | Configure OIDC federation in AWS IAM (manual step documented in infra/README.md) creating IAM role with trust policy for GitHub Actions and permissions for Terraform operations | | | P1 | Backlog | 005-T108 | no | | |
+
+#### Phase 6 — User Story 4: Integration and Error Handling Patterns (Priority: P2)
+
+| ID | Task | Group | Sprint | Priority | Status | Depends on | Parallel | Issue | Notes |
+|----|------|-------|--------|----------|--------|------------|----------|-------|-------|
+| 005-T110 | Enhance backend/internal/errors/handler.go to extract correlation ID from context and include in all error responses | G-ARCH-INTEGRATION-BACKEND | | P2 | Backlog | 005-T033 | yes | | |
+| 005-T111 | Update backend/internal/middleware/logger.go to log all 5xx errors with stack trace and correlation ID for observability | G-ARCH-INTEGRATION-BACKEND | | P2 | Backlog | 005-T025 | yes | | |
+| 005-T112 | Create backend/internal/ai/anthropic.go implementing Anthropic SDK wrapper with exponential backoff retry (max 3 attempts), timeout configuration (60s non-streaming), and 429/503 error handling | G-ARCH-INTEGRATION-BACKEND | | P2 | Backlog | 005-T030 | yes | | |
+| 005-T113 | Update backend/internal/ai/client.go to use anthropic.go implementation and return service unavailable errors with Retry-After header on AI provider outages | | | P2 | Backlog | 005-T112 | no | | |
+| 005-T114 | Enhance frontend/src/lib/api-client.ts to include X-Request-ID in all requests using crypto.randomUUID() and extract requestId from error responses | G-ARCH-INTEGRATION-FRONTEND | | P2 | Backlog | 005-T044 | yes | | |
+| 005-T115 | Create frontend/src/hooks/useErrorHandler.ts custom hook handling common error scenarios (401 → redirect to login, 403 → show permission error, 404 → show not found, 500/503 → show retry) | G-ARCH-INTEGRATION-FRONTEND | | P2 | Backlog | 005-T044 | yes | | |
+| 005-T116 | Update frontend/src/components/primitives/ErrorMessage.tsx to display correlation ID when available in error responses | | | P2 | Backlog | 005-T053, 005-T115 | no | | |
+| 005-T117 | Create integration test scenario in backend/tests/integration/health_test.go verifying health check returns 200 OK with correlation ID header | G-ARCH-INTEGRATION-TESTS | | P2 | Backlog | 005-T037 | yes | | |
+| 005-T118 | Create integration test scenario in backend/tests/integration/error_test.go verifying database timeout returns 500 with correlation ID and structured error response | G-ARCH-INTEGRATION-TESTS | | P2 | Backlog | 005-T033 | yes | | |
+| 005-T119 | Document error handling patterns in backend/README.md and frontend/README.md with examples of domain error creation, error wrapping, and client error handling | | | P2 | Backlog | 005-T010, 005-T011, 005-T116 | no | | |
+
+#### Phase 7 — Polish & Cross-Cutting Concerns (Priority: P2-P3)
+
+| ID | Task | Group | Sprint | Priority | Status | Depends on | Parallel | Issue | Notes |
+|----|------|-------|--------|----------|--------|------------|----------|-------|-------|
+| 005-T120 | Update docs/architecture.md with final backend/frontend/infrastructure architecture diagrams and component descriptions from specs/005-system-architecture/ | G-ARCH-POLISH-DOCS | | P2 | Backlog | 005-T109 | yes | | |
+| 005-T121 | Update docs/coding-guidelines.md with Go import order (stdlib → external → internal), TypeScript import order (react → external → @/ → relative), and file naming conventions | G-ARCH-POLISH-DOCS | | P2 | Backlog | 005-T109 | yes | | |
+| 005-T122 | Update docs/testing-guidelines.md with backend testing patterns (service mocks, repository integration tests), frontend testing patterns (React Testing Library, MSW, axe-core) | G-ARCH-POLISH-DOCS | | P2 | Backlog | 005-T109 | yes | | |
+| 005-T123 | Update project root README.md with architecture overview, getting started instructions (Docker Compose local dev), and links to backend/frontend/infra READMEs | G-ARCH-POLISH-DOCS | | P2 | Backlog | 005-T109 | yes | | |
+| 005-T124 | Run all quickstart validation scenarios from specs/005-system-architecture/quickstart.md (Scenario 1: Backend skeleton, Scenario 2: Frontend scaffold, Scenario 3: Infrastructure plan, Scenario 4: E2E integration, Scenario 5: Accessibility) and document results | G-ARCH-POLISH-VALIDATION | | P3 | Backlog | 005-T060, 005-T109 | no | | |
+| 005-T125 | Validate golangci-lint passes with zero errors on backend code | G-ARCH-POLISH-VALIDATION | | P3 | Backlog | 005-T020, 005-T041 | yes | | |
+| 005-T126 | Validate ESLint and Prettier pass with zero errors on frontend code | G-ARCH-POLISH-VALIDATION | | P3 | Backlog | 005-T021, 005-T060 | yes | | |
+| 005-T127 | Validate terraform fmt check passes on all infra files | G-ARCH-POLISH-VALIDATION | | P3 | Backlog | 005-T109 | yes | | |
+| 005-T128 | Run backend unit tests and verify ≥ 80% coverage on example domain service and repository | G-ARCH-POLISH-VALIDATION | | P3 | Backlog | 005-T041 | yes | | |
+| 005-T129 | Run frontend component tests and verify primitives (Button, Input, Card) render correctly with design tokens | G-ARCH-POLISH-VALIDATION | | P3 | Backlog | 005-T060 | yes | | |
+| 005-T130 | Run axe-core accessibility audit on frontend and verify zero WCAG 2.1 AA violations | G-ARCH-POLISH-VALIDATION | | P3 | Backlog | 005-T060 | yes | | |
+| 005-T131 | Update specs/005-system-architecture/tasks.md marking all tasks complete and adding completion notes | | | P3 | Backlog | 005-T124 | no | | |
+
+---
+
 ## Feature Phase
 
-_No feature specs defined yet. Add specs 004+ here as they are created._
+_No feature specs defined yet. Add specs 006+ here as they are created._
 
 ---
 
@@ -544,43 +719,77 @@ _No feature specs defined yet. Add specs 004+ here as they are created._
 
 The minimum sequential chain to reach a fully functional, security-hardened, demo-able MVP:
 
+**REVISED PATH** — spec 005 architecture foundations now GATE all feature implementation:
+
 ```
-001-T001   Create monorepo root structure
-  ├─ 003-T001   Create infra/ directory structure (parallel foundational work)
-  │    └─ 003-T009   Bootstrap Terraform remote state
-  │         └─ 003-T010   Configure Terraform backend
-  │              └─ 003-T014–034   Build Terraform modules (VPC, ECS, RDS, ALB, S3+CF, IAM)
-  │                   └─ 003-T035–044   Wire modules in root + populate tfvars
-  │                        └─ 003-T045–047   Initialize secrets + wire into ECS
-  │                             └─ 003-T048–054   Create CI/CD workflows (Terraform, backend, frontend)
-  │                                  
-  └─ 001-T009   Create 8 DB migration files
-       └─ 001-T014   Implement User repository
-            └─ 001-T016   Implement auth service
-                 └─ 001-T021   Implement auth HTTP handlers
-                      └─ 001-T023   Scaffold Chi router (all routes + middleware)
-                           ├─ 002-T012   Register /healthz + wire RequestID/Logger middleware
-                           └─ 001-T033   Implement Trip + Day + Activity repository
-                                └─ 001-T035   Implement Trip service
-                                     └─ 001-T037   Implement Itinerary service (Claude streaming)
-                                          ├─ 002-T029   Wire PromptValidator into generation handler
-                                          └─ 001-T038   Implement Trip HTTP handlers
-                                               └─ 001-T040   Register trip/conversation routes
-                                                    └─ 001-T046   Implement TanStack Query hooks
-                                                         └─ 001-T047   Implement Generate page
-                                                              └─ 001-T050   E2E: full itinerary generation
-                                                                   └─ 003-T052   Deploy backend to ECS Fargate
-                                                                        └─ 003-T053   Deploy frontend to S3+CloudFront
+005-T001   Create project structure (backend/, frontend/, e2e/, infra/)
+  └─ 005-T013   Create backend config.go with env var loading
+       └─ 005-T014–023   Foundational (Docker, CI skeletons, gitignore, linting config)
+            └─ [PARALLEL ARCHITECTURE TRACKS]:
+                 ├─ 005-T024–041   Backend Architecture (middleware → database → AI client → HTTPServer → domain patterns)
+                 ├─ 005-T042–060   Frontend Architecture (design tokens → primitives → composites → routing)
+                 └─ 005-T061–109   Infrastructure Architecture (VPC → ECS → RDS → ALB → CloudFront → Secrets → CI/CD)
+                      └─ 005-T110–119   Integration Patterns (error correlation, retry logic, observability)
+                           └─ [FEATURE IMPLEMENTATION BEGINS]:
+                                ├─ 001-T009   Create 8 DB migration files
+                                │    └─ 001-T014   Implement User repository
+                                │         └─ 001-T016   Implement auth service
+                                │              └─ 001-T021   Implement auth HTTP handlers
+                                │                   └─ 001-T023   Scaffold Chi router (using 005 patterns)
+                                │                        ├─ 002-T012   Register /healthz + wire RequestID/Logger
+                                │                        └─ 001-T033   Implement Trip + Day + Activity repository
+                                │                             └─ 001-T035   Implement Trip service
+                                │                                  └─ 001-T037   Implement Itinerary service (Claude streaming)
+                                │                                       ├─ 002-T029   Wire PromptValidator
+                                │                                       └─ 001-T038   Implement Trip HTTP handlers
+                                │                                            └─ 001-T040   Register trip/conversation routes
+                                │                                                 └─ 001-T046   Implement TanStack Query hooks
+                                │                                                      └─ 001-T047   Implement Generate page
+                                │                                                           └─ 001-T050   E2E: full itinerary generation
+                                │
+                                ├─ 003-T001   Provision infra (execute Terraform modules from 005)
+                                │    └─ 003-T009   Bootstrap Terraform remote state
+                                │         └─ 003-T045–047   Initialize secrets + wire into ECS
+                                │              └─ 003-T052   Deploy backend to ECS Fargate
+                                │                   └─ 003-T053   Deploy frontend to S3+CloudFront
+                                │
+                                └─ 004-T001–075   Security implementation (JWT, RBAC, validation, logging)
 ```
 
-**Secondary critical paths** (branch from 001-T021):
-- **Infrastructure provisioning**: `003-T001 → 003-T009 → 003-T010 → ... → 003-T054` (enables deployment)
-- **Privacy / GDPR**: `001-T021 → 002-T032 → 002-T033`
-- **Collaboration**: `001-T050 → 001-T063 → 001-T065 → 001-T067 → 001-T069 → 001-T075`
-- **Accessibility CI gate**: `002-T002 → 002-T022 → 002-T023 → 002-T024`
-- **Security CI gates**: `001-T076 → 002-T034 → 002-T036 → 003-T067` and `001-T077 → 002-T035`
-- **Coverage gates**: `001-T078 → 002-T044` and `001-T079 → 002-T043`
-- **Infrastructure observability**: `003-T054 → 003-T055–064` (cost monitoring and CloudWatch dashboards)
+**Key Critical Path Changes:**
+
+1. **Architecture-First Gate**: Spec 005 Phase 2 (T013–T023, 11 tasks) is now a HARD BLOCKER. Nothing from 001-004 can begin until foundational configs, Docker, CI skeletons, and linting are in place.
+
+2. **Parallel Architecture Foundation** (after 005-T023):
+   - Backend: 18 tasks (005-T024–041) — middleware, database pooling, AI client interface, error handling
+   - Frontend: 19 tasks (005-T042–060) — design tokens, primitives, composites, routing
+   - Infrastructure: 49 tasks (005-T061–109) — Terraform modules for all AWS resources
+   - **Total**: 86 tasks can run in 3 parallel tracks (3 teams, ~2 sprints)
+
+3. **Integration Convergence**: 005-T110–119 (10 tasks) requires all 3 architecture tracks complete. Unifies error correlation, retry logic, and observability across all layers.
+
+4. **Feature Implementation Unlocked**: After 005-T119, feature work from specs 001-004 can proceed using established patterns:
+   - Backend domains follow `internal/example/` patterns (model, repository, service, handler)
+   - Frontend components follow Atomic Design (primitives → composites → features)
+   - Infrastructure provisioning executes pre-built Terraform modules
+   - Security integrates with established middleware/validation patterns
+
+**Secondary critical paths** (all now depend on 005 completion):
+- **Infrastructure provisioning**: `005-T109 → 003-T001 → 003-T009 → ... → 003-T053` (deploy to AWS)
+- **Privacy / GDPR**: `005-T041 → 001-T021 → 002-T032 → 002-T033` (user deletion)
+- **Collaboration**: `005-T041 → 001-T050 → 001-T063 → ... → 001-T075` (partner workflow)
+- **Accessibility CI gate**: `005-T018 → 002-T002 → 002-T022 → 002-T024` (axe-core + LHCI)
+- **Security CI gates**: `005-T017 → 001-T076 → 002-T034 → 002-T036 → 003-T067` (backend)
+- **Coverage gates**: `005-T017 → 001-T078 → 002-T044` (backend) and `005-T018 → 001-T079 → 002-T043` (frontend)
+- **Infrastructure observability**: `005-T109 → 003-T054 → 003-T055–064` (CloudWatch dashboards)
+
+**Estimated Timeline** (assuming 3-person team):
+- **Sprint 1**: Spec 005 Phase 1-2 (setup + foundational, 23 tasks) — 1-2 weeks
+- **Sprint 2-3**: Spec 005 Phase 3-5 (parallel architecture, 86 tasks across 3 tracks) — 3-4 weeks
+- **Sprint 4**: Spec 005 Phase 6-7 (integration + polish, 22 tasks) — 1 week
+- **Sprint 5+**: Feature implementation (specs 001-004, 331 tasks) — 8-12 weeks
+
+**Total time to first deployable MVP**: ~15-20 weeks with architecture-first approach
 
 ---
 
@@ -611,43 +820,120 @@ _No tasks archived on this run (first run; all tasks are ADD operations)._
 | 001 | `specs/001-product-vision-scope/` | ✅ yes | Active |
 | 002 | `specs/002-nfr-system-constraints/` | ✅ yes | Active |
 | 003 | `specs/003-cloud-env-strategy/` | ✅ yes | Active |
-| 004 | `specs/004-security-auth-model/` | ✅ yes | **NEW** |
+| 004 | `specs/004-security-auth-model/` | ✅ yes | Active |
+| 005 | `specs/005-system-architecture/` | ✅ yes | **NEW** |
 
 ### Change Counts
 
 | Operation | Count |
 |-----------|-------|
-| **ADD** | 132 (spec 004: all 132 tasks) |
+| **ADD** | 131 (spec 005: all 131 tasks) |
 | **UPDATE** | 0 |
-| **UNCHANGED** | 199 (001: 81 tasks, 002: 46 tasks, 003: 72 tasks) |
+| **UNCHANGED** | 331 (001: 81 tasks, 002: 46 tasks, 003: 72 tasks, 004: 132 tasks) |
 | **REMOVE** | 0 |
 | **ARCHIVED** | 0 |
-| **Structural** | Added 29 new groups for spec 004 tasks |
+| **Structural** | Added 23 new groups for spec 005 tasks |
 
-**Total tasks in roadmap**: 331 (was 199, added 132)  
-**Grouped tasks**: 234 (70.7% of total, forming 71 work items)  
-**Standalone tasks**: 97 (29.3% of total)
+**Total tasks in roadmap**: 462 (was 331, added 131)  
+**Grouped tasks**: 324 (70.1% of total, forming 94 work items)  
+**Standalone tasks**: 138 (29.9% of total)
 
-### New Grouping Summary (Spec 004)
+### New Grouping Summary (Spec 005)
 
 | Group ID | Tasks | Description |
 |----------|-------|-------------|
-| G-SEC-FRONTEND-STRUCTURE | 1 | Frontend security directory structure (004-T002) |
-| G-SEC-BACKEND-DEPS | 1 | Backend security dependencies (004-T003) |
-| G-SEC-FRONTEND-DEPS | 1 | Frontend security dependencies (004-T004) |
-| G-SEC-TEST-STRUCTURE | 1 | Security test directories (004-T005) |
-| G-SEC-DB-MIGRATIONS | 6 | Security-related database migrations (004-T006–011) |
-| G-SEC-CORE-UTILITIES | 3 | Core security utilities: password, correlation ID, logger (004-T012–014) |
-| G-SEC-JWT-TESTS | 3 | JWT generation/validation/rotation tests (004-T015–017) |
-| G-SEC-JWT-IMPL | 4 | JWT implementation (004-T018–021) |
-| G-SEC-AUTH-MIDDLEWARE-TESTS | 2 | Auth middleware integration tests (004-T022–023) |
-| G-SEC-AUTH-HANDLERS-TESTS | 4 | Auth handlers integration tests (004-T026–029) |
-| G-SEC-AUTH-HANDLERS-IMPL | 6 | Auth handlers implementation (004-T030–035) |
-| G-SEC-RBAC-TESTS | 2 | RBAC permission tests (004-T036–037) |
-| G-SEC-RBAC-IMPL | 2 | RBAC implementation (004-T038–039) |
-| G-SEC-VALIDATION-TESTS | 3 | Input validation security tests (004-T041–043) |
-| G-SEC-VALIDATION-IMPL | 4 | Input validation implementation (004-T044–047) |
-| G-SEC-PROMPT-TESTS | 2 | Prompt injection tests (004-T050–051) |
+| G-ARCH-SETUP-DIRS | 3 | Directory structure creation (005-T002–004) |
+| G-ARCH-SETUP-INIT | 2 | Project initialization (005-T006–007) |
+| G-ARCH-SETUP-CONFIG | 2 | Environment configuration (005-T008–009) |
+| G-ARCH-SETUP-DOCS | 3 | Area README creation (005-T010–012) |
+| G-ARCH-FOUNDATIONAL-DOCKER | 3 | Docker and gitignore (005-T014–016) |
+| G-ARCH-FOUNDATIONAL-CI | 3 | CI workflow skeletons (005-T017–019) |
+| G-ARCH-BACKEND-MIDDLEWARE | 5 | Backend middleware components (005-T024–028) |
+| G-ARCH-BACKEND-AI | 3 | AI client interface and stubs (005-T030–032) |
+| G-ARCH-BACKEND-ERRORS | 2 | Error handler and types (005-T033–034) |
+| G-ARCH-BACKEND-EXAMPLE | 3 | Domain pattern scaffolds (005-T038–040) |
+| G-ARCH-FRONTEND-PRIMITIVES | 7 | Frontend primitive components (005-T048–054) |
+| G-ARCH-INFRA-VPC | 5 | Terraform VPC module (005-T061–065) |
+| G-ARCH-INFRA-ECS | 6 | Terraform ECS module (005-T069–074) |
+| G-ARCH-INFRA-RDS | 4 | Terraform RDS module (005-T078–081) |
+| G-ARCH-INFRA-ALB | 5 | Terraform ALB module (005-T085–089) |
+| G-ARCH-INFRA-CLOUDFRONT | 3 | Terraform CloudFront module (005-T093–095) |
+| G-ARCH-INFRA-SECRETS | 1 | Terraform Secrets Manager module (005-T099) |
+| G-ARCH-INTEGRATION-BACKEND | 3 | Backend integration patterns (005-T110–112) |
+| G-ARCH-INTEGRATION-FRONTEND | 2 | Frontend integration patterns (005-T114–115) |
+| G-ARCH-INTEGRATION-TESTS | 2 | Integration test scenarios (005-T117–118) |
+| G-ARCH-POLISH-DOCS | 4 | Documentation updates (005-T120–123) |
+| G-ARCH-POLISH-VALIDATION | 7 | Validation tasks (005-T124–130) |
+
+### Cross-Spec Dependencies (Spec 005)
+
+Spec 005 establishes foundational architecture patterns that all subsequent feature work will build upon:
+
+| Type | Description |
+|------|-------------|
+| **Backend foundation** | 005-T001–041 establishes backend structure that 001 app code will populate |
+| **Frontend foundation** | 005-T002, 005-T042–060 establishes frontend structure that 001 UI features will populate |
+| **Infrastructure foundation** | 005-T004, 005-T061–109 establishes IaC modules that 003 will provision to AWS |
+| **Integration patterns** | 005-T110–119 unifies error handling across all layers established by 001–004 |
+| **NFR enablement** | 005-T024–025 (RequestID, Logger middleware) enables 002 observability requirements |
+| **Security enablement** | 005-T031–032 (prompt validator, output sanitizer stubs) will be enhanced by 004 security rules |
+
+**No blocking dependencies** — spec 005 is pure architecture setup that runs in parallel with or before feature implementation.
+
+### Human Attention Required
+
+| Item | Detail |
+|------|--------|
+| **New spec review** | Spec 005 (System Architecture and Technology Stack) added with 131 tasks. Review grouping and priorities. |
+| **Priority review** | All spec 005 priorities default to P1 (Phases 1-5 MVP architecture), P2 (Phase 6 Integration), P3 (Phase 7 Polish). Most tasks are P1 foundational work. |
+| **Status review** | All 131 new tasks default to `Backlog`. Mark Phase 1-2 tasks `Ready` to begin architecture implementation. |
+| **Issue column** | All 131 new spec 005 `Issue` fields are empty. **90 grouped tasks will form 23 issues** (with checklists); **41 standalone tasks will form 41 issues**. Total NEW issues: **64 issues** when `/sync-issues` runs. |
+| **Sprint column** | All spec 005 `Sprint` fields are empty. Populate during sprint planning. Recommend: Phase 1-2 (setup + foundational) in first sprint, Phases 3-5 (backend + frontend + infra) in parallel sprints 2-3, Phases 6-7 (integration + polish) in final sprint. |
+| **Parallel execution** | 66 of 131 tasks (50%) marked `[P]` in source — can run in parallel. Phase 3-5 user stories (Backend, Frontend, Infrastructure) are fully independent after Phase 2 completes. |
+| **Architecture-first approach** | Spec 005 establishes ALL foundational patterns before feature development. Once complete, specs 001-004 can implement features using these patterns. Consider completing 005 Phase 1-2 before starting feature work. |
+
+### Critical Path Changes
+
+- **New foundational gate**: Spec 005 Phase 2 (Foundational, tasks 005-T013–023) becomes a HARD BLOCKER for all user story implementation across ALL specs. No backend domain code (001), no frontend features (001), no infrastructure provisioning (003) until Phase 2 completes.
+- **Parallel architecture tracks**: After Phase 2, three independent tracks emerge:
+  1. **Backend track**: 005-T024–041 (18 tasks) establishes Go backend patterns
+  2. **Frontend track**: 005-T042–060 (19 tasks) establishes React SPA patterns
+  3. **Infrastructure track**: 005-T061–109 (49 tasks) establishes Terraform IaC patterns
+- **Integration convergence**: 005-T110–119 (Phase 6) requires all three tracks complete before unifying error handling and observability patterns.
+- **Revised MVP path**: The critical path now starts with architecture setup:
+  ```
+  005-T001 (setup)
+    → 005-T013–023 (foundational BLOCKER)
+      → [PARALLEL]:
+         - 005-T024–041 (backend architecture)
+         - 005-T042–060 (frontend architecture)
+         - 005-T061–109 (infrastructure architecture)
+      → 005-T110–119 (integration)
+        → [Feature implementation from 001-004 begins here]
+  ```
+
+### Next Steps
+
+1. **Review spec 005 grouping**: The 23 groups bundle 90 tasks into cohesive work items following domain boundaries (VPC, ECS, RDS, ALB, primitives, middleware, etc.). If any grouping doesn't align with team ownership, clear the `Group` value to split into standalone items.
+2. **Sprint planning**: Populate `Sprint` column for spec 005. Recommend sprint breakdown:
+   - **Sprint 1**: Phase 1-2 (T001–T023) — setup + foundational (BLOCKS everything)
+   - **Sprint 2-3**: Phase 3-5 (T024–T109) — backend + frontend + infra in parallel (86 tasks across 3 teams)
+   - **Sprint 4**: Phase 6-7 (T110–T131) — integration + polish (22 tasks)
+3. **Architecture-first decision**: Decide whether to complete spec 005 BEFORE starting feature work (001-004 implementation), or interleave them. Architecture-first recommended for clean separation and maximum parallel execution later.
+4. **Run `/sync-issues`**: This will create **64 new GitHub issues** for spec 005 (23 grouped + 41 standalone). Grouped issues will have checklists with member tasks. Use labels: `architecture`, `foundation`, `P1`/`P2`/`P3`.
+5. **Coordinate cross-spec work**: Spec 005 establishes patterns that 001-004 will consume. Ensure teams understand: middleware chain → 002 observability; AI client interface → 001 itinerary generation; design tokens → 001 UI components; Terraform modules → 003 AWS provisioning.
+6. **Re-run `/build-roadmap`**: When spec 005 `tasks.md` is modified or a new spec is added — the command preserves all `Group`, `Sprint`, `Priority`, `Status`, and `Issue` fields.
+
+---
+
+**Total project task count**: **462 tasks** across 5 foundation specs  
+**Grouped work items**: **94 issues** (combining 324 tasks)  
+**Standalone work items**: **138 issues**  
+**Total GitHub issues when synced**: **232 issues**
+
+---
+
+_End of reconciliation report. All human-owned fields preserved. Ready for sprint planning and `/sync-issues` execution._
 | G-SEC-PROMPT-IMPL | 2 | Prompt validation implementation (004-T052–053) |
 | G-SEC-SANITIZATION-TESTS | 2 | Output sanitization tests (004-T054–055) |
 | G-SEC-SANITIZATION-IMPL | 1 | Output sanitization implementation (004-T056) |

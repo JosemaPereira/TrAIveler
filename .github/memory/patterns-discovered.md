@@ -262,3 +262,55 @@ graph LR
 - `docs/testing-guidelines.md` (testing strategy pyramid)
 - `docs/ui-guidelines.md` (component hierarchy)
 - `docs/project-workflow.md` (kept arrow notation after Mermaid syntax errors)
+
+---
+
+### README Documentation Consistency (Multi-Area Pattern)
+
+### Context
+- Project documentation — area READMEs at `backend/`, `frontend/`, `e2e/`, `infra/`
+
+### Problem
+- In multi-area projects (backend, frontend, E2E, infrastructure), inconsistent README structures make it hard for new contributors to navigate. Some READMEs focus on architecture, others on commands, some have env vars, others don't — no uniform entry point.
+
+### Solution
+- Establish a standard README template for all project areas with these sections in order:
+  1. **Title + tagline** — area name, tech stack, one-line purpose
+  2. **Breadcrumb links** — `[← Back to root README] | [Spec X] | [Doc Y]`
+  3. **Responsibility** — 3-7 bullet points: what this area does, key workflows
+  4. **Tech Stack** — table format: `| Concern | Library / Tool |`
+  5. **Project Structure** — annotated tree with comments explaining each directory
+  6. **Prerequisites** — table format: `| Tool | Version | Check |`
+  7. **Environment Variables** — table: `| Variable | Required | Description |`
+  8. **Setup** — bash commands to initialize from scratch
+  9. **Development** — commands to run, test, lint, build
+  10. **Related Documentation** — table linking to specs and docs
+- Apply consistently across all areas; when adding a new area, copy the template structure
+- Root README should have a "Project Areas" section linking to all area READMEs
+
+### Example
+```markdown
+# backend
+
+> Go 1.24 REST API for TrAIveler — AI-powered travel itinerary generation.
+
+[← Back to root README](../README.md) | [Spec 001](../specs/001-product-vision-scope/spec.md)
+
+## Responsibility
+1. Authentication and subscription
+2. AI itinerary generation
+...
+
+## Tech Stack
+| Concern | Library / Tool |
+|---------|----------------|
+| Language | Go 1.24 |
+...
+```
+
+### Related Files
+- `README.md` (root — Project Areas section)
+- `backend/README.md`
+- `frontend/README.md`
+- `e2e/README.md`
+- `infra/README.md`
