@@ -91,3 +91,43 @@ Historical summaries of completed development sessions. Committed to git as a re
   - **GDPR-aware design**: chosen over full GDPR compliance program for POC. Minimum required: right-to-deletion endpoint (`DELETE /users/me`), data minimisation, privacy policy page linked from registration.
   - **Roadmap is idempotent**: `/build-roadmap` can be re-run whenever a new spec's `tasks.md` is added or modified; it adds/updates/archives without destroying human-owned fields (Priority, Status, Issue).
 - **Outcomes**: All spec 002 + roadmap + docs artifacts committed and pushed. PR #5 open against `main`. Implementation sequence: Phase 1 (T001–T005) → Phase 2 (T006–T012: observability core) → P1 stories (Performance, Accessibility, Security) in parallel.
+
+---
+
+### Session: Cloud Infrastructure, Foundation Promotion, and Documentation Enhancement
+- **Date**: 2026-07-03
+- **Branch**: `feature/003-cloud-env-strategy` (in progress)
+- **What was accomplished**:
+  - Created `specs/003-cloud-env-strategy/tasks.md` — 72 dependency-ordered infrastructure tasks across 8 phases covering AWS, Terraform IaC, ECS Fargate deployment, CI/CD with OIDC, secrets management, cost controls, and observability.
+  - Reconciled roadmap from 127 to 199 total tasks — added all spec 003 tasks with stable IDs (003-T001 through 003-T072), created 13 new task groups for infrastructure work, preserved all existing human-owned fields.
+  - **Foundation promotion workflow** — extracted durable decisions from specs 001-003 and promoted to persistent context:
+    - Created `docs/product-vision.md` — product identity, personas, MVP scope, out-of-scope list, roles/permissions (from spec 001)
+    - Created `docs/nfrs.md` — 38 measurable NFRs across 8 quality attributes (from spec 002)
+    - Created `docs/security.md` — authentication model, authorization roles, secrets management, PII handling, prompt injection/output sanitization (from specs 001-002)
+    - Created `docs/cloud-and-environments.md` — AWS strategy, 2-environment topology (staging active $200/mo, production dormant $300-400/mo), Terraform IaC, ECS Fargate rationale, CI/CD with OIDC (from spec 003)
+    - Created `docs/architecture.md` — system components, integration rules, security boundaries, observability strategy (from all specs)
+    - Updated `.specify/memory/constitution.md` to v1.3.0 — added mandated technology stack (AWS/Terraform/ECS/OIDC), environment strategy, prompt injection prevention (NON-NEGOTIABLE), output sanitization (NON-NEGOTIABLE), authorization enforcement
+    - Updated `.github/copilot-instructions.md` — added Documentation References section with 10 organized links (Product & Vision, Requirements & Constraints, Architecture & Infrastructure, Security & Authorization, Development Standards)
+  - **Documentation visual enhancements** — converted ASCII diagrams to Mermaid in 5 files:
+    - `docs/architecture.md` — component diagram with CloudFront → ALB → ECS → RDS/AI flow
+    - `docs/security.md` — authorization roles model (Admin vs Partner) and input validation/sanitization pipeline
+    - `docs/cloud-and-environments.md` — environment topology (staging vs production) and CI/CD pipeline workflow
+    - `docs/testing-guidelines.md` — three-layer testing strategy pyramid
+    - `docs/ui-guidelines.md` — Atomic Design component hierarchy
+    - Attempted Mermaid for `docs/project-workflow.md` but reverted due to syntax errors; kept original arrow notation
+  - Updated `README.md` — updated task count to 199, reorganized documentation links into 4 categories (planning/process, product/requirements, technical architecture, development standards), all links now point to promoted `docs/` files instead of deep spec paths
+- **Key findings and decisions**:
+  - **ECS Fargate chosen over Lambda** — AI workloads require unlimited execution time (multi-turn conversations exceed 15min Lambda limit), no payload size limits (large itineraries exceed 10MB), and persistent HTTP connections (connection pooling to Anthropic API)
+  - **2-environment strategy** — staging is active and cost-optimized ($200/mo: db.t4g.micro single-AZ, NAT instance, 7-day logs); production is IaC-defined but dormant until alpha ($300-400/mo: db.t4g.small Multi-AZ, NAT Gateway, 30-day logs)
+  - **OIDC for CI/CD** — GitHub Actions assumes AWS IAM roles via OpenID Connect federation; no long-lived credentials stored in GitHub Secrets
+  - **Foundation promotion as critical workflow** — promotes durable decisions from isolated specs into two places the whole project reads: constitution (non-negotiables) and docs/ (reference material wired into copilot-instructions.md). This ensures every future `/speckit.plan`, `/speckit.tasks`, and implementation inherits foundational context automatically without re-reading specs.
+  - **Mermaid diagram guidelines** — use Mermaid for true flow/architecture diagrams with multiple connected components; keep inline arrow notation (→) for simple command sequences in documentation; always validate syntax before committing
+  - **Roadmap reconciliation is idempotent** — `/build-roadmap` can be re-run after any spec tasks.md change; it ADDS new, UPDATES changed, preserves UNCHANGED, and REMOVES obsolete tasks while preserving all human-owned fields (Group, Sprint, Priority, Status, Issue, Notes)
+- **Outcomes**: 
+  - Spec 003 tasks file ready for implementation
+  - Roadmap updated to 199 tasks with infrastructure parallel track identified
+  - Constitution v1.3.0 with mandated AWS/Terraform/ECS stack and security rules
+  - 5 new promoted documentation files serving as project-wide reference
+  - Documentation enhanced with 5 Mermaid diagrams improving clarity
+  - README reorganized for better documentation discoverability
+  - All changes staged but not committed per project policy; ready for review and `/commit-and-push`

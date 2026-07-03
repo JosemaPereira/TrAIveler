@@ -4,7 +4,7 @@
 > titles, and dependencies is `specs/*/tasks.md`. Priority, Status, Phase, Issue, and
 > Notes are human-owned and preserved across runs. Do not hand-edit the stable IDs.
 
-**Last reconciled**: 2026-07-02
+**Last reconciled**: 2026-07-03
 
 ## Legend
 
@@ -244,9 +244,128 @@
 
 ---
 
+### Spec 003 — Cloud & Environments Strategy &nbsp; `specs/003-cloud-env-strategy/tasks.md`
+
+> Cross-spec note: This spec provisions infrastructure for application code defined in specs 001-002.
+> Tasks T067 and T070 extend CI workflow files created by 001-T076 and 001-T080.
+
+#### Phase 1 — Setup
+
+| ID | Task | Group | Sprint | Priority | Status | Depends on | Parallel | Issue | Notes |
+|----|------|-------|--------|----------|--------|------------|----------|-------|-------|
+| 003-T001 | Create top-level `infra/` directory with subdirectories: `terraform/`, `docker/`, `iam/`, `scripts/` | | | P1 | Backlog | - | no | | |
+| 003-T002 | Create Terraform root module structure: `main.tf`, `variables.tf`, `outputs.tf`, `terraform.tf` | G-INFRA-SETUP | | P1 | Backlog | 003-T001 | yes | | |
+| 003-T003 | Create Terraform workspace-specific variable files: `staging.tfvars`, `production.tfvars` | G-INFRA-SETUP | | P1 | Backlog | 003-T001 | yes | | |
+| 003-T004 | Create module directories: `modules/vpc/`, `modules/ecs/`, `modules/rds/`, `modules/alb/`, `modules/s3-cloudfront/`, `modules/iam/` | G-INFRA-SETUP | | P1 | Backlog | 003-T001 | yes | | |
+| 003-T005 | Install Terraform 1.5+ locally and verify version: `terraform version` | G-INFRA-TOOLS | | P1 | Backlog | 003-T001 | yes | | |
+| 003-T006 | Install AWS CLI 2.x and configure default region (us-east-1) | G-INFRA-TOOLS | | P1 | Backlog | 003-T001 | yes | | |
+| 003-T007 | Install Docker 24.x for backend container builds | G-INFRA-TOOLS | | P1 | Backlog | 003-T001 | yes | | |
+| 003-T008 | Add `infra/terraform/.gitignore` excluding: `*.tfstate`, `*.tfstate.backup`, `.terraform/`, `*.tfplan`, `*.tfvars` | G-INFRA-SETUP | | P1 | Backlog | 003-T001 | yes | | |
+
+#### Phase 2 — Foundational (Terraform State & OIDC Setup)
+
+| ID | Task | Group | Sprint | Priority | Status | Depends on | Parallel | Issue | Notes |
+|----|------|-------|--------|----------|--------|------------|----------|-------|-------|
+| 003-T009 | Create Terraform state bootstrap script: provisions S3 bucket (`trAIveler-terraform-state`) with versioning and encryption, DynamoDB table (`trAIveler-terraform-locks`) | | | P1 | Backlog | 003-T001 | no | | |
+| 003-T010 | Create Terraform backend configuration using S3 bucket and DynamoDB table from T009 | | | P1 | Backlog | 003-T009 | no | | |
+| 003-T011 | Create AWS provider configuration with default tags (Project, Environment, ManagedBy, CostCenter); region: us-east-1 | G-INFRA-TF-CONFIG | | P1 | Backlog | 003-T001 | yes | | |
+| 003-T012 | Create GitHub Actions OIDC trust policy JSON templates for staging and production environments | G-INFRA-TF-CONFIG | | P1 | Backlog | 003-T001 | yes | | |
+| 003-T013 | Create IAM OIDC identity provider Terraform module: configures GitHub OIDC provider in AWS, creates IAM roles for staging and production | | | P1 | Backlog | 003-T012 | no | | |
+
+#### Phase 3 — User Story 1: Infrastructure Provisioning & Environment Setup (Priority: P1) 🎯 MVP
+
+| ID | Task | Group | Sprint | Priority | Status | Depends on | Parallel | Issue | Notes |
+|----|------|-------|--------|----------|--------|------------|----------|-------|-------|
+| 003-T014 | Create VPC module: provisions VPC with CIDR from tfvars, 2 public subnets (ALB), 2 private subnets (ECS, RDS), internet gateway, route tables | G-INFRA-VPC-MODULE | | P1 | Backlog | 003-T009 | yes | | |
+| 003-T015 | Create VPC security groups: `alb-sg`, `ecs-sg`, `rds-sg` | G-INFRA-VPC-MODULE | | P1 | Backlog | 003-T009 | yes | | |
+| 003-T016 | Create VPC NAT resource: conditional NAT instance (staging) or NAT Gateway (production) | G-INFRA-VPC-MODULE | | P1 | Backlog | 003-T009 | yes | | |
+| 003-T017 | Define VPC module variables: `environment`, `vpc_cidr`, `availability_zones`, `nat_gateway_type` | G-INFRA-VPC-MODULE | | P1 | Backlog | 003-T009 | yes | | |
+| 003-T018 | Define VPC module outputs: `vpc_id`, `public_subnet_ids`, `private_subnet_ids`, security group IDs | G-INFRA-VPC-MODULE | | P1 | Backlog | 003-T009 | yes | | |
+| 003-T019 | Create ALB module: provisions Application Load Balancer in public subnets, HTTP/HTTPS listeners, target group for ECS | G-INFRA-ALB-MODULE | | P1 | Backlog | 003-T009 | yes | | |
+| 003-T020 | Define ALB module variables: `environment`, `vpc_id`, `public_subnet_ids`, `alb_security_group_id`, `certificate_arn` | G-INFRA-ALB-MODULE | | P1 | Backlog | 003-T009 | yes | | |
+| 003-T021 | Define ALB module outputs: `alb_arn`, `alb_dns_name`, `target_group_arn` | G-INFRA-ALB-MODULE | | P1 | Backlog | 003-T009 | yes | | |
+| 003-T022 | Create RDS module: provisions PostgreSQL 15.4 instance with environment-specific configuration | G-INFRA-RDS-MODULE | | P1 | Backlog | 003-T009 | yes | | |
+| 003-T023 | Define RDS module variables: `environment`, `instance_identifier`, `instance_class`, `vpc_id`, `private_subnet_ids`, security group, Multi-AZ, backup retention, database name, credentials | G-INFRA-RDS-MODULE | | P1 | Backlog | 003-T009 | yes | | |
+| 003-T024 | Define RDS module outputs: `endpoint`, `instance_id`, `database_name` | G-INFRA-RDS-MODULE | | P1 | Backlog | 003-T009 | yes | | |
+| 003-T025 | Create ECS module: provisions ECS cluster, task definition (Go backend container), ECS service with ALB integration, auto-scaling | G-INFRA-ECS-MODULE | | P1 | Backlog | 003-T009 | yes | | |
+| 003-T026 | Create ECS auto-scaling configuration: target tracking scaling policy (CPU 70%), cooldown periods, min/max capacity | G-INFRA-ECS-MODULE | | P1 | Backlog | 003-T009 | yes | | |
+| 003-T027 | Define ECS module variables: `environment`, `cluster_name`, `vpc_id`, `private_subnet_ids`, ALB target group ARN, security group, task sizing, capacity, ECR image URI, secret ARNs | G-INFRA-ECS-MODULE | | P1 | Backlog | 003-T009 | yes | | |
+| 003-T028 | Define ECS module outputs: `ecs_cluster_arn`, `ecs_service_name`, `task_definition_arn`, `service_arn` | G-INFRA-ECS-MODULE | | P1 | Backlog | 003-T009 | yes | | |
+| 003-T029 | Create S3+CloudFront module: provisions S3 bucket for frontend static assets with website hosting, CloudFront distribution | G-INFRA-CDN-MODULE | | P1 | Backlog | 003-T009 | yes | | |
+| 003-T030 | Define S3+CloudFront module variables: `environment`, `bucket_name`, `cloudfront_price_class` | G-INFRA-CDN-MODULE | | P1 | Backlog | 003-T009 | yes | | |
+| 003-T031 | Define S3+CloudFront module outputs: `s3_bucket_name`, `cloudfront_distribution_id`, `cloudfront_domain_name` | G-INFRA-CDN-MODULE | | P1 | Backlog | 003-T009 | yes | | |
+| 003-T032 | Create IAM module: provisions ECS task execution role, ECS task role, GitHub Actions roles | G-INFRA-IAM-MODULE | | P1 | Backlog | 003-T009 | yes | | |
+| 003-T033 | Define IAM module variables: `environment`, `ecr_repository_arn`, `secrets_manager_arns`, `s3_bucket_arns` | G-INFRA-IAM-MODULE | | P1 | Backlog | 003-T009 | yes | | |
+| 003-T034 | Define IAM module outputs: `ecs_task_execution_role_arn`, `ecs_task_role_arn`, `github_actions_role_arn` | G-INFRA-IAM-MODULE | | P1 | Backlog | 003-T009 | yes | | |
+| 003-T035 | Wire VPC module in root `main.tf`: call `modules/vpc` with staging/production-specific CIDR blocks and NAT type | | | P1 | Backlog | 003-T014 | no | | |
+| 003-T036 | Wire ALB module in root `main.tf`: call `modules/alb` with VPC outputs (public subnets, security group) | | | P1 | Backlog | 003-T019 | no | | |
+| 003-T037 | Wire RDS module in root `main.tf`: call `modules/rds` with VPC outputs and environment-specific instance class, Multi-AZ flag | | | P1 | Backlog | 003-T022 | no | | |
+| 003-T038 | Wire ECS module in root `main.tf`: call `modules/ecs` with VPC outputs, ALB target group ARN, environment-specific task sizing | | | P1 | Backlog | 003-T025 | no | | |
+| 003-T039 | Wire S3+CloudFront module in root `main.tf`: call `modules/s3-cloudfront` with environment-specific bucket name and CloudFront price class | | | P1 | Backlog | 003-T029 | no | | |
+| 003-T040 | Wire IAM module in root `main.tf`: call `modules/iam` with resource ARNs (ECR, Secrets Manager, S3) from other modules | | | P1 | Backlog | 003-T032 | no | | |
+| 003-T041 | Define root module variables: `environment`, `aws_region`, `vpc_cidr`, `availability_zones`, ECS task sizing, RDS config, NAT type, cost budget, tags | | | P1 | Backlog | 003-T035 | no | | |
+| 003-T042 | Define root module outputs: all outputs from modules (VPC, ALB, RDS, ECS, S3+CloudFront, IAM) | | | P1 | Backlog | 003-T035 | no | | |
+| 003-T043 | Populate `staging.tfvars` with staging-specific values: vpc_cidr, ECS task sizing, RDS instance class, NAT instance, cost budget | | | P1 | Backlog | 003-T041 | yes | | |
+| 003-T044 | Populate `production.tfvars` with production-specific values: vpc_cidr, ECS task sizing, RDS Multi-AZ, NAT Gateway, cost budget | | | P1 | Backlog | 003-T041 | yes | | |
+
+#### Phase 4 — User Story 2: Secrets & Configuration Management (Priority: P1)
+
+| ID | Task | Group | Sprint | Priority | Status | Depends on | Parallel | Issue | Notes |
+|----|------|-------|--------|----------|--------|------------|----------|-------|-------|
+| 003-T045 | Create secrets initialization script: uses AWS CLI to create secrets in Secrets Manager with naming pattern `${environment}/${service}/${secret_name}` | G-INFRA-SECRETS | | P1 | Backlog | 003-T009 | yes | | |
+| 003-T046 | Create Terraform data sources for Secrets Manager: reference existing secrets for database URL, Anthropic API key, JWT secret | G-INFRA-SECRETS | | P1 | Backlog | 003-T009 | yes | | |
+| 003-T047 | Update ECS task definition in T025 to reference secret ARNs from T046 in `secrets` block | | | P1 | Backlog | 003-T025, 003-T046 | no | | |
+
+#### Phase 5 — User Story 3: CI/CD Pipeline & Deployment Promotion (Priority: P1)
+
+| ID | Task | Group | Sprint | Priority | Status | Depends on | Parallel | Issue | Notes |
+|----|------|-------|--------|----------|--------|------------|----------|-------|-------|
+| 003-T048 | Create `terraform-plan.yml` GitHub Actions workflow: triggers on PR, validates Terraform, posts plan output | G-INFRA-TF-WORKFLOWS | | P1 | Backlog | 003-T010 | yes | | |
+| 003-T049 | Create `terraform-apply.yml` GitHub Actions workflow: auto-deploy staging on main merge, manual production deployment | G-INFRA-TF-WORKFLOWS | | P1 | Backlog | 003-T010 | yes | | |
+| 003-T050 | Create multi-stage Dockerfile for Go backend: stage 1 builds Go binary targeting `linux/arm64`, stage 2 uses alpine base | G-INFRA-DOCKER | | P1 | Backlog | 003-T001 | yes | | |
+| 003-T051 | Create `.dockerignore` for backend: excludes `*.md`, `tests/`, `.git/`, `.env*` | G-INFRA-DOCKER | | P1 | Backlog | 003-T001 | yes | | |
+| 003-T052 | Create `backend-deploy.yml` GitHub Actions workflow: builds Docker image for linux/arm64, pushes to ECR, updates ECS service | | | P1 | Backlog | 003-T050, 003-T013 | no | | |
+| 003-T053 | Create `frontend-deploy.yml` GitHub Actions workflow: builds React production bundle, syncs to S3, invalidates CloudFront | | | P1 | Backlog | 003-T013 | yes | | |
+| 003-T054 | Update ECS service configuration in T025 to enable deployment circuit breaker with automatic rollback | | | P1 | Backlog | 003-T025 | no | | |
+
+#### Phase 6 — User Story 4: Cost Monitoring & Budget Controls (Priority: P2)
+
+| ID | Task | Group | Sprint | Priority | Status | Depends on | Parallel | Issue | Notes |
+|----|------|-------|--------|----------|--------|------------|----------|-------|-------|
+| 003-T055 | Create AWS Budget Terraform resource for staging: monthly budget $200, alerts at 80% and 100%, SNS topic | G-INFRA-COST-MONITORING | | P2 | Backlog | 003-T009 | yes | | |
+| 003-T056 | Create AWS Budget Terraform resource for production: monthly budget $400, alerts at 80% and 100%, SNS topic | G-INFRA-COST-MONITORING | | P2 | Backlog | 003-T009 | yes | | |
+| 003-T057 | Verify all Terraform modules use default tags from provider: validate tags propagate to all resources | G-INFRA-COST-MONITORING | | P2 | Backlog | 003-T014 | no | | |
+| 003-T058 | Create AWS Config rule to enforce required tags: rule triggers on resource creation, fails if missing Project, Environment, ManagedBy tags | | | P2 | Backlog | 003-T009 | yes | | |
+
+#### Phase 7 — User Story 5: Infrastructure Observability & Health Monitoring (Priority: P2)
+
+| ID | Task | Group | Sprint | Priority | Status | Depends on | Parallel | Issue | Notes |
+|----|------|-------|--------|----------|--------|------------|----------|-------|-------|
+| 003-T059 | Create CloudWatch log groups for ECS tasks: `/ecs/trAIveler-backend-staging` (retention 7 days), `/ecs/trAIveler-backend-production` (retention 30 days) | G-INFRA-OBSERVABILITY | | P2 | Backlog | 003-T009 | yes | | |
+| 003-T060 | Create CloudWatch dashboard for staging: ECS task count, CPU/memory utilization, ALB request count, RDS metrics | G-INFRA-OBSERVABILITY | | P2 | Backlog | 003-T009 | yes | | |
+| 003-T061 | Create CloudWatch dashboard for production: same widgets as staging but for production resources | G-INFRA-OBSERVABILITY | | P2 | Backlog | 003-T009 | yes | | |
+| 003-T062 | Create CloudWatch metric alarm for ECS high CPU: triggers when staging ECS service CPU > 80% for 5 minutes, sends SNS notification | G-INFRA-OBSERVABILITY | | P2 | Backlog | 003-T009 | yes | | |
+| 003-T063 | Create CloudWatch metric alarm for RDS high connections: triggers when staging RDS connections > 80 for 5 minutes, sends SNS notification | G-INFRA-OBSERVABILITY | | P2 | Backlog | 003-T009 | yes | | |
+| 003-T064 | Create CloudWatch metric alarm for ALB unhealthy targets: triggers when staging ALB has 0 healthy targets for 2 minutes, sends SNS notification | G-INFRA-OBSERVABILITY | | P2 | Backlog | 003-T009 | yes | | |
+
+#### Phase 8 — Polish & Cross-Cutting Concerns (Priority: P2)
+
+| ID | Task | Group | Sprint | Priority | Status | Depends on | Parallel | Issue | Notes |
+|----|------|-------|--------|----------|--------|------------|----------|-------|-------|
+| 003-T065 | Add `tflint` configuration file: enables AWS plugin, sets minimum Terraform version 1.5.0 | G-INFRA-POLISH | | P2 | Backlog | 003-T001 | yes | | |
+| 003-T066 | Add `tfsec` configuration file: enables all HIGH severity checks, ignores known false positives | G-INFRA-POLISH | | P2 | Backlog | 003-T001 | yes | | |
+| 003-T067 | Extend `backend-lint.yml` workflow (from spec 001-T076) to include Docker linting: runs `hadolint infra/docker/backend/Dockerfile` | | | P2 | Backlog | 001-T076, 003-T050 | no | | Extends 001 workflow |
+| 003-T068 | Create infrastructure documentation README: overview of Terraform modules, quick start guide, links to contracts and research | G-INFRA-POLISH | | P2 | Backlog | 003-T001 | yes | | |
+| 003-T069 | Create Terraform module documentation: auto-generate module docs using `terraform-docs` for each module | G-INFRA-POLISH | | P2 | Backlog | 003-T014 | yes | | |
+| 003-T070 | Move backend Dockerfile from `backend/Dockerfile` (if exists from spec 001-T002) to `infra/docker/backend/Dockerfile` | | | P2 | Backlog | 001-T080, 003-T050 | no | | Relocates 001 artifact |
+| 003-T071 | Create `.editorconfig` for Terraform files: indent 2 spaces, trim trailing whitespace | G-INFRA-POLISH | | P2 | Backlog | 003-T001 | yes | | |
+| 003-T072 | Add pre-commit hook configuration: runs `terraform fmt` on staged `.tf` files | | | P2 | Backlog | 003-T001 | yes | | |
+
+---
+
 ## Feature Phase
 
-_No feature specs defined yet. Add specs 003+ here as they are created._
+_No feature specs defined yet. Add specs 004+ here as they are created._
 
 ---
 
@@ -256,6 +375,14 @@ The minimum sequential chain to reach a fully functional, security-hardened, dem
 
 ```
 001-T001   Create monorepo root structure
+  ├─ 003-T001   Create infra/ directory structure (parallel foundational work)
+  │    └─ 003-T009   Bootstrap Terraform remote state
+  │         └─ 003-T010   Configure Terraform backend
+  │              └─ 003-T014–034   Build Terraform modules (VPC, ECS, RDS, ALB, S3+CF, IAM)
+  │                   └─ 003-T035–044   Wire modules in root + populate tfvars
+  │                        └─ 003-T045–047   Initialize secrets + wire into ECS
+  │                             └─ 003-T048–054   Create CI/CD workflows (Terraform, backend, frontend)
+  │                                  
   └─ 001-T009   Create 8 DB migration files
        └─ 001-T014   Implement User repository
             └─ 001-T016   Implement auth service
@@ -271,14 +398,18 @@ The minimum sequential chain to reach a fully functional, security-hardened, dem
                                                     └─ 001-T046   Implement TanStack Query hooks
                                                          └─ 001-T047   Implement Generate page
                                                               └─ 001-T050   E2E: full itinerary generation
+                                                                   └─ 003-T052   Deploy backend to ECS Fargate
+                                                                        └─ 003-T053   Deploy frontend to S3+CloudFront
 ```
 
 **Secondary critical paths** (branch from 001-T021):
-- Privacy / GDPR: `001-T021 → 002-T032 → 002-T033`
-- Collaboration: `001-T050 → 001-T063 → 001-T065 → 001-T067 → 001-T069 → 001-T075`
-- Accessibility CI gate: `002-T002 → 002-T022 → 002-T023 → 002-T024`
-- Security CI gates: `001-T076 → 002-T034 → 002-T036` and `001-T077 → 002-T035`
-- Coverage gates: `001-T078 → 002-T044` and `001-T079 → 002-T043`
+- **Infrastructure provisioning**: `003-T001 → 003-T009 → 003-T010 → ... → 003-T054` (enables deployment)
+- **Privacy / GDPR**: `001-T021 → 002-T032 → 002-T033`
+- **Collaboration**: `001-T050 → 001-T063 → 001-T065 → 001-T067 → 001-T069 → 001-T075`
+- **Accessibility CI gate**: `002-T002 → 002-T022 → 002-T023 → 002-T024`
+- **Security CI gates**: `001-T076 → 002-T034 → 002-T036 → 003-T067` and `001-T077 → 002-T035`
+- **Coverage gates**: `001-T078 → 002-T044` and `001-T079 → 002-T043`
+- **Infrastructure observability**: `003-T054 → 003-T055–064` (cost monitoring and CloudWatch dashboards)
 
 ---
 
@@ -300,7 +431,7 @@ _No tasks archived on this run (first run; all tasks are ADD operations)._
 
 ## Reconciliation Report
 
-**Run date**: 2026-07-02
+**Run date**: 2026-07-03
 
 ### Specs Discovered
 
@@ -308,73 +439,74 @@ _No tasks archived on this run (first run; all tasks are ADD operations)._
 |------|--------|-------------|--------|
 | 001 | `specs/001-product-vision-scope/` | ✅ yes | Active |
 | 002 | `specs/002-nfr-system-constraints/` | ✅ yes | Active |
+| 003 | `specs/003-cloud-env-strategy/` | ✅ yes | **NEW** |
 
 ### Change Counts
 
 | Operation | Count |
 |-----------|-------|
-| **ADD** | 0 |
+| **ADD** | 72 (spec 003: all 72 tasks) |
 | **UPDATE** | 0 |
 | **UNCHANGED** | 127 (001: 81 tasks, 002: 46 tasks) |
 | **REMOVE** | 0 |
 | **ARCHIVED** | 0 |
-| **Structural** | Added `Group` and `Sprint` columns; applied 29 group assignments |
+| **Structural** | Added 13 new groups for spec 003 tasks |
 
-**Total tasks in roadmap**: 127  
-**Grouped tasks**: 75 (59% of total, forming 29 work items)  
-**Standalone tasks**: 52 (41% of total)
+**Total tasks in roadmap**: 199 (was 127, added 72)  
+**Grouped tasks**: 135 (67.8% of total, forming 42 work items)  
+**Standalone tasks**: 64 (32.2% of total)
 
-### Grouping Summary
+### New Grouping Summary (Spec 003)
 
 | Group ID | Tasks | Description |
 |----------|-------|-------------|
-| G-SETUP-INIT | 4 | Module initialization & linter setup (001-T002–T005) |
-| G-SETUP-TOOLS | 3 | Docker, env example, Makefile (001-T006–T008) |
-| G-BACKEND-CONFIG | 4 | Config, DB pool, PaymentProvider interface + stub (001-T010–T013) |
-| G-BACKEND-AUTH-REPOS | 2 | User + Plan/Subscription repositories (001-T014–T015) |
-| G-BACKEND-MIDDLEWARE | 3 | JWT, role-guard, JSON response helpers (001-T018–T020) |
-| G-FRONTEND-INFRA | 3 | API client, auth store, route guards (001-T025–T027) |
-| G-FRONTEND-AUTH-PAGES | 3 | Register, Checkout, Login pages (001-T029–T031) |
-| G-US1-REPOS | 2 | Trip + Conversation repositories (001-T033–T034) |
-| G-US1-HANDLERS | 2 | Trip + Conversation HTTP handlers (001-T038–T039) |
-| G-US1-COMPONENTS | 5 | TripCard, ActivityItem, DaySection, ConversationPanel, ItineraryView (001-T041–T045) |
-| G-US1-PAGES | 3 | Generate, Trip detail, Dashboard pages (001-T047–T049) |
-| G-US2-BACKEND | 3 | Travel style persistence + prompt injection (001-T053–T055) |
-| G-US3-BACKEND | 2 | Anchor mode detection + extraction (001-T058–T059) |
-| G-US4-REPOS | 2 | Collaborator + Suggestion repositories (001-T063–T064) |
-| G-US4-HANDLERS | 2 | Collaborator + Suggestion HTTP handlers (001-T067–T068) |
-| G-US4-COMPONENTS | 3 | SuggestionBubble, SuggestionQueue, CollaboratorInvite (001-T070–T072) |
-| G-CI-WORKFLOWS | 4 | Backend/frontend lint + test CI workflows (001-T076–T079) |
-| G-NFR-CONFIG | 4 | Axe, Lighthouse, prompt rules, gitleaks configs (002-T002–T005) |
-| G-OBS-REQUESTID | 2 | RequestID middleware + tests (002-T006–T007) |
-| G-OBS-LOGGER | 2 | Logger middleware + tests (002-T008–T009) |
-| G-OBS-HEALTHZ | 2 | Healthz endpoint + tests (002-T010–T011) |
-| G-PERF-K6-TESTS | 2 | k6 baseline + API latency tests (002-T013–T014) |
-| G-A11Y-PRIVACY-PAGE | 2 | PrivacyPolicyPage component + test (002-T017–T018) |
-| G-A11Y-PRIVACY-LINK | 2 | PrivacyPolicyLink component + test (002-T019–T020) |
-| G-SEC-PROMPT-VALIDATOR | 2 | PromptValidator + tests (002-T025–T026) |
-| G-SEC-OUTPUT-SANITIZER | 2 | OutputSanitizer + tests (002-T027–T028) |
-| G-SEC-USER-DELETION | 2 | DELETE /users/me + integration test (002-T032–T033) |
-| G-SEC-CI-GATES | 2 | Security CI extensions (gosec, npm audit) (002-T034–T035) |
-| G-OBS-VALIDATION | 3 | Observability integration tests (002-T037–T039) |
-| G-COVERAGE-FRONTEND | 2 | Vitest coverage config + script (002-T041–T042) |
-| G-NFR-POLISH | 2 | OWASP ZAP + backup policy (002-T045–T046) |
+| G-INFRA-SETUP | 4 | Terraform root structure, tfvars, module directories, gitignore (003-T002–004, 008) |
+| G-INFRA-TOOLS | 3 | Install Terraform, AWS CLI, Docker (003-T005–007) |
+| G-INFRA-TF-CONFIG | 2 | AWS provider config, OIDC trust policies (003-T011–012) |
+| G-INFRA-VPC-MODULE | 5 | VPC module: main, security groups, NAT, variables, outputs (003-T014–018) |
+| G-INFRA-ALB-MODULE | 3 | ALB module: main, variables, outputs (003-T019–021) |
+| G-INFRA-RDS-MODULE | 3 | RDS module: main, variables, outputs (003-T022–024) |
+| G-INFRA-ECS-MODULE | 4 | ECS module: cluster/service, auto-scaling, variables, outputs (003-T025–028) |
+| G-INFRA-CDN-MODULE | 3 | S3+CloudFront module: main, variables, outputs (003-T029–031) |
+| G-INFRA-IAM-MODULE | 3 | IAM module: roles, variables, outputs (003-T032–034) |
+| G-INFRA-SECRETS | 2 | Secrets initialization script, Terraform data sources (003-T045–046) |
+| G-INFRA-TF-WORKFLOWS | 2 | Terraform plan/apply GitHub Actions workflows (003-T048–049) |
+| G-INFRA-DOCKER | 2 | Backend Dockerfile and .dockerignore (003-T050–051) |
+| G-INFRA-COST-MONITORING | 3 | AWS Budgets, tag validation (003-T055–057) |
+| G-INFRA-OBSERVABILITY | 6 | CloudWatch log groups, dashboards, metric alarms (003-T059–064) |
+| G-INFRA-POLISH | 5 | tflint, tfsec, infra README, module docs, editorconfig (003-T065–066, 068–069, 071) |
+
+### Cross-Spec Dependencies (Spec 003)
+
+| Task | Depends on | Type | Description |
+|------|------------|------|-------------|
+| 003-T067 | 001-T076 | Extends | Adds Docker linting (`hadolint`) to backend-lint.yml workflow |
+| 003-T070 | 001-T080 | Relocates | Moves backend Dockerfile from `backend/` to `infra/docker/backend/` |
+| 003-T052 | 003-T050, 003-T013 | Deployment | Backend deploy workflow depends on Dockerfile and OIDC roles |
 
 ### Human Attention Required
 
 | Item | Detail |
 |------|--------|
-| Priority review | All priorities are defaults inherited from spec/phase. Review and override where needed — especially 001 Phase 7 (Polish, currently P2) if CI gates should be P1. |
-| Status review | All tasks default to `Backlog`. Mark tasks `Ready` or `In Progress` as work begins. |
-| Issue column | All 127 `Issue` fields are empty. **75 grouped tasks will form 29 issues** (with checklists); **52 standalone tasks will form 52 issues**. Total: **81 issues** when `/sync-issues` runs. |
-| Sprint column | All `Sprint` fields are empty. Populate during sprint planning. |
-| 002 Phase 5 cross-deps | 002-T029 and 002-T030 depend on 001-T038 and 001-T037 respectively. These can only be implemented after the corresponding 001 itinerary tasks complete. |
-| 002 Phase 7 CI extensions | 002-T043 and 002-T044 modify CI workflow files created by 001-T079 and 001-T078. Coordinate with whoever implements those 001 tasks. |
+| **New spec review** | Spec 003 (Cloud & Environments Strategy) added with 72 tasks. Review grouping and priorities. |
+| Priority review | All spec 003 priorities are defaults inherited from spec phases. Review and override where needed — especially Phase 8 (Polish, currently P2) if linting should be P1. |
+| Status review | All 72 new tasks default to `Backlog`. Mark tasks `Ready` or `In Progress` as infrastructure work begins. |
+| Issue column | All 72 new spec 003 `Issue` fields are empty. **60 grouped tasks will form 13 issues** (with checklists); **12 standalone tasks will form 12 issues**. Total NEW issues: **25 issues** when `/sync-issues` runs. |
+| Sprint column | All spec 003 `Sprint` fields are empty. Populate during sprint planning. |
+| 003 cross-spec deps | 003-T067 and 003-T070 modify or relocate artifacts from spec 001. Coordinate with spec 001 implementers. |
+| Infrastructure blocking | Spec 003 tasks (Phases 1-5, P1 user stories) must complete before backend/frontend can be deployed. Application development (spec 001) can proceed in parallel with infrastructure work (spec 003), but deployment requires infrastructure. |
+
+### Critical Path Changes
+
+- **New parallel path**: Infrastructure provisioning (003-T001 → 003-T054) now runs in parallel with application development (001-T009 → 001-T050).
+- **Deployment dependency**: Backend deployment (003-T052) and frontend deployment (003-T053) are now required checkpoints after application E2E tests (001-T050).
+- **CI/CD integration**: 003-T067 extends 001-T076 (backend lint workflow) with Docker linting.
 
 ### Next Steps
 
-1. **Review grouping**: The 29 groups bundle 75 tasks into cohesive work items. If any grouping doesn't make sense for your workflow, clear the `Group` value to split tasks back into standalone items.
-2. **Sprint planning**: Populate the `Sprint` column to assign work items to specific sprints or milestones.
-3. **Run `/sync-issues`**: This will create **81 GitHub issues** (29 grouped + 52 standalone). Grouped issues will have checklists with member tasks.
-4. **Begin implementation**: Follow the critical path: `001-T001 → 001-T009 → ... → 001-T050`.
-5. **Re-run `/build-roadmap`**: When a new spec's `tasks.md` is added or modified — the command preserves all `Group`, `Sprint`, `Priority`, `Status`, and `Issue` fields.
+1. **Review spec 003 grouping**: The 15 groups bundle 60 tasks into cohesive work items. If any grouping doesn't make sense for your workflow, clear the `Group` value to split tasks back into standalone items.
+2. **Sprint planning**: Populate the `Sprint` column for spec 003 tasks to assign infrastructure work to specific sprints or milestones.
+3. **Coordinate cross-spec work**: 003-T067 and 003-T070 touch spec 001 artifacts. Ensure spec 001 implementers are aware.
+4. **Run `/sync-issues`**: This will create **25 new GitHub issues** for spec 003 (13 grouped + 12 standalone). Grouped issues will have checklists with member tasks.
+5. **Begin infrastructure implementation**: Follow the critical path: `003-T001 → 003-T009 → ... → 003-T054` (can run in parallel with spec 001 app development).
+6. **Re-run `/build-roadmap`**: When a new spec's `tasks.md` is added or modified — the command preserves all `Group`, `Sprint`, `Priority`, `Status`, and `Issue` fields.

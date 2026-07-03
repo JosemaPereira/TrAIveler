@@ -9,10 +9,34 @@
 
 Read the following files before generating code, tests, or UI for this project:
 
+<!-- PROMOTED:doc-references START -->
+<!-- Last updated: 2026-07-03 — includes promoted foundational decisions -->
+
+### Product & Vision
+
+- **docs/product-vision.md** — product identity, core problem, value proposition, target personas, MVP scope, explicit out-of-scope, and roles/permissions model.
+
+### Requirements & Constraints
+
 - **docs/functional-requirements.md** — normative requirements ("The system shall…"); defines what the application must do and what is out of scope for the MVP.
+- **docs/nfrs.md** — measurable non-functional requirements with validation methods covering performance, scalability, availability, accessibility (WCAG 2.1 AA), security, maintainability, privacy, and observability.
+
+### Architecture & Infrastructure
+
+- **docs/architecture.md** — system component boundaries, integration rules, scalability constraints, security boundaries, and observability strategy. Defines how backend (Go on ECS Fargate), frontend (React on S3+CloudFront), database (PostgreSQL RDS), and external dependencies (Anthropic AI) interact.
+- **docs/cloud-and-environments.md** — cloud provider (AWS us-east-1), environment topology (staging active, production dormant), IaC approach (Terraform), compute platform (ECS Fargate, not Lambda), CI/CD (GitHub Actions with OIDC), secrets management (AWS Secrets Manager), and cost strategy ($200 staging, $300-400 production).
+
+### Security & Authorization
+
+- **docs/security.md** — authentication model (JWT), authorization roles (admin/partner), subscription limits, secrets management, PII handling (GDPR-aware), input validation (prompt injection prevention), output sanitization, dependency security, and testing requirements.
+
+### Development Standards
+
 - **docs/coding-guidelines.md** — formatting rules, import organization, naming conventions, and KISS/DRY principles for Go (backend) and React/TypeScript (frontend).
-- **docs/testing-guidelines.md** — three-layer testing strategy (unit, integration, E2E), folder structure, naming conventions, and coverage targets for Go and React.
+- **docs/testing-guidelines.md** — three-layer testing strategy (unit, integration, E2E), folder structure, naming conventions, and coverage targets (80% business logic, 80% shared components).
 - **docs/ui-guidelines.md** — design tokens (color, spacing, typography), component layers (Atomic Design), responsive breakpoints, accessibility rules (WCAG 2.1 AA), and loading/error/empty state requirements.
+
+<!-- PROMOTED:doc-references END -->
 
 ## Language Policy (MANDATORY)
 - Conversation with the developer may be in English or Spanish; respond in whichever

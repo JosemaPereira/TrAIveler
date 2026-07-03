@@ -62,7 +62,7 @@ The entire codebase follows strict quality gates — automated linting, testing,
 
 🔨 **In active development** — Planning and architecture complete; implementation in progress.
 
-The project has comprehensive specifications covering product vision, technical design, data models, API contracts, and a detailed roadmap with 127 prioritized tasks. All foundational documentation is complete and ready to guide the build.
+The project has comprehensive specifications covering product vision, technical design, cloud infrastructure, security model, data models, API contracts, and a detailed roadmap with 199 prioritized tasks across three foundational specs. All foundational documentation is complete and ready to guide the build.
 
 ---
 
@@ -76,10 +76,24 @@ TrAIveler starts as a web application for individual and small group travel plan
 
 This repository contains the full specification and implementation plan. If you're interested in the technical details, architecture decisions, or want to contribute, explore the `docs/` and `specs/` directories.
 
-**Key links:**
-- [Project Roadmap](docs/roadmap.md) — 127 tasks organized into clear phases
-- [Product Vision](specs/001-product-vision-scope/spec.md) — detailed feature scope and user stories
-- [Technical Decisions](specs/001-product-vision-scope/research.md) — rationale for every technology choice
+**Project planning & process:**
+- [Project Roadmap](docs/roadmap.md) — 199 tasks organized into clear phases with sprint planning
+- [Project Workflow](docs/project-workflow.md) — complete development process from spec to shipped feature
+
+**Product & requirements:**
+- [Product Vision](docs/product-vision.md) — core value proposition, personas, MVP scope, and roles
+- [Functional Requirements](docs/functional-requirements.md) — what the system must do
+- [Non-Functional Requirements](docs/nfrs.md) — performance, security, accessibility, and quality standards
+
+**Technical architecture:**
+- [Architecture Overview](docs/architecture.md) — system components, integration rules, and boundaries
+- [Cloud & Environments](docs/cloud-and-environments.md) — AWS infrastructure, IaC strategy, and CI/CD
+- [Security Model](docs/security.md) — authentication, authorization, and security practices
+
+**Development standards:**
+- [Coding Guidelines](docs/coding-guidelines.md) — formatting, naming, and code organization
+- [Testing Guidelines](docs/testing-guidelines.md) — three-layer testing strategy and coverage targets
+- [UI Guidelines](docs/ui-guidelines.md) — design tokens, component structure, and accessibility rules
 
 ---
 

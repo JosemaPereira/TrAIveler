@@ -136,3 +136,129 @@ Phase 6 (US4 P2):       T037 integration test for Logger, T038 integration test 
 ### Related Files
 - `specs/002-nfr-system-constraints/tasks.md` (Phase 2 vs Phase 6 split)
 - `specs/002-nfr-system-constraints/spec.md` (US4 — Observability, Priority P2)
+
+---
+
+### Foundation Promotion Workflow (Context Propagation Pattern)
+
+### Context
+- Project planning — executed after foundation specs stabilize; re-run whenever a foundation spec is refined
+
+### Problem
+- SpecKit reads the constitution and the current spec, but NOT other specs. If architectural decisions, NFRs, security rules, or cloud strategy live only in `specs/NNN-*/spec.md`, future feature planning is blind to them. This causes downstream implementations to violate foundational constraints or duplicate decision-making.
+
+### Solution
+- Run `/promote-foundations` to extract durable decisions from foundation specs and route them to the two places the entire project reads:
+  1. **Constitution** (`.specify/memory/constitution.md`) — non-negotiable principles and mandated technology choices that all specs must honor
+  2. **Documentation** (`docs/*.md`) — reference material (architecture, NFRs, security model, data model) wired into `.github/copilot-instructions.md` so every agent invocation inherits it
+- Promoted docs use `<!-- PROMOTED:name START -->` markers for idempotent updates and include source attribution
+- After promotion, every `/speckit.plan`, `/speckit.tasks`, and implementation inherits foundational context automatically
+
+### Example
+```markdown
+Constitution gets:
+- Mandated stack (AWS/Terraform/ECS)
+- Non-negotiable security rules (prompt injection validation, output sanitization)
+
+docs/ gets:
+- product-vision.md (personas, MVP scope, roles)
+- nfrs.md (measurable targets, validation methods)
+- architecture.md (components, integration rules)
+- security.md (auth model, secrets management)
+- cloud-and-environments.md (infrastructure strategy)
+```
+
+### Related Files
+- `.github/prompts/promote-foundations.prompt.md`
+- `.specify/memory/constitution.md`
+- `docs/product-vision.md`, `docs/nfrs.md`, `docs/security.md`, `docs/architecture.md`, `docs/cloud-and-environments.md`
+- `.github/copilot-instructions.md` (Documentation References section)
+
+---
+
+### ECS Fargate for AI Workloads (Compute Platform Selection Pattern)
+
+### Context
+- Backend infrastructure — AWS compute platform choice for services that integrate with AI providers (Anthropic, OpenAI, etc.)
+
+### Problem
+- Lambda is commonly used for serverless APIs, but AI workloads have characteristics that violate Lambda's constraints: multi-turn conversations can exceed the 15-minute timeout, large itinerary responses can exceed the 10MB payload limit, and repeated AI calls benefit from persistent HTTP connection pooling.
+
+### Solution
+- Use **ECS Fargate** (not Lambda) for AI-integrated services:
+  - **Unlimited execution time** — multi-turn AI conversations can run as long as needed without artificial timeouts
+  - **No payload size limits** — large AI-generated responses (detailed itineraries) can be returned without chunking
+  - **Persistent HTTP connections** — connection pooling to AI provider APIs improves latency and reliability
+  - **ARM64 Graviton2** — 20% cost savings vs x86 without code changes
+- Trade-off: lose Lambda's automatic scaling-to-zero, but gain predictable performance for AI workloads
+
+### Example
+```hcl
+# terraform/modules/ecs/main.tf
+resource "aws_ecs_task_definition" "backend" {
+  cpu                      = "512"   # 0.5 vCPU
+  memory                   = "1024"  # 1 GB
+  runtime_platform {
+    cpu_architecture = "ARM64"  # Graviton2
+  }
+}
+```
+
+### Related Files
+- `specs/003-cloud-env-strategy/spec.md` (US1.2 — Compute Platform)
+- `specs/003-cloud-env-strategy/research.md` (Fargate vs Lambda decision)
+- `docs/cloud-and-environments.md` (Compute Platform section)
+
+---
+
+### Mermaid Diagrams for Documentation (Visual Documentation Pattern)
+
+### Context
+- Documentation — `docs/*.md` files where diagrams can improve clarity
+
+### Problem
+- ASCII art diagrams (box-drawing characters) don't render well in all Markdown viewers and are hard to maintain. Simple arrow notation (→) is clean for linear command flows but insufficient for multi-component architectures with bidirectional or parallel relationships.
+
+### Solution
+- **Use Mermaid** for true architecture/flow diagrams with multiple connected components:
+  - System architecture (CloudFront → ALB → ECS → RDS)
+  - Multi-phase workflows with branches (foundations → propagation → delivery → scaling)
+  - State machines or decision trees
+  - Component hierarchies with multiple levels
+- **Keep inline arrow notation** (→) for simple command sequences that read left-to-right:
+  - SpecKit pipeline: `/speckit.specify → /speckit.clarify → /speckit.plan → /speckit.tasks`
+  - Quick reference flows: `specify → clarify → plan → tasks`
+- **Always validate syntax** before committing — Mermaid errors break rendering; test locally or use Mermaid Live Editor
+- Use color-coding for semantic grouping (e.g., green for active, purple for optional, dashed lines for dormant)
+
+### Example
+```markdown
+<!-- Good: Mermaid for multi-component architecture -->
+```mermaid
+graph TB
+    User --> CloudFront
+    CloudFront --> ALB
+    ALB --> ECS
+    ECS --> RDS
+    ECS --> AI[Anthropic AI]
+```
+
+<!-- Good: Arrow notation for linear command flow -->
+```
+/speckit.specify → /speckit.clarify → /speckit.plan → /speckit.tasks
+```
+
+<!-- Bad: Mermaid for simple linear flow (overkill) -->
+```mermaid
+graph LR
+    A[specify] --> B[clarify] --> C[plan] --> D[tasks]
+```
+```
+
+### Related Files
+- `docs/architecture.md` (component diagram)
+- `docs/security.md` (authorization roles, validation pipeline)
+- `docs/cloud-and-environments.md` (environment topology, CI/CD pipeline)
+- `docs/testing-guidelines.md` (testing strategy pyramid)
+- `docs/ui-guidelines.md` (component hierarchy)
+- `docs/project-workflow.md` (kept arrow notation after Mermaid syntax errors)
