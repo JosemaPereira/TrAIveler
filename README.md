@@ -72,6 +72,17 @@ TrAIveler starts as a web application for individual and small group travel plan
 
 ---
 
+## Project Areas
+
+TrAIveler is organized into distinct areas, each with its own README and development workflow:
+
+- **[backend/](backend/)** — Go REST API powering authentication, trip management, AI integration, and collaboration
+- **[frontend/](frontend/)** — React + TypeScript SPA delivering the user interface and experience
+- **[e2e/](e2e/)** — Playwright end-to-end test suite validating complete user flows
+- **infra/** — Terraform infrastructure as code for AWS deployment _(directory will be created in Phase 1)_
+
+---
+
 ## Want to Know More?
 
 This repository contains the full specification and implementation plan. If you're interested in the technical details, architecture decisions, or want to contribute, explore the `docs/` and `specs/` directories.

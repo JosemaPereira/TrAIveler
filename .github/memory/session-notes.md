@@ -169,3 +169,79 @@ Historical summaries of completed development sessions. Committed to git as a re
   - All changes staged; ready for review and commit
 
 ---
+
+### Session: System Architecture, Foundation Finalization, and Documentation Quality
+- **Date**: 2026-07-03
+- **Branch**: `feature/005-system-architecture` (in progress)
+- **What was accomplished**:
+  - **SpecKit tasks generation** — created `specs/005-system-architecture/tasks.md`:
+    - 131 dependency-ordered implementation tasks across 7 phases (Setup, Foundational, US1 Backend, US2 Frontend, US3 Infrastructure, US4 Integration, Polish)
+    - Covers complete technology stack initialization: Go 1.24+ backend (Chi, pgx/v5, goose, Anthropic SDK), React 19 frontend (Vite, TanStack Query v5, Zustand, React Router v7), Playwright E2E, Terraform IaC
+    - 66 tasks marked parallelizable [P] for concurrent execution (50% of workload)
+    - Clear separation of concerns: Phase 1 (project structure), Phase 2 (blocking foundations like Docker/CI skeletons), then 4 parallel tracks (Backend, Frontend, Infrastructure, Integration)
+    - Phase 3 establishes backend domain patterns: middleware chain (RequestID → Logger → Recovery → CORS), database connection pooling (pgx/v5 with 5-25 conn limits), AI client initialization, domain handler/service/repository/model structure
+    - Phase 4 establishes frontend patterns: design tokens (CSS custom properties in src/styles/tokens.css), Atomic Design layers (primitives → composites → features), TanStack Query hooks + Zustand auth store, accessible component guidelines
+    - Phase 5 establishes infrastructure patterns: Terraform module structure (VPC, ECS, RDS, ALB, CloudFront, Secrets), staging vs production configurations, OIDC CI/CD integration
+    - Phase 6 integration patterns: error correlation across layers, structured logging conventions, retry strategies with exponential backoff
+    - All 28 functional requirements from spec 005 covered by task assignments
+  - **Foundation promotion workflow** — executed on specs 001-005 to finalize persistent context:
+    - **Analysis**: Read all 5 foundation specs (001: product vision, 002: NFRs, 003: cloud, 004: security, 005: architecture) to identify promotable content
+    - **Findings**: 7 of 8 target files already promoted and complete from previous sessions; only `docs/product-vision.md` needed enhancements
+    - Updated `docs/product-vision.md` with enhanced details from spec 001 clarifications:
+      - MVP scope #2: Explicitly includes "well-known landmarks AND lesser-known local points of interest" (addresses hidden treasures mandate)
+      - MVP scope #5: Clarified all user-provided places MUST be included without omission (reinforces anchor places requirement)
+      - MVP scope #6: Added detailed collaboration workflow with suggestion status transitions (pending → approved/rejected)
+      - Out-of-scope expanded: Added i18n, MFA, OAuth providers, compliance certifications, advanced session management
+      - Added PROMOTED markers for traceability
+    - Created `.github/PROMOTION-REPORT.md` — comprehensive documentation of promotion status:
+      - Analyzed all 5 specs with line-by-line promotion decisions
+      - Documented why each decision goes to constitution vs docs/ vs already-covered
+      - Verified constitution compliance (v1.3.0 current, no changes needed)
+      - Listed all modified files (2 updated, 7 verified complete)
+      - Impact summary: future work automatically inherits all foundational decisions
+  - **Technical writer workflow** — executed comprehensive README quality assessment and updates:
+    - **Discovery**: Mapped project structure (backend/, frontend/, e2e/, infra/ directories)
+    - **Assessment**: Read all existing READMEs (root, backend, frontend, e2e)
+    - **Root README update**: Added "Project Areas" section with links to all area READMEs (backend/, frontend/, e2e/, infra/)
+    - **Backend README fixes**:
+      - Corrected PostgreSQL version from "16" to "15.4" (aligns with architecture spec)
+      - Fixed directory structure from `cmd/server/` to `cmd/api/` (matches spec 005 design)
+      - Updated migration command from `go run ./cmd/migrate up` to proper `goose -dir migrations postgres "$DATABASE_URL" up`
+    - **Frontend README**: No changes needed — already comprehensive and aligned with spec 005
+    - **E2E README**: No changes needed — already comprehensive with complete Playwright guidance
+    - **Infrastructure README creation**: Created complete `infra/README.md` (253 lines) documenting:
+      - Terraform module structure and responsibilities
+      - AWS tech stack table (IaC, compute, database, CDN, secrets)
+      - Complete project structure tree (modules/, environments/, *.tf root files)
+      - Prerequisites and AWS account one-time setup (S3 state bucket, DynamoDB locks)
+      - Environment configurations (staging: $200/mo cost-optimized, production: $300-400/mo high-availability)
+      - Complete Terraform workflow (init, validate, plan, apply, destroy)
+      - Secrets population instructions (DB credentials, Anthropic API key, JWT keys)
+      - CI/CD integration with GitHub Actions OIDC authentication
+      - Terraform outputs for deployment workflows (ECR URL, ECS cluster, S3 bucket, CloudFront ID)
+      - Cost monitoring commands and budget alerts
+      - Troubleshooting guide (state locks, ECS tasks, RDS connections)
+      - Links to all related docs and specs
+  - **Validation**: Ran `get_errors` — zero errors after all documentation changes
+- **Key findings and decisions**:
+  - **Foundation promotion is mostly complete** — previous sessions had already promoted 7 of 8 files; only product-vision.md needed minor enhancements for MVP scope clarity and collaboration workflow details
+  - **README consistency critical** — all area READMEs now follow identical structure: responsibility, tech stack table, annotated project structure tree, prerequisites table, environment variables, setup/test/lint commands, links to specs/docs
+  - **PostgreSQL version discrepancy fixed** — backend README had incorrectly referenced PostgreSQL 16; corrected to 15.4 per RDS specification in cloud-and-environments.md and architecture spec
+  - **Migration tooling clarity** — backend README incorrectly suggested custom `cmd/migrate` tool; corrected to standard `goose` CLI per spec 005 research decisions
+  - **Infrastructure documentation gap closed** — infra/ was the only area without a README; now has complete Terraform guidance including OIDC setup, environment configurations, secrets management, and troubleshooting
+  - **Documentation serves two audiences** — READMEs target developers (how to build/test/deploy) while specs/ target designers (what/why/alternatives); both reference shared docs/ for foundational constraints
+  - **66 parallelizable tasks out of 131** — task grouping strategy enables concurrent implementation across independent domains (50% of workload can run in parallel)
+  - **Phase 2 is the foundation gate** — Docker, CI skeletons, and config loading MUST complete before any user story implementation can begin (7 tasks in Phase 2 are blocking prerequisites)
+- **Outcomes**: 
+  - Complete system architecture foundation defined across 131 tasks (spec 005)
+  - All 5 foundational specs (001-005) promoted to persistent context
+  - Foundation promotion report documents complete traceability from specs to docs/constitution
+  - Root README enhanced with area navigation links
+  - Backend README corrected for PostgreSQL version, directory structure, and migration tooling
+  - Infrastructure README created with complete Terraform guidance (253 lines)
+  - All READMEs follow consistent structure and link to appropriate specs/docs
+  - Zero errors after all documentation changes
+  - Project documentation now comprehensive and ready for implementation phase
+  - Session complete; ready for commit
+
+---

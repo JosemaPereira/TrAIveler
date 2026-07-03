@@ -56,26 +56,30 @@ The following capabilities are within scope for the MVP:
 
 1. **User authentication and subscription-based accounts** — required for all trip management; the basic plan supports one admin user and one partner collaborator per subscription. Registration includes a visible stub checkout screen that always succeeds, simulating the full future paid-subscription onboarding flow.
 
-2. **AI itinerary generation** via a conversational, multi-turn input flow — the user submits a free-form natural language request (destination, timeframe, traveler profiles, interests); the AI may ask targeted follow-up questions to refine preferences before producing a day-by-day plan covering visit suggestions, local food specialties, arrival logistics, and inter-city transfers.
+2. **AI itinerary generation** via a conversational, multi-turn input flow — the user submits a free-form natural language request (destination, timeframe, traveler profiles, interests); the AI may ask targeted follow-up questions to refine preferences before producing a day-by-day plan covering visit suggestions (well-known landmarks AND lesser-known local points of interest), local food specialties, arrival logistics, and inter-city transfers.
 
 3. **Travel style personalization** — adapting generated content to at least: gastronomy, sports, technology, museums and art, film and audiovisual media. A single trip may carry multiple travel styles to reflect different preference profiles within the travel group.
 
 4. **Itinerary customization** — allowing users to edit, add, remove, and reorder destinations and activities after generation.
 
-5. **Existing plan enrichment** — accepting a user-provided free-form natural language description of desired places, ideas, or constraints; the AI treats these as anchors and builds a complete itinerary around them.
+5. **Existing plan enrichment** — accepting a user-provided free-form natural language description of desired places, ideas, or constraints; the AI treats these as anchors and builds a complete itinerary around them. All user-provided places MUST be included in the final itinerary without omission or replacement.
 
-6. **Trip sharing and collaboration** — allowing an admin user to invite one partner collaborator who can view and suggest or apply modifications to the shared itinerary.
+6. **Trip sharing and collaboration** — allowing an admin user to invite one partner collaborator who can view the full itinerary and submit suggestions for modifications. Suggestions have "pending" status until the admin approves (suggestion applied to itinerary) or rejects (itinerary unchanged) them. Direct edits by partners without admin approval are rejected with permission errors.
 
 ## Explicit Out of Scope (MVP)
 
 The following capabilities are explicitly excluded from the current scope:
 
-- Integration with third-party services (Google Maps, Google Drive, booking platforms, review sites, or any external API beyond the AI provider)
-- Native mobile applications (iOS or Android)
-- Real-time pricing, availability, or booking for transportation, accommodation, or activities
-- Offline access or downloadable itinerary formats (PDF, spreadsheet export)
-- Real payment gateway integration, invoicing, and recurring billing infrastructure. Subscription plan flows and limit enforcement ARE in scope as application logic with a mocked payment stub; only actual payment collection and billing provider integration are deferred to post-MVP.
-- Social feeds, public itinerary discovery, or community features beyond invite-based collaboration
+- **Third-party integrations**: No Google Maps, Google Drive, booking platforms, review sites, or any external API beyond the AI provider (Anthropic Claude)
+- **Native mobile applications**: No iOS or Android apps; web application only
+- **Real-time booking**: No pricing, availability checking, or booking for transportation, accommodation, or activities
+- **Offline access**: No downloadable itinerary formats (PDF, spreadsheet export), no offline mode
+- **Real payment processing**: Subscription plan flows and limit enforcement ARE in scope as application logic with a mocked payment stub; only actual payment collection and billing provider integration (Stripe, PayPal) are deferred to post-MVP
+- **Social features**: No public itinerary discovery, no social feeds, no community features beyond invite-based one-on-one collaboration (admin + one partner)
+- **Localization (i18n)**: English only at MVP; no multi-language UI infrastructure required. AI-generated content responds naturally in the language of the user's prompt.
+- **Advanced session management**: No "remember me", device tracking, or concurrent session limits beyond JWT token expiration
+- **Multi-factor authentication (MFA)**: Basic email/password authentication only; no MFA, no OAuth providers (Google, Facebook)
+- **Compliance certifications**: No SOC 2, ISO 27001; GDPR-aware design only (minimal PII collection, right-to-deletion support, privacy policy page)
 
 ## Roles and Permissions
 
