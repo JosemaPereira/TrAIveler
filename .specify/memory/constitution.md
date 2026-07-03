@@ -87,7 +87,7 @@ constitutes a blocking defect.
 - Dependencies MUST be kept up to date; known vulnerabilities MUST be resolved before shipping.
 
 <!-- PROMOTED:security-rules START -->
-<!-- Last updated: 2026-07-03 from specs 002 (NFR-SEC-007, NFR-SEC-008) -->
+<!-- Last updated: 2026-07-03 from specs 002 (NFR-SEC-007, NFR-SEC-008) and 004 (security-auth-model) -->
 
 #### Prompt Injection Prevention (NON-NEGOTIABLE)
 

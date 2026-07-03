@@ -4,7 +4,7 @@
 > titles, and dependencies is `specs/*/tasks.md`. Priority, Status, Phase, Issue, and
 > Notes are human-owned and preserved across runs. Do not hand-edit the stable IDs.
 
-**Last reconciled**: 2026-07-03
+**Last reconciled**: 2026-07-03 (updated with spec 004)
 
 ## Legend
 
@@ -363,6 +363,177 @@
 
 ---
 
+### Spec 004 — Security & Authentication/Authorization Model &nbsp; `specs/004-security-auth-model/tasks.md`
+
+> Cross-spec note: Security foundation tasks integrate with application auth (001), NFR validation (002),
+> and cloud infrastructure (003). JWT signing keys stored in AWS Secrets Manager (003-T045–047). CloudWatch
+> alarms/metrics integrate with 003 observability resources (003-T059–064). Prompt validation extends 002
+> security requirements.
+
+#### Phase 1 — Setup (Shared Infrastructure)
+
+| ID | Task | Group | Sprint | Priority | Status | Depends on | Parallel | Issue | Notes |
+|----|------|-------|--------|----------|--------|------------|----------|-------|-------|
+| 004-T001 | Create backend security package structure: `backend/internal/auth/`, `backend/internal/authorization/`, `backend/internal/validation/`, `backend/internal/concurrency/`, `backend/internal/observability/` | | | P1 | Backlog | - | no | | |
+| 004-T002 | Create frontend security structure: `frontend/src/lib/auth.ts`, `frontend/src/lib/authContext.tsx`, `frontend/src/hooks/`, `frontend/src/components/ProtectedRoute.tsx` | G-SEC-FRONTEND-STRUCTURE | | P1 | Backlog | - | yes | | |
+| 004-T003 | Add backend dependencies: `go get github.com/golang-jwt/jwt/v5`, `go get golang.org/x/crypto/bcrypt`, `go get github.com/microcosm-cc/bluemonday` | G-SEC-BACKEND-DEPS | | P1 | Backlog | - | yes | | |
+| 004-T004 | Add frontend dependencies: `npm install @tanstack/react-query zustand` (if not already present) | G-SEC-FRONTEND-DEPS | | P1 | Backlog | - | yes | | |
+| 004-T005 | Create test directory structure: `backend/tests/integration/`, `backend/tests/security/`, `e2e/tests/` | G-SEC-TEST-STRUCTURE | | P1 | Backlog | - | yes | | |
+
+#### Phase 2 — Foundational (Blocking Prerequisites)
+
+| ID | Task | Group | Sprint | Priority | Status | Depends on | Parallel | Issue | Notes |
+|----|------|-------|--------|----------|--------|------------|----------|-------|-------|
+| 004-T006 | Create `users` table migration: `backend/migrations/001_create_users_table.sql` with columns per data-model.md | G-SEC-DB-MIGRATIONS | | P1 | Backlog | - | yes | | |
+| 004-T007 | Create `refresh_tokens` table migration: `backend/migrations/002_create_refresh_tokens_table.sql` | G-SEC-DB-MIGRATIONS | | P1 | Backlog | - | yes | | |
+| 004-T008 | Create `jwt_signing_keys` table migration: `backend/migrations/003_create_jwt_signing_keys_table.sql` | G-SEC-DB-MIGRATIONS | | P1 | Backlog | - | yes | | |
+| 004-T009 | Create `security_events` table migration: `backend/migrations/004_create_security_events_table.sql` | G-SEC-DB-MIGRATIONS | | P1 | Backlog | - | yes | | |
+| 004-T010 | Create `trips.version` column migration: `backend/migrations/005_add_version_to_trips.sql` | G-SEC-DB-MIGRATIONS | | P1 | Backlog | - | yes | | |
+| 004-T011 | Create `itinerary_items.version` column migration: `backend/migrations/006_add_version_to_itinerary_items.sql` | G-SEC-DB-MIGRATIONS | | P1 | Backlog | - | yes | | |
+| 004-T012 | Implement password hashing utility in `backend/internal/auth/password.go` (bcrypt cost 12) | G-SEC-CORE-UTILITIES | | P1 | Backlog | - | yes | | |
+| 004-T013 | Implement correlation ID generator in `backend/internal/observability/correlation.go` | G-SEC-CORE-UTILITIES | | P1 | Backlog | - | yes | | |
+| 004-T014 | Implement structured logger in `backend/internal/observability/logger.go` with CloudWatch JSON output | G-SEC-CORE-UTILITIES | | P1 | Backlog | - | yes | | |
+
+#### Phase 3 — User Story 1: Backend Engineer Implements Secure API Endpoint (Priority: P1) 🎯 MVP
+
+| ID | Task | Group | Sprint | Priority | Status | Depends on | Parallel | Issue | Notes |
+|----|------|-------|--------|----------|--------|------------|----------|-------|-------|
+| 004-T015 | Write unit test for JWT generation in `backend/internal/auth/jwt_test.go` | G-SEC-JWT-TESTS | | P1 | Backlog | 004-T014 | yes | | RED phase |
+| 004-T016 | Write unit test for JWT validation in `backend/internal/auth/jwt_test.go` | G-SEC-JWT-TESTS | | P1 | Backlog | 004-T014 | yes | | RED phase |
+| 004-T017 | Write unit test for multi-key JWT rotation in `backend/internal/auth/jwt_test.go` | G-SEC-JWT-TESTS | | P1 | Backlog | 004-T014 | yes | | RED phase |
+| 004-T018 | Implement JWT token generation in `backend/internal/auth/jwt.go` (RS256, 24h exp) | G-SEC-JWT-IMPL | | P1 | Backlog | 004-T015 | no | | GREEN phase |
+| 004-T019 | Implement JWT token validation in `backend/internal/auth/jwt.go` (multi-key support) | G-SEC-JWT-IMPL | | P1 | Backlog | 004-T016 | no | | GREEN phase |
+| 004-T020 | Implement refresh token generation in `backend/internal/auth/jwt.go` (32-byte random) | G-SEC-JWT-IMPL | | P1 | Backlog | 004-T015 | yes | | GREEN phase |
+| 004-T021 | Implement key fetching from DB in `backend/internal/auth/jwt.go` (5-min cache) | G-SEC-JWT-IMPL | | P1 | Backlog | 004-T017 | yes | | GREEN phase |
+| 004-T022 | Write integration test for auth middleware in `backend/tests/integration/auth_test.go` | G-SEC-AUTH-MIDDLEWARE-TESTS | | P1 | Backlog | 004-T018 | yes | | RED phase |
+| 004-T023 | Write integration test for expired token in `backend/tests/integration/auth_test.go` | G-SEC-AUTH-MIDDLEWARE-TESTS | | P1 | Backlog | 004-T018 | yes | | RED phase |
+| 004-T024 | Implement authentication middleware in `backend/internal/auth/middleware.go` | | | P1 | Backlog | 004-T022 | no | | GREEN phase |
+| 004-T025 | Register authentication middleware in `backend/cmd/server/main.go` (all routes except public) | | | P1 | Backlog | 004-T024 | no | | GREEN phase |
+| 004-T026 | Write integration test for registration in `backend/tests/integration/auth_test.go` (bcrypt, 409 Conflict) | G-SEC-AUTH-HANDLERS-TESTS | | P1 | Backlog | 004-T024 | yes | | RED phase |
+| 004-T027 | Write integration test for login in `backend/tests/integration/auth_test.go` (cookies, last_login_at) | G-SEC-AUTH-HANDLERS-TESTS | | P1 | Backlog | 004-T024 | yes | | RED phase |
+| 004-T028 | Write integration test for refresh in `backend/tests/integration/auth_test.go` (new access token) | G-SEC-AUTH-HANDLERS-TESTS | | P1 | Backlog | 004-T024 | yes | | RED phase |
+| 004-T029 | Write integration test for logout in `backend/tests/integration/auth_test.go` (cookies cleared, token revoked) | G-SEC-AUTH-HANDLERS-TESTS | | P1 | Backlog | 004-T024 | yes | | RED phase |
+| 004-T030 | Implement registration handler in `backend/internal/auth/handler.go` (JSON schema, email unique, bcrypt) | G-SEC-AUTH-HANDLERS-IMPL | | P1 | Backlog | 004-T026 | no | | GREEN phase |
+| 004-T031 | Implement login handler in `backend/internal/auth/handler.go` (SHA-256 refresh token, cookies) | G-SEC-AUTH-HANDLERS-IMPL | | P1 | Backlog | 004-T027 | no | | GREEN phase |
+| 004-T032 | Implement refresh handler in `backend/internal/auth/handler.go` (SHA-256 lookup, new access token) | G-SEC-AUTH-HANDLERS-IMPL | | P1 | Backlog | 004-T028 | no | | GREEN phase |
+| 004-T033 | Implement logout handler in `backend/internal/auth/handler.go` (revoke refresh token, clear cookies) | G-SEC-AUTH-HANDLERS-IMPL | | P1 | Backlog | 004-T029 | no | | GREEN phase |
+| 004-T034 | Implement password change handler in `backend/internal/auth/handler.go` (invalidate_all_sessions option) | G-SEC-AUTH-HANDLERS-IMPL | | P1 | Backlog | 004-T030 | yes | | GREEN phase |
+| 004-T035 | Implement account deletion handler in `backend/internal/auth/handler.go` (202 Accepted, +30 days PII removal) | G-SEC-AUTH-HANDLERS-IMPL | | P1 | Backlog | 004-T030 | yes | | GREEN phase |
+| 004-T036 | Write unit test for RBAC in `backend/internal/authorization/rbac_test.go` (admin/partner permissions) | G-SEC-RBAC-TESTS | | P1 | Backlog | 004-T030 | yes | | RED phase |
+| 004-T037 | Write integration test for authorization middleware in `backend/tests/integration/rbac_test.go` (403 Forbidden) | G-SEC-RBAC-TESTS | | P1 | Backlog | 004-T030 | yes | | RED phase |
+| 004-T038 | Implement RBAC permission checker in `backend/internal/authorization/rbac.go` (FR-010 through FR-021 rules) | G-SEC-RBAC-IMPL | | P1 | Backlog | 004-T036 | no | | GREEN phase |
+| 004-T039 | Implement authorization middleware in `backend/internal/authorization/middleware.go` (RequireRole) | G-SEC-RBAC-IMPL | | P1 | Backlog | 004-T037 | no | | GREEN phase |
+| 004-T040 | Apply authorization middleware to admin routes in `backend/cmd/server/main.go` (POST/PUT/DELETE trips) | | | P1 | Backlog | 004-T039 | no | | GREEN phase |
+| 004-T041 | Write security test for SQL injection in `backend/tests/security/injection_test.go` (OWASP patterns) | G-SEC-VALIDATION-TESTS | | P1 | Backlog | 004-T030 | yes | | RED phase |
+| 004-T042 | Write security test for XSS in `backend/tests/security/injection_test.go` (script, onclick, iframe) | G-SEC-VALIDATION-TESTS | | P1 | Backlog | 004-T030 | yes | | RED phase |
+| 004-T043 | Write security test for path traversal in `backend/tests/security/injection_test.go` (../ patterns) | G-SEC-VALIDATION-TESTS | | P1 | Backlog | 004-T030 | yes | | RED phase |
+| 004-T044 | Implement SQL injection detection in `backend/internal/validation/injection.go` (regex patterns) | G-SEC-VALIDATION-IMPL | | P1 | Backlog | 004-T041 | no | | GREEN phase |
+| 004-T045 | Implement XSS detection in `backend/internal/validation/injection.go` (regex patterns) | G-SEC-VALIDATION-IMPL | | P1 | Backlog | 004-T042 | no | | GREEN phase |
+| 004-T046 | Implement path traversal detection in `backend/internal/validation/injection.go` (../, absolute paths) | G-SEC-VALIDATION-IMPL | | P1 | Backlog | 004-T043 | no | | GREEN phase |
+| 004-T047 | Implement JSON schema validator in `backend/internal/validation/schema.go` (predefined schemas) | G-SEC-VALIDATION-IMPL | | P1 | Backlog | 004-T044 | yes | | GREEN phase |
+| 004-T048 | Create validation middleware in `backend/internal/validation/middleware.go` (400 on failure) | | | P1 | Backlog | 004-T044 | no | | GREEN phase |
+| 004-T049 | Register validation middleware globally in `backend/cmd/server/main.go` (before auth middleware) | | | P1 | Backlog | 004-T048 | no | | GREEN phase |
+| 004-T050 | Write security test for prompt injection in `backend/tests/security/llm_prompts_test.go` (instruction override) | G-SEC-PROMPT-TESTS | | P1 | Backlog | 004-T048 | yes | | RED phase |
+| 004-T051 | Write security test for off-topic prompts in `backend/tests/security/llm_prompts_test.go` (finance, medical, code) | G-SEC-PROMPT-TESTS | | P1 | Backlog | 004-T048 | yes | | RED phase |
+| 004-T052 | Implement prompt validation in `backend/internal/validation/prompt.go` (regex patterns, correlation ID) | G-SEC-PROMPT-IMPL | | P1 | Backlog | 004-T050 | no | | GREEN phase |
+| 004-T053 | Create prompt validation endpoint in `backend/internal/validation/handler.go` (internal, 400 if rejected) | G-SEC-PROMPT-IMPL | | P1 | Backlog | 004-T051 | no | | GREEN phase |
+| 004-T054 | Write unit test for HTML sanitization in `backend/internal/validation/sanitize_test.go` (script stripped) | G-SEC-SANITIZATION-TESTS | | P1 | Backlog | 004-T048 | yes | | RED phase |
+| 004-T055 | Write unit test for dangerous URLs in `backend/internal/validation/sanitize_test.go` (javascript: removed) | G-SEC-SANITIZATION-TESTS | | P1 | Backlog | 004-T048 | yes | | RED phase |
+| 004-T056 | Implement AI output sanitizer in `backend/internal/validation/sanitize.go` (bluemonday strict policy) | G-SEC-SANITIZATION-IMPL | | P1 | Backlog | 004-T054 | no | | GREEN phase |
+| 004-T057 | Apply sanitization in AI integration layer before DB persist/client return | | | P1 | Backlog | 004-T056 | no | | GREEN phase |
+| 004-T058 | Write integration test for optimistic locking in `backend/tests/integration/concurrency_test.go` (409 Conflict) | G-SEC-CONCURRENCY-TESTS | | P1 | Backlog | 004-T056 | yes | | RED phase |
+| 004-T059 | Implement version checker in `backend/internal/concurrency/versioning.go` (CheckVersion) | G-SEC-CONCURRENCY-IMPL | | P1 | Backlog | 004-T058 | no | | GREEN phase |
+| 004-T060 | Implement version updater in `backend/internal/concurrency/versioning.go` (IncrementVersion) | G-SEC-CONCURRENCY-IMPL | | P1 | Backlog | 004-T058 | no | | GREEN phase |
+| 004-T061 | Create versioning middleware in `backend/internal/concurrency/middleware.go` (If-Match header) | G-SEC-CONCURRENCY-IMPL | | P1 | Backlog | 004-T058 | no | | GREEN phase |
+| 004-T062 | Apply versioning middleware to trip routes in `backend/cmd/server/main.go` (PUT/DELETE trips, items) | | | P1 | Backlog | 004-T061 | no | | GREEN phase |
+| 004-T063 | Write integration test for security logging in `backend/tests/integration/observability_test.go` (CloudWatch structure) | G-SEC-LOGGING-TESTS | | P1 | Backlog | 004-T061 | yes | | RED phase |
+| 004-T064 | Write integration test for CloudWatch metrics in `backend/tests/integration/observability_test.go` (metric increments) | G-SEC-LOGGING-TESTS | | P1 | Backlog | 004-T061 | yes | | RED phase |
+| 004-T065 | Implement CloudWatch logger in `backend/internal/observability/logger.go` (LogSecurityEvent, JSON) | G-SEC-LOGGING-IMPL | | P1 | Backlog | 004-T063 | no | | GREEN phase |
+| 004-T066 | Implement CloudWatch metrics emitter in `backend/internal/observability/metrics.go` (EmitMetric) | G-SEC-LOGGING-IMPL | | P1 | Backlog | 004-T064 | no | | GREEN phase |
+| 004-T067 | Integrate logging into all handlers (auth, authz, validation) per FR-047–049 | | | P1 | Backlog | 004-T065 | no | | GREEN phase |
+| 004-T068 | Integrate metrics into all handlers (call EmitMetric after LogSecurityEvent) | | | P1 | Backlog | 004-T066 | no | | GREEN phase |
+| 004-T069 | Write unit test for secrets retrieval in `backend/internal/observability/secrets_test.go` (5-min cache, no fallback) | G-SEC-SECRETS-TESTS | | P1 | Backlog | 004-T066 | yes | | RED phase |
+| 004-T070 | Implement AWS Secrets Manager client in `backend/pkg/secrets/manager.go` (IAM role auth, cache) | G-SEC-SECRETS-IMPL | | P1 | Backlog | 004-T069, 003-T045 | no | | GREEN phase, needs 003 |
+| 004-T071 | Integrate secrets manager in JWT key loader (fetch private keys from Secrets Manager by ARN) | | | P1 | Backlog | 004-T070 | no | | GREEN phase |
+| 004-T072 | Add secret refresh timer in `backend/cmd/server/main.go` (5-min goroutine) | | | P1 | Backlog | 004-T071 | no | | GREEN phase |
+| 004-T073 | Create CloudWatch Logs retention policy via Terraform (30 days) for `/traivelr/staging/security` | | | P1 | Backlog | 003-T059 | no | | Infra integration |
+| 004-T074 | Create CloudWatch Alarm for auth failures via Terraform (>100/min for 5 min, SNS notify) | | | P1 | Backlog | 003-T062 | yes | | Infra integration |
+| 004-T075 | Create CloudWatch Alarm for prompt injection via Terraform (>10/min for 5 min, SNS notify) | | | P1 | Backlog | 003-T062 | yes | | Infra integration |
+
+#### Phase 4 — User Story 2: Frontend Engineer Implements Secure UI Component (Priority: P2)
+
+| ID | Task | Group | Sprint | Priority | Status | Depends on | Parallel | Issue | Notes |
+|----|------|-------|--------|----------|--------|------------|----------|-------|-------|
+| 004-T076 | Write unit test for auth context in `frontend/src/lib/authContext.test.tsx` (useAuth hook) | G-SEC-FRONTEND-AUTH-TESTS | | P2 | Backlog | 004-T030 | yes | | RED phase |
+| 004-T077 | Write unit test for token refresh in `frontend/src/lib/auth.test.ts` (401 redirect) | G-SEC-FRONTEND-AUTH-TESTS | | P2 | Backlog | 004-T030 | yes | | RED phase |
+| 004-T078 | Implement auth context in `frontend/src/lib/authContext.tsx` (user state, login/logout functions) | G-SEC-FRONTEND-AUTH-IMPL | | P2 | Backlog | 004-T076 | no | | GREEN phase |
+| 004-T079 | Implement auth API client in `frontend/src/lib/auth.ts` (credentials=include, error handling) | G-SEC-FRONTEND-AUTH-IMPL | | P2 | Backlog | 004-T077 | no | | GREEN phase |
+| 004-T080 | Implement token refresh interceptor in `frontend/src/lib/auth.ts` (retry once, redirect on failure) | G-SEC-FRONTEND-AUTH-IMPL | | P2 | Backlog | 004-T077 | no | | GREEN phase |
+| 004-T081 | Write unit test for role hook in `frontend/src/hooks/useRole.test.ts` (hasRole returns boolean) | G-SEC-FRONTEND-ROLE-TESTS | | P2 | Backlog | 004-T078 | yes | | RED phase |
+| 004-T082 | Write integration test for protected route in `frontend/tests/integration/roleUI.test.ts` (redirect on unauth) | G-SEC-FRONTEND-ROLE-TESTS | | P2 | Backlog | 004-T078 | yes | | RED phase |
+| 004-T083 | Implement role hook in `frontend/src/hooks/useRole.ts` (useRole, hasRole, requireRole) | G-SEC-FRONTEND-ROLE-IMPL | | P2 | Backlog | 004-T081 | no | | GREEN phase |
+| 004-T084 | Implement protected route guard in `frontend/src/components/ProtectedRoute.tsx` (requireRole prop) | G-SEC-FRONTEND-ROLE-IMPL | | P2 | Backlog | 004-T082 | no | | GREEN phase |
+| 004-T085 | Apply protected routes in `frontend/src/App.tsx` (wrap /dashboard, /trips, /admin/*) | | | P2 | Backlog | 004-T084 | no | | GREEN phase |
+| 004-T086 | Implement role-based UI toggling (show Edit button only if hasRole admin) | | | P2 | Backlog | 004-T083 | yes | | GREEN phase |
+| 004-T087 | Write unit test for secure rendering in `frontend/src/lib/secureRender.test.ts` (script stripped) | G-SEC-FRONTEND-RENDER-TESTS | | P2 | Backlog | 004-T084 | yes | | RED phase |
+| 004-T088 | Write integration test for AI content display in `frontend/tests/integration/authFlow.test.ts` (no script exec) | G-SEC-FRONTEND-RENDER-TESTS | | P2 | Backlog | 004-T084 | yes | | RED phase |
+| 004-T089 | Implement secure rendering utility in `frontend/src/lib/secureRender.ts` (sanitizeAIContent, SafeAIContent) | G-SEC-FRONTEND-RENDER-IMPL | | P2 | Backlog | 004-T087 | no | | GREEN phase |
+| 004-T090 | Implement secure content hook in `frontend/src/hooks/useSecureContent.ts` (wraps sanitizeAIContent) | G-SEC-FRONTEND-RENDER-IMPL | | P2 | Backlog | 004-T087 | no | | GREEN phase |
+| 004-T091 | Apply secure rendering to AI content in trip/itinerary components | | | P2 | Backlog | 004-T089 | no | | GREEN phase |
+| 004-T092 | Write unit test for error handling in `frontend/src/lib/auth.test.ts` (401 message, 500 correlation ID) | G-SEC-FRONTEND-ERROR-TESTS | | P2 | Backlog | 004-T089 | yes | | RED phase |
+| 004-T093 | Write integration test for session expiration in `frontend/tests/integration/authFlow.test.ts` (expired message) | G-SEC-FRONTEND-ERROR-TESTS | | P2 | Backlog | 004-T089 | yes | | RED phase |
+| 004-T094 | Implement error formatter in `frontend/src/lib/errors.ts` (formatSecurityError, no sensitive data) | G-SEC-FRONTEND-ERROR-IMPL | | P2 | Backlog | 004-T092 | no | | GREEN phase |
+| 004-T095 | Implement session expiration handler in `frontend/src/lib/auth.ts` (toast, redirect after 5s) | G-SEC-FRONTEND-ERROR-IMPL | | P2 | Backlog | 004-T093 | no | | GREEN phase |
+| 004-T096 | Apply error handling to forms (generic 401 message, no enumeration) | | | P2 | Backlog | 004-T094 | no | | GREEN phase |
+| 004-T097 | Implement password change form in `frontend/src/pages/Settings.tsx` ("log out all devices" checkbox) | G-SEC-FRONTEND-PASSWORD | | P2 | Backlog | 004-T034 | yes | | GREEN phase |
+| 004-T098 | Write integration test for password change in `frontend/tests/integration/authFlow.test.ts` (checkbox behavior) | G-SEC-FRONTEND-PASSWORD | | P2 | Backlog | 004-T097 | no | | RED phase |
+
+#### Phase 5 — User Story 3: QA Engineer Validates Security Controls (Priority: P3)
+
+| ID | Task | Group | Sprint | Priority | Status | Depends on | Parallel | Issue | Notes |
+|----|------|-------|--------|----------|--------|------------|----------|-------|-------|
+| 004-T099 | Create OWASP Top 10 test vectors in `backend/tests/security/owasp_vectors_test.go` (50+ SQL injection variants) | G-SEC-QA-OWASP | | P3 | Backlog | 004-T044 | yes | | |
+| 004-T100 | Create XSS test vectors in `backend/tests/security/owasp_vectors_test.go` (50+ XSS variants) | G-SEC-QA-OWASP | | P3 | Backlog | 004-T045 | yes | | |
+| 004-T101 | Create path traversal test vectors in `backend/tests/security/owasp_vectors_test.go` (../, symlinks) | G-SEC-QA-OWASP | | P3 | Backlog | 004-T046 | yes | | |
+| 004-T102 | Create OWASP LLM Top 10 test vectors in `backend/tests/security/llm_prompts_test.go` (20+ prompt injection patterns) | G-SEC-QA-LLM | | P3 | Backlog | 004-T052 | yes | | |
+| 004-T103 | Create off-topic prompt tests in `backend/tests/security/llm_prompts_test.go` (finance, medical, code, SQL) | G-SEC-QA-LLM | | P3 | Backlog | 004-T052 | yes | | |
+| 004-T104 | Create role-based authorization test matrix in `backend/tests/integration/rbac_test.go` (11 operation × role combinations) | | | P3 | Backlog | 004-T038 | no | | |
+| 004-T105 | Test subscription plan limits in `backend/tests/integration/rbac_test.go` (2nd partner invite → 403) | | | P3 | Backlog | 004-T104 | yes | | |
+| 004-T106 | Create logging validation test suite in `backend/tests/integration/observability_test.go` (all event types) | | | P3 | Backlog | 004-T065 | no | | |
+| 004-T107 | Test CloudWatch metrics emission in `backend/tests/integration/observability_test.go` (metric increments) | | | P3 | Backlog | 004-T066 | yes | | |
+| 004-T108 | Create E2E authentication test in `e2e/tests/auth.spec.ts` (register → login → protected → logout) | G-SEC-QA-E2E | | P3 | Backlog | 004-T078 | yes | | |
+| 004-T109 | Create E2E authorization test in `e2e/tests/authorization.spec.ts` (admin vs partner trip creation) | G-SEC-QA-E2E | | P3 | Backlog | 004-T078 | yes | | |
+| 004-T110 | Create E2E security test in `e2e/tests/security.spec.ts` (XSS rejection, prompt injection, safe rendering) | G-SEC-QA-E2E | | P3 | Backlog | 004-T078 | yes | | |
+| 004-T111 | Validate quickstart Scenario 1 in `backend/tests/integration/quickstart_test.go` (register, login, 401 unauth) | G-SEC-QA-QUICKSTART | | P3 | Backlog | 004-T030 | yes | | |
+| 004-T112 | Validate quickstart Scenario 2 (token refresh) in automated test | G-SEC-QA-QUICKSTART | | P3 | Backlog | 004-T032 | yes | | |
+| 004-T113 | Validate quickstart Scenario 3 (RBAC partner → 403) in automated test | G-SEC-QA-QUICKSTART | | P3 | Backlog | 004-T038 | yes | | |
+| 004-T114 | Validate quickstart Scenario 4 (optimistic locking 409) in automated test | G-SEC-QA-QUICKSTART | | P3 | Backlog | 004-T059 | yes | | |
+| 004-T115 | Validate quickstart Scenario 5 (prompt injection rejection) in automated test | G-SEC-QA-QUICKSTART | | P3 | Backlog | 004-T052 | yes | | |
+| 004-T116 | Validate quickstart Scenario 6 (password change session invalidation) in automated test | G-SEC-QA-QUICKSTART | | P3 | Backlog | 004-T034 | yes | | |
+| 004-T117 | Validate quickstart Scenario 7 (JWT multi-key rotation) in automated test | G-SEC-QA-QUICKSTART | | P3 | Backlog | 004-T021 | yes | | |
+
+#### Phase 6 — Polish & Cross-Cutting Concerns (Priority: P2-P3)
+
+| ID | Task | Group | Sprint | Priority | Status | Depends on | Parallel | Issue | Notes |
+|----|------|-------|--------|----------|--------|------------|----------|-------|-------|
+| 004-T118 | Update backend README: security architecture, JWT key rotation, CloudWatch alarm response | G-SEC-DOCS | | P2 | Backlog | 004-T067 | yes | | |
+| 004-T119 | Update frontend README: auth context usage, secure rendering guidelines, role-based UI patterns | G-SEC-DOCS | | P2 | Backlog | 004-T089 | yes | | |
+| 004-T120 | Create security runbook in `docs/security-operations.md` (JWT rotation, alarm response, GDPR deletion) | G-SEC-DOCS | | P2 | Backlog | 004-T067 | yes | | |
+| 004-T121 | Refactor authentication handlers (extract common validation, DRY principle) | G-SEC-REFACTOR | | P2 | Backlog | 004-T030 | yes | | |
+| 004-T122 | Refactor authorization middleware (permission rules → config map) | G-SEC-REFACTOR | | P2 | Backlog | 004-T038 | yes | | |
+| 004-T123 | Frontend code review (no dangerouslySetInnerHTML with AI content, ESLint rule) | G-SEC-HARDENING | | P2 | Backlog | 004-T089 | yes | | |
+| 004-T124 | Add security headers middleware in `backend/internal/observability/middleware.go` (HSTS, CSP, etc.) | G-SEC-HARDENING | | P2 | Backlog | 004-T024 | yes | | |
+| 004-T125 | Configure CORS in `backend/cmd/server/main.go` (staging origin, credentials=true) | G-SEC-HARDENING | | P2 | Backlog | 004-T024 | yes | | |
+| 004-T126 | Add gitleaks pre-commit hook in `.git/hooks/pre-commit` (exit on secrets detected) | | | P2 | Backlog | 002-T036 | yes | | |
+| 004-T127 | Run full quickstart.md validation manually (all 9 scenarios with curl) | G-SEC-VALIDATION | | P3 | Backlog | 004-T111 | yes | | Manual QA |
+| 004-T128 | Run OWASP ZAP baseline scan on staging (no high/medium findings) | G-SEC-VALIDATION | | P3 | Backlog | 003-T052 | yes | | Manual QA |
+| 004-T129 | Run `npm audit --audit-level=high` on frontend (zero high-severity CVEs) | G-SEC-VALIDATION | | P3 | Backlog | 002-T035 | yes | | Manual QA |
+| 004-T130 | Run `govulncheck ./...` on backend (zero critical/high CVEs) | G-SEC-VALIDATION | | P3 | Backlog | 002-T034 | yes | | Manual QA |
+| 004-T131 | Verify CloudWatch Logs retention (query AWS CLI, confirm 30 days) | G-SEC-VALIDATION | | P3 | Backlog | 004-T073 | yes | | Manual QA |
+| 004-T132 | Verify CloudWatch Alarms configured (auth-failure-rate, prompt-injection-rate) | G-SEC-VALIDATION | | P3 | Backlog | 004-T074 | yes | | Manual QA |
+
+---
+
 ## Feature Phase
 
 _No feature specs defined yet. Add specs 004+ here as they are created._
@@ -439,74 +610,123 @@ _No tasks archived on this run (first run; all tasks are ADD operations)._
 |------|--------|-------------|--------|
 | 001 | `specs/001-product-vision-scope/` | ✅ yes | Active |
 | 002 | `specs/002-nfr-system-constraints/` | ✅ yes | Active |
-| 003 | `specs/003-cloud-env-strategy/` | ✅ yes | **NEW** |
+| 003 | `specs/003-cloud-env-strategy/` | ✅ yes | Active |
+| 004 | `specs/004-security-auth-model/` | ✅ yes | **NEW** |
 
 ### Change Counts
 
 | Operation | Count |
 |-----------|-------|
-| **ADD** | 72 (spec 003: all 72 tasks) |
+| **ADD** | 132 (spec 004: all 132 tasks) |
 | **UPDATE** | 0 |
-| **UNCHANGED** | 127 (001: 81 tasks, 002: 46 tasks) |
+| **UNCHANGED** | 199 (001: 81 tasks, 002: 46 tasks, 003: 72 tasks) |
 | **REMOVE** | 0 |
 | **ARCHIVED** | 0 |
-| **Structural** | Added 13 new groups for spec 003 tasks |
+| **Structural** | Added 29 new groups for spec 004 tasks |
 
-**Total tasks in roadmap**: 199 (was 127, added 72)  
-**Grouped tasks**: 135 (67.8% of total, forming 42 work items)  
-**Standalone tasks**: 64 (32.2% of total)
+**Total tasks in roadmap**: 331 (was 199, added 132)  
+**Grouped tasks**: 234 (70.7% of total, forming 71 work items)  
+**Standalone tasks**: 97 (29.3% of total)
 
-### New Grouping Summary (Spec 003)
+### New Grouping Summary (Spec 004)
 
 | Group ID | Tasks | Description |
 |----------|-------|-------------|
-| G-INFRA-SETUP | 4 | Terraform root structure, tfvars, module directories, gitignore (003-T002–004, 008) |
-| G-INFRA-TOOLS | 3 | Install Terraform, AWS CLI, Docker (003-T005–007) |
-| G-INFRA-TF-CONFIG | 2 | AWS provider config, OIDC trust policies (003-T011–012) |
-| G-INFRA-VPC-MODULE | 5 | VPC module: main, security groups, NAT, variables, outputs (003-T014–018) |
-| G-INFRA-ALB-MODULE | 3 | ALB module: main, variables, outputs (003-T019–021) |
-| G-INFRA-RDS-MODULE | 3 | RDS module: main, variables, outputs (003-T022–024) |
-| G-INFRA-ECS-MODULE | 4 | ECS module: cluster/service, auto-scaling, variables, outputs (003-T025–028) |
-| G-INFRA-CDN-MODULE | 3 | S3+CloudFront module: main, variables, outputs (003-T029–031) |
-| G-INFRA-IAM-MODULE | 3 | IAM module: roles, variables, outputs (003-T032–034) |
-| G-INFRA-SECRETS | 2 | Secrets initialization script, Terraform data sources (003-T045–046) |
-| G-INFRA-TF-WORKFLOWS | 2 | Terraform plan/apply GitHub Actions workflows (003-T048–049) |
-| G-INFRA-DOCKER | 2 | Backend Dockerfile and .dockerignore (003-T050–051) |
-| G-INFRA-COST-MONITORING | 3 | AWS Budgets, tag validation (003-T055–057) |
-| G-INFRA-OBSERVABILITY | 6 | CloudWatch log groups, dashboards, metric alarms (003-T059–064) |
-| G-INFRA-POLISH | 5 | tflint, tfsec, infra README, module docs, editorconfig (003-T065–066, 068–069, 071) |
+| G-SEC-FRONTEND-STRUCTURE | 1 | Frontend security directory structure (004-T002) |
+| G-SEC-BACKEND-DEPS | 1 | Backend security dependencies (004-T003) |
+| G-SEC-FRONTEND-DEPS | 1 | Frontend security dependencies (004-T004) |
+| G-SEC-TEST-STRUCTURE | 1 | Security test directories (004-T005) |
+| G-SEC-DB-MIGRATIONS | 6 | Security-related database migrations (004-T006–011) |
+| G-SEC-CORE-UTILITIES | 3 | Core security utilities: password, correlation ID, logger (004-T012–014) |
+| G-SEC-JWT-TESTS | 3 | JWT generation/validation/rotation tests (004-T015–017) |
+| G-SEC-JWT-IMPL | 4 | JWT implementation (004-T018–021) |
+| G-SEC-AUTH-MIDDLEWARE-TESTS | 2 | Auth middleware integration tests (004-T022–023) |
+| G-SEC-AUTH-HANDLERS-TESTS | 4 | Auth handlers integration tests (004-T026–029) |
+| G-SEC-AUTH-HANDLERS-IMPL | 6 | Auth handlers implementation (004-T030–035) |
+| G-SEC-RBAC-TESTS | 2 | RBAC permission tests (004-T036–037) |
+| G-SEC-RBAC-IMPL | 2 | RBAC implementation (004-T038–039) |
+| G-SEC-VALIDATION-TESTS | 3 | Input validation security tests (004-T041–043) |
+| G-SEC-VALIDATION-IMPL | 4 | Input validation implementation (004-T044–047) |
+| G-SEC-PROMPT-TESTS | 2 | Prompt injection tests (004-T050–051) |
+| G-SEC-PROMPT-IMPL | 2 | Prompt validation implementation (004-T052–053) |
+| G-SEC-SANITIZATION-TESTS | 2 | Output sanitization tests (004-T054–055) |
+| G-SEC-SANITIZATION-IMPL | 1 | Output sanitization implementation (004-T056) |
+| G-SEC-CONCURRENCY-TESTS | 1 | Optimistic locking tests (004-T058) |
+| G-SEC-CONCURRENCY-IMPL | 3 | Optimistic locking implementation (004-T059–061) |
+| G-SEC-LOGGING-TESTS | 2 | Security logging/metrics tests (004-T063–064) |
+| G-SEC-LOGGING-IMPL | 2 | CloudWatch logging/metrics implementation (004-T065–066) |
+| G-SEC-SECRETS-TESTS | 1 | Secrets Manager tests (004-T069) |
+| G-SEC-SECRETS-IMPL | 1 | AWS Secrets Manager client (004-T070) |
+| G-SEC-FRONTEND-AUTH-TESTS | 2 | Frontend auth context tests (004-T076–077) |
+| G-SEC-FRONTEND-AUTH-IMPL | 3 | Frontend auth context implementation (004-T078–080) |
+| G-SEC-FRONTEND-ROLE-TESTS | 2 | Frontend role hook tests (004-T081–082) |
+| G-SEC-FRONTEND-ROLE-IMPL | 2 | Frontend role-based UI implementation (004-T083–084) |
+| G-SEC-FRONTEND-RENDER-TESTS | 2 | Frontend secure rendering tests (004-T087–088) |
+| G-SEC-FRONTEND-RENDER-IMPL | 2 | Frontend secure rendering implementation (004-T089–090) |
+| G-SEC-FRONTEND-ERROR-TESTS | 2 | Frontend error handling tests (004-T092–093) |
+| G-SEC-FRONTEND-ERROR-IMPL | 2 | Frontend error handling implementation (004-T094–095) |
+| G-SEC-FRONTEND-PASSWORD | 2 | Frontend password change form (004-T097–098) |
+| G-SEC-QA-OWASP | 3 | OWASP Top 10 test vectors (004-T099–101) |
+| G-SEC-QA-LLM | 2 | OWASP LLM Top 10 test vectors (004-T102–103) |
+| G-SEC-QA-E2E | 3 | Security E2E tests (004-T108–110) |
+| G-SEC-QA-QUICKSTART | 7 | Automated quickstart scenario validation (004-T111–117) |
+| G-SEC-DOCS | 3 | Security documentation (004-T118–120) |
+| G-SEC-REFACTOR | 2 | Code cleanup and refactoring (004-T121–122) |
+| G-SEC-HARDENING | 3 | Additional security hardening (004-T123–125) |
+| G-SEC-VALIDATION | 6 | Final validation tasks (004-T127–132) |
 
-### Cross-Spec Dependencies (Spec 003)
+### Cross-Spec Dependencies (Spec 004)
 
 | Task | Depends on | Type | Description |
 |------|------------|------|-------------|
-| 003-T067 | 001-T076 | Extends | Adds Docker linting (`hadolint`) to backend-lint.yml workflow |
-| 003-T070 | 001-T080 | Relocates | Moves backend Dockerfile from `backend/` to `infra/docker/backend/` |
-| 003-T052 | 003-T050, 003-T013 | Deployment | Backend deploy workflow depends on Dockerfile and OIDC roles |
+| 004-T070 | 003-T045 | Requires | AWS Secrets Manager client needs secrets initialized by 003 |
+| 004-T073 | 003-T059 | Extends | Security CloudWatch log group with 30-day retention policy |
+| 004-T074 | 003-T062 | Extends | Auth failure CloudWatch alarm (integrates with 003 observability) |
+| 004-T075 | 003-T062 | Extends | Prompt injection CloudWatch alarm (integrates with 003 observability) |
+| 004-T126 | 002-T036 | Extends | Adds gitleaks pre-commit hook (complements 002 CI gate) |
+| 004-T129 | 002-T035 | Validates | Confirms frontend npm audit passes (002 CI gate) |
+| 004-T130 | 002-T034 | Validates | Confirms backend govulncheck passes (002 CI gate) |
+| 004-T057 | 001-T037 | Integration | Apply sanitization in AI integration layer (app code location TBD) |
 
 ### Human Attention Required
 
 | Item | Detail |
 |------|--------|
-| **New spec review** | Spec 003 (Cloud & Environments Strategy) added with 72 tasks. Review grouping and priorities. |
-| Priority review | All spec 003 priorities are defaults inherited from spec phases. Review and override where needed — especially Phase 8 (Polish, currently P2) if linting should be P1. |
-| Status review | All 72 new tasks default to `Backlog`. Mark tasks `Ready` or `In Progress` as infrastructure work begins. |
-| Issue column | All 72 new spec 003 `Issue` fields are empty. **60 grouped tasks will form 13 issues** (with checklists); **12 standalone tasks will form 12 issues**. Total NEW issues: **25 issues** when `/sync-issues` runs. |
-| Sprint column | All spec 003 `Sprint` fields are empty. Populate during sprint planning. |
-| 003 cross-spec deps | 003-T067 and 003-T070 modify or relocate artifacts from spec 001. Coordinate with spec 001 implementers. |
-| Infrastructure blocking | Spec 003 tasks (Phases 1-5, P1 user stories) must complete before backend/frontend can be deployed. Application development (spec 001) can proceed in parallel with infrastructure work (spec 003), but deployment requires infrastructure. |
+| **New spec review** | Spec 004 (Security & Authentication/Authorization Model) added with 132 tasks. Review grouping and priorities. |
+| **Priority review** | All spec 004 priorities default to P1 (Phase 3 US1), P2 (Phase 4 US2, Phase 6 Polish), P3 (Phase 5 US3). Review and override if security work should have different sprint priorities. |
+| **Status review** | All 132 new tasks default to `Backlog`. Mark tasks `Ready` or `In Progress` as security implementation begins. |
+| **Issue column** | All 132 new spec 004 `Issue` fields are empty. **90 grouped tasks will form 29 issues** (with checklists); **42 standalone tasks will form 42 issues**. Total NEW issues: **71 issues** when `/sync-issues` runs. |
+| **Sprint column** | All spec 004 `Sprint` fields are empty. Populate during sprint planning. Security work is foundational — consider prioritizing Phase 2–3 (foundational + backend US1) early. |
+| **TDD mandate** | Spec 004 follows strict RED-GREEN-REFACTOR TDD workflow. All test tasks (RED phase) MUST be completed BEFORE implementation tasks (GREEN phase). This is non-negotiable per constitution. |
+| **004 cross-spec deps** | 8 tasks integrate with specs 001, 002, 003. Coordinate: 004-T070 needs 003-T045 (Secrets Manager); 004-T073–075 extend 003 CloudWatch infrastructure; 004-T057 integrates with 001 AI layer. |
+| **Security blocking** | Spec 004 Phase 2 (foundational tasks 004-T006–014) BLOCKS all security user stories. Must complete migrations and core utilities before auth/validation implementation can begin. |
 
 ### Critical Path Changes
 
-- **New parallel path**: Infrastructure provisioning (003-T001 → 003-T054) now runs in parallel with application development (001-T009 → 001-T050).
-- **Deployment dependency**: Backend deployment (003-T052) and frontend deployment (003-T053) are now required checkpoints after application E2E tests (001-T050).
-- **CI/CD integration**: 003-T067 extends 001-T076 (backend lint workflow) with Docker linting.
+- **New parallel path**: Security foundation (004-T001 → 004-T014) runs in parallel with application development (001), NFR validation (002), and infrastructure provisioning (003).
+- **Security integration points**:
+  - 004-T070 BLOCKS 004-T071–072 (JWT key rotation): requires 003-T045 (Secrets Manager setup)
+  - 004-T073–075 BLOCKS final deployment: CloudWatch alarms required for production readiness
+  - 004-T057 integrates with 001-T037 (AI itinerary service): sanitization must be applied before DB/client return
+- **TDD critical path**: Within spec 004, test tasks (RED phase) strictly BLOCK implementation tasks (GREEN phase). Example: 004-T015–017 (JWT tests) BLOCK 004-T018–021 (JWT implementation).
+- **Auth dependency cascade**: 004-T018–021 (JWT core) BLOCKS 004-T022–025 (auth middleware) BLOCKS 004-T026–035 (auth handlers) BLOCKS all frontend auth work (004-T076–098).
 
 ### Next Steps
 
-1. **Review spec 003 grouping**: The 15 groups bundle 60 tasks into cohesive work items. If any grouping doesn't make sense for your workflow, clear the `Group` value to split tasks back into standalone items.
-2. **Sprint planning**: Populate the `Sprint` column for spec 003 tasks to assign infrastructure work to specific sprints or milestones.
-3. **Coordinate cross-spec work**: 003-T067 and 003-T070 touch spec 001 artifacts. Ensure spec 001 implementers are aware.
-4. **Run `/sync-issues`**: This will create **25 new GitHub issues** for spec 003 (13 grouped + 12 standalone). Grouped issues will have checklists with member tasks.
-5. **Begin infrastructure implementation**: Follow the critical path: `003-T001 → 003-T009 → ... → 003-T054` (can run in parallel with spec 001 app development).
-6. **Re-run `/build-roadmap`**: When a new spec's `tasks.md` is added or modified — the command preserves all `Group`, `Sprint`, `Priority`, `Status`, and `Issue` fields.
+1. **Review spec 004 grouping**: The 29 groups bundle 90 tasks into cohesive work items following TDD workflow. If any grouping doesn't align with team velocity, clear the `Group` value to split into standalone items.
+2. **Sprint planning**: Populate `Sprint` column for spec 004. Recommend: Phase 2 (foundational) in first security sprint, Phase 3 (backend US1) in sprints 2-3, Phase 4 (frontend US2) in sprint 4, Phase 5-6 (QA + Polish) in final sprint.
+3. **Coordinate cross-spec work**: 004-T070 depends on 003-T045; 004-T073–075 extend 003-T059–062; 004-T057 integrates with 001-T037. Ensure teams coordinate on these integration points.
+4. **Run `/sync-issues`**: This will create **71 new GitHub issues** for spec 004 (29 grouped + 42 standalone). Grouped issues will have checklists with member tasks. Use labels: `security`, `tdd`, `P1`/`P2`/`P3`.
+5. **Begin security implementation**: Follow the critical path: `004-T001 → 004-T006–014 (foundational) → 004-T015–075 (backend US1) → 004-T076–098 (frontend US2) → 004-T099–117 (QA US3) → 004-T118–132 (polish)`. Remember TDD mandate: RED phase (tests) MUST come before GREEN phase (implementation).
+6. **Re-run `/build-roadmap`**: When spec 004 `tasks.md` is modified or a new spec is added — the command preserves all `Group`, `Sprint`, `Priority`, `Status`, and `Issue` fields.
+
+---
+
+**Total project task count**: **331 tasks** across 4 foundation specs  
+**Grouped work items**: **71 issues** (combining 234 tasks)  
+**Standalone work items**: **97 issues**  
+**Total GitHub issues when synced**: **168 issues**
+
+---
+
+_End of reconciliation report. All human-owned fields preserved. Ready for sprint planning and `/sync-issues` execution._
