@@ -1,16 +1,34 @@
 # Security & Authorization
 
 <!-- PROMOTED:security START -->
-<!-- Generated from specs/001-product-vision-scope/spec.md and specs/002-nfr-system-constraints/spec.md -->
+<!-- Generated from specs/001-product-vision-scope/spec.md, specs/002-nfr-system-constraints/spec.md, and specs/004-security-auth-model/spec.md -->
 <!-- Last promoted: 2026-07-03 -->
 
 ## Authentication Model
 
 All trip creation, editing, deletion, and sharing operations require authenticated user accounts. Authentication is implemented using JWT tokens stored in HTTP-only cookies.
 
+**JWT Algorithm**: RS256 (RSA Signature with SHA-256) — asymmetric signing allows public key distribution for validation without exposing signing capability.
+
 **Token Expiration**:
 - Access tokens: 24 hours maximum lifetime
 - Refresh tokens: 30 days maximum lifetime
+
+**Token Storage**: HTTP-only, Secure, SameSite=Strict cookies to prevent XSS-based token theft and CSRF attacks.
+
+**Password Security**: Bcrypt hashing with cost factor 12 (2^12 = 4096 iterations); never store plaintext passwords.
+
+### JWT Key Rotation
+
+The system supports zero-downtime JWT signing key rotation using a multi-key strategy:
+- New tokens are signed with the current primary key
+- Token validation accepts any active signing key (primary or previous keys within their validity period)
+- Keys are stored in AWS Secrets Manager with metadata indicating active/retired status
+- Rotation does not force user re-authentication; old tokens remain valid until natural expiration
+
+### Password Change & Session Management
+
+When users change their password, they can optionally invalidate all active sessions (all access and refresh tokens across all devices). This is presented as an explicit choice (e.g., checkbox: "Log out all other devices") to balance security with user experience.
 
 ## Authorization & Roles
 
@@ -60,6 +78,12 @@ graph TB
 - Can submit suggestions for modifications to shared itineraries
 - **Cannot** directly apply changes to any itinerary item (suggestions must be approved by admin)
 - Cannot invite additional collaborators
+
+## Concurrency Control
+
+**Optimistic Locking**: All admin trip modification operations (Update and Delete) use version numbers or timestamps to detect concurrent modifications. When a conflict is detected, the system returns `409 Conflict` with the current resource version, requiring the client to fetch the latest state and retry.
+
+This prevents lost updates when multiple users (or an admin approving a suggestion while another admin edits) modify the same trip simultaneously.
 
 ## Subscription Plan Limits
 
@@ -188,5 +212,34 @@ graph LR
 - OWASP LLM Top 10 checklist reviewed before each release
 - Security-focused code review for all changes touching authentication, authorization, or data handling
 - Disaster recovery drill conducted before first release
+
+## Security Logging & Monitoring
+
+### Event Logging
+
+All security-relevant events are logged to AWS CloudWatch Logs in structured JSON format:
+- **Authentication events**: Successful logins, failed login attempts, token refresh, logout (with correlation ID and timestamp)
+- **Authorization denials**: 403 responses (with user ID, role, requested operation, and timestamp)
+- **Input validation failures**: Prompt injection, XSS, SQL injection attempts (with correlation ID, user ID, and attack pattern detected)
+
+**Sensitive Data Protection**: Logs MUST NOT contain JWT tokens, passwords, refresh tokens, API keys, or PII (except user ID for correlation).
+
+### Log Retention
+
+CloudWatch Logs retention period: **30 days** for all security event logs to balance incident response needs with cost efficiency.
+
+### Metrics & Alarms
+
+CloudWatch metrics are emitted for:
+- Authentication failures (rate)
+- Authorization denials (rate)
+- Prompt injection detections (count)
+- API error rate (5xx responses)
+
+**CloudWatch Alarms** trigger when:
+- Authentication failure rate exceeds 100 failures/minute for 5 consecutive minutes
+- Prompt injection detection rate exceeds 10 events/minute for 5 consecutive minutes
+
+**Alarm Response Strategy (MVP)**: Alarms trigger notifications for manual review and response. No automated IP blocking or account suspension is performed to avoid false-positive service disruptions.
 
 <!-- PROMOTED:security END -->

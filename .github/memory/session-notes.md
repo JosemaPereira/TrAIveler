@@ -131,3 +131,41 @@ Historical summaries of completed development sessions. Committed to git as a re
   - Documentation enhanced with 5 Mermaid diagrams improving clarity
   - README reorganized for better documentation discoverability
   - All changes staged but not committed per project policy; ready for review and `/commit-and-push`
+
+---
+
+### Session: Security Foundation and Roadmap Completion
+- **Date**: 2026-07-03
+- **Branch**: `feature/004-security-auth-model` (in progress)
+- **What was accomplished**:
+  - **Foundational promotion completed** — executed full `/promote-foundations` workflow on specs 001-004:
+    - Created `docs/data-model.md` — consolidated core entities from specs 001 and 004: User, RefreshToken, JWTSigningKey, SecurityEvent, Plan, Subscription, Trip, Day, Activity, Collaborator, Suggestion, TravelStyle. Includes 18 invariants (authentication, concurrency, data protection, plan limits, GDPR), validation rules, state transitions, and 16-migration sequence.
+    - Updated `docs/security.md` — added JWT multi-key rotation strategy (zero-downtime), password change session invalidation (user choice with checkbox), optimistic locking (version numbers), bcrypt cost 12, 30-day CloudWatch retention, alarm thresholds (auth failures >100/min, prompt injection >10/min), manual alarm response strategy.
+    - Updated `.specify/memory/constitution.md` — added spec 004 as source for security rules section; no version bump (additive update only).
+    - Updated `.github/copilot-instructions.md` — enhanced doc references: added `docs/data-model.md`, expanded `docs/security.md` description with RS256/multi-key rotation/optimistic locking/CloudWatch monitoring.
+  - **Roadmap reconciliation** — updated `docs/roadmap.md` from 199 to 331 total tasks:
+    - Added spec 004 Security & Authentication/Authorization Model — 132 tasks across 6 phases (Setup, Foundational, US1 Backend P1, US2 Frontend P2, US3 QA P3, Polish P2-P3).
+    - Created 29 new task groups for security work (G-SEC-JWT-TESTS, G-SEC-AUTH-HANDLERS-IMPL, G-SEC-RBAC-IMPL, G-SEC-VALIDATION-IMPL, G-SEC-PROMPT-IMPL, G-SEC-SANITIZATION-IMPL, G-SEC-CONCURRENCY-IMPL, G-SEC-LOGGING-IMPL, G-SEC-SECRETS-IMPL, G-SEC-FRONTEND-AUTH-IMPL, G-SEC-FRONTEND-ROLE-IMPL, G-SEC-FRONTEND-RENDER-IMPL, G-SEC-FRONTEND-ERROR-IMPL, G-SEC-QA-OWASP, G-SEC-QA-LLM, G-SEC-QA-E2E, G-SEC-QA-QUICKSTART, G-SEC-DOCS, G-SEC-REFACTOR, G-SEC-HARDENING, G-SEC-VALIDATION).
+    - Identified 8 cross-spec dependencies: 004-T070 requires 003-T045 (Secrets Manager); 004-T073–075 extend 003-T059–062 (CloudWatch infrastructure); 004-T057 integrates with 001-T037 (AI sanitization); 004-T126 complements 002-T036 (gitleaks); 004-T129–130 validate 002-T034–035 (security scanning).
+    - 90 tasks grouped into 29 work items (following TDD RED-GREEN-REFACTOR); 42 standalone tasks; total 71 new GitHub issues when synced.
+    - Preserved all existing tasks unchanged (001: 81, 002: 46, 003: 72).
+  - Updated reconciliation report with complete spec 004 details, TDD workflow requirements, critical path changes, and next steps.
+- **Key findings and decisions**:
+  - **JWT multi-key rotation is critical** — supports zero-downtime key rotation by allowing validation against multiple active keys simultaneously; new tokens signed with primary key, old tokens remain valid until expiration; industry standard (Auth0, Okta, AWS Cognito).
+  - **Optimistic locking scope must be explicit** — all admin trip modifications (Update/Delete) require version numbers on trips and itinerary_items tables; 409 Conflict returned on version mismatch with current resource in response body.
+  - **Password change UX balances security with user control** — user chooses whether to invalidate all sessions via checkbox "Log out all other devices" (default unchecked); educates users about security implications rather than forcing logout.
+  - **MVP security monitoring favors availability** — CloudWatch alarms trigger SNS notifications for manual review; no automated IP blocking or account suspension to avoid false-positive service disruptions.
+  - **TDD mandate is non-negotiable** — spec 004 enforces strict RED-GREEN-REFACTOR: all test tasks (RED phase) MUST complete BEFORE implementation tasks (GREEN phase). Example: 004-T015–017 (JWT tests) BLOCK 004-T018–021 (JWT implementation).
+  - **30-day log retention balances cost and forensics** — sufficient for immediate incident response in staging ($200/month budget); production can extend to 90 days post-MVP.
+  - **Foundation promotion prevents context drift** — by extracting durable decisions from specs into constitution (non-negotiables) and docs/ (reference), every future `/speckit.plan`, `/speckit.tasks`, and implementation inherits foundational constraints automatically without re-reading isolated specs.
+- **Outcomes**: 
+  - Complete security foundation defined across 132 tasks
+  - Roadmap now encompasses 331 tasks across 4 foundation specs (001-004)
+  - 71 new work items ready for GitHub issue creation via `/sync-issues`
+  - Data model promoted with 18 invariants and complete migration strategy
+  - Security documentation enhanced with multi-key JWT rotation and CloudWatch monitoring
+  - All foundational decisions (product vision, NFRs, cloud/IaC, security/auth) promoted to persistent context
+  - Project ready for implementation phase with complete design foundation
+  - All changes staged; ready for review and commit
+
+---

@@ -25,10 +25,11 @@ Read the following files before generating code, tests, or UI for this project:
 
 - **docs/architecture.md** — system component boundaries, integration rules, scalability constraints, security boundaries, and observability strategy. Defines how backend (Go on ECS Fargate), frontend (React on S3+CloudFront), database (PostgreSQL RDS), and external dependencies (Anthropic AI) interact.
 - **docs/cloud-and-environments.md** — cloud provider (AWS us-east-1), environment topology (staging active, production dormant), IaC approach (Terraform), compute platform (ECS Fargate, not Lambda), CI/CD (GitHub Actions with OIDC), secrets management (AWS Secrets Manager), and cost strategy ($200 staging, $300-400 production).
+- **docs/data-model.md** — core entities (User, Trip, Day, Activity, RefreshToken, JWTSigningKey, SecurityEvent), relationships, validation rules, invariants, business rules, and database migration strategy. Includes authentication entities, optimistic locking, and GDPR compliance rules.
 
 ### Security & Authorization
 
-- **docs/security.md** — authentication model (JWT), authorization roles (admin/partner), subscription limits, secrets management, PII handling (GDPR-aware), input validation (prompt injection prevention), output sanitization, dependency security, and testing requirements.
+- **docs/security.md** — authentication model (JWT RS256 with multi-key rotation), authorization roles (admin/partner), subscription limits, password security (bcrypt cost 12), session management, optimistic locking for concurrency, secrets management (AWS Secrets Manager), PII handling (GDPR-aware), input validation (prompt injection prevention), output sanitization, dependency security, security logging & monitoring (CloudWatch 30-day retention, alarms), and testing requirements.
 
 ### Development Standards
 
