@@ -1,16 +1,18 @@
 <!--
 SYNC IMPACT REPORT
 ==================
-Version change: 1.1.0 → 1.2.0
-Modified principles: none
-Added sections: Team Structure (new section before Team Collaboration)
-Modified sections: Team Collaboration → Pull Requests (review routing by role added)
+Version change: 1.2.0 → 1.3.0
+Modified principles: V. Secure Configuration (added prompt injection and output sanitization rules)
+Added sections: Technology Stack → Infrastructure Layer (mandated cloud stack)
+Modified sections: Technology Stack (expanded with database, AI provider, infrastructure decisions)
 Removed sections: none
 Templates requiring updates:
   ✅ .specify/templates/plan-template.md — Constitution Check section is generic; no update required
   ✅ .specify/templates/spec-template.md — no impact; specs ownership already implicit in PM role
   ✅ .specify/templates/tasks-template.md — no new task categories required
-Follow-up TODOs: none
+Follow-up TODOs: All subsequent /speckit.plan and /speckit.tasks commands will now inherit the mandated
+cloud stack and security rules automatically. Features that would violate these require explicit
+constitution amendment.
 -->
 
 # TrAIveler Constitution
@@ -84,7 +86,50 @@ constitutes a blocking defect.
   messages only.
 - Dependencies MUST be kept up to date; known vulnerabilities MUST be resolved before shipping.
 
+<!-- PROMOTED:security-rules START -->
+<!-- Last updated: 2026-07-03 from specs 002 (NFR-SEC-007, NFR-SEC-008) -->
+
+#### Prompt Injection Prevention (NON-NEGOTIABLE)
+
+All user input sent to the AI provider MUST pass through a prompt-validation layer that:
+- Detects and rejects instruction-override patterns (e.g., "ignore previous instructions")
+- Detects and rejects attempts to extract system prompts or internal configuration
+- Detects and rejects off-topic prompts unrelated to travel planning
+- Returns `400 Bad Request` with correlation ID logged for security review
+
+The prompt-validation layer operates server-side only. Its classification rules MUST NOT be disclosed
+in client-side code.
+
+#### Output Sanitization (NON-NEGOTIABLE)
+
+All AI-generated content MUST be sanitized before:
+- Rendering in the browser
+- Persisting to the database
+
+Sanitization MUST strip or escape:
+- HTML/script tags and event handlers
+- Executable content (JavaScript, data URIs)
+- Raw SQL or template injection attempts
+
+No AI-generated content may be executed as code or used as a raw SQL/template value.
+
+#### Authorization Enforcement
+
+- Admin role: Full CRUD on own trips; exclusive authority to approve/reject partner suggestions
+- Partner role: View-only on shared trips; suggestion-only modifications (no direct edits)
+- Basic plan limit: One admin user + maximum one partner collaborator per subscription
+
+These role boundaries MUST be enforced at the API layer on every request. Client-side enforcement is
+advisory only.
+
+<!-- PROMOTED:security-rules END -->
+
 ## Technology Stack
+
+<!-- PROMOTED:mandated-stack START -->
+<!-- Last updated: 2026-07-03 from specs 001, 002, 003 -->
+
+### Application Layer
 
 - **Backend**: Go 1.24 or higher, structured following the domain-based layout in
   `docs/coding-guidelines.md` (`cmd/`, `internal/<domain>/`, `pkg/`, `config/`).
@@ -94,8 +139,38 @@ constitutes a blocking defect.
 - **Styling**: CSS Modules + CSS custom properties (no CSS-in-JS runtime or utility-class framework
   unless explicitly adopted by constitution amendment).
 - **Icons**: single icon library project-wide (Lucide React is the default).
-- **MVP scope**: web application only — no native mobile apps, no third-party booking integrations
-  (see `docs/functional-requirements.md` Out of Scope section).
+- **Database**: PostgreSQL 15.4 on Amazon RDS.
+- **AI Provider**: Anthropic Claude API for itinerary generation.
+
+### Infrastructure Layer (NON-NEGOTIABLE)
+
+- **Cloud Provider**: AWS (Amazon Web Services), us-east-1 region
+- **Infrastructure as Code**: Terraform 1.5+ with HCL syntax; remote state in S3 with DynamoDB locking
+- **Compute Platform**: ECS Fargate with ARM64 Graviton2 containers (NOT Lambda — AI workloads require
+  unlimited execution time, no payload limits, persistent HTTP connections)
+- **Container Registry**: Amazon ECR for private Docker images
+- **Frontend Delivery**: S3 for static assets + CloudFront CDN for global delivery
+- **Load Balancing**: Application Load Balancer (ALB) with HTTPS termination
+- **Networking**: VPC per environment with isolated public/private subnets
+- **Secrets Management**: AWS Secrets Manager (no secrets in code or Git)
+- **Logging**: Structured JSON logs to AWS CloudWatch Logs
+- **Monitoring**: AWS CloudWatch metrics and dashboards
+- **CI/CD Platform**: GitHub Actions with OIDC federation to AWS (no long-lived credentials)
+
+### Environment Strategy
+
+- **Staging**: Active MVP environment with cost-optimized configuration ($200/month budget)
+- **Production**: IaC-defined but dormant until alpha release ($300-400/month when provisioned)
+- **Isolation**: Separate VPCs within single AWS account (staging: 10.0.0.0/16, production: 10.1.0.0/16)
+- **Deployment**: Auto-deploy to staging on main merge; manual-only production deployment
+
+### MVP Scope
+
+- Web application only — no native mobile apps, no third-party booking integrations
+  (see `docs/functional-requirements.md` Out of Scope section)
+- Subscription payment collection is mocked with a stub; plan enforcement is active application logic
+
+<!-- PROMOTED:mandated-stack END -->
 
 ## Development Workflow
 
@@ -197,4 +272,4 @@ blocking. Complexity that cannot be justified against Principle II (Simplicity) 
 For runtime development guidance refer to `docs/coding-guidelines.md`, `docs/testing-guidelines.md`,
 and `docs/ui-guidelines.md`.
 
-**Version**: 1.2.0 | **Ratified**: 2026-07-02 | **Last Amended**: 2026-07-02
+**Version**: 1.3.0 | **Ratified**: 2026-07-02 | **Last Amended**: 2026-07-03

@@ -8,6 +8,34 @@ TrAIveler follows a **Test-Driven Development** workflow: write a failing test (
 
 The project uses a three-layer testing strategy:
 
+```mermaid
+graph TD
+    subgraph "Layer 1: Unit Tests"
+        U1[Individual functions<br/>Services<br/>Components in isolation]
+        U2[Go testing + testify<br/>Vitest + React Testing Library]
+        U1 --> U2
+    end
+
+    subgraph "Layer 2: Integration Tests"
+        I1[Interaction between layers<br/>HTTP handlers ↔ services<br/>Components ↔ API]
+        I2[Go net/http/httptest<br/>Vitest + MSW]
+        I1 --> I2
+    end
+
+    subgraph "Layer 3: E2E Tests"
+        E1[Full user flows<br/>through the browser]
+        E2[Playwright]
+        E1 --> E2
+    end
+
+    U2 --> I1
+    I2 --> E1
+
+    style U1 fill:#e8f5e9
+    style I1 fill:#fff4e6
+    style E1 fill:#e1f5ff
+```
+
 | Layer | Scope | Tools |
 |---|---|---|
 | Unit | Individual functions, services, and components in isolation | Go `testing` + `testify` / Vitest + React Testing Library |
