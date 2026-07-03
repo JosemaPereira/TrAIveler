@@ -34,11 +34,16 @@ gastronomy, and inter-city logistics — which they can refine and share with co
 | Artifact | Status |
 |----------|--------|
 | Product vision & scope | ✅ Complete — [`specs/001-product-vision-scope/spec.md`](specs/001-product-vision-scope/spec.md) |
-| Implementation plan | ✅ Complete — [`specs/001-product-vision-scope/plan.md`](specs/001-product-vision-scope/plan.md) |
-| Technology research | ✅ Complete — [`specs/001-product-vision-scope/research.md`](specs/001-product-vision-scope/research.md) |
+| Implementation plan (001) | ✅ Complete — [`specs/001-product-vision-scope/plan.md`](specs/001-product-vision-scope/plan.md) |
+| Technology research (001) | ✅ Complete — [`specs/001-product-vision-scope/research.md`](specs/001-product-vision-scope/research.md) |
 | Data model | ✅ Complete — [`specs/001-product-vision-scope/data-model.md`](specs/001-product-vision-scope/data-model.md) |
 | REST API contract | ✅ Complete — [`specs/001-product-vision-scope/contracts/api.md`](specs/001-product-vision-scope/contracts/api.md) |
-| Task list (81 tasks) | ✅ Complete — [`specs/001-product-vision-scope/tasks.md`](specs/001-product-vision-scope/tasks.md) |
+| Task list — 001 (81 tasks) | ✅ Complete — [`specs/001-product-vision-scope/tasks.md`](specs/001-product-vision-scope/tasks.md) |
+| NFR & system constraints | ✅ Complete — [`specs/002-nfr-system-constraints/spec.md`](specs/002-nfr-system-constraints/spec.md) |
+| NFR implementation plan (002) | ✅ Complete — [`specs/002-nfr-system-constraints/plan.md`](specs/002-nfr-system-constraints/plan.md) |
+| NFR research (002) | ✅ Complete — [`specs/002-nfr-system-constraints/research.md`](specs/002-nfr-system-constraints/research.md) |
+| Task list — 002 (46 tasks) | ✅ Complete — [`specs/002-nfr-system-constraints/tasks.md`](specs/002-nfr-system-constraints/tasks.md) |
+| Project roadmap (127 tasks) | ✅ Complete — [`docs/roadmap.md`](docs/roadmap.md) |
 | Backend implementation | 🔲 Not started |
 | Frontend implementation | 🔲 Not started |
 
@@ -126,9 +131,32 @@ specs/            # Feature specifications, plans, research, data models, contra
 | Auth | `golang-jwt/jwt/v5` in HTTP-only cookies (XSS-safe, CSRF-mitigated) |
 | Payment | Visible mock stub (always succeeds); same Go interface as real provider for post-MVP swap |
 | Collaboration | Suggest-then-approve: partner submits; admin approves/rejects; history never deleted |
+| Structured logging | `log/slog` (Go stdlib) — zero deps, JSON handler, context-scoped correlation IDs |
+| AI output sanitisation | `bluemonday` (Go) + React default JSX escaping — sanitise before DB storage |
+| Prompt injection defence | Pattern-based server-side deny-list (`prompt-rules.yml`) — zero AI cost per rejection |
+| Accessibility scanning | `@axe-core/playwright` + Lighthouse CI — WCAG 2.1 AA gated on every PR |
+| Secret scanning | `gitleaks` — runs on every commit and PR, blocks merge on any finding |
 
-See [`specs/001-product-vision-scope/research.md`](specs/001-product-vision-scope/research.md) for
-full rationale on every dependency choice.
+See [`specs/001-product-vision-scope/research.md`](specs/001-product-vision-scope/research.md) and
+[`specs/002-nfr-system-constraints/research.md`](specs/002-nfr-system-constraints/research.md) for
+full rationale on every decision.
+
+---
+
+## Non-Functional Requirements
+
+The system is governed by 26 measurable NFRs across 6 quality attributes. Key targets:
+
+| Attribute | Target | Validation |
+|-----------|--------|------------|
+| Performance | p95 API latency ≤ 500 ms at 100 RPS; LCP ≤ 2.5 s | k6 load test + Lighthouse CI |
+| Scalability | 500 concurrent users sustained for 10 min without degradation | k6 500-VU load test on staging |
+| Availability | ≥ 99.5% monthly uptime; RPO ≤ 24 h | Uptime monitoring + daily backup |
+| Accessibility | WCAG 2.1 AA on all pages; Lighthouse score ≥ 90 | axe-core in Playwright E2E + LHCI |
+| Security | Zero committed secrets; zero `gosec` high findings; prompt injection blocked | gitleaks + gosec + PromptValidator |
+| Maintainability | ≥ 80% line coverage for backend business logic and frontend shared components | go test -coverprofile + Vitest coverage |
+
+Full NFR catalogue: [`specs/002-nfr-system-constraints/spec.md`](specs/002-nfr-system-constraints/spec.md)
 
 ---
 
@@ -144,6 +172,14 @@ full rationale on every dependency choice.
 | [`specs/001-product-vision-scope/quickstart.md`](specs/001-product-vision-scope/quickstart.md) | Local setup and end-to-end validation scenarios |
 | [`specs/001-product-vision-scope/tasks.md`](specs/001-product-vision-scope/tasks.md) | 81 dependency-ordered implementation tasks across 7 phases |
 | [`docs/functional-requirements.md`](docs/functional-requirements.md) | Normative functional requirements |
+| [`specs/002-nfr-system-constraints/spec.md`](specs/002-nfr-system-constraints/spec.md) | 26 measurable NFRs: performance, scalability, availability, accessibility, security, maintainability |
+| [`specs/002-nfr-system-constraints/plan.md`](specs/002-nfr-system-constraints/plan.md) | NFR implementation plan: observability middleware, prompt validator, CI gates |
+| [`specs/002-nfr-system-constraints/research.md`](specs/002-nfr-system-constraints/research.md) | NFR tool decisions: slog, bluemonday, k6, gitleaks, axe-core |
+| [`specs/002-nfr-system-constraints/data-model.md`](specs/002-nfr-system-constraints/data-model.md) | Operational schemas: StructuredLogEntry, HealthCheckResponse, PromptValidationRule |
+| [`specs/002-nfr-system-constraints/contracts/api.md`](specs/002-nfr-system-constraints/contracts/api.md) | NFR API contracts: GET /healthz, X-Request-ID convention, prompt rejection response |
+| [`specs/002-nfr-system-constraints/quickstart.md`](specs/002-nfr-system-constraints/quickstart.md) | 12 validation scenarios covering every NFR category |
+| [`specs/002-nfr-system-constraints/tasks.md`](specs/002-nfr-system-constraints/tasks.md) | 46 dependency-ordered NFR implementation tasks across 8 phases |
+| [`docs/roadmap.md`](docs/roadmap.md) | Consolidated project roadmap: 127 tasks across both specs, dependency-ordered |
 | [`docs/coding-guidelines.md`](docs/coding-guidelines.md) | Go and TypeScript formatting and style rules |
 | [`docs/testing-guidelines.md`](docs/testing-guidelines.md) | Three-layer testing strategy and coverage targets |
 | [`docs/ui-guidelines.md`](docs/ui-guidelines.md) | Design tokens, Atomic Design layers, accessibility rules |
