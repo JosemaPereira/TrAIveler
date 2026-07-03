@@ -88,6 +88,52 @@ The spacing scale is based on a **4 px base unit**.
 
 Components are organized in three layers:
 
+```mermaid
+graph TB
+    subgraph "Primitives (src/components/primitives/)"
+        P1[Button]
+        P2[Input]
+        P3[Badge]
+        P4[Icon]
+    end
+
+    subgraph "Composites (src/components/)"
+        C1[Card]
+        C2[Modal]
+        C3[Form]
+        C4[Tabs]
+    end
+
+    subgraph "Features (src/features/name/)"
+        F1[ItineraryCard]
+        F2[TravelStylePicker]
+        F3[ConversationPanel]
+    end
+
+    P1 --> C1
+    P1 --> C2
+    P1 --> C3
+    P2 --> C3
+    P3 --> C1
+    P4 --> C1
+
+    C1 --> F1
+    C2 --> F2
+    C3 --> F3
+
+    style P1 fill:#e8f5e9
+    style P2 fill:#e8f5e9
+    style P3 fill:#e8f5e9
+    style P4 fill:#e8f5e9
+    style C1 fill:#fff4e6
+    style C2 fill:#fff4e6
+    style C3 fill:#fff4e6
+    style C4 fill:#fff4e6
+    style F1 fill:#e1f5ff
+    style F2 fill:#e1f5ff
+    style F3 fill:#e1f5ff
+```
+
 | Layer | Location | Description |
 |---|---|---|
 | Primitives | `src/components/primitives/` | Lowest-level: Button, Input, Badge, Icon |
