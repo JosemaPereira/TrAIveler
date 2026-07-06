@@ -1,15 +1,18 @@
 # Roadmap Reconciliation Report
 
 **Date**: 2026-07-06  
-**Reconciled with**: spec 006 — Core Domain and Data Model Foundations  
-**Source**: `specs/006-core-domain-model/tasks.md`  
+**Reconciled with**: spec 008 — Authentication & Collaboration User Experience  
+**Source**: `specs/008-auth-collaboration-ux/tasks.md`  
 **Target**: `docs/roadmap.md`
 
 ---
 
 ## Summary
 
-Successfully reconciled roadmap with spec 006. This spec is a **documentation feature** that completes the canonical domain model reference by gap-filling `docs/data-model.md` with missing entities, validation layers, indexes, state transitions, and cascade behavior.
+Successfully reconciled roadmap with spec 008. This spec is a **feature implementation** that delivers the complete authentication and collaboration user experience with 206 tasks across 10 phases, including paid/free user registration, login, password management, trip collaboration, suggestions workflow, and subscription lifecycle.
+
+**Previous reconciliation**: spec 006 (Foundation Phase documentation)  
+**This reconciliation**: spec 008 (Feature Phase implementation)
 
 ---
 
@@ -19,21 +22,21 @@ Successfully reconciled roadmap with spec 006. This spec is a **documentation fe
 
 | Operation | Count | Details |
 |-----------|-------|---------|
-| **ADD** | 77 | All tasks from spec 006 added to Foundation Phase |
+| **ADD** | 206 | All tasks from spec 008 added to Feature Phase |
 | **UPDATE** | 0 | No existing tasks modified |
-| **UNCHANGED** | 462 | All tasks from specs 001-005 preserved |
+| **UNCHANGED** | 539 | All tasks from specs 001-007 preserved (Foundation Phase complete) |
 | **REMOVE** | 0 | No tasks removed |
 | **ARCHIVED** | 0 | No tasks archived |
 
-**Total roadmap size**: 539 tasks (previously 462, +77 from spec 006)
+**Total roadmap size**: 745 tasks (previously 539, +206 from spec 008)
 
 ---
 
-## Spec 006 Details
+## Spec 008 Details
 
-**Title**: Core Domain and Data Model Foundations  
-**Type**: Documentation (Foundation Phase)  
-**User Stories**: 5 (US1-US3 Priority P1, US4-US5 Priority P2)  
+**Title**: Authentication & Collaboration User Experience  
+**Type**: Feature Implementation (Feature Phase)  
+**User Stories**: 6 (US1-US3 Priority P1, US4-US6 Priority P2-P3)  
 **Success Criteria**: 8  
 **Phases**: 10
 
@@ -41,52 +44,97 @@ Successfully reconciled roadmap with spec 006. This spec is a **documentation fe
 
 | Phase | Description | Task Count | Task IDs |
 |-------|-------------|------------|----------|
-| 1 | Setup & Validation Infrastructure | 3 | 006-T001 to 006-T003 |
-| 2 | US1: Core Entity Reference (P1) | 8 | 006-T004 to 006-T011 |
-| 3 | US2: Relationship and Constraint Understanding (P1) | 7 | 006-T012 to 006-T018 |
-| 4 | US3: Business Rule Enforcement (P1) | 8 | 006-T019 to 006-T026 |
-| 5 | US4: State Transition Clarity (P2) | 7 | 006-T027 to 006-T033 |
-| 6 | US5: Concurrency and Versioning Strategy (P2) | 5 | 006-T034 to 006-T038 |
-| 7 | Performance-Critical Indexes | 10 | 006-T039 to 006-T048 |
-| 8 | Developer Reference Guide | 13 | 006-T049 to 006-T061 |
-| 9 | Completeness Validation & Success Criteria | 9 | 006-T062 to 006-T070 |
-| 10 | Documentation Promotion & Handoff | 7 | 006-T071 to 006-T077 |
+| 1 | Setup (Shared Infrastructure) | 8 | 008-T001 to 008-T008 |
+| 2 | Foundational (Blocking Prerequisites) | 28 | 008-T009 to 008-T036 |
+| 3 | US1: Paid User Registration & First Trip Creation (P1) 🎯 MVP | 34 | 008-T037 to 008-T070 |
+| 4 | US2: Free User Registration & Accepting Collaboration Invite (P1) | 26 | 008-T071 to 008-T096 |
+| 5 | US3: Returning User Login & Trip Management (P1) | 26 | 008-T097 to 008-T122 |
+| 6 | US4: Collaboration: Invite & Manage Suggestions (P2) | 17 | 008-T123 to 008-T139 |
+| 7 | US5: Password Management & Account Security (P2) | 21 | 008-T140 to 008-T160 |
+| 8 | US6: UI Component Library & Design System Basics (P3) | 14 | 008-T161 to 008-T174 |
+| 9 | Subscription Lifecycle Management (P2) | 16 | 008-T175 to 008-T190 |
+| 10 | Polish & Cross-Cutting Concerns | 16 | 008-T191 to 008-T206 |
+
+### MVP Scope (Phases 1+2+3+5)
+
+**MVP tasks**: 82 tasks  
+**MVP User Stories**: US1 (Paid User), US3 (Login & Trip Management)  
+**Deferred to post-MVP**: US2 (Free Users), US4 (Suggestions), US5 (Password Reset), US6 (Design System), Subscription Lifecycle, Polish
 
 ### Task Groups Created
 
 | Group Name | Task Count | Phase(s) | Purpose |
 |------------|------------|----------|---------|
-| G-DOC-ENTITY-VERIFICATION | 4 | 2 | Verify 16 entities documented with complete definitions |
-| G-DOC-CASCADE-BEHAVIOR | 3 | 3 | Document cascade behavior for all foreign keys |
-| G-DOC-VALIDATION-LAYERS | 4 | 4 | Document three-layer validation ([DB], [Logic], [API]) |
-| G-DOC-STATE-TRANSITIONS | 5 | 5 | Document forward-only state transitions |
-| G-DOC-CONCURRENCY | 2 | 6 | Document optimistic locking strategy |
-| G-DOC-INDEXES | 10 | 7 | Document performance-critical indexes |
-| G-DOC-QUICKSTART | 13 | 8 | Create developer reference guide |
-| G-DOC-SUCCESS-CRITERIA | 8 | 9 | Validate all 8 success criteria met |
+| G-008-SETUP | 7 | 1 | Project structure initialization (backend, frontend, e2e, infra) |
+| G-008-DATABASE | 2 | 2 | PostgreSQL connection and migrations setup |
+| G-008-MIGRATIONS | 7 | 2 | Database migrations for all 7 tables |
+| G-008-JWT | 3 | 2 | JWT generation, validation, refresh with RS256 |
+| G-008-PASSWORD | 2 | 2 | Password hashing (bcrypt cost 12) and validation |
+| G-008-RATELIMIT | 2 | 2 | Progressive delay rate limiter for auth endpoints |
+| G-008-MIDDLEWARE | 3 | 2 | Auth, request ID, and rate limit middleware |
+| G-008-FRONTEND-API | 2 | 2 | Axios instance with interceptors and error handler |
+| G-008-US1-MODELS | 3 | 3 | User, Subscription, Trip models for MVP |
+| G-008-US1-REPOS | 3 | 3 | User, Subscription, Stub Payment repositories |
+| G-008-US1-TRIP | 2 | 3 | Trip repository and stubbed itinerary generation |
+| G-008-US1-PRIMITIVES | 5 | 3 | Button, Input, Label, ErrorMessage primitives |
+| G-008-US1-COMPOSITES | 1 | 3 | Card composite component |
+| G-008-US1-COMPONENTS | 2 | 3 | LoadingSpinner, EmptyState feature components |
+| G-008-US1-API | 2 | 3 | authApi and tripsApi service layers |
+| G-008-US1-TRIP-HOOKS | 2 | 3 | useTrips and useCreateTrip React hooks |
+| G-008-US2-MODELS | 2 | 4 | Collaborator, Suggestion models |
+| G-008-US2-HANDLERS | 4 | 4 | Invite, accept, leave, list invitations handlers |
+| G-008-US2-PRIMITIVES | 1 | 4 | Badge primitive for user status |
+| G-008-US2-COMPOSITES | 2 | 4 | Modal, Banner composites |
+| G-008-US2-HOOKS | 3 | 4 | Invitations, accept, leave trip hooks |
+| G-008-US2-API | 1 | 4 | collaborationApi service layer |
+| G-008-US3-MODELS | 1 | 5 | LoginRequest/LoginResponse models |
+| G-008-US3-HANDLERS | 8 | 5 | Login, logout, trips list/detail/update/delete handlers |
+| G-008-US3-HOOKS | 3 | 5 | useLogin, useLogout, useTripDetail hooks |
+| G-008-US3-TRIP-HOOKS | 3 | 5 | Update, delete trip hooks |
+| G-008-US3-COMPONENTS | 1 | 5 | DeleteTripModal component |
+| G-008-US4-REPOS | 1 | 6 | Suggestion repository with stub apply logic |
+| G-008-US4-HANDLERS | 4 | 6 | Create, list, approve, reject suggestion handlers |
+| G-008-US4-HOOKS | 4 | 6 | Suggestions CRUD hooks |
+| G-008-US5-REPOS | 2 | 7 | PasswordResetToken, RefreshToken repositories |
+| G-008-US5-HANDLERS | 4 | 7 | Password reset, change, token refresh handlers |
+| G-008-US5-HOOKS | 3 | 7 | Password reset/change, token refresh hooks |
+| G-008-US5-COMPONENTS | 4 | 7 | Password reset/change forms and pages |
+| G-008-US6-PRIMITIVES | 4 | 8 | Checkbox, Select, Textarea, Link primitives |
+| G-008-US6-COMPOSITES | 2 | 8 | Toast, Tooltip composites |
+| G-008-US6-AUDITS | 3 | 8 | Accessibility audits (forms, keyboard, contrast) |
+| G-008-US6-DOCS | 1 | 8 | Design system documentation |
+| G-008-SUBSCRIPTION | 3 | 9 | Cancel, renew subscription handlers |
+| G-008-SUBSCRIPTION-HOOKS | 3 | 9 | Cancel, renew, upgrade subscription hooks |
+| G-008-POLISH-LOGGING | 2 | 10 | Error and request logging |
+| G-008-POLISH-SECURITY | 1 | 10 | Security headers middleware |
+| G-008-POLISH-VALIDATION | 1 | 10 | Quickstart validation |
+| G-008-POLISH-CLEANUP | 2 | 10 | Code cleanup (backend, frontend) |
+| G-008-POLISH-DOCS | 2 | 10 | README updates |
+| G-008-POLISH-E2E | 6 | 10 | End-to-end tests for all user stories |
 
-**Standalone tasks**: 28 (36.4%)  
-**Grouped tasks**: 49 (63.6%)
+**Standalone tasks**: 83 (40.3%)  
+**Grouped tasks**: 123 (59.7%)
 
 ### Priority Distribution
 
 | Priority | Count | Percentage |
 |----------|-------|------------|
-| P1 | 41 | 53.2% |
-| P2 | 36 | 46.8% |
+| P1 | 96 | 46.6% |
+| P2 | 96 | 46.6% |
+| P3 | 14 | 6.8% |
 
 ### Parallelization Opportunities
 
-**Parallelizable tasks**: 41 (53.2%)  
-**Sequential tasks**: 36 (46.8%)
+**Parallelizable tasks**: 101 (49.0%)  
+**Sequential tasks**: 105 (51.0%)
 
-Phases 1-6 (User Stories) have higher parallelization potential, while phases 9-10 (Validation & Promotion) are mostly sequential.
+Phases 1-2 (Setup & Foundational) have highest parallelization (75%), while phases 3-10 (User Stories) are more sequential due to dependencies on backend/frontend integration.
 
 ---
 
 ## Default Values Applied
 
-All spec 006 tasks added to roadmap with following defaults:
+All spec 008 tasks added to roadmap with following defaults:
 
 | Field | Default Value | Rationale |
 |-------|---------------|-----------|
@@ -94,10 +142,41 @@ All spec 006 tasks added to roadmap with following defaults:
 | **Status** | Backlog | Not yet started |
 | **Issue** | _empty_ | GitHub issues not yet created |
 | **Notes** | _empty_ | No additional context |
-| **Group** | _as defined in spec_ | 8 groups created for documentation verification |
-| **Priority** | _as defined in spec_ | P1 for phases 1-4, P2 for phases 5-8, P1 for phases 9-10 |
+| **Group** | _as defined in spec_ | 47 groups created for logical task organization |
+| **Priority** | _as defined in spec_ | P1 for MVP (phases 1-3, 5), P2-P3 for post-MVP |
 | **Depends on** | _as defined in spec_ | Dependencies preserved from task file |
-| **Parallel** | _as defined in spec_ | 41 tasks marked as parallelizable with `[P]` flag |
+| **Parallel** | _as defined in spec_ | 101 tasks marked as parallelizable with `[P]` flag |
+
+---
+
+## Cross-Spec Dependencies
+
+Spec 008 depends on foundational work from earlier specs:
+
+- **Spec 004**: Security model (JWT RS256, bcrypt cost 12, rate limiting, security events)
+- **Spec 005**: Architecture patterns (middleware chain, repository/service/handler layers, error handling, pgx database client)
+- **Spec 006**: Data model (User, Subscription, Trip, Collaborator, Suggestion entities with optimistic locking)
+- **Spec 007**: API standards (resource naming, error format, HTTP status codes, rate limit headers)
+
+These dependencies are explicitly noted in the roadmap's cross-spec note for spec 008.
+
+---
+
+## Roadmap Structure
+
+The roadmap now has two major phases:
+
+### Foundation Phase (Specs 001-007)
+- **539 tasks** across 7 foundational specifications
+- Ordered by cross-spec dependency: vision → NFRs → cloud → security → architecture → domain → API standards
+- All specs fully reconciled and up-to-date
+
+### Feature Phase (Specs 008+)
+- **206 tasks** from spec 008 (Authentication & Collaboration UX)
+- First feature spec added to roadmap
+- Implements security model, architecture patterns, and API standards from foundation
+
+**Total roadmap**: 745 tasks (539 foundation + 206 feature)
 
 ---
 
