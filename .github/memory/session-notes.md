@@ -98,6 +98,36 @@ Historical summaries of completed development sessions. Committed to git as a re
 - **Date**: 2026-07-03
 - **Branch**: `feature/003-cloud-env-strategy` (in progress)
 - **What was accomplished**:
+
+---
+
+### Session: API Design Standards Promotion and Roadmap Reconciliation
+- **Date**: 2026-07-06
+- **Branch**: `007-api-design-standards`
+- **What was accomplished**:
+  - Executed `/promote-foundations` workflow for spec 007 (API Design Standards and Conventions).
+  - Created `docs/api-design-standards.md` — comprehensive 15-section authoritative API standards document with resource naming, URL structure, versioning, HTTP methods, request/response formats, standardized error format (11 machine-readable codes), status codes, pagination (offset-based), filtering (8 query operators), sorting, rate limiting (100 req/min authenticated, headers in all responses), auth headers, timestamps (ISO 8601 UTC), 7 endpoint patterns (List, Get, Create, Update Full/Partial, Delete, Action), compliance guidance, and exception process.
+  - Updated `.github/copilot-instructions.md` — added api-design-standards.md to Documentation References section with full description of all conventions.
+  - Updated `.github/PROMOTION-REPORT.md` — added spec 007 section documenting 9 durable decisions promoted, destination (docs/api-design-standards.md), PROMOTED markers, status (✅ Complete), and updated statistics (now 7 foundational specs promoted: 001-007).
+  - Executed `/build-roadmap` workflow to reconcile all spec tasks into consolidated roadmap.
+  - Updated `docs/roadmap.md` — added spec 007 (70 tasks across 7 phases) with 13 new task groups (G-API-US1-ACCESSIBILITY, G-API-US1-NAMING, G-API-US1-FORMAT, G-API-US2-ERROR-HANDLING, G-API-US2-PAGINATION, G-API-US2-FILTERING-SORTING, G-API-US4-EXTERNAL-DOCS, G-API-US4-PATTERN-RECOGNITION, G-API-POLISH-TEST-HELPERS, G-API-POLISH-INTEGRATION-TESTS, G-API-POLISH-LINTER, G-API-POLISH-DOCUMENTATION, G-API-POLISH-VALIDATION).
+  - Updated roadmap statistics — 532 total tasks (was 462), 107 grouped work items combining 370 tasks, 162 standalone tasks, 269 total GitHub issues when synced.
+  - Updated roadmap reconciliation report — documented spec 007 discovery, change counts (70 ADD, 0 UPDATE, 462 UNCHANGED), new grouping summary, cross-spec dependencies, human attention items, critical path impact, and next steps.
+- **Key findings and decisions**:
+  - **Documentation features follow full SpecKit workflow**: Spec 007 is pure documentation (no code implementation), yet still followed specify → plan → clarify → tasks workflow. Result: 0 ambiguities found during clarification (spec quality validated), 70 well-organized tasks with clear dependencies, MVP defined as Phase 1-3 (22 tasks).
+  - **Foundation promotion is complete for all 7 specs**: All foundational specs (001-007) now have promoted documentation in docs/ and are referenced in .github/copilot-instructions.md. Future SpecKit workflows automatically inherit these decisions without re-reading individual specs.
+  - **Roadmap reconciliation is idempotent**: Running `/build-roadmap` repeatedly converges to stable state, never duplicates tasks, preserves all human-owned fields (Group, Sprint, Priority, Status, Issue, Notes), and applies minimal add/update/remove operations based on source specs.
+  - **API standards now gate all backend work**: docs/api-design-standards.md is the authoritative reference for all backend endpoint design. Backend developers must follow conventions (resource naming, error format, pagination) when implementing 001/004 handlers. Code reviewers will use PR checklist (007-T035–036) to verify compliance. Integration tests (007-T050–059) will automate validation.
+  - **71% task parallelization opportunity**: 38 of 70 spec 007 tasks marked parallelizable — can run concurrently across team members. User Stories 1-4 are independent after Phase 2 (standards doc promotion) completes.
+  - **3 tasks already complete**: Per conversation history, spec 007 Phase 2 foundational tasks (007-T004, 007-T005, 007-T006) were completed during the promotion workflow execution. These should be marked `Status: Done` in roadmap.
+- **Outcomes**: 
+  - API standards documentation promoted and accessible project-wide.
+  - All 7 foundational specs (001-007) now in persistent context.
+  - Roadmap reconciled with 532 tasks across 7 specs, ready for sprint planning.
+  - Foundation promotion workflow validated for documentation-centric features.
+  - Memory system updated with session summary and discovered patterns.
+
+---
   - Created `specs/003-cloud-env-strategy/tasks.md` — 72 dependency-ordered infrastructure tasks across 8 phases covering AWS, Terraform IaC, ECS Fargate deployment, CI/CD with OIDC, secrets management, cost controls, and observability.
   - Reconciled roadmap from 127 to 199 total tasks — added all spec 003 tasks with stable IDs (003-T001 through 003-T072), created 13 new task groups for infrastructure work, preserved all existing human-owned fields.
   - **Foundation promotion workflow** — extracted durable decisions from specs 001-003 and promoted to persistent context:

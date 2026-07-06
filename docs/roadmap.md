@@ -4,7 +4,7 @@
 > titles, and dependencies is `specs/*/tasks.md`. Priority, Status, Phase, Issue, and
 > Notes are human-owned and preserved across runs. Do not hand-edit the stable IDs.
 
-**Last reconciled**: 2026-07-06 (updated with spec 006)
+**Last reconciled**: 2026-07-06 (updated with specs 006 and 007)
 
 ## Legend
 
@@ -844,9 +844,122 @@
 
 ---
 
+### Spec 007 — API Design Standards and Conventions &nbsp; `specs/007-api-design-standards/tasks.md`
+
+> Cross-spec note: Documentation feature establishing API conventions for all backend endpoints. Promotes
+> standards document to docs/ as authoritative reference. Integration tests validate endpoint compliance.
+> Extends PR template with standards compliance checklist. No code implementation — pure standards definition.
+
+#### Phase 1 — Setup (Documentation Foundation)
+
+| ID | Task | Group | Sprint | Priority | Status | Depends on | Parallel | Issue | Notes |
+|----|------|-------|--------|----------|--------|------------|----------|-------|-------|
+| 007-T001 | Verify specs/007-api-design-standards/ structure is complete (plan.md, spec.md, research.md, data-model.md, contracts/, quickstart.md) | | | P1 | Backlog | - | no | | |
+| 007-T002 | Create backend/tests/integration/ directory if not exists | | | P1 | Backlog | - | yes | | |
+| 007-T003 | Read existing .github/pull_request_template.md to understand current structure | | | P1 | Backlog | - | yes | | |
+
+#### Phase 2 — Foundational (Standards Document Promotion) ⚠️ CRITICAL BLOCKER
+
+| ID | Task | Group | Sprint | Priority | Status | Depends on | Parallel | Issue | Notes |
+|----|------|-------|--------|----------|--------|------------|----------|-------|-------|
+| 007-T004 | Promote specs/007-api-design-standards/contracts/api-design-standards.md to docs/api-design-standards.md (authoritative location) | | | P1 | Backlog | - | no | | |
+| 007-T005 | Verify docs/api-design-standards.md includes all 15 sections with examples (resource naming, URL structure, versioning, request/response format, error format, status codes, pagination, filtering, sorting, rate limiting, auth headers, timestamps, endpoint patterns, compliance, references) | | | P1 | Backlog | 007-T004 | no | | |
+| 007-T006 | Update .github/copilot-instructions.md Documentation References section to include docs/api-design-standards.md with description | | | P1 | Backlog | - | yes | | |
+| 007-T007 | Audit existing endpoints in specs/001-product-vision-scope/contracts/api.md against docs/api-design-standards.md | | | P1 | Backlog | 007-T005 | yes | | |
+| 007-T008 | Audit existing endpoints in specs/004-security-auth-model/contracts/api.md against docs/api-design-standards.md | | | P1 | Backlog | 007-T005 | yes | | |
+| 007-T009 | Document any deviations found in audits (create specs/007-api-design-standards/audit-report.md with list of compliant vs. non-compliant patterns) | | | P1 | Backlog | 007-T007, 007-T008 | no | | |
+
+#### Phase 3 — User Story 1: Backend Developer Creates Consistent Endpoints (Priority: P1) 🎯 MVP
+
+| ID | Task | Group | Sprint | Priority | Status | Depends on | Parallel | Issue | Notes |
+|----|------|-------|--------|----------|--------|------------|----------|-------|-------|
+| 007-T010 | Verify docs/api-design-standards.md Table of Contents has anchor links to all 15 sections | G-API-US1-ACCESSIBILITY | | P1 | Backlog | 007-T005 | yes | | |
+| 007-T011 | Verify each standard section includes ✅ DO and ❌ DON'T examples with code snippets | G-API-US1-ACCESSIBILITY | | P1 | Backlog | 007-T005 | yes | | |
+| 007-T012 | Verify error codes catalog in docs/api-design-standards.md lists all 11 machine-readable codes (invalid_request, validation_failed, authentication_required, forbidden, not_found, conflict, rate_limit_exceeded, internal_error, etc.) | G-API-US1-ACCESSIBILITY | | P1 | Backlog | 007-T005 | yes | | |
+| 007-T013 | Verify endpoint patterns section includes 7 reusable templates (List Resources, Get Single, Create, Update Full, Update Partial, Delete, Action on Resource) | | | P1 | Backlog | 007-T005 | no | | |
+| 007-T014 | Create docs/api-design-standards.md quick reference card section at top (1-page summary of all conventions for printing/bookmarking) | | | P1 | Backlog | 007-T013 | no | | |
+| 007-T015 | Verify resource naming section documents plural nouns, lowercase, hyphenated compounds with 5+ examples | G-API-US1-NAMING | | P1 | Backlog | 007-T005 | yes | | |
+| 007-T016 | Verify URL nesting section documents max 2 levels with nested vs. top-level endpoint guidance | G-API-US1-NAMING | | P1 | Backlog | 007-T005 | yes | | |
+| 007-T017 | Add decision tree diagram to docs/api-design-standards.md: "Should this resource be nested or top-level?" | | | P1 | Backlog | 007-T015, 007-T016 | no | | |
+| 007-T018 | Verify request format section documents snake_case fields, ISO 8601 timestamps, required vs. optional fields | G-API-US1-FORMAT | | P1 | Backlog | 007-T005 | yes | | |
+| 007-T019 | Verify response format section documents flat JSON for singles, envelope for lists with pagination metadata | G-API-US1-FORMAT | | P1 | Backlog | 007-T005 | yes | | |
+| 007-T020 | Add side-by-side comparison in docs/api-design-standards.md: correct vs. incorrect field naming examples | | | P1 | Backlog | 007-T018, 007-T019 | no | | |
+| 007-T021 | Verify specs/007-api-design-standards/quickstart.md includes 10 validation scenarios covering all standards | | | P1 | Backlog | 007-T005 | yes | | |
+| 007-T022 | Add "How to validate your endpoint" checklist to docs/api-design-standards.md referencing quickstart.md scenarios | | | P1 | Backlog | 007-T021 | no | | |
+
+#### Phase 4 — User Story 2: Frontend Developer Integrates Predictably (Priority: P2)
+
+| ID | Task | Group | Sprint | Priority | Status | Depends on | Parallel | Issue | Notes |
+|----|------|-------|--------|----------|--------|------------|----------|-------|-------|
+| 007-T023 | Verify error format section in docs/api-design-standards.md includes full TypeScript interface for error response structure | G-API-US2-ERROR-HANDLING | | P2 | Backlog | 007-T022 | yes | | |
+| 007-T024 | Add frontend integration example to docs/api-design-standards.md showing generic error handler using error codes | G-API-US2-ERROR-HANDLING | | P2 | Backlog | 007-T022 | yes | | |
+| 007-T025 | Document in docs/api-design-standards.md which error codes map to which user-facing messages (UX guidance) | | | P2 | Backlog | 007-T023, 007-T024 | no | | |
+| 007-T026 | Verify pagination section includes complete response envelope structure with all metadata fields | G-API-US2-PAGINATION | | P2 | Backlog | 007-T022 | yes | | |
+| 007-T027 | Add frontend integration example to docs/api-design-standards.md showing generic pagination component using response metadata | G-API-US2-PAGINATION | | P2 | Backlog | 007-T022 | yes | | |
+| 007-T028 | Document edge cases in docs/api-design-standards.md: empty lists, page beyond total_pages, per_page validation | | | P2 | Backlog | 007-T026, 007-T027 | no | | |
+| 007-T029 | Verify filtering section documents all operators ([eq], [ne], [gt], [gte], [lt], [lte], [in], [like]) with URLSearchParams examples | G-API-US2-FILTERING-SORTING | | P2 | Backlog | 007-T022 | yes | | |
+| 007-T030 | Verify sorting section documents minus prefix for descending, comma-separated multi-field with priority order | G-API-US2-FILTERING-SORTING | | P2 | Backlog | 007-T022 | yes | | |
+| 007-T031 | Add frontend integration example to docs/api-design-standards.md showing generic query builder constructing filter/sort params | | | P2 | Backlog | 007-T029, 007-T030 | no | | |
+| 007-T032 | Verify rate limiting section documents all response headers (X-RateLimit-Limit, X-RateLimit-Remaining, X-RateLimit-Reset) | | | P2 | Backlog | 007-T022 | yes | | |
+| 007-T033 | Add frontend integration example to docs/api-design-standards.md showing how to read rate limit headers and implement proactive throttling | | | P2 | Backlog | 007-T032 | no | | |
+
+#### Phase 5 — User Story 3: Technical Lead Reviews API Changes (Priority: P2)
+
+| ID | Task | Group | Sprint | Priority | Status | Depends on | Parallel | Issue | Notes |
+|----|------|-------|--------|----------|--------|------------|----------|-------|-------|
+| 007-T034 | Read current .github/pull_request_template.md structure | | | P2 | Backlog | 007-T033 | no | | |
+| 007-T035 | Add "API Standards Compliance" section to .github/pull_request_template.md with checklist (if PR touches backend/ or adds/modifies API endpoints) | | | P2 | Backlog | 007-T034 | no | | |
+| 007-T036 | Create API standards compliance checklist in .github/pull_request_template.md covering 10 categories (resource naming, URL structure, versioning, request format, response format, error format, status codes, pagination, filtering, rate limiting) | | | P2 | Backlog | 007-T035 | no | | |
+| 007-T037 | Create docs/api-review-checklist.md with detailed verification steps for each standard (what to look for, common violations, how to verify) | | | P2 | Backlog | 007-T033 | yes | | |
+| 007-T038 | Add "For Code Reviewers" section to docs/api-design-standards.md with quick verification tips | | | P2 | Backlog | 007-T033 | yes | | |
+| 007-T039 | Update .github/pull_request_template.md to link to docs/api-review-checklist.md in API Standards Compliance section | | | P2 | Backlog | 007-T036, 007-T037 | no | | |
+| 007-T040 | Verify docs/api-design-standards.md Exceptions section documents process: document why, what alternative, get technical lead approval | | | P2 | Backlog | 007-T033 | yes | | |
+| 007-T041 | Add exception template to docs/api-design-standards.md (required fields: endpoint, standard violated, reason, alternative approach, approver) | | | P2 | Backlog | 007-T040 | no | | |
+
+#### Phase 6 — User Story 4: API Consumer Learns the System (Priority: P3)
+
+| ID | Task | Group | Sprint | Priority | Status | Depends on | Parallel | Issue | Notes |
+|----|------|-------|--------|----------|--------|------------|----------|-------|-------|
+| 007-T042 | Create docs/api-getting-started.md for external developers (assumes no internal context) with introduction to API philosophy | G-API-US4-EXTERNAL-DOCS | | P3 | Backlog | 007-T041 | yes | | |
+| 007-T043 | Add "Key Conventions at a Glance" section to docs/api-getting-started.md (10-item list of most important patterns) | G-API-US4-EXTERNAL-DOCS | | P3 | Backlog | 007-T041 | yes | | |
+| 007-T044 | Add 3 complete endpoint examples to docs/api-getting-started.md demonstrating all major conventions (List with pagination, Create with validation error, Get single with success) | | | P3 | Backlog | 007-T042, 007-T043 | no | | |
+| 007-T045 | Add "If you know this... then you know that" section to docs/api-getting-started.md (pattern transfer examples) | G-API-US4-PATTERN-RECOGNITION | | P3 | Backlog | 007-T044 | yes | | |
+| 007-T046 | Document consistency guarantees in docs/api-getting-started.md: all lists paginate identically, all errors structured identically, all timestamps formatted identically | G-API-US4-PATTERN-RECOGNITION | | P3 | Backlog | 007-T044 | yes | | |
+| 007-T047 | Add FAQ section to docs/api-getting-started.md addressing common API consumer questions (How do I handle errors? How do I paginate? How do I filter?) | | | P3 | Backlog | 007-T045, 007-T046 | no | | |
+| 007-T048 | Update docs/api-design-standards.md to include "For API Consumers" callouts highlighting patterns that benefit external developers | | | P3 | Backlog | 007-T047 | no | | |
+| 007-T049 | Link docs/api-getting-started.md from docs/api-design-standards.md and README.md (make discoverable) | | | P3 | Backlog | 007-T048 | no | | |
+
+#### Phase 7 — Polish & Enforcement (Automated Validation)
+
+| ID | Task | Group | Sprint | Priority | Status | Depends on | Parallel | Issue | Notes |
+|----|------|-------|--------|----------|--------|------------|----------|-------|-------|
+| 007-T050 | Create backend/tests/integration/api_standards_test.go file structure | | | P2 | Backlog | 007-T022 | yes | | |
+| 007-T051 | Implement test helper functions in backend/tests/integration/api_standards_test.go: assertErrorFormat(), assertPaginationFormat(), assertStatusCode(), assertRateLimitHeaders() | G-API-POLISH-TEST-HELPERS | | P2 | Backlog | 007-T050 | yes | | |
+| 007-T052 | Write integration test in backend/tests/integration/api_standards_test.go: TestErrorResponseFormat validates error structure with all required fields (error, message, request_id) | G-API-POLISH-INTEGRATION-TESTS | | P2 | Backlog | 007-T051 | yes | | |
+| 007-T053 | Write integration test in backend/tests/integration/api_standards_test.go: TestPaginationFormat validates list responses have data envelope and pagination metadata | G-API-POLISH-INTEGRATION-TESTS | | P2 | Backlog | 007-T051 | yes | | |
+| 007-T054 | Write integration test in backend/tests/integration/api_standards_test.go: TestStatusCodeSemantics validates GET returns 200, POST returns 201, DELETE returns 204 | G-API-POLISH-INTEGRATION-TESTS | | P2 | Backlog | 007-T051 | yes | | |
+| 007-T055 | Write integration test in backend/tests/integration/api_standards_test.go: TestValidationErrorIncludesFields validates 422 responses include fields array with field-level errors | G-API-POLISH-INTEGRATION-TESTS | | P2 | Backlog | 007-T051 | yes | | |
+| 007-T056 | Write integration test in backend/tests/integration/api_standards_test.go: TestRateLimitHeaders validates all responses include X-RateLimit-* headers | G-API-POLISH-INTEGRATION-TESTS | | P2 | Backlog | 007-T051 | yes | | |
+| 007-T057 | Write integration test in backend/tests/integration/api_standards_test.go: TestTimestampFormat validates timestamps use ISO 8601 with UTC (Z suffix) | G-API-POLISH-INTEGRATION-TESTS | | P2 | Backlog | 007-T051 | yes | | |
+| 007-T058 | Write integration test in backend/tests/integration/api_standards_test.go: TestFieldNaming validates response fields use snake_case (not camelCase or PascalCase) | G-API-POLISH-INTEGRATION-TESTS | | P2 | Backlog | 007-T051 | yes | | |
+| 007-T059 | Write integration test in backend/tests/integration/api_standards_test.go: TestRequestIDCorrelation validates error response request_id matches X-Request-ID header | G-API-POLISH-INTEGRATION-TESTS | | P2 | Backlog | 007-T051 | yes | | |
+| 007-T060 | Research golangci-lint custom linter options for URL structure validation | G-API-POLISH-LINTER | | P2 | Backlog | 007-T022 | yes | | |
+| 007-T061 | Document linter integration plan in specs/007-api-design-standards/audit-report.md (which checks can be automated, which remain manual) | G-API-POLISH-LINTER | | P2 | Backlog | 007-T060 | yes | | |
+| 007-T062 | Add comment to backend/.golangci.yml noting future custom linter rules for API standards (placeholder for future automation) | G-API-POLISH-LINTER | | P2 | Backlog | 007-T061 | yes | | |
+| 007-T063 | Update README.md to link to docs/api-design-standards.md in Documentation section | G-API-POLISH-DOCUMENTATION | | P2 | Backlog | 007-T022 | yes | | |
+| 007-T064 | Update docs/coding-guidelines.md to reference docs/api-design-standards.md for API-specific conventions | G-API-POLISH-DOCUMENTATION | | P2 | Backlog | 007-T022 | yes | | |
+| 007-T065 | Update specs/007-api-design-standards/audit-report.md with final compliance status of existing endpoints (list compliant, non-compliant, grandfathered exceptions) | G-API-POLISH-DOCUMENTATION | | P2 | Backlog | 007-T009 | yes | | |
+| 007-T066 | Run all 10 validation scenarios from specs/007-api-design-standards/quickstart.md against staging environment | G-API-POLISH-VALIDATION | | P3 | Backlog | 007-T065 | yes | | |
+| 007-T067 | Document validation results in specs/007-api-design-standards/audit-report.md (which scenarios pass, which need fixes) | G-API-POLISH-VALIDATION | | P3 | Backlog | 007-T066 | yes | | |
+| 007-T068 | Run backend/tests/integration/api_standards_test.go test suite and verify all tests pass (or document expected failures for non-compliant endpoints) | G-API-POLISH-VALIDATION | | P3 | Backlog | 007-T059 | yes | | |
+| 007-T069 | Review .specify/memory/constitution.md to determine if API standards should be elevated to non-negotiable principles | | | P3 | Backlog | 007-T068 | yes | | |
+| 007-T070 | If constitution update warranted, document proposal in specs/007-api-design-standards/constitution-amendment-proposal.md (rationale, proposed changes, impact) | | | P3 | Backlog | 007-T069 | no | | |
+
+---
+
 ## Feature Phase
 
-_No feature specs defined yet. Add specs 006+ here as they are created._
+_No feature specs defined yet. Add specs 008+ here as they are created._
 
 ---
 
@@ -946,7 +1059,7 @@ _No tasks archived on this run (first run; all tasks are ADD operations)._
 
 ## Reconciliation Report
 
-**Run date**: 2026-07-03
+**Run date**: 2026-07-06
 
 ### Specs Discovered
 
@@ -956,88 +1069,80 @@ _No tasks archived on this run (first run; all tasks are ADD operations)._
 | 002 | `specs/002-nfr-system-constraints/` | ✅ yes | Active |
 | 003 | `specs/003-cloud-env-strategy/` | ✅ yes | Active |
 | 004 | `specs/004-security-auth-model/` | ✅ yes | Active |
-| 005 | `specs/005-system-architecture/` | ✅ yes | **NEW** |
+| 005 | `specs/005-system-architecture/` | ✅ yes | Active |
+| 006 | `specs/006-core-domain-model/` | ✅ yes | Active |
+| 007 | `specs/007-api-design-standards/` | ✅ yes | **NEW** |
 
 ### Change Counts
 
 | Operation | Count |
 |-----------|-------|
-| **ADD** | 131 (spec 005: all 131 tasks) |
+| **ADD** | 70 (spec 007: all 70 tasks) |
 | **UPDATE** | 0 |
-| **UNCHANGED** | 331 (001: 81 tasks, 002: 46 tasks, 003: 72 tasks, 004: 132 tasks) |
+| **UNCHANGED** | 462 (001: 81 tasks, 002: 46 tasks, 003: 72 tasks, 004: 132 tasks, 005: 131 tasks, 006: 77 tasks) |
 | **REMOVE** | 0 |
 | **ARCHIVED** | 0 |
-| **Structural** | Added 23 new groups for spec 005 tasks |
+| **Structural** | Added 12 new groups for spec 007 tasks |
 
-**Total tasks in roadmap**: 462 (was 331, added 131)  
-**Grouped tasks**: 324 (70.1% of total, forming 94 work items)  
-**Standalone tasks**: 138 (29.9% of total)
+**Total tasks in roadmap**: 532 (was 462, added 70)  
+**Grouped tasks**: 370 (69.5% of total, forming 107 work items)  
+**Standalone tasks**: 162 (30.5% of total)
 
-### New Grouping Summary (Spec 005)
+### New Grouping Summary (Spec 007)
 
 | Group ID | Tasks | Description |
 |----------|-------|-------------|
-| G-ARCH-SETUP-DIRS | 3 | Directory structure creation (005-T002–004) |
-| G-ARCH-SETUP-INIT | 2 | Project initialization (005-T006–007) |
-| G-ARCH-SETUP-CONFIG | 2 | Environment configuration (005-T008–009) |
-| G-ARCH-SETUP-DOCS | 3 | Area README creation (005-T010–012) |
-| G-ARCH-FOUNDATIONAL-DOCKER | 3 | Docker and gitignore (005-T014–016) |
-| G-ARCH-FOUNDATIONAL-CI | 3 | CI workflow skeletons (005-T017–019) |
-| G-ARCH-BACKEND-MIDDLEWARE | 5 | Backend middleware components (005-T024–028) |
-| G-ARCH-BACKEND-AI | 3 | AI client interface and stubs (005-T030–032) |
-| G-ARCH-BACKEND-ERRORS | 2 | Error handler and types (005-T033–034) |
-| G-ARCH-BACKEND-EXAMPLE | 3 | Domain pattern scaffolds (005-T038–040) |
-| G-ARCH-FRONTEND-PRIMITIVES | 7 | Frontend primitive components (005-T048–054) |
-| G-ARCH-INFRA-VPC | 5 | Terraform VPC module (005-T061–065) |
-| G-ARCH-INFRA-ECS | 6 | Terraform ECS module (005-T069–074) |
-| G-ARCH-INFRA-RDS | 4 | Terraform RDS module (005-T078–081) |
-| G-ARCH-INFRA-ALB | 5 | Terraform ALB module (005-T085–089) |
-| G-ARCH-INFRA-CLOUDFRONT | 3 | Terraform CloudFront module (005-T093–095) |
-| G-ARCH-INFRA-SECRETS | 1 | Terraform Secrets Manager module (005-T099) |
-| G-ARCH-INTEGRATION-BACKEND | 3 | Backend integration patterns (005-T110–112) |
-| G-ARCH-INTEGRATION-FRONTEND | 2 | Frontend integration patterns (005-T114–115) |
-| G-ARCH-INTEGRATION-TESTS | 2 | Integration test scenarios (005-T117–118) |
-| G-ARCH-POLISH-DOCS | 4 | Documentation updates (005-T120–123) |
-| G-ARCH-POLISH-VALIDATION | 7 | Validation tasks (005-T124–130) |
+| G-API-US1-ACCESSIBILITY | 3 | Standards doc accessibility verification (007-T010–012) |
+| G-API-US1-NAMING | 2 | Resource naming & URL structure verification (007-T015–016) |
+| G-API-US1-FORMAT | 2 | Request/response format verification (007-T018–019) |
+| G-API-US2-ERROR-HANDLING | 2 | Frontend error handling examples (007-T023–024) |
+| G-API-US2-PAGINATION | 2 | Frontend pagination examples (007-T026–027) |
+| G-API-US2-FILTERING-SORTING | 2 | Frontend filtering/sorting examples (007-T029–030) |
+| G-API-US4-EXTERNAL-DOCS | 2 | External API consumer documentation (007-T042–043) |
+| G-API-US4-PATTERN-RECOGNITION | 2 | Pattern transfer documentation (007-T045–046) |
+| G-API-POLISH-TEST-HELPERS | 1 | Integration test helper functions (007-T051) |
+| G-API-POLISH-INTEGRATION-TESTS | 8 | Standards validation integration tests (007-T052–059) |
+| G-API-POLISH-LINTER | 3 | Linter research and configuration (007-T060–062) |
+| G-API-POLISH-DOCUMENTATION | 3 | Final documentation updates (007-T063–065) |
+| G-API-POLISH-VALIDATION | 3 | Final validation execution (007-T066–068) |
 
-### Cross-Spec Dependencies (Spec 005)
+### Cross-Spec Dependencies (Spec 007)
 
-Spec 005 establishes foundational architecture patterns that all subsequent feature work will build upon:
+Spec 007 establishes API design conventions that all backend endpoints must follow:
 
 | Type | Description |
 |------|-------------|
-| **Backend foundation** | 005-T001–041 establishes backend structure that 001 app code will populate |
-| **Frontend foundation** | 005-T002, 005-T042–060 establishes frontend structure that 001 UI features will populate |
-| **Infrastructure foundation** | 005-T004, 005-T061–109 establishes IaC modules that 003 will provision to AWS |
-| **Integration patterns** | 005-T110–119 unifies error handling across all layers established by 001–004 |
-| **NFR enablement** | 005-T024–025 (RequestID, Logger middleware) enables 002 observability requirements |
-| **Security enablement** | 005-T031–032 (prompt validator, output sanitizer stubs) will be enhanced by 004 security rules |
+| **Standards foundation** | 007-T004–009 (Phase 2 Foundational) promotes API standards doc and audits existing endpoints — BLOCKS all user story work in spec 007 |
+| **Backend endpoint compliance** | 001/004 API endpoints must follow standards defined in docs/api-design-standards.md (resource naming, error format, pagination) |
+| **Frontend API client patterns** | 001 frontend API client code will use predictable patterns documented in 007-T023–033 (error handling, pagination, filtering) |
+| **Integration test validation** | 007-T050–059 integration tests will validate 001/004 endpoints comply with standards (error format, status codes, timestamps, field naming) |
+| **PR template extension** | 007-T035–036 extends .github/pull_request_template.md with API standards compliance checklist for all backend PR reviews |
+| **Documentation reference** | 007-T063–064 links standards doc from README and coding-guidelines.md for discoverability |
 
-**No blocking dependencies** — spec 005 is pure architecture setup that runs in parallel with or before feature implementation.
+**No blocking dependencies** — spec 007 is pure documentation/standards definition that runs in parallel with feature implementation.
 
 ### Human Attention Required
 
 | Item | Detail |
 |------|--------|
-| **New spec review** | Spec 005 (System Architecture and Technology Stack) added with 131 tasks. Review grouping and priorities. |
-| **Priority review** | All spec 005 priorities default to P1 (Phases 1-5 MVP architecture), P2 (Phase 6 Integration), P3 (Phase 7 Polish). Most tasks are P1 foundational work. |
-| **Status review** | All 131 new tasks default to `Backlog`. Mark Phase 1-2 tasks `Ready` to begin architecture implementation. |
-| **Issue column** | All 131 new spec 005 `Issue` fields are empty. **90 grouped tasks will form 23 issues** (with checklists); **41 standalone tasks will form 41 issues**. Total NEW issues: **64 issues** when `/sync-issues` runs. |
-| **Sprint column** | All spec 005 `Sprint` fields are empty. Populate during sprint planning. Recommend: Phase 1-2 (setup + foundational) in first sprint, Phases 3-5 (backend + frontend + infra) in parallel sprints 2-3, Phases 6-7 (integration + polish) in final sprint. |
-| **Parallel execution** | 66 of 131 tasks (50%) marked `[P]` in source — can run in parallel. Phase 3-5 user stories (Backend, Frontend, Infrastructure) are fully independent after Phase 2 completes. |
-| **Architecture-first approach** | Spec 005 establishes ALL foundational patterns before feature development. Once complete, specs 001-004 can implement features using these patterns. Consider completing 005 Phase 1-2 before starting feature work. |
+| **New spec review** | Spec 007 (API Design Standards and Conventions) added with 70 tasks. Review grouping and priorities. |
+| **Priority review** | Spec 007 priorities: P1 (Phases 1-3, 22 tasks — MVP standards doc), P2 (Phases 4-5 + most of Phase 7, 32 tasks — frontend examples + code review tools + tests), P3 (Phase 6 + Phase 7 validation, 16 tasks — external consumer docs + final validation). Phase 2 is CRITICAL BLOCKER for all other spec 007 work. |
+| **Status review** | All 70 new tasks default to `Backlog`. Mark Phase 1-2 tasks `Ready` to begin standards promotion workflow. |
+| **Issue column** | All 70 new spec 007 `Issue` fields are empty. **46 grouped tasks will form 13 issues** (with checklists); **24 standalone tasks will form 24 issues**. Total NEW issues: **37 issues** when `/sync-issues` runs. |
+| **Sprint column** | All spec 007 `Sprint` fields are empty. Populate during sprint planning. Recommend: Phase 1-2 (setup + foundational promotion) in first sprint, Phases 3-5 (user stories 1-3) in sprint 2, Phases 6-7 (user story 4 + polish) in sprint 3. |
+| **Parallel execution** | 38 of 70 tasks (54%) marked parallelizable in source — can run concurrently. User Stories 1-4 can proceed in parallel after Phase 2 completes. Integration tests (Phase 7) can run parallel to US2-US4. |
+| **Documentation-only feature** | Spec 007 is pure documentation/standards definition — no code implementation. Focuses on promoting standards doc to docs/, adding PR checklist, creating external consumer guide, and writing validation integration tests. |
+| **Foundation promotion complete** | Per conversation summary, spec 007 Phase 2 foundational tasks (007-T004–006) are ALREADY COMPLETE (docs/api-design-standards.md created, copilot-instructions.md updated). Mark these 3 tasks `Done` and update Status column. |
 
 ### Critical Path Changes
 
-- **New foundational gate**: Spec 005 Phase 2 (Foundational, tasks 005-T013–023) becomes a HARD BLOCKER for all user story implementation across ALL specs. No backend domain code (001), no frontend features (001), no infrastructure provisioning (003) until Phase 2 completes.
-- **Parallel architecture tracks**: After Phase 2, three independent tracks emerge:
-  1. **Backend track**: 005-T024–041 (18 tasks) establishes Go backend patterns
-  2. **Frontend track**: 005-T042–060 (19 tasks) establishes React SPA patterns
-  3. **Infrastructure track**: 005-T061–109 (49 tasks) establishes Terraform IaC patterns
-- **Integration convergence**: 005-T110–119 (Phase 6) requires all three tracks complete before unifying error handling and observability patterns.
-- **Revised MVP path**: The critical path now starts with architecture setup:
+- **API standards now available**: Spec 007 Phase 2 (Foundational, tasks 007-T004–009) has been COMPLETED per conversation summary. The authoritative API standards document (docs/api-design-standards.md) is now the project-wide reference for all endpoint design.
+- **Backend endpoint compliance**: All backend endpoints defined in specs 001 and 004 must now follow conventions in docs/api-design-standards.md (resource naming, URL structure, request/response formats, error handling, pagination, filtering, sorting, rate limiting).
+- **No blocking impact on feature work**: Spec 007 is documentation-only and runs in parallel with implementation. Backend developers reference the standards doc when designing endpoints. Code reviewers use the PR checklist (007-T035–036) to verify compliance.
+- **Integration test enforcement**: Once spec 007 Phase 7 completes (007-T050–059), automated integration tests will validate endpoint compliance, reducing manual review burden.
+- **Revised critical path** (no change to feature implementation sequence):
   ```
-  005-T001 (setup)
+  005-T001 (architecture setup)
     → 005-T013–023 (foundational BLOCKER)
       → [PARALLEL]:
          - 005-T024–041 (backend architecture)
@@ -1045,26 +1150,30 @@ Spec 005 establishes foundational architecture patterns that all subsequent feat
          - 005-T061–109 (infrastructure architecture)
       → 005-T110–119 (integration)
         → [Feature implementation from 001-004 begins here]
+           - Backend endpoints follow docs/api-design-standards.md conventions
+           - 007-T050–059 integration tests validate compliance
   ```
 
 ### Next Steps
 
-1. **Review spec 005 grouping**: The 23 groups bundle 90 tasks into cohesive work items following domain boundaries (VPC, ECS, RDS, ALB, primitives, middleware, etc.). If any grouping doesn't align with team ownership, clear the `Group` value to split into standalone items.
-2. **Sprint planning**: Populate `Sprint` column for spec 005. Recommend sprint breakdown:
-   - **Sprint 1**: Phase 1-2 (T001–T023) — setup + foundational (BLOCKS everything)
-   - **Sprint 2-3**: Phase 3-5 (T024–T109) — backend + frontend + infra in parallel (86 tasks across 3 teams)
-   - **Sprint 4**: Phase 6-7 (T110–T131) — integration + polish (22 tasks)
-3. **Architecture-first decision**: Decide whether to complete spec 005 BEFORE starting feature work (001-004 implementation), or interleave them. Architecture-first recommended for clean separation and maximum parallel execution later.
-4. **Run `/sync-issues`**: This will create **64 new GitHub issues** for spec 005 (23 grouped + 41 standalone). Grouped issues will have checklists with member tasks. Use labels: `architecture`, `foundation`, `P1`/`P2`/`P3`.
-5. **Coordinate cross-spec work**: Spec 005 establishes patterns that 001-004 will consume. Ensure teams understand: middleware chain → 002 observability; AI client interface → 001 itinerary generation; design tokens → 001 UI components; Terraform modules → 003 AWS provisioning.
-6. **Re-run `/build-roadmap`**: When spec 005 `tasks.md` is modified or a new spec is added — the command preserves all `Group`, `Sprint`, `Priority`, `Status`, and `Issue` fields.
+1. **Review spec 007 grouping**: The 13 groups bundle 46 tasks into cohesive work items following user story boundaries (US1 standards accessibility, US2 frontend examples, US4 external docs, Polish integration tests). If any grouping doesn't align with team ownership, clear the `Group` value to split into standalone items.
+2. **Mark completed tasks**: Per conversation summary, spec 007 Phase 2 foundational tasks (007-T004, 007-T005, 007-T006) are ALREADY COMPLETE. Update their `Status` column to `Done` and record completion date in `Notes`.
+3. **Sprint planning**: Populate `Sprint` column for spec 007. Recommend sprint breakdown:
+   - **Sprint 1** (DONE): Phase 1-2 (T001–T009) — setup + standards doc promotion ✅ COMPLETE
+   - **Sprint 2**: Phase 3 (T010–T022) — User Story 1 (backend developer standards access, 13 tasks)
+   - **Sprint 3**: Phase 4-5 (T023–T041) — User Story 2-3 (frontend integration + code review tooling, 19 tasks)
+   - **Sprint 4**: Phase 6-7 (T042–T070) — User Story 4 + Polish (external docs + automated tests, 29 tasks)
+4. **Documentation-first decision**: Spec 007 establishes standards that inform 001/004 endpoint design. Recommend completing 007 Phase 3 (US1, 13 tasks) BEFORE implementing backend endpoints in 001 to ensure consistency from day one.
+5. **Run `/sync-issues`**: This will create **37 new GitHub issues** for spec 007 (13 grouped + 24 standalone). Grouped issues will have checklists with member tasks. Use labels: `documentation`, `standards`, `P1`/`P2`/`P3`.
+6. **Coordinate cross-spec work**: Spec 007 standards inform 001/004 endpoint design. Ensure backend teams reference docs/api-design-standards.md when defining handler routes, error responses, and pagination logic. Frontend teams use 007-T023–033 patterns for generic API client code.
+7. **Re-run `/build-roadmap`**: When spec 007 `tasks.md` is modified, a new spec is added, or existing specs are updated — the command preserves all `Group`, `Sprint`, `Priority`, `Status`, and `Issue` fields.
 
 ---
 
-**Total project task count**: **462 tasks** across 5 foundation specs  
-**Grouped work items**: **94 issues** (combining 324 tasks)  
-**Standalone work items**: **138 issues**  
-**Total GitHub issues when synced**: **232 issues**
+**Total project task count**: **532 tasks** across 7 foundation specs  
+**Grouped work items**: **107 issues** (combining 370 tasks)  
+**Standalone work items**: **162 issues**  
+**Total GitHub issues when synced**: **269 issues**
 
 ---
 
