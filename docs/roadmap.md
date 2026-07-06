@@ -4,7 +4,7 @@
 > titles, and dependencies is `specs/*/tasks.md`. Priority, Status, Phase, Issue, and
 > Notes are human-owned and preserved across runs. Do not hand-edit the stable IDs.
 
-**Last reconciled**: 2026-07-03 (updated with spec 005)
+**Last reconciled**: 2026-07-06 (updated with spec 006)
 
 ## Legend
 
@@ -706,6 +706,141 @@
 | 005-T129 | Run frontend component tests and verify primitives (Button, Input, Card) render correctly with design tokens | G-ARCH-POLISH-VALIDATION | | P3 | Backlog | 005-T060 | yes | | |
 | 005-T130 | Run axe-core accessibility audit on frontend and verify zero WCAG 2.1 AA violations | G-ARCH-POLISH-VALIDATION | | P3 | Backlog | 005-T060 | yes | | |
 | 005-T131 | Update specs/005-system-architecture/tasks.md marking all tasks complete and adding completion notes | | | P3 | Backlog | 005-T124 | no | | |
+
+---
+
+### Spec 006 — Core Domain and Data Model Foundations &nbsp; `specs/006-core-domain-model/tasks.md`
+
+> Cross-spec note: Documentation feature completing the canonical domain model reference. Gap-fills
+> docs/data-model.md with missing entities (ConversationSession, ConversationMessage), validation layers,
+> indexes, state transitions, and cascade behavior. Provides definitive reference for all feature work.
+
+#### Phase 1 — Setup & Validation Infrastructure
+
+| ID | Task | Group | Sprint | Priority | Status | Depends on | Parallel | Issue | Notes |
+|----|------|-------|--------|----------|--------|------------|----------|-------|-------|
+| 006-T001 | Verify specs/006-core-domain-model/ directory structure exists with spec.md, plan.md, research.md, data-model.md, quickstart.md, checklists/requirements.md | | | P1 | Backlog | - | no | | |
+| 006-T002 | Review research.md gap analysis and confirm all 6 gaps identified (missing entities, incomplete Destination, validation layers, indexes, state transitions, cascade behavior) | | | P1 | Backlog | - | yes | | |
+| 006-T003 | Validate plan.md constitution check passed with no violations | | | P1 | Backlog | - | yes | | |
+
+#### Phase 2 — User Story 1: Core Entity Reference (Priority: P1) 🎯 MVP
+
+| ID | Task | Group | Sprint | Priority | Status | Depends on | Parallel | Issue | Notes |
+|----|------|-------|--------|----------|--------|------------|----------|-------|-------|
+| 006-T004 | Verify all 16 entities documented in specs/006-core-domain-model/data-model.md (User, RefreshToken, JWTSigningKey, SecurityEvent, Plan, Subscription, Trip, Day, Activity, Collaborator, Suggestion, Destination, TravelStyle, TripTravelStyle, ConversationSession, ConversationMessage) | G-DOC-ENTITY-VERIFICATION | | P1 | Backlog | 006-T001 | yes | | |
+| 006-T005 | Verify ConversationSession entity has complete definition (id, trip_id, started_at, completed_at, status, total_tokens, ai_provider, created_at attributes documented) | G-DOC-ENTITY-VERIFICATION | | P1 | Backlog | 006-T001 | yes | | |
+| 006-T006 | Verify ConversationMessage entity has complete definition (id, session_id, role, content, token_count, timestamp attributes documented) | G-DOC-ENTITY-VERIFICATION | | P1 | Backlog | 006-T001 | yes | | |
+| 006-T007 | Verify Destination entity includes geographic attributes (id, name, country, region, latitude, longitude, created_at attributes documented with coordinate constraints) | G-DOC-ENTITY-VERIFICATION | | P1 | Backlog | 006-T001 | yes | | |
+| 006-T008 | Confirm all 16 entities have data types specified for each attribute (UUID, VARCHAR with length, TEXT, INT, BIGINT, DECIMAL, TIMESTAMP, ENUM, BOOLEAN, JSONB) | | | P1 | Backlog | 006-T004 | no | | |
+| 006-T009 | Confirm all 16 entities have nullability specified for each attribute (NOT NULL or NULLABLE) | | | P1 | Backlog | 006-T004 | no | | |
+| 006-T010 | Confirm all 16 entities have constraint documentation (PRIMARY KEY, FOREIGN KEY, UNIQUE, CHECK constraints) | | | P1 | Backlog | 006-T004 | no | | |
+| 006-T011 | Validate spec.md acceptance scenarios 1-3 for US1 are met (User, Trip, Collaborator entities findable with complete definitions) | | | P1 | Backlog | 006-T008 | no | | |
+
+#### Phase 3 — User Story 2: Relationship and Constraint Understanding (Priority: P1)
+
+| ID | Task | Group | Sprint | Priority | Status | Depends on | Parallel | Issue | Notes |
+|----|------|-------|--------|----------|--------|------------|----------|-------|-------|
+| 006-T012 | Verify ERD in specs/006-core-domain-model/data-model.md includes all 16 entities with relationship lines showing cardinality (1:1, 1:many, many:many) | | | P1 | Backlog | 006-T004 | yes | | |
+| 006-T013 | Verify all foreign key attributes specify target table and column (e.g., `user_id` (UUID, FK → users.id)) | | | P1 | Backlog | 006-T004 | yes | | |
+| 006-T014 | Verify cascade behavior documented for all foreign keys in Cascade Behavior sections (User, Trip, Day, Activity, Collaborator, Suggestion, ConversationSession, ConversationMessage, Subscription, RefreshToken, SecurityEvent, TripTravelStyle) | G-DOC-CASCADE-BEHAVIOR | | P1 | Backlog | 006-T012 | no | | |
+| 006-T015 | Confirm Trip cascade behavior documents Days → CASCADE, Activities → CASCADE (via Day), Collaborator → CASCADE, Suggestion → CASCADE, ConversationSession → CASCADE | G-DOC-CASCADE-BEHAVIOR | | P1 | Backlog | 006-T012 | yes | | |
+| 006-T016 | Confirm User cascade behavior documents RefreshToken → CASCADE, SecurityEvent → SET NULL, Trip → RESTRICT, Collaborator → CASCADE, Suggestion → CASCADE | G-DOC-CASCADE-BEHAVIOR | | P1 | Backlog | 006-T012 | yes | | |
+| 006-T017 | Confirm unique constraints documented (User.email, RefreshToken.token_hash, Day (trip_id, day_number), Collaborator (trip_id, user_id), TripTravelStyle composite PK) | | | P1 | Backlog | 006-T014 | no | | |
+| 006-T018 | Validate spec.md acceptance scenarios 1-3 for US2 are met (Trip deletion cascades, User deletion cascade rules, Collaborator UNIQUE constraint documented) | | | P1 | Backlog | 006-T017 | no | | |
+
+#### Phase 4 — User Story 3: Business Rule Enforcement (Priority: P1)
+
+| ID | Task | Group | Sprint | Priority | Status | Depends on | Parallel | Issue | Notes |
+|----|------|-------|--------|----------|--------|------------|----------|-------|-------|
+| 006-T019 | Verify all 16 entities have Validation Rules section with [DB], [Logic], [API] layer tags in specs/006-core-domain-model/data-model.md | G-DOC-VALIDATION-LAYERS | | P1 | Backlog | 006-T011 | yes | | |
+| 006-T020 | Verify User entity has validation rules tagged (email uniqueness [DB], password complexity [Logic], email format [API]) | G-DOC-VALIDATION-LAYERS | | P1 | Backlog | 006-T011 | yes | | |
+| 006-T021 | Verify Trip entity has optimistic locking rules documented (version field, If-Match header requirement, 409 Conflict response) | G-DOC-VALIDATION-LAYERS | | P1 | Backlog | 006-T011 | yes | | |
+| 006-T022 | Verify Subscription entity has plan limit enforcement documented (Basic plan: 1 admin, 1 partner enforced [Logic]) | G-DOC-VALIDATION-LAYERS | | P1 | Backlog | 006-T011 | yes | | |
+| 006-T023 | Verify Invariants and Business Rules section documents 26 global rules (authentication, authorization, concurrency, data protection, plan limits, GDPR, state transition immutability) | | | P1 | Backlog | 006-T019 | no | | |
+| 006-T024 | Confirm password handling rules documented (bcrypt cost 12+, never return password_hash in API responses, never log passwords) | | | P1 | Backlog | 006-T023 | yes | | |
+| 006-T025 | Confirm token handling rules documented (JWT RS256 with active keys, access token 24h expiry, refresh token 30d expiry, revocation on logout) | | | P1 | Backlog | 006-T023 | yes | | |
+| 006-T026 | Validate spec.md acceptance scenarios 1-3 for US3 are met (authentication rules, trip editing rules, subscription limit rules findable) | | | P1 | Backlog | 006-T025 | no | | |
+
+#### Phase 5 — User Story 4: State Transition Clarity (Priority: P2)
+
+| ID | Task | Group | Sprint | Priority | Status | Depends on | Parallel | Issue | Notes |
+|----|------|-------|--------|----------|--------|------------|----------|-------|-------|
+| 006-T027 | Verify User entity State Transitions section documents Active → Deleted as forward-only with immutable audit trail rationale in specs/006-core-domain-model/data-model.md | G-DOC-STATE-TRANSITIONS | | P2 | Backlog | 006-T026 | yes | | |
+| 006-T028 | Verify Subscription entity State Transitions section documents stub_pending → active → cancelled as forward-only (no reactivation path) | G-DOC-STATE-TRANSITIONS | | P2 | Backlog | 006-T026 | yes | | |
+| 006-T029 | Verify Trip entity State Transitions section documents draft → published as forward-only (no unpublish operation) | G-DOC-STATE-TRANSITIONS | | P2 | Backlog | 006-T026 | yes | | |
+| 006-T030 | Verify Suggestion entity State Transitions section documents pending → approved/rejected as forward-only (resubmission creates new record) | G-DOC-STATE-TRANSITIONS | | P2 | Backlog | 006-T026 | yes | | |
+| 006-T031 | Verify ConversationSession entity State Transitions section documents in_progress → completed/abandoned as forward-only | G-DOC-STATE-TRANSITIONS | | P2 | Backlog | 006-T026 | yes | | |
+| 006-T032 | Confirm all stateful entities include rationale explaining immutable audit trail requirement (prevents data tampering, preserves decision history) | | | P2 | Backlog | 006-T027 | no | | |
+| 006-T033 | Validate spec.md acceptance scenarios 1-3 for US4 are met (trip publishing, subscription management, suggestion workflow transitions documented as forward-only) | | | P2 | Backlog | 006-T032 | no | | |
+
+#### Phase 6 — User Story 5: Concurrency and Versioning Strategy (Priority: P2)
+
+| ID | Task | Group | Sprint | Priority | Status | Depends on | Parallel | Issue | Notes |
+|----|------|-------|--------|----------|--------|------------|----------|-------|-------|
+| 006-T034 | Verify Trip entity has Concurrency Control section documenting version field, If-Match header, WHERE clause check, 409 Conflict response format in specs/006-core-domain-model/data-model.md | G-DOC-CONCURRENCY | | P2 | Backlog | 006-T033 | yes | | |
+| 006-T035 | Verify Activity entity has Concurrency Control section documenting same optimistic locking mechanism as Trip | G-DOC-CONCURRENCY | | P2 | Backlog | 006-T033 | yes | | |
+| 006-T036 | Confirm Trip entity documents version increment strategy (SET version = version + 1 on successful update, atomic increment) | | | P2 | Backlog | 006-T034 | no | | |
+| 006-T037 | Confirm Concurrency invariants #6-8 documented (optimistic locking enforced, version numbers increment atomically, 409 Conflict with current version in response) | | | P2 | Backlog | 006-T036 | no | | |
+| 006-T038 | Validate spec.md acceptance scenarios 1-3 for US5 are met (trip updates with If-Match, activity updates with version increment, conflict handling with 409 response documented) | | | P2 | Backlog | 006-T037 | no | | |
+
+#### Phase 7 — Performance-Critical Indexes
+
+| ID | Task | Group | Sprint | Priority | Status | Depends on | Parallel | Issue | Notes |
+|----|------|-------|--------|----------|--------|------------|----------|-------|-------|
+| 006-T039 | Verify User entity indexes documented (idx_users_email UNIQUE expression index for case-insensitive lookup, idx_users_subscription_id) in specs/006-core-domain-model/data-model.md | G-DOC-INDEXES | | P2 | Backlog | 006-T038 | yes | | |
+| 006-T040 | Verify Trip entity indexes documented (idx_trips_creator_id for user's trip list, idx_trips_status for published/draft filtering) | G-DOC-INDEXES | | P2 | Backlog | 006-T038 | yes | | |
+| 006-T041 | Verify Day entity indexes documented (idx_days_trip_id for trip detail queries, idx_days_destination_id for destination usage) | G-DOC-INDEXES | | P2 | Backlog | 006-T038 | yes | | |
+| 006-T042 | Verify Activity entity indexes documented (idx_activities_day_id for day detail queries ordered by sequence) | G-DOC-INDEXES | | P2 | Backlog | 006-T038 | yes | | |
+| 006-T043 | Verify Collaborator entity indexes documented (idx_collaborators_trip_id, idx_collaborators_user_id for collaboration queries) | G-DOC-INDEXES | | P2 | Backlog | 006-T038 | yes | | |
+| 006-T044 | Verify Suggestion entity indexes documented (idx_suggestions_trip_id, idx_suggestions_author_id, idx_suggestions_status for suggestion management) | G-DOC-INDEXES | | P2 | Backlog | 006-T038 | yes | | |
+| 006-T045 | Verify Subscription entity indexes documented (idx_subscriptions_user_id UNIQUE for one subscription per user, idx_subscriptions_status) | G-DOC-INDEXES | | P2 | Backlog | 006-T038 | yes | | |
+| 006-T046 | Verify ConversationSession entity indexes documented (idx_conversation_sessions_trip_id, idx_conversation_sessions_status) | G-DOC-INDEXES | | P2 | Backlog | 006-T038 | yes | | |
+| 006-T047 | Verify ConversationMessage entity indexes documented (idx_conversation_messages_session_id for message history chronological ordering) | G-DOC-INDEXES | | P2 | Backlog | 006-T038 | yes | | |
+| 006-T048 | Verify Destination entity indexes documented (idx_destinations_country, optional spatial index for coordinates if PostGIS enabled) | G-DOC-INDEXES | | P2 | Backlog | 006-T038 | yes | | |
+
+#### Phase 8 — Developer Reference Guide
+
+| ID | Task | Group | Sprint | Priority | Status | Depends on | Parallel | Issue | Notes |
+|----|------|-------|--------|----------|--------|------------|----------|-------|-------|
+| 006-T049 | Verify specs/006-core-domain-model/quickstart.md contains 12 validation scenarios covering all 5 user stories | G-DOC-QUICKSTART | | P2 | Backlog | 006-T048 | yes | | |
+| 006-T050 | Verify Scenario 1 (three-layer validation) references User entity validation rules from data-model.md | G-DOC-QUICKSTART | | P2 | Backlog | 006-T048 | yes | | |
+| 006-T051 | Verify Scenario 2 (optimistic locking) references Trip concurrency control from data-model.md | G-DOC-QUICKSTART | | P2 | Backlog | 006-T048 | yes | | |
+| 006-T052 | Verify Scenario 3 (cascade deletes) references Trip cascade behavior from data-model.md | G-DOC-QUICKSTART | | P2 | Backlog | 006-T048 | yes | | |
+| 006-T053 | Verify Scenario 4 (forward-only transitions) references Subscription state transitions from data-model.md | G-DOC-QUICKSTART | | P2 | Backlog | 006-T048 | yes | | |
+| 006-T054 | Verify Scenario 5 (suggest-then-approve) references Collaborator and Suggestion entities from data-model.md | G-DOC-QUICKSTART | | P2 | Backlog | 006-T048 | yes | | |
+| 006-T055 | Verify Scenario 6 (plan limits) references Plan and Collaborator business rules from data-model.md | G-DOC-QUICKSTART | | P2 | Backlog | 006-T048 | yes | | |
+| 006-T056 | Verify Scenario 7 (GDPR deletion) references User cascade behavior and invariants #16-17 from data-model.md | G-DOC-QUICKSTART | | P2 | Backlog | 006-T048 | yes | | |
+| 006-T057 | Verify Scenario 8 (geographic data) references Destination entity with coordinates from data-model.md | G-DOC-QUICKSTART | | P2 | Backlog | 006-T048 | yes | | |
+| 006-T058 | Verify Scenario 9 (activity sequencing) references Activity sequence_order from data-model.md | G-DOC-QUICKSTART | | P2 | Backlog | 006-T048 | yes | | |
+| 006-T059 | Verify Scenario 10 (token tracking) references ConversationSession and ConversationMessage from data-model.md | G-DOC-QUICKSTART | | P2 | Backlog | 006-T048 | yes | | |
+| 006-T060 | Verify Scenario 11 (security audit trail) references SecurityEvent cascade behavior from data-model.md | G-DOC-QUICKSTART | | P2 | Backlog | 006-T048 | yes | | |
+| 006-T061 | Verify Scenario 12 (JWT rotation) references JWTSigningKey rotation strategy from data-model.md | G-DOC-QUICKSTART | | P2 | Backlog | 006-T048 | yes | | |
+
+#### Phase 9 — Completeness Validation & Success Criteria
+
+| ID | Task | Group | Sprint | Priority | Status | Depends on | Parallel | Issue | Notes |
+|----|------|-------|--------|----------|--------|------------|----------|-------|-------|
+| 006-T062 | Validate SC-001: All 16 entities locatable without questions (entity catalog complete, organized alphabetically in data-model.md) | G-DOC-SUCCESS-CRITERIA | | P1 | Backlog | 006-T061 | yes | | |
+| 006-T063 | Validate SC-002: Zero ambiguity issues (all attributes have types, nullability, constraints; validation layers tagged) | G-DOC-SUCCESS-CRITERIA | | P1 | Backlog | 006-T061 | yes | | |
+| 006-T064 | Validate SC-003: 100% entity relationship coverage (ERD includes all entities, all FK relationships documented with cascade behavior) | G-DOC-SUCCESS-CRITERIA | | P1 | Backlog | 006-T061 | yes | | |
+| 006-T065 | Validate SC-004: 100% business rule coverage (all 16 entities have Business Rules section, 26 global invariants documented) | G-DOC-SUCCESS-CRITERIA | | P1 | Backlog | 006-T061 | yes | | |
+| 006-T066 | Validate SC-005: Migration sequence documented (16 migrations listed in order in data-model.md Database Migrations section) | G-DOC-SUCCESS-CRITERIA | | P1 | Backlog | 006-T061 | yes | | |
+| 006-T067 | Validate SC-006: Cascade behavior prevents FK violations (all foreign keys document CASCADE, SET NULL, or RESTRICT) | G-DOC-SUCCESS-CRITERIA | | P1 | Backlog | 006-T061 | yes | | |
+| 006-T068 | Validate SC-007: Concurrency-sensitive operations documented (Trip and Activity have Concurrency Control sections with optimistic locking) | G-DOC-SUCCESS-CRITERIA | | P1 | Backlog | 006-T061 | yes | | |
+| 006-T069 | Validate SC-008: Security-sensitive field handling documented (password_hash bcrypt rules, token storage rules, private key AWS Secrets Manager ARN, PII removal rules) | G-DOC-SUCCESS-CRITERIA | | P1 | Backlog | 006-T061 | yes | | |
+| 006-T070 | Update specs/006-core-domain-model/checklists/requirements.md with final validation status (all 16 checklist items passing) | | | P1 | Backlog | 006-T062 | no | | |
+
+#### Phase 10 — Documentation Promotion & Handoff
+
+| ID | Task | Group | Sprint | Priority | Status | Depends on | Parallel | Issue | Notes |
+|----|------|-------|--------|----------|--------|------------|----------|-------|-------|
+| 006-T071 | Review specs/006-core-domain-model/data-model.md for accuracy and completeness (all gaps from research.md filled) | | | P1 | Backlog | 006-T070 | no | | |
+| 006-T072 | Update docs/data-model.md with promoted content from specs/006-core-domain-model/data-model.md (preserve PROMOTED markers, update promotion date to 2026-07-06) | | | P1 | Backlog | 006-T071 | no | | |
+| 006-T073 | Add promotion metadata to docs/data-model.md header (<!-- Generated from specs/006-core-domain-model/data-model.md, Last promoted: 2026-07-06 -->) | | | P1 | Backlog | 006-T072 | no | | |
+| 006-T074 | Update .github/memory/session-notes.md with session summary (document gaps filled, entities added, validation strategy) | | | P1 | Backlog | 006-T073 | yes | | |
+| 006-T075 | Update .github/memory/patterns-discovered.md if new reusable patterns identified (three-layer validation taxonomy, forward-only state transition pattern) | | | P1 | Backlog | 006-T073 | yes | | |
+| 006-T076 | Create PR with title "feat(docs): complete core domain model with gap-filled entity catalog" targeting main branch | | | P1 | Backlog | 006-T074 | no | | |
+| 006-T077 | Add PR description summarizing 6 gaps filled, 16 entities documented, 8 success criteria met, and link to specs/006-core-domain-model/spec.md | | | P1 | Backlog | 006-T076 | no | | |
 
 ---
 

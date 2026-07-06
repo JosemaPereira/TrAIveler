@@ -62,7 +62,7 @@ The entire codebase follows strict quality gates — automated linting, testing,
 
 🔨 **In active development** — Planning and architecture complete; implementation in progress.
 
-The project has comprehensive specifications covering product vision, technical design, cloud infrastructure, security model, data models, API contracts, and a detailed roadmap with 199 prioritized tasks across three foundational specs. All foundational documentation is complete and ready to guide the build.
+The project has comprehensive specifications covering product vision, technical design, cloud infrastructure, security model, data models, API contracts, and a detailed roadmap with 539 prioritized tasks across six foundation specs. All foundational documentation is complete and ready to guide the build.
 
 ---
 
@@ -79,7 +79,7 @@ TrAIveler is organized into distinct areas, each with its own README and develop
 - **[backend/](backend/)** — Go REST API powering authentication, trip management, AI integration, and collaboration
 - **[frontend/](frontend/)** — React + TypeScript SPA delivering the user interface and experience
 - **[e2e/](e2e/)** — Playwright end-to-end test suite validating complete user flows
-- **infra/** — Terraform infrastructure as code for AWS deployment _(directory will be created in Phase 1)_
+- **[infra/](infra/)** — Terraform infrastructure as code for AWS deployment
 
 ---
 
@@ -88,7 +88,7 @@ TrAIveler is organized into distinct areas, each with its own README and develop
 This repository contains the full specification and implementation plan. If you're interested in the technical details, architecture decisions, or want to contribute, explore the `docs/` and `specs/` directories.
 
 **Project planning & process:**
-- [Project Roadmap](docs/roadmap.md) — 199 tasks organized into clear phases with sprint planning
+- [Project Roadmap](docs/roadmap.md) — 539 tasks organized into clear phases with sprint planning
 - [Project Workflow](docs/project-workflow.md) — complete development process from spec to shipped feature
 
 **Product & requirements:**
@@ -100,6 +100,7 @@ This repository contains the full specification and implementation plan. If you'
 - [Architecture Overview](docs/architecture.md) — system components, integration rules, and boundaries
 - [Cloud & Environments](docs/cloud-and-environments.md) — AWS infrastructure, IaC strategy, and CI/CD
 - [Security Model](docs/security.md) — authentication, authorization, and security practices
+- [Data Model](docs/data-model.md) — complete catalog of 16 core entities with validation rules, indexes, and state transitions
 
 **Development standards:**
 - [Coding Guidelines](docs/coding-guidelines.md) — formatting, naming, and code organization

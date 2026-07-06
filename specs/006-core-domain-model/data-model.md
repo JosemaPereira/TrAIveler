@@ -1,8 +1,10 @@
-# Data Model
+# Data Model: Core Domain Foundations
 
-<!-- Generated from specs/001-product-vision-scope/data-model.md, specs/004-security-auth-model/data-model.md, and specs/006-core-domain-model/data-model.md -->
-<!-- PROMOTED:data-model START -->
-<!-- Last promoted: 2026-07-06 — includes gap-filled entity catalog with validation layers, indexes, and state transitions -->
+**Feature**: Core Domain and Data Model Foundations  
+**Date**: 2026-07-06  
+**Purpose**: Complete entity catalog with all gaps from docs/data-model.md filled
+
+**Note**: This document fills gaps identified in [research.md](research.md). It will be used to update the promoted `docs/data-model.md` after review.
 
 ## Overview
 
@@ -731,4 +733,17 @@ Migrations are executed sequentially using goose. Foundational migrations (16 to
 25. **[Logic]** Reversals require creating new records (e.g., rejected suggestion resubmitted as new suggestion)
 26. **Rationale**: Immutable audit trail prevents data tampering and preserves decision history
 
-<!-- PROMOTED:data-model END -->
+---
+
+## Summary: Gaps Filled
+
+This document completes the domain model by adding:
+
+1. ✅ **ConversationSession and ConversationMessage entities** — Full definitions with validation, indexes, cascade behavior
+2. ✅ **Destination entity** — Complete with latitude, longitude, country, region (enables mapping features)
+3. ✅ **Three-layer validation tags** — All entities document [DB], [Logic], [API] validation enforcement
+4. ✅ **Performance-critical indexes** — 10 entities now have index documentation (up from 2)
+5. ✅ **Forward-only state transitions** — All stateful entities explicitly document immutable audit trail requirement
+6. ✅ **Cascade behavior** — All foreign keys specify CASCADE, SET NULL, or RESTRICT behavior
+
+**Ready for promotion to `docs/data-model.md` after review.**

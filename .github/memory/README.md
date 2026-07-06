@@ -29,10 +29,19 @@ Use this memory system to:
 - `scratch/working-notes.md`: Active session notes and in-progress thinking (NOT committed).
 - `scratch/.gitignore`: Ignores everything in scratch to keep ephemeral work out of git.
 
+## Session Start Protocol
+
+**MANDATORY: Every new session must begin by loading memory files in this order:**
+
+1. Read `session-notes.md` — understand what has been built and decided
+2. Read `patterns-discovered.md` — review proven implementation patterns
+3. Read `scratch/working-notes.md` — check for in-progress work
+4. Confirm loading with a status message before proceeding with any task
+
 ## When to Use Each File
-- While working: take notes in `scratch/working-notes.md`.
-- When a reusable approach appears: add it to `patterns-discovered.md`.
-- At the end of a session: summarize durable takeaways into `session-notes.md`.
+- **While working**: take notes in `scratch/working-notes.md`.
+- **When a reusable approach appears**: add it to `patterns-discovered.md`.
+- **At the end of a session**: summarize durable takeaways into `session-notes.md`.
 
 ## Language
 All memory files are written in English, consistent with the project language policy.
