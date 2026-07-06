@@ -5,7 +5,7 @@
 
 ## Executive Summary
 
-All 6 foundational specifications have been successfully promoted to the project's persistent context (constitution + docs/). Subsequent `/speckit.plan`, `/speckit.tasks`, and implementation work will automatically inherit these decisions without re-reading individual specs.
+All 7 foundational specifications have been successfully promoted to the project's persistent context (constitution + docs/). Subsequent `/speckit.plan`, `/speckit.tasks`, and implementation work will automatically inherit these decisions without re-reading individual specs.
 
 ---
 
@@ -19,6 +19,7 @@ All 6 foundational specifications have been successfully promoted to the project
 | **004** | Security & Authentication Model | ✅ Promoted | docs/security.md |
 | **005** | System Architecture & Technology Stack | ✅ Promoted | docs/architecture.md, docs/data-model.md, constitution |
 | **006** | Core Domain and Data Model Foundations | ✅ Promoted | docs/data-model.md |
+| **007** | API Design Standards and Conventions | ✅ Promoted | docs/api-design-standards.md |
 
 ---
 
@@ -182,6 +183,40 @@ All 6 foundational specifications have been successfully promoted to the project
 
 ---
 
+### Spec 007: API Design Standards and Conventions
+
+**Durable Decisions Promoted**:
+- Resource naming: Plural nouns (`/trips`, `/users`), lowercase with hyphens (`/travel-styles`), verbs only for non-CRUD actions (`/trips/:id/generate`)
+- URL structure: Maximum 2-level nesting (`/trips/:id/days/:day_id`), top-level endpoints for deep resources (`/activities/:id`), query params for cross-hierarchy filtering
+- API versioning: URL path `/api/v1` (major version only), breaking changes require new version, 6-month deprecation period
+- HTTP methods: Semantic usage (GET read-only, POST create, PUT full replace, PATCH partial, DELETE remove), idempotent PUT/DELETE
+- Request format: `application/json`, `snake_case` fields, ISO 8601 timestamps/dates, validation on all input (400 malformed, 422 validation)
+- Response format: Flat JSON for singles, envelope for lists with pagination metadata, empty arrays (not 404)
+- Error format: Standardized structure (`{error, message, request_id, fields?}`), 11 machine-readable error codes, field-level validation errors
+- HTTP status codes: Semantic usage (200/201/204 success, 400/401/403/404/409/422/429 client errors, 500/503 server errors)
+- Pagination: Offset-based (`page`, `per_page` with default 20, max 100), metadata envelope with `has_next`/`has_prev`, page beyond range returns empty array
+- Filtering: Query param operators (`[gte]`, `[lte]`, `[like]`, `[in]`), comma-separated OR, text search with `?q=`, validate field names
+- Sorting: Minus prefix for descending (`?sort=-created_at`), comma-separated multi-field, left-to-right priority
+- Rate limiting: 100 req/min authenticated (per user ID), 10 req/min unauthenticated (per IP), headers in all responses (`X-RateLimit-*`), 429 with `Retry-After`
+- Timestamp format: ISO 8601 with UTC (`2026-07-06T10:00:00Z`), consistent across all endpoints
+- Endpoint patterns: 7 reusable templates (List, Get Single, Create, Update Full, Update Partial, Delete, Action)
+
+**Destination**: `docs/api-design-standards.md`
+
+**Markers**: `<!-- PROMOTED:api-standards START/END -->`
+
+**Updates Made**:
+- ✅ Created docs/api-design-standards.md with complete 15-section standards document
+- ✅ Added comprehensive examples (✅ DO / ❌ DON'T) for every convention
+- ✅ Documented 11 machine-readable error codes with HTTP status mapping
+- ✅ Defined 7 endpoint patterns with request/response examples
+- ✅ Added compliance section (code review checklist, integration tests, linting, exception process)
+- ✅ Updated .github/copilot-instructions.md to reference api-design-standards.md with full description (resource naming, URL structure, versioning, formats, error handling, pagination, filtering, sorting, rate limiting, endpoint patterns)
+
+**Status**: ✅ Completed 2026-07-06
+
+---
+
 ## Constitution Updates
 
 **File**: `.specify/memory/constitution.md`
@@ -202,7 +237,7 @@ All 6 foundational specifications have been successfully promoted to the project
 
 **Section**: `<!-- PROMOTED:doc-references START/END -->`
 
-**Status**: ✅ Already complete (all 9 foundation docs already listed with descriptions)
+**Status**: ✅ Updated 2026-07-06 (added api-design-standards.md)
 
 **Referenced Docs**:
 1. docs/product-vision.md — product identity, personas, MVP scope, out-of-scope, roles/permissions
@@ -210,11 +245,12 @@ All 6 foundational specifications have been successfully promoted to the project
 3. docs/nfrs.md — measurable NFRs with validation methods (performance, scalability, availability, accessibility, security, maintainability, privacy, observability)
 4. docs/architecture.md — component boundaries, integration rules, scalability constraints, security boundaries, observability strategy
 5. docs/cloud-and-environments.md — AWS us-east-1, staging/production topology, Terraform IaC, ECS Fargate, CI/CD OIDC, secrets management, cost strategy
-6. docs/data-model.md — core entities (User, Trip, Day, Activity, RefreshToken, JWTSigningKey, SecurityEvent), relationships, invariants, business rules
+6. docs/data-model.md — 16 core entities with attributes, three-layer validation, indexes, state transitions, cascade behavior, invariants, business rules, migrations
 7. docs/security.md — JWT RS256 multi-key rotation, admin/partner roles, subscription limits, bcrypt password security, optimistic locking, secrets management, PII handling, prompt injection prevention, output sanitization, dependency security, logging & monitoring
-8. docs/coding-guidelines.md — formatting, import organization, naming conventions, KISS/DRY for Go and React/TypeScript
-9. docs/testing-guidelines.md — three-layer testing (unit, integration, E2E), folder structure, naming, coverage targets
-10. docs/ui-guidelines.md — design tokens, Atomic Design, responsive breakpoints, WCAG 2.1 AA, loading/error/empty states
+8. docs/api-design-standards.md — API conventions (resource naming, URL structure, versioning, HTTP methods, request/response formats, error handling, status codes, pagination, filtering, sorting, rate limiting, endpoint patterns)
+9. docs/coding-guidelines.md — formatting, import organization, naming conventions, KISS/DRY for Go and React/TypeScript
+10. docs/testing-guidelines.md — three-layer testing (unit, integration, E2E), folder structure, naming, coverage targets
+11. docs/ui-guidelines.md — design tokens, Atomic Design, responsive breakpoints, WCAG 2.1 AA, loading/error/empty states
 
 ---
 
@@ -222,13 +258,14 @@ All 6 foundational specifications have been successfully promoted to the project
 
 ### ✅ Completeness Check
 
-All 6 foundational specs have been analyzed and promoted:
+All 7 foundational specs have been analyzed and promoted:
 - ✅ Spec 001: Product vision, personas, MVP scope, out-of-scope, roles
 - ✅ Spec 002: All 31 NFRs with measurable targets and validation methods
 - ✅ Spec 003: Cloud provider, environments, IaC, compute, CI/CD, secrets, costs
 - ✅ Spec 004: Authentication, authorization, concurrency, security, PII, validation, sanitization, logging
 - ✅ Spec 005: Architecture, tech stack, components, integration rules, scalability, observability
 - ✅ Spec 006: Complete entity catalog, validation layers, indexes, state transitions, cascade behavior, concurrency control, business rules
+- ✅ Spec 007: API design standards covering resource naming, URL structure, versioning, HTTP methods, request/response formats, error handling, status codes, pagination, filtering, sorting, rate limiting
 
 ### ✅ Constitution Compliance
 
@@ -264,13 +301,14 @@ All subsequent work (new specs, `/speckit.plan`, `/speckit.tasks`, implementatio
 4. **Security model**: Consistent authentication, authorization, validation, and sanitization across all features
 5. **Cost strategy**: Environment-specific resource configurations prevent budget overruns
 6. **Architecture patterns**: Proven patterns for backend (handler/service/repository), frontend (Atomic Design), infrastructure (modular Terraform)
+7. **API design conventions**: Consistent endpoint patterns (naming, structure, versioning, error handling, pagination) across all backend APIs
 
 ### Re-Promotion Trigger
 
 Re-run this promotion when:
-- ✅ Any foundational spec (001-006) is revised or refined
+- ✅ Any foundational spec (001-007) is revised or refined
 - ✅ Constitution is amended with new non-negotiable principles
-- ✅ New foundation-level specs are created (e.g., 007-API-standards, 008-observability-detailed)
+- ✅ New foundation-level specs are created (e.g., 008-observability-detailed)
 
 ### Maintenance
 
@@ -281,14 +319,13 @@ Re-run this promotion when:
 ---
 
 ## Recommendation
-
-✅ **Foundation promotion is COMPLETE**. All durable decisions from specs 001-006 are now in persistent context.
+7 are now in persistent context.
 
 **Next Steps**:
 1. Review this report and verify all promoted decisions align with team understanding
-2. If approved, commit all changes (constitution, docs/, .github/copilot-instructions.md)
-3. Use `/commit-and-push` with conventional commit message: `docs: promote foundational decisions from specs 001-006 to persistent context`
-4. Begin feature development knowing all architectural, security, quality, and domain model foundations are inherited automatically
+2. If approved, commit all changes (docs/, .github/copilot-instructions.md)
+3. Use `/commit-and-push` with conventional commit message: `docs: promote API design standards (spec 007) to persistent context`
+4. Begin feature development knowing all architectural, security, quality, domain model, and API conventions are inherited automatically
 5. Review [.github/ROADMAP-RECONCILIATION-REPORT.md](.github/ROADMAP-RECONCILIATION-REPORT.md) for spec 006 task integration (77 tasks added to docs/roadmap.md)
 
 ---
@@ -305,18 +342,18 @@ Re-run this promotion when:
 | `docs/architecture.md` | ✅ Verified | No changes needed (already complete) |
 | `docs/data-model.md` | ✅ Updated | Gap-filled with spec 006 (ConversationSession, ConversationMessage, validation layers, indexes, state transitions, cascade behavior) |
 | `.github/copilot-instructions.md` | ✅ Updated | Enhanced data-model.md description with 16 entities and validation layers |
-| `.github/PROMOTION-REPORT.md` | ✅ Updated | Added spec 006 section (this report document) |
-| `.github/ROADMAP-RECONCILIATION-REPORT.md` | ✅ Created | Documents 77 tasks added from spec 006 to docs/roadmap.md |
+| `docs/api-design-standards.md` | ✅ Created | Complete API standards (resource naming, URL structure, versioning, HTTP methods, request/response formats, error handling, pagination, filtering, sorting, rate limiting) |
+| `.github/copilot-instructions.md` | ✅ Updated | Enhanced data-model.md description with 16 entities and validation layers; added api-design-standards.md reference with full description |
+| `.github/PROMOTION-REPORT.md` | ✅ Updated | Added spec 007 section (this report document) |
 
-**Total Files Modified**: 4 (product-vision.md updated 2026-07-03, data-model.md updated 2026-07-06, copilot-instructions.md updated 2026-07-06, roadmap.md updated 2026-07-06)  
-**Total Files Verified**: 7 (constitution, nfrs.md, cloud-and-environments.md, security.md, architecture.md, coding-guidelines.md, testing-guidelines.md, ui-guidelines.md already complete)
+**Total Files Modified**: 4 (data-model.md updated 2026-07-06, api-design-standards.md created 2026-07-06, copilot-instructions.md updated 2026-07-06, PROMOTION-REPORT.md updated 2026-07-06)  
+**Total Files Verified**: 6 (constitution, nfrs.md, cloud-and-environments.md, security.md, architecture.md, product-vision.md already complete)
 
 ---
 
 **Generated by**: `/promote-fundations` workflow  
-**Execution Date**: 2026-07-03 (Updated: 2026-07-06 with spec 006)  
-**Next Promotion**: When foundational specs 001-006 are revised, or new foundation specs added
-
+**Execution Date**: 2026-07-03 (Updated: 2026-07-06 with specs 006 and 007)  
+**Next Promotion**: When foundational specs 001-007
 ---
 
 ## Related Reports

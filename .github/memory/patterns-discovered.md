@@ -99,6 +99,85 @@ func (v *PromptValidator) Validate(prompt string) (ruleID string, matched bool) 
 
 ### Example
 ```markdown
+| ID | Task | Group | Sprint | Priority | Status | ... |
+|----|------|-------|--------|----------|--------|-----|
+| 001-T002 | Initialize Go module | G-SETUP-INIT | 1 | P1 | Backlog | ... |
+| 001-T003 | Initialize React project | G-SETUP-INIT | 1 | P1 | Backlog | ... |
+
+→ When `/sync-issues` runs, these 2 tasks become ONE issue with a 2-item checklist.
+```
+
+### Related Files
+- `docs/roadmap.md`
+- `.github/prompts/build-roadmap.prompt.md`
+- `.github/memory/session-notes.md` (2026-07-02 session)
+
+---
+
+### Documentation-Centric SpecKit Workflow
+
+### Context
+- SpecKit workflows — applies to features that produce documentation/standards rather than code implementation
+
+### Problem
+- Documentation features (standards docs, runbooks, style guides) might seem too simple for full SpecKit workflow. Temptation to skip planning and jump straight to writing the doc. However, this risks ambiguity, missing edge cases, and unclear acceptance criteria.
+
+### Solution
+- Documentation features follow the SAME SpecKit workflow as code features: specify → plan → clarify → tasks. Even pure documentation benefits from:
+  - **Specification**: User stories defining who needs the doc, what questions it must answer, acceptance criteria (e.g. "backend dev designs compliant endpoint in < 15 min")
+  - **Planning**: Research decisions documented (e.g. why offset pagination vs. cursor, why snake_case vs. camelCase), technical context, constitution check
+  - **Clarification**: Validate spec completeness across all categories (even docs have edge cases, error handling, user stories)
+  - **Tasks**: Dependency-ordered implementation (e.g. standards doc promotion BLOCKS all user story work)
+- Result: High-quality documentation with zero ambiguity, clear MVP scope, testable outcomes, and proper dependency ordering.
+
+### Example
+```
+Spec 007 (API Design Standards) — documentation feature:
+- Spec: 4 user stories (backend dev, frontend dev, code reviewer, API consumer)
+- Plan: 9 research decisions (resource naming, error format, pagination strategy)
+- Clarify: 0 ambiguities found (spec quality validated)
+- Tasks: 70 tasks in 7 phases, 38 parallelizable (54%)
+- MVP: Phase 1-3 (22 tasks) = standards doc promoted and backend devs can use it
+```
+
+### Related Files
+- `specs/007-api-design-standards/spec.md`
+- `specs/007-api-design-standards/tasks.md`
+- `.github/memory/session-notes.md` (2026-07-06 session)
+
+---
+
+### Idempotent Roadmap Reconciliation
+
+### Context
+- Project planning — `docs/roadmap.md` maintenance; triggered by `/build-roadmap` workflow
+
+### Problem
+- As specs evolve (new specs added, existing specs refined, tasks added/removed), the roadmap must stay in sync with source `tasks.md` files. Naive regeneration would destroy human-curated metadata (sprint assignments, priority overrides, issue links, notes). Manual sync is error-prone and doesn't scale.
+
+### Solution
+- Implement **reconciliation, not regeneration**: `/build-roadmap` diffs source specs against existing roadmap and applies minimal add/update/remove operations:
+  - **ADD**: Task present in source, absent from roadmap → insert new row with source-derived fields, default human-owned fields (Priority=TBD, Status=Backlog, Issue=empty)
+  - **UPDATE**: Task present in both, source changed → refresh ONLY source-derived fields (title, dependencies), preserve ALL human-owned fields (Group, Sprint, Priority, Status, Issue, Notes)
+  - **UNCHANGED**: Task present in both, source identical → leave row untouched
+  - **REMOVE**: Task present in roadmap, absent from source → archive if has Issue link OR Status > Backlog; hard-delete if Backlog + no Issue (refined away)
+- Use **stable global IDs** (`<spec-number>-<task-id>`) as anchor for matching across runs.
+- Result: Running `/build-roadmap` repeatedly converges to correct state, never duplicates, preserves human work, supports iterative spec refinement.
+
+### Example
+```
+Run 1: Spec 007 added → 70 tasks inserted
+Run 2: Spec 007 refined (task title changed) → 1 task updated (title only), 69 unchanged
+Run 3: Spec 007 task T042 removed from source → archived to "Removed" section (preserves history)
+```
+
+### Related Files
+- `docs/roadmap.md`
+- `.github/prompts/build-roadmap.prompt.md`
+- `.github/memory/session-notes.md` (2026-07-06 session)
+
+---
+```markdown
 | ID | Task | Group | Issue |
 |----|------|-------|-------|
 | 001-T002 | Initialize Go module | G-SETUP-INIT | |
