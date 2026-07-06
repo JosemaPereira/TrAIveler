@@ -10,7 +10,7 @@
 Read the following files before generating code, tests, or UI for this project:
 
 <!-- PROMOTED:doc-references START -->
-<!-- Last updated: 2026-07-03 — includes promoted foundational decisions -->
+<!-- Last updated: 2026-07-06 — includes promoted foundational decisions from specs 001-006 -->
 
 ### Product & Vision
 
@@ -25,7 +25,7 @@ Read the following files before generating code, tests, or UI for this project:
 
 - **docs/architecture.md** — system component boundaries, integration rules, scalability constraints, security boundaries, and observability strategy. Defines how backend (Go on ECS Fargate), frontend (React on S3+CloudFront), database (PostgreSQL RDS), and external dependencies (Anthropic AI) interact.
 - **docs/cloud-and-environments.md** — cloud provider (AWS us-east-1), environment topology (staging active, production dormant), IaC approach (Terraform), compute platform (ECS Fargate, not Lambda), CI/CD (GitHub Actions with OIDC), secrets management (AWS Secrets Manager), and cost strategy ($200 staging, $300-400 production).
-- **docs/data-model.md** — core entities (User, Trip, Day, Activity, RefreshToken, JWTSigningKey, SecurityEvent), relationships, validation rules, invariants, business rules, and database migration strategy. Includes authentication entities, optimistic locking, and GDPR compliance rules.
+- **docs/data-model.md** — complete catalog of 16 core entities with full attribute specifications, three-layer validation rules ([DB], [Logic], [API]), performance-critical indexes, forward-only state transitions, and cascade behavior. Includes authentication entities (User, RefreshToken, JWTSigningKey, SecurityEvent), subscription model (Plan, Subscription), trip domain (Trip, Day, Activity, Destination), collaboration (Collaborator, Suggestion), travel styles (TravelStyle, TripTravelStyle), AI conversation tracking (ConversationSession, ConversationMessage), relationships, validation rules, invariants, business rules, and database migration strategy with optimistic locking and GDPR compliance rules.
 
 ### Security & Authorization
 
@@ -61,11 +61,50 @@ Read the following files before generating code, tests, or UI for this project:
 - Versioning: Semantic Versioning (SemVer) 2.0.0
 
 ## Memory System
-- Persistent memory: this file (.github/copilot-instructions.md) holds foundational
-  principles and workflows.
-- Working memory: the .github/memory/ directory holds discoveries and patterns.
-- During active work, take notes in .github/memory/scratch/working-notes.md (not committed).
-- When a reusable pattern emerges, document it in .github/memory/patterns-discovered.md (committed).
-- At the end of a session, summarize key findings into .github/memory/session-notes.md (committed).
-- Reference these files when giving context-aware suggestions.
-- At the start of every session, read session-notes.md, patterns-discovered.md, and working-notes.md before doing any work.
+
+### Overview
+- **Persistent memory**: This file (.github/copilot-instructions.md) holds foundational principles and workflows.
+- **Working memory**: The .github/memory/ directory holds discoveries, patterns, and session history.
+- **Scratch notes**: .github/memory/scratch/working-notes.md for active session notes (not committed).
+- **Patterns**: .github/memory/patterns-discovered.md for reusable implementation patterns (committed).
+- **Session history**: .github/memory/session-notes.md for completed session summaries (committed).
+
+### Session Start Protocol (MANDATORY)
+
+**Every new session MUST begin by loading memory in this order:**
+
+1. **Load Session Notes** (`.github/memory/session-notes.md`)
+   - Review all completed session summaries
+   - Understand what has been built and decided
+   - Note any pending follow-ups or blockers
+
+2. **Load Patterns Discovered** (`.github/memory/patterns-discovered.md`)
+   - Review all accumulated implementation patterns
+   - Apply proven solutions to similar problems
+   - Avoid re-discovering known patterns
+
+3. **Load Working Notes** (`.github/memory/scratch/working-notes.md`)
+   - Check for in-progress work from previous session
+   - Resume from documented stopping point if applicable
+
+4. **Confirm Memory Load**
+   - After loading all memory files, output this confirmation:
+   ```
+   ✅ Memory System Loaded
+   - Session notes: X sessions reviewed
+   - Patterns discovered: Y patterns available
+   - Working notes: [Active/Empty]
+   - Ready to proceed with context-aware assistance
+   ```
+
+**During active work**: Take notes in .github/memory/scratch/working-notes.md
+
+**When a reusable pattern emerges**: Document it in .github/memory/patterns-discovered.md
+
+**At session end**: Summarize key findings into .github/memory/session-notes.md
+
+## Project Reports (Audit Trail)
+- **PROMOTION-REPORT.md**: Tracks which foundational specs (001-006) have been promoted to docs/ and constitution. Update when new foundation specs are created or existing ones are revised.
+- **ROADMAP-RECONCILIATION-REPORT.md**: Documents integration of spec tasks into docs/roadmap.md. Update when new specs are added, tasks change status/priority, or critical path changes.
+- **Update trigger**: When running `/promote-fundations` or `/build-roadmap` workflows, update the relevant report with new spec information, date, and statistics.
+- **Location**: All reports live in .github/ directory for centralized audit trail.

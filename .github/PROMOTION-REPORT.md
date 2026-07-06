@@ -1,11 +1,11 @@
 # Foundation Specs Promotion Report
 
-**Generated**: 2026-07-03  
+**Generated**: 2026-07-03 (Updated: 2026-07-06)  
 **Status**: ✅ COMPLETE
 
 ## Executive Summary
 
-All 5 foundational specifications have been successfully promoted to the project's persistent context (constitution + docs/). Subsequent `/speckit.plan`, `/speckit.tasks`, and implementation work will automatically inherit these decisions without re-reading individual specs.
+All 6 foundational specifications have been successfully promoted to the project's persistent context (constitution + docs/). Subsequent `/speckit.plan`, `/speckit.tasks`, and implementation work will automatically inherit these decisions without re-reading individual specs.
 
 ---
 
@@ -18,6 +18,7 @@ All 5 foundational specifications have been successfully promoted to the project
 | **003** | Cloud & Environments Strategy | ✅ Promoted | docs/cloud-and-environments.md |
 | **004** | Security & Authentication Model | ✅ Promoted | docs/security.md |
 | **005** | System Architecture & Technology Stack | ✅ Promoted | docs/architecture.md, docs/data-model.md, constitution |
+| **006** | Core Domain and Data Model Foundations | ✅ Promoted | docs/data-model.md |
 
 ---
 
@@ -147,6 +148,40 @@ All 5 foundational specifications have been successfully promoted to the project
 
 ---
 
+### Spec 006: Core Domain and Data Model Foundations
+
+**Durable Decisions Promoted**:
+- Complete 16-entity catalog (User, RefreshToken, JWTSigningKey, SecurityEvent, Plan, Subscription, Trip, Destination, Day, Activity, Collaborator, Suggestion, TravelStyle, TripTravelStyle, ConversationSession, ConversationMessage)
+- Three-layer validation taxonomy ([DB], [Logic], [API]) for all entities
+- Performance-critical indexes (26 indexes across entities for optimal query patterns)
+- Forward-only state transitions (User: Active → Deleted, Subscription: stub_pending → active → cancelled, Trip: draft → published, Suggestion: pending → approved/rejected, ConversationSession: in_progress → completed/abandoned)
+- Cascade behavior for all foreign keys (Trip cascades Days/Activities/Collaborators/Suggestions/ConversationSessions, User cascades RefreshToken, etc.)
+- Concurrency control strategy (optimistic locking on Trip and Activity with version field, If-Match header, 409 Conflict response)
+- 26 invariants and business rules (authentication, authorization, concurrency, data protection, plan limits, GDPR, state transition immutability)
+- Database migration sequence (16 migrations in dependency order)
+- Destination geographic attributes (latitude/longitude coordinates with spatial index support)
+
+**Destination**: `docs/data-model.md`
+
+**Markers**: `<!-- PROMOTED:data-model START/END -->`
+
+**Updates Made**:
+- ✅ Added ConversationSession entity (trip AI conversation tracking: session_id, trip_id, status, token count)
+- ✅ Added ConversationMessage entity (individual messages: session_id, role, content, token_count, timestamp)
+- ✅ Completed Destination entity with latitude/longitude coordinates and spatial index notes
+- ✅ Added three-layer validation rules ([DB], [Logic], [API]) for all 16 entities with 101+ validation tags
+- ✅ Documented 26 performance-critical indexes (User: email case-insensitive, Trip: creator_id + status, Day: trip_id + destination_id, Activity: day_id, Collaborator: trip_id + user_id, Suggestion: trip_id + author_id + status, Subscription: user_id UNIQUE + status, ConversationSession: trip_id + status, ConversationMessage: session_id, Destination: country + optional spatial)
+- ✅ Added State Transitions sections documenting forward-only flows for User, Subscription, Trip, Suggestion, ConversationSession
+- ✅ Added Cascade Behavior sections documenting CASCADE/SET NULL/RESTRICT for all foreign keys
+- ✅ Added Concurrency Control sections for Trip and Activity (optimistic locking with version increment)
+- ✅ Documented Invariants and Business Rules section with 26 global rules (authentication bcrypt cost 12, JWT RS256 rotation, role enforcement, plan limits, GDPR right-to-deletion, state transition immutability, optimistic locking enforcement, password/token security, PII handling)
+- ✅ Added Database Migrations section listing all 16 migrations in dependency order
+- ✅ Enhanced .github/copilot-instructions.md with expanded data-model.md description (16 entities, validation layers, indexes, state transitions)
+
+**Status**: ✅ Completed 2026-07-06 (gap-filled all missing content)
+
+---
+
 ## Constitution Updates
 
 **File**: `.specify/memory/constitution.md`
@@ -187,12 +222,13 @@ All 5 foundational specifications have been successfully promoted to the project
 
 ### ✅ Completeness Check
 
-All 5 foundational specs have been analyzed and promoted:
+All 6 foundational specs have been analyzed and promoted:
 - ✅ Spec 001: Product vision, personas, MVP scope, out-of-scope, roles
 - ✅ Spec 002: All 31 NFRs with measurable targets and validation methods
 - ✅ Spec 003: Cloud provider, environments, IaC, compute, CI/CD, secrets, costs
 - ✅ Spec 004: Authentication, authorization, concurrency, security, PII, validation, sanitization, logging
 - ✅ Spec 005: Architecture, tech stack, components, integration rules, scalability, observability
+- ✅ Spec 006: Complete entity catalog, validation layers, indexes, state transitions, cascade behavior, concurrency control, business rules
 
 ### ✅ Constitution Compliance
 
@@ -232,9 +268,9 @@ All subsequent work (new specs, `/speckit.plan`, `/speckit.tasks`, implementatio
 ### Re-Promotion Trigger
 
 Re-run this promotion when:
-- ✅ Any foundational spec (001-005) is revised or refined
+- ✅ Any foundational spec (001-006) is revised or refined
 - ✅ Constitution is amended with new non-negotiable principles
-- ✅ New foundation-level specs are created (e.g., 006-API-standards, 007-domain-model-detailed)
+- ✅ New foundation-level specs are created (e.g., 007-API-standards, 008-observability-detailed)
 
 ### Maintenance
 
@@ -246,13 +282,14 @@ Re-run this promotion when:
 
 ## Recommendation
 
-✅ **Foundation promotion is COMPLETE**. All durable decisions from specs 001-005 are now in persistent context.
+✅ **Foundation promotion is COMPLETE**. All durable decisions from specs 001-006 are now in persistent context.
 
 **Next Steps**:
 1. Review this report and verify all promoted decisions align with team understanding
 2. If approved, commit all changes (constitution, docs/, .github/copilot-instructions.md)
-3. Use `/commit-and-push` with conventional commit message: `docs: promote foundational decisions from specs 001-005 to persistent context`
-4. Begin feature development knowing all architectural, security, and quality foundations are inherited automatically
+3. Use `/commit-and-push` with conventional commit message: `docs: promote foundational decisions from specs 001-006 to persistent context`
+4. Begin feature development knowing all architectural, security, quality, and domain model foundations are inherited automatically
+5. Review [.github/ROADMAP-RECONCILIATION-REPORT.md](.github/ROADMAP-RECONCILIATION-REPORT.md) for spec 006 task integration (77 tasks added to docs/roadmap.md)
 
 ---
 
@@ -266,15 +303,22 @@ Re-run this promotion when:
 | `docs/cloud-and-environments.md` | ✅ Verified | No changes needed (already complete) |
 | `docs/security.md` | ✅ Verified | No changes needed (already complete) |
 | `docs/architecture.md` | ✅ Verified | No changes needed (already complete) |
-| `docs/data-model.md` | ✅ Verified | No changes needed (already complete) |
-| `.github/copilot-instructions.md` | ✅ Verified | No changes needed (already complete) |
-| `.github/PROMOTION-REPORT.md` | ✅ Created | This report document |
+| `docs/data-model.md` | ✅ Updated | Gap-filled with spec 006 (ConversationSession, ConversationMessage, validation layers, indexes, state transitions, cascade behavior) |
+| `.github/copilot-instructions.md` | ✅ Updated | Enhanced data-model.md description with 16 entities and validation layers |
+| `.github/PROMOTION-REPORT.md` | ✅ Updated | Added spec 006 section (this report document) |
+| `.github/ROADMAP-RECONCILIATION-REPORT.md` | ✅ Created | Documents 77 tasks added from spec 006 to docs/roadmap.md |
 
-**Total Files Modified**: 2 (product-vision.md updated, PROMOTION-REPORT.md created)  
-**Total Files Verified**: 7 (all other docs already had promoted content)
+**Total Files Modified**: 4 (product-vision.md updated 2026-07-03, data-model.md updated 2026-07-06, copilot-instructions.md updated 2026-07-06, roadmap.md updated 2026-07-06)  
+**Total Files Verified**: 7 (constitution, nfrs.md, cloud-and-environments.md, security.md, architecture.md, coding-guidelines.md, testing-guidelines.md, ui-guidelines.md already complete)
 
 ---
 
 **Generated by**: `/promote-fundations` workflow  
-**Execution Date**: 2026-07-03  
-**Next Promotion**: When foundational specs 001-005 are revised, or new foundation specs added
+**Execution Date**: 2026-07-03 (Updated: 2026-07-06 with spec 006)  
+**Next Promotion**: When foundational specs 001-006 are revised, or new foundation specs added
+
+---
+
+## Related Reports
+
+- [ROADMAP-RECONCILIATION-REPORT.md](.github/ROADMAP-RECONCILIATION-REPORT.md) - Documents integration of spec 006 tasks into docs/roadmap.md (77 tasks added, 539 total)
