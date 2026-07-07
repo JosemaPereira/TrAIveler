@@ -1,0 +1,178 @@
+# Docker Compose configuration for TrAIveler local development environment
+#
+# This file orchestrates two services for local development:
+# 1. PostgreSQL 15.4 database with persistent storage
+# 2. Go backend API with automatic rebuild and health monitoring
+#
+# Usage:
+#   docker-compose up -d              # Start all services in background
+#   docker-compose ps                 # Check service health status
+#   docker-compose logs -f backend    # Follow backend logs
+#   docker-compose down               # Stop and remove containers
+#
+# Prerequisites:
+#   - Docker Engine 20.10+ and Docker Compose v2+
+#   - backend/.env file with ANTHROPIC_API_KEY configured
+#
+# Network Architecture:
+#   All services communicate via a custom bridge network (traveler_network).
+#   The backend accesses PostgreSQL using the hostname "postgres" instead of "localhost".
+
+services:
+  # ============================================================================
+  # PostgreSQL Database Service
+  # ============================================================================
+  postgres:
+    image: postgres:15.4-alpine
+    container_name: traveler-db
+    restart: unless-stopped
+    
+    environment:
+      # Database initialization parameters
+      POSTGRES_DB: traveler_db
+      POSTGRES_USER: traveler_user
+      POSTGRES_PASSWORD: traveler_pass
+      POSTGRES_INITDB_ARGS: "--encoding=UTF8 --locale=en_US.UTF-8"
+      
+      # Performance tuning for development workloads
+      # Production values are different and managed via AWS RDS parameter groups
+      POSTGRES_SHARED_BUFFERS: 256MB
+      POSTGRES_MAX_CONNECTIONS: 100
+    
+    ports:
+      # Expose PostgreSQL port to host machine for direct client connections
+      # This allows tools like psql, pgAdmin, or DataGrip to connect
+      - "5432:5432"
+    
+    volumes:
+      # Persistent storage: database files survive container restarts and recreations
+      - postgres_data:/var/lib/postgresql/data
+      
+      # Optional: mount custom PostgreSQL configuration for tuning
+      # Uncomment to use a local postgres.conf file with custom settings
+      # - ./postgres.conf:/etc/postgresql/postgresql.conf
+    
+    networks:
+      - traveler-network
+    
+    # Health check verifies PostgreSQL is ready to accept connections
+    # Used by depends_on to delay backend startup until database is ready
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U traveler_user -d traveler_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    
+    # Resource limits prevent runaway memory/CPU usage on development machines
+    # Adjust these based on your machine's capacity
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 512M
+        reservations:
+          cpus: '0.5'
+          memory: 256M
+
+  # ============================================================================
+  # Backend API Service
+  # ============================================================================
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: traveler-api
+    restart: unless-stopped
+    
+    # Environment variables for Docker network communication
+    # These override any values in backend/.env when running via docker-compose
+    # For additional configuration, create backend/.env from backend/.env.example
+    environment:
+      # Database connection using Docker network hostname
+      # The hostname "postgres" resolves to the postgres service via Docker DNS
+      DATABASE_URL: postgresql://traveler_user:traveler_pass@postgres:5432/traveler_db?sslmode=disable
+      
+      # Server configuration
+      HTTP_PORT: 8080
+      ALLOWED_CORS_ORIGINS: http://localhost:5173  # Frontend dev server
+      
+      # AI Provider configuration
+      # ⚠️  SECURITY: Replace placeholder with actual key before running
+      # Alternatively, set ANTHROPIC_API_KEY in your shell environment
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-your_anthropic_api_key_here}
+      AI_MODEL: claude-3-5-sonnet-20241022
+      
+      # Authentication configuration
+      # ⚠️  SECURITY: Generate actual key for production environments
+      # Generate with: openssl rand -base64 32
+      JWT_SIGNING_KEY: ${JWT_SIGNING_KEY:-dev_jwt_key_do_not_use_in_production}
+      COOKIE_SECURE: "false"  # Set to "true" in production with HTTPS
+      
+      # Logging configuration
+      LOG_LEVEL: debug    # Use "info" in production
+      LOG_FORMAT: json    # Structured JSON logs for CloudWatch
+      
+      # Environment identifier
+      GO_ENV: development
+    
+    ports:
+      # Expose backend API to host machine
+      - "8080:8080"
+    
+    networks:
+      - traveler-network
+    
+    # Service dependencies: wait for PostgreSQL to be healthy before starting
+    # This prevents connection errors during startup when the database isn't ready yet
+    depends_on:
+      postgres:
+        condition: service_healthy
+    
+    # Health check polls the /healthz endpoint which verifies database connectivity
+    # Orchestration platforms (Docker, ECS) use this to determine service readiness
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8080/healthz"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    
+    # Resource limits prevent the backend from consuming excessive resources
+    # Adjust these values based on your development machine's capacity
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 512M
+        reservations:
+          cpus: '0.25'
+          memory: 256M
+    
+    # Development volume mounts for live reload (optional)
+    # Uncomment these lines to enable hot reload with tools like 'air'
+    # This mounts your local source code into the container so changes are reflected immediately
+    # volumes:
+    #   - ./backend:/app              # Mount source code
+    #   - /app/api                    # Prevent overwriting the compiled binary
+
+# ============================================================================
+# Volumes - Persistent Storage
+# ============================================================================
+volumes:
+  postgres_data:
+    # Named volume for PostgreSQL data persistence
+    # Data survives container restarts, recreations, and docker-compose down
+    # To completely remove data: docker-compose down -v
+    name: traveler_postgres_data
+    driver: local
+
+# ============================================================================
+# Networks - Service Communication
+# ============================================================================
+networks:
+  traveler-network:
+    # Custom bridge network enables service-to-service communication by service name
+    # Services can reach each other using hostnames (e.g., "postgres" instead of "localhost")
+    name: traveler_network
+    driver: bridge

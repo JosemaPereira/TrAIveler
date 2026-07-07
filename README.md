@@ -83,6 +83,39 @@ TrAIveler is organized into distinct areas, each with its own README and develop
 
 ---
 
+## Getting Started
+
+Want to run TrAIveler locally? The project uses Docker Compose to provide a complete development environment.
+
+### Prerequisites
+
+- [Docker](https://docs.docker.com/get-docker/) and [Docker Compose](https://docs.docker.com/compose/install/) (v2+)
+- Git
+
+### Quick Start
+
+```bash
+# 1. Clone the repository
+git clone <repository-url>
+cd capstone-project-ai-bootcamp
+
+# 2. Set up backend configuration
+cp backend/.env.example backend/.env
+# Edit backend/.env and add your ANTHROPIC_API_KEY
+
+# 3. Start all services
+docker-compose up -d
+
+# 4. Verify services are running
+docker-compose ps
+```
+
+The API will be available at `http://localhost:8080` and the frontend at `http://localhost:5173`.
+
+**Note:** Full implementation is in progress. Some services are not yet functional. See individual area READMEs for detailed setup instructions.
+
+---
+
 ## Want to Know More?
 
 This repository contains the full specification and implementation plan. If you're interested in the technical details, architecture decisions, or want to contribute, explore the `docs/` and `specs/` directories.
