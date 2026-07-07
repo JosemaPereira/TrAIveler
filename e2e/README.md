@@ -10,6 +10,10 @@ real user would.
 
 ---
 
+> **Implementation Status**: Test specs will be authored alongside feature implementation. Playwright will be installed as part of frontend setup in Sprint 2.
+
+---
+
 ## Responsibility
 
 The E2E suite validates that the integrated system delivers the behaviour described in

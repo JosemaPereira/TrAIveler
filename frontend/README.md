@@ -9,6 +9,10 @@ typed API client, accessibility helpers, and unit/integration tests.
 
 ---
 
+> **Implementation Status**: Project scaffolding pending. Vite + React 19 + TypeScript setup will be initialized in Sprint 2. See `docs/roadmap.md` for task sequencing.
+
+---
+
 ## Responsibility
 
 The frontend is the only client of the backend REST API. Its primary jobs are:

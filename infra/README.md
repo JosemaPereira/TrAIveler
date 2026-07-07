@@ -9,6 +9,10 @@ for the TrAIveler application infrastructure on AWS.
 
 ---
 
+> **Implementation Status**: Terraform modules pending implementation. Infrastructure work scheduled for Sprint 3 after application architecture is established.
+
+---
+
 ## Responsibility
 
 The infrastructure layer defines and provisions all AWS resources required to run TrAIveler in
