@@ -9,6 +9,10 @@ repositories, AI integration, observability middleware, and security primitives.
 
 ---
 
+> **Implementation Status**: Go module initialized with core dependencies (Chi, pgx, goose, uuid). Directory structure in place. Source code implementation in progress following Sprint 1 tasks.
+
+---
+
 ## Responsibility
 
 The backend exposes a RESTful JSON API consumed by the frontend SPA. Its primary jobs are:
