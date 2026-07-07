@@ -110,6 +110,62 @@ backend/
 
 ---
 
+## Docker
+
+The backend uses a multi-stage Dockerfile optimized for production deployment on AWS ECS Fargate.
+
+### Build Strategy
+
+**Stage 1 (builder):**
+- Base: `golang:1.25-alpine`
+- Installs build dependencies (git, ca-certificates, tzdata)
+- Downloads Go modules (cached layer when go.mod/go.sum unchanged)
+- Compiles static binary with `CGO_ENABLED=0` and stripped debug symbols (`-ldflags="-w -s"`)
+
+**Stage 2 (runtime):**
+- Base: `alpine:3.19` (minimal ~5MB base image)
+- Copies only the compiled binary and migrations
+- Runs as non-root user (`appuser:1000`) for security
+- Includes health check polling `/healthz` endpoint every 30s
+
+### Building the Image
+
+```bash
+# Build locally
+cd backend
+docker build -t traveler-backend:local .
+
+# Build with custom tags
+docker build -t traveler-backend:v1.0.0 .
+
+# Test the image (requires DATABASE_URL and ANTHROPIC_API_KEY)
+docker run -p 8080:8080 \
+  -e DATABASE_URL="postgresql://..." \
+  -e ANTHROPIC_API_KEY="sk-..." \
+  traveler-backend:local
+```
+
+### Image Size
+
+The multi-stage build produces a minimal runtime image:
+- Builder stage: ~1.2GB (includes full Go toolchain)
+- Runtime image: ~50MB (Alpine + binary + migrations)
+
+Only the 50MB runtime image is pushed to ECR and deployed to ECS.
+
+### Health Checks
+
+The container includes a `HEALTHCHECK` instruction that Docker and ECS use to determine container health:
+- **Endpoint**: `GET http://localhost:8080/healthz`
+- **Interval**: 30s (check every 30 seconds)
+- **Timeout**: 10s (wait up to 10 seconds for response)
+- **Start Period**: 30s (wait 30s before first check to allow startup)
+- **Retries**: 3 (3 consecutive failures mark container unhealthy)
+
+When deployed to ECS, failed health checks trigger automatic container replacement.
+
+---
+
 ## Prerequisites
 
 | Tool | Version | Check |
@@ -144,13 +200,47 @@ Configuration is loaded via `config/config.go` with fail-fast validation on star
 | `HTTP_PORT` | `8080` | HTTP server listen port |
 ### Quick Start
 
+**Option A: Using Docker Compose (Recommended for Local Development)**
+
+The project includes a `docker-compose.yml` at the repository root that orchestrates PostgreSQL and the backend service.
+
 ```bash
-# 1. Copy environment template and configure
+# 1. Set up environment variables (from repository root)
+cp backend/.env.example backend/.env
+# Edit backend/.env and add your ANTHROPIC_API_KEY
+
+# 2. Start all services (PostgreSQL + backend)
+docker-compose up -d
+
+# 3. Verify services are healthy
+docker-compose ps
+# Both traveler-db and traveler-api should show "healthy" status
+
+# 4. View logs
+docker-compose logs -f backend
+
+# 5. Stop services
+docker-compose down
+```
+
+The API will be available at `http://localhost:8080`. Test with:
+
+```bash
+curl http://localhost:8080/healthz
+# Expected: {"status":"ok","database":"connected"}
+```
+
+**Option B: Local Go Development (without Docker)**
+
+Useful when actively developing and debugging backend code.
+
+```bash
+# 1. Start only PostgreSQL via Docker Compose
+docker-compose up -d postgres
+
+# 2. Copy environment template and configure
 cp backend/.env.example backend/.env
 # Edit backend/.env with your DATABASE_URL and ANTHROPIC_API_KEY
-
-# 2. Start PostgreSQL (via Docker Compose from root)
-docker compose up -d postgres
 
 # 3. Run database migrations (when migrations/ is implemented)
 cd backend
@@ -160,11 +250,13 @@ goose -dir migrations postgres "$DATABASE_URL" up
 go run ./cmd/api
 ```
 
-API will be available at `http://localhost:8080`. The `/healthz` endpoint confirms readiness:
+**Option C: Running Tests**
+
+Tests can run without Docker using in-memory or test fixtures.
 
 ```bash
-curl http://localhost:8080/healthz
-# Expected: {"status":"ok","database":"connected"}
+cd backend
+go test ./... -race -count=1
 ```
 
 ### Development Workflow
