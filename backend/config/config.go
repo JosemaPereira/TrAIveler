@@ -46,12 +46,12 @@ type AIConfig struct {
 
 // AuthConfig contains JWT and session settings.
 type AuthConfig struct {
-	JWTSigningKey      string        // JWT_SIGNING_KEY (required in production)
-	JWTExpiration      time.Duration // JWT_EXPIRATION (default: 24h)
-	RefreshExpiration  time.Duration // REFRESH_TOKEN_EXPIRATION (default: 7 days)
-	CookieDomain       string        // COOKIE_DOMAIN (default: localhost)
-	CookieSecure       bool          // COOKIE_SECURE (default: false, true in production)
-	BcryptCost         int           // BCRYPT_COST (default: 12)
+	JWTSigningKey     string        // JWT_SIGNING_KEY (required in production)
+	JWTExpiration     time.Duration // JWT_EXPIRATION (default: 24h)
+	RefreshExpiration time.Duration // REFRESH_TOKEN_EXPIRATION (default: 7 days)
+	CookieDomain      string        // COOKIE_DOMAIN (default: localhost)
+	CookieSecure      bool          // COOKIE_SECURE (default: false, true in production)
+	BcryptCost        int           // BCRYPT_COST (default: 12)
 }
 
 // LogConfig contains structured logging settings.
