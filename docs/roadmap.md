@@ -4,16 +4,19 @@
 > titles, and dependencies is `specs/*/tasks.md`. Priority, Status, Phase, Issue, and
 > Notes are human-owned and preserved across runs. Do not hand-edit the stable IDs.
 
-**Last reconciled**: 2026-07-06 (updated with specs 006, 007, and 008)
+**Last reconciled**: 2026-07-06 (updated with specs 006, 007, and 008)  
+**Sprint planning**: 2026-07-06 (MVP: 10 sprints, 390 tasks assigned to Sprints 1-10; Post-MVP: 355 tasks unassigned)
 
 ## Legend
 
 - **Group**: shared value (e.g. `G-SETUP-1`) = tasks handled by ONE issue (checklist inside); empty = standalone (1 task = 1 issue). Human-owned — set when grouping is desired.
-- **Sprint**: sprint number or milestone label. Human-owned — leave blank until sprint planning.
+- **Sprint**: sprint number (1-10 for MVP) or milestone label. Human-owned — assigned during sprint planning. See **Sprint Plan** section below for details.
 - **Priority**: P1 (critical) | P2 | P3 | TBD
 - **Status**: Backlog | Ready | In Progress | In Review | Done
 - **Parallel**: yes = task carries `[P]` flag in source (can run concurrently with peers)
 - **Issue**: link to the tracker issue once created (empty = not yet created). Grouped tasks share the same URL.
+
+**Note**: Sprint assignments shown in phase headers (e.g., "→ Sprint 1") and key task Sprint columns. See [Sprint Plan](#sprint-plan) section for full sprint breakdown with goals, deliverables, and risks.
 
 ---
 
@@ -36,17 +39,17 @@
 | 001-T007 | Create `.env.example` with all required environment variables | G-SETUP-TOOLS | | P1 | Backlog | 001-T001 | yes | | |
 | 001-T008 | Create `Makefile` with lint, test, migrate-up, migrate-down, build, dev targets | G-SETUP-TOOLS | | P1 | Backlog | 001-T001 | no | | |
 
-#### Phase 2 — Foundational (Backend Data Layer)
+#### Phase 2 — Foundational (Backend Data Layer) → **Sprint 6**
 
 | ID | Task | Group | Sprint | Priority | Status | Depends on | Parallel | Issue | Notes |
 |----|------|-------|--------|----------|--------|------------|----------|-------|-------|
-| 001-T009 | Create 8 database migration SQL files (users, plans, subscriptions, trips, destinations, days+activities, collaborators, suggestions+conversation) | | | P1 | Backlog | 001-T001 | no | | |
-| 001-T010 | Implement config struct with env var loading and fail-fast validation | G-BACKEND-CONFIG | | P1 | Backlog | 001-T001 | no | | |
-| 001-T011 | Implement pgxpool connection initialization with context-aware open/close | G-BACKEND-CONFIG | | P1 | Backlog | 001-T001 | yes | | |
-| 001-T012 | Define `PaymentProvider` interface with CreateSubscription, CancelSubscription, GetSubscription | G-BACKEND-CONFIG | | P1 | Backlog | 001-T001 | yes | | |
-| 001-T013 | Implement `StubProvider` satisfying `PaymentProvider` (always succeeds, logs [STUB]) | G-BACKEND-CONFIG | | P1 | Backlog | 001-T012 | no | | |
-| 001-T014 | Implement User repository (Create, FindByEmail, FindByID, UpdateSubscription) | G-BACKEND-AUTH-REPOS | | P1 | Backlog | 001-T009 | yes | | |
-| 001-T015 | Implement Plan and Subscription repositories (FindPlanByName, CreateSubscription, FindSubscriptionByUser) | G-BACKEND-AUTH-REPOS | | P1 | Backlog | 001-T009 | yes | | |
+| 001-T009 | Create 8 database migration SQL files (users, plans, subscriptions, trips, destinations, days+activities, collaborators, suggestions+conversation) | | 6 | P1 | Backlog | 001-T001 | no | | |
+| 001-T010 | Implement config struct with env var loading and fail-fast validation | G-BACKEND-CONFIG | 6 | P1 | Backlog | 001-T001 | no | | |
+| 001-T011 | Implement pgxpool connection initialization with context-aware open/close | G-BACKEND-CONFIG | 6 | P1 | Backlog | 001-T001 | yes | | |
+| 001-T012 | Define `PaymentProvider` interface with CreateSubscription, CancelSubscription, GetSubscription | G-BACKEND-CONFIG | 6 | P1 | Backlog | 001-T001 | yes | | |
+| 001-T013 | Implement `StubProvider` satisfying `PaymentProvider` (always succeeds, logs [STUB]) | G-BACKEND-CONFIG | 6 | P1 | Backlog | 001-T012 | no | | |
+| 001-T014 | Implement User repository (Create, FindByEmail, FindByID, UpdateSubscription) | G-BACKEND-AUTH-REPOS | 6 | P1 | Backlog | 001-T009 | yes | | |
+| 001-T015 | Implement Plan and Subscription repositories (FindPlanByName, CreateSubscription, FindSubscriptionByUser) | G-BACKEND-AUTH-REPOS | 6 | P1 | Backlog | 001-T009 | yes | | |
 
 #### Phase 2 — Foundational (Backend Service & Handler Layer)
 
@@ -61,42 +64,42 @@
 | 001-T022 | Implement subscription HTTP handlers (GET /plans, POST /checkout, /confirm, GET /current) | | | P1 | Backlog | 001-T017 | no | | |
 | 001-T023 | Scaffold Chi router: mount auth and subscription routes, apply CORS, request-ID, and logging middleware | | | P1 | Backlog | 001-T021, 001-T022 | no | | |
 
-#### Phase 2 — Foundational (Frontend Shell & Auth)
+#### Phase 2 — Foundational (Frontend Shell & Auth) → **Sprint 7**
 
 | ID | Task | Group | Sprint | Priority | Status | Depends on | Parallel | Issue | Notes |
 |----|------|-------|--------|----------|--------|------------|----------|-------|-------|
-| 001-T024 | Create CSS custom property design tokens (colors, spacing, typography, border-radius) | | | P1 | Backlog | 001-T001 | yes | | |
-| 001-T025 | Create typed API client base (`apiFetch` wrapper with credentials: include, JSON parsing) | G-FRONTEND-INFRA | | P1 | Backlog | 001-T001 | yes | | |
-| 001-T026 | Create auth Zustand store (user, setUser, clearUser; persist to sessionStorage) | G-FRONTEND-INFRA | | P1 | Backlog | 001-T001 | yes | | |
-| 001-T027 | Create `ProtectedRoute` (redirect to /login) and `GuestRoute` (redirect to /dashboard) | G-FRONTEND-INFRA | | P1 | Backlog | 001-T001 | yes | | |
-| 001-T028 | Create primitive Button, Input, Label, Badge components using design tokens | | | P1 | Backlog | 001-T024 | yes | | |
-| 001-T029 | Implement Register page (email + password form, calls POST /auth/register, redirects to checkout) | G-FRONTEND-AUTH-PAGES | | P1 | Backlog | 001-T024, 001-T025 | no | | |
-| 001-T030 | Implement stub Checkout page (plan summary, POST /subscription/checkout + /confirm, redirect dashboard) | G-FRONTEND-AUTH-PAGES | | P1 | Backlog | 001-T028, 001-T029 | no | | |
-| 001-T031 | Implement Login page (calls POST /auth/login, sets user in store, redirects to dashboard) | G-FRONTEND-AUTH-PAGES | | P1 | Backlog | 001-T028, 001-T030 | no | | |
-| 001-T032 | Wire React Router v7 with all routes (/, /login, /register, /subscribe, /dashboard, /trips/:id, /generate) | | | P1 | Backlog | 001-T029, 001-T030, 001-T031 | no | | |
+| 001-T024 | Create CSS custom property design tokens (colors, spacing, typography, border-radius) | | 7 | P1 | Backlog | 001-T001 | yes | | |
+| 001-T025 | Create typed API client base (`apiFetch` wrapper with credentials: include, JSON parsing) | G-FRONTEND-INFRA | 7 | P1 | Backlog | 001-T001 | yes | | |
+| 001-T026 | Create auth Zustand store (user, setUser, clearUser; persist to sessionStorage) | G-FRONTEND-INFRA | 7 | P1 | Backlog | 001-T001 | yes | | |
+| 001-T027 | Create `ProtectedRoute` (redirect to /login) and `GuestRoute` (redirect to /dashboard) | G-FRONTEND-INFRA | 7 | P1 | Backlog | 001-T001 | yes | | |
+| 001-T028 | Create primitive Button, Input, Label, Badge components using design tokens | | 7 | P1 | Backlog | 001-T024 | yes | | |
+| 001-T029 | Implement Register page (email + password form, calls POST /auth/register, redirects to checkout) | G-FRONTEND-AUTH-PAGES | 7 | P1 | Backlog | 001-T024, 001-T025 | no | | |
+| 001-T030 | Implement stub Checkout page (plan summary, POST /subscription/checkout + /confirm, redirect dashboard) | G-FRONTEND-AUTH-PAGES | 7 | P1 | Backlog | 001-T028, 001-T029 | no | | |
+| 001-T031 | Implement Login page (calls POST /auth/login, sets user in store, redirects to dashboard) | G-FRONTEND-AUTH-PAGES | 7 | P1 | Backlog | 001-T028, 001-T030 | no | | |
+| 001-T032 | Wire React Router v7 with all routes (/, /login, /register, /subscribe, /dashboard, /trips/:id, /generate) | | 7 | P1 | Backlog | 001-T029, 001-T030, 001-T031 | no | | |
 
-#### Phase 3 — User Story 1: First-Time Traveler Plans a Trip (Priority: P1) 🎯 MVP
+#### Phase 3 — User Story 1: First-Time Traveler Plans a Trip (Priority: P1) 🎯 MVP → **Sprint 8**
 
 | ID | Task | Group | Sprint | Priority | Status | Depends on | Parallel | Issue | Notes |
 |----|------|-------|--------|----------|--------|------------|----------|-------|-------|
-| 001-T033 | Implement Trip + Destination + Day + Activity repository (CreateTrip, UpsertDay, UpsertActivity) | G-US1-REPOS | | P1 | Backlog | 001-T009 | yes | | |
-| 001-T034 | Implement ConversationSession + ConversationMessage repository (CreateSession, AppendMessage, ListMessages) | G-US1-REPOS | | P1 | Backlog | 001-T009 | yes | | |
-| 001-T035 | Implement Trip service (Create, List, Get, Update, Delete; admin-only writes) | | | P1 | Backlog | 001-T033 | no | | |
-| 001-T036 | Implement Conversation service (SendMessage, GetHistory; detects itinerary_ready) | | | P1 | Backlog | 001-T034 | no | | |
-| 001-T037 | Implement Itinerary service (build Claude prompt, streaming, parse tool-use response, persist to DB) | | | P1 | Backlog | 001-T035 | no | | |
-| 001-T038 | Implement Trip HTTP handlers (GET/POST/PUT/DELETE /trips; RequireRole admin on writes) | G-US1-HANDLERS | | P1 | Backlog | 001-T035 | no | | |
-| 001-T039 | Implement Conversation HTTP handlers (POST/GET /trips/:id/conversation; SSE streaming) | G-US1-HANDLERS | | P1 | Backlog | 001-T036 | no | | |
-| 001-T040 | Register trip and conversation routes in Chi router | | | P1 | Backlog | 001-T038, 001-T039 | no | | |
-| 001-T041 | Create `TripCard` composite (destination names, duration, status badge; loading/empty states) | G-US1-COMPONENTS | | P1 | Backlog | 001-T028 | yes | | |
-| 001-T042 | Create `ActivityItem` composite (Lucide type icon, title, description, AI-generated indicator) | G-US1-COMPONENTS | | P1 | Backlog | 001-T028 | yes | | |
-| 001-T043 | Create `DaySection` composite (day number, label, ordered ActivityItem list; empty state) | G-US1-COMPONENTS | | P1 | Backlog | 001-T028 | yes | | |
-| 001-T044 | Create `ConversationPanel` feature (message thread, text input, SSE stream rendering, loading indicator) | G-US1-COMPONENTS | | P1 | Backlog | 001-T028 | yes | | |
-| 001-T045 | Create `ItineraryView` feature (scrollable DaySection list; loading skeleton, error, empty states) | G-US1-COMPONENTS | | P1 | Backlog | 001-T028 | yes | | |
-| 001-T046 | Implement trips and conversation API service functions with TanStack Query hooks | | | P1 | Backlog | 001-T025 | no | | |
-| 001-T047 | Implement Generate page (new trip form → ConversationPanel → ItineraryView on itinerary_ready) | G-US1-PAGES | | P1 | Backlog | 001-T044, 001-T045, 001-T046 | no | | |
-| 001-T048 | Implement Trip detail page (ItineraryView, action bar: edit title, delete trip) | G-US1-PAGES | | P1 | Backlog | 001-T045, 001-T046 | no | | |
-| 001-T049 | Implement Dashboard page (TripCard grid, "New Trip" CTA, empty state illustration) | G-US1-PAGES | | P1 | Backlog | 001-T041, 001-T046 | no | | |
-| 001-T050 | Add Playwright E2E spec: register → subscribe → generate itinerary via conversation → verify Day 1 | | | P1 | Backlog | 001-T047, 001-T049, 001-T040 | no | | |
+| 001-T033 | Implement Trip + Destination + Day + Activity repository (CreateTrip, UpsertDay, UpsertActivity) | G-US1-REPOS | 8 | P1 | Backlog | 001-T009 | yes | | |
+| 001-T034 | Implement ConversationSession + ConversationMessage repository (CreateSession, AppendMessage, ListMessages) | G-US1-REPOS | 8 | P1 | Backlog | 001-T009 | yes | | |
+| 001-T035 | Implement Trip service (Create, List, Get, Update, Delete; admin-only writes) | | 8 | P1 | Backlog | 001-T033 | no | | |
+| 001-T036 | Implement Conversation service (SendMessage, GetHistory; detects itinerary_ready) | | 8 | P1 | Backlog | 001-T034 | no | | |
+| 001-T037 | Implement Itinerary service (build Claude prompt, streaming, parse tool-use response, persist to DB) | | 8 | P1 | Backlog | 001-T035 | no | | |
+| 001-T038 | Implement Trip HTTP handlers (GET/POST/PUT/DELETE /trips; RequireRole admin on writes) | G-US1-HANDLERS | 8 | P1 | Backlog | 001-T035 | no | | |
+| 001-T039 | Implement Conversation HTTP handlers (POST/GET /trips/:id/conversation; SSE streaming) | G-US1-HANDLERS | 8 | P1 | Backlog | 001-T036 | no | | |
+| 001-T040 | Register trip and conversation routes in Chi router | | 8 | P1 | Backlog | 001-T038, 001-T039 | no | | |
+| 001-T041 | Create `TripCard` composite (destination names, duration, status badge; loading/empty states) | G-US1-COMPONENTS | 8 | P1 | Backlog | 001-T028 | yes | | |
+| 001-T042 | Create `ActivityItem` composite (Lucide type icon, title, description, AI-generated indicator) | G-US1-COMPONENTS | 8 | P1 | Backlog | 001-T028 | yes | | |
+| 001-T043 | Create `DaySection` composite (day number, label, ordered ActivityItem list; empty state) | G-US1-COMPONENTS | 8 | P1 | Backlog | 001-T028 | yes | | |
+| 001-T044 | Create `ConversationPanel` feature (message thread, text input, SSE stream rendering, loading indicator) | G-US1-COMPONENTS | 8 | P1 | Backlog | 001-T028 | yes | | |
+| 001-T045 | Create `ItineraryView` feature (scrollable DaySection list; loading skeleton, error, empty states) | G-US1-COMPONENTS | 8 | P1 | Backlog | 001-T028 | yes | | |
+| 001-T046 | Implement trips and conversation API service functions with TanStack Query hooks | | 8 | P1 | Backlog | 001-T025 | no | | |
+| 001-T047 | Implement Generate page (new trip form → ConversationPanel → ItineraryView on itinerary_ready) | G-US1-PAGES | 8 | P1 | Backlog | 001-T044, 001-T045, 001-T046 | no | | |
+| 001-T048 | Implement Trip detail page (ItineraryView, action bar: edit title, delete trip) | G-US1-PAGES | 8 | P1 | Backlog | 001-T045, 001-T046 | no | | |
+| 001-T049 | Implement Dashboard page (TripCard grid, "New Trip" CTA, empty state illustration) | G-US1-PAGES | 8 | P1 | Backlog | 001-T041, 001-T046 | no | | |
+| 001-T050 | Add Playwright E2E spec: register → subscribe → generate itinerary via conversation → verify Day 1 | | 10 | P1 | Backlog | 001-T047, 001-T049, 001-T040 | no | | |
 
 #### Phase 4 — User Story 2: Experienced Traveler, Off-the-Beaten-Path (Priority: P2)
 
@@ -166,56 +169,56 @@
 | 002-T004 | Create `lighthouserc.yml` with LHCI assertion thresholds (a11y ≥ 0.9, LCP ≤ 2500 ms, CLS ≤ 0.1, INP ≤ 200 ms) | G-NFR-CONFIG | | P1 | Backlog | - | yes | | |
 | 002-T005 | Create `.gitleaks.toml` secret-scanning configuration (scan all committed files, exclude test fixtures) | G-NFR-CONFIG | | P1 | Backlog | - | yes | | |
 
-#### Phase 2 — Foundational: Observability Core (NFR-OBS-001–003)
+#### Phase 2 — Foundational: Observability Core (NFR-OBS-001–003) → **Sprint 4**
 
 | ID | Task | Group | Sprint | Priority | Status | Depends on | Parallel | Issue | Notes |
 |----|------|-------|--------|----------|--------|------------|----------|-------|-------|
-| 002-T006 | Implement `RequestID` Chi middleware (generate UUID v4 if absent; propagate; set X-Request-ID on response) | G-OBS-REQUESTID | | P1 | Backlog | - | no | | |
-| 002-T007 | Write unit tests for `RequestID` middleware (generates UUID, propagates existing, sets response header) | G-OBS-REQUESTID | | P1 | Backlog | 002-T006 | no | | |
-| 002-T008 | Implement `Logger` Chi middleware using `log/slog` JSON handler (emit StructuredLogEntry per request) | G-OBS-LOGGER | | P1 | Backlog | - | yes | | |
-| 002-T009 | Write unit tests for `Logger` middleware (all fields present, duration_ms ≥ 0, user_id absent on unauth) | G-OBS-LOGGER | | P1 | Backlog | 002-T008 | no | | |
-| 002-T010 | Implement `GET /healthz` handler returning HealthCheckResponse JSON (status, version, uptime_seconds) | G-OBS-HEALTHZ | | P1 | Backlog | - | yes | | |
-| 002-T011 | Write unit tests for `/healthz` handler (200 OK, schema valid, status is "ok", uptime ≥ 0) | G-OBS-HEALTHZ | | P1 | Backlog | 002-T010 | no | | |
-| 002-T012 | Register `/healthz` and wire `RequestID` → `Logger` middleware chain globally in Chi router | | | P1 | Backlog | 002-T006, 002-T008, 002-T010, 001-T023 | no | | |
+| 002-T006 | Implement `RequestID` Chi middleware (generate UUID v4 if absent; propagate; set X-Request-ID on response) | G-OBS-REQUESTID | 4 | P1 | Backlog | - | no | | |
+| 002-T007 | Write unit tests for `RequestID` middleware (generates UUID, propagates existing, sets response header) | G-OBS-REQUESTID | 4 | P1 | Backlog | 002-T006 | no | | |
+| 002-T008 | Implement `Logger` Chi middleware using `log/slog` JSON handler (emit StructuredLogEntry per request) | G-OBS-LOGGER | 4 | P1 | Backlog | - | yes | | |
+| 002-T009 | Write unit tests for `Logger` middleware (all fields present, duration_ms ≥ 0, user_id absent on unauth) | G-OBS-LOGGER | 4 | P1 | Backlog | 002-T008 | no | | |
+| 002-T010 | Implement `GET /healthz` handler returning HealthCheckResponse JSON (status, version, uptime_seconds) | G-OBS-HEALTHZ | 4 | P1 | Backlog | - | yes | | |
+| 002-T011 | Write unit tests for `/healthz` handler (200 OK, schema valid, status is "ok", uptime ≥ 0) | G-OBS-HEALTHZ | 4 | P1 | Backlog | 002-T010 | no | | |
+| 002-T012 | Register `/healthz` and wire `RequestID` → `Logger` middleware chain globally in Chi router | | 4 | P1 | Backlog | 002-T006, 002-T008, 002-T010, 001-T023 | no | | |
 
-#### Phase 3 — User Story 1: Engineering Team Verifies Performance Under Load (Priority: P1) 🎯
-
-| ID | Task | Group | Sprint | Priority | Status | Depends on | Parallel | Issue | Notes |
-|----|------|-------|--------|----------|--------|------------|----------|-------|-------|
-| 002-T013 | Create k6 baseline load test (ramp to 500 VUs, sustain 10 min; assert p95 ≤ 500 ms and error rate < 1%) | G-PERF-K6-TESTS | | P1 | Backlog | 002-T012 | yes | | |
-| 002-T014 | Create k6 API latency scenario (constant 100 RPS; assert p95 ≤ 500 ms per non-AI endpoint) | G-PERF-K6-TESTS | | P1 | Backlog | 002-T012 | yes | | |
-| 002-T015 | Create `load-test.yml` GitHub Actions workflow (manual `workflow_dispatch`; runs k6 against staging URL) | | | P1 | Backlog | 002-T013 | no | | |
-| 002-T016 | Write integration test asserting `/healthz` responds in ≤ 100 ms for 100 sequential calls | | | P1 | Backlog | 002-T010 | no | | |
-
-#### Phase 4 — User Story 2: Accessibility Reviewer Confirms WCAG 2.1 AA (Priority: P1)
+#### Phase 3 — User Story 1: Engineering Team Verifies Performance Under Load (Priority: P1) 🎯 → **Sprint 9**
 
 | ID | Task | Group | Sprint | Priority | Status | Depends on | Parallel | Issue | Notes |
 |----|------|-------|--------|----------|--------|------------|----------|-------|-------|
-| 002-T017 | Implement `PrivacyPolicyPage` static component (WCAG-compliant heading, section structure, landmarks) | G-A11Y-PRIVACY-PAGE | | P1 | Backlog | 002-T002 | yes | | |
-| 002-T018 | Write Vitest unit test for `PrivacyPolicyPage` (renders heading, ≥ 3 sections, no dangerouslySetInnerHTML) | G-A11Y-PRIVACY-PAGE | | P1 | Backlog | 002-T017 | yes | | |
-| 002-T019 | Implement `PrivacyPolicyLink` atom component (accessible `<a>` linking to /privacy-policy) | G-A11Y-PRIVACY-LINK | | P1 | Backlog | 002-T002 | yes | | |
-| 002-T020 | Write Vitest unit test for `PrivacyPolicyLink` (correct href, accessible text present) | G-A11Y-PRIVACY-LINK | | P1 | Backlog | 002-T019 | yes | | |
-| 002-T021 | Add `/privacy-policy` route to React Router; add `PrivacyPolicyLink` to registration form footer | | | P1 | Backlog | 002-T017, 002-T019 | no | | |
-| 002-T022 | Create accessibility E2E helper `checkPageA11y(page)` wrapping `@axe-core/playwright` | | | P1 | Backlog | 002-T002 | yes | | |
-| 002-T023 | Add `checkPageA11y(page)` call to every existing Playwright E2E spec; tag with `@accessibility` | | | P1 | Backlog | 002-T022 | no | | |
-| 002-T024 | Create `accessibility.yml` GitHub Actions workflow (axe-core Playwright run + lhci autorun; PR gate) | | | P1 | Backlog | 002-T022, 002-T004 | no | | |
+| 002-T013 | Create k6 baseline load test (ramp to 500 VUs, sustain 10 min; assert p95 ≤ 500 ms and error rate < 1%) | G-PERF-K6-TESTS | 9 | P1 | Backlog | 002-T012 | yes | | |
+| 002-T014 | Create k6 API latency scenario (constant 100 RPS; assert p95 ≤ 500 ms per non-AI endpoint) | G-PERF-K6-TESTS | 9 | P1 | Backlog | 002-T012 | yes | | |
+| 002-T015 | Create `load-test.yml` GitHub Actions workflow (manual `workflow_dispatch`; runs k6 against staging URL) | | 9 | P1 | Backlog | 002-T013 | no | | |
+| 002-T016 | Write integration test asserting `/healthz` responds in ≤ 100 ms for 100 sequential calls | | 9 | P1 | Backlog | 002-T010 | no | | |
 
-#### Phase 5 — User Story 3: Security Reviewer Confirms Security Posture (Priority: P1)
+#### Phase 4 — User Story 2: Accessibility Reviewer Confirms WCAG 2.1 AA (Priority: P1) → **Sprint 9**
 
 | ID | Task | Group | Sprint | Priority | Status | Depends on | Parallel | Issue | Notes |
 |----|------|-------|--------|----------|--------|------------|----------|-------|-------|
-| 002-T025 | Implement `PromptValidator` (load rules from YAML; Validate() with substring + regex modes; panic on invalid regex) | G-SEC-PROMPT-VALIDATOR | | P1 | Backlog | 002-T003 | yes | | |
-| 002-T026 | Write unit tests for `PromptValidator` (clean prompt passes; 5 seed rules trigger match; disabled rule skipped) | G-SEC-PROMPT-VALIDATOR | | P1 | Backlog | 002-T025 | no | | |
-| 002-T027 | Implement `OutputSanitizer` using `bluemonday.UGCPolicy()` (strip HTML/script before storage) | G-SEC-OUTPUT-SANITIZER | | P1 | Backlog | 002-T001 | yes | | |
-| 002-T028 | Write unit tests for `OutputSanitizer` (script stripped, event handlers stripped, plain text preserved) | G-SEC-OUTPUT-SANITIZER | | P1 | Backlog | 002-T027 | no | | |
-| 002-T029 | Wire `PromptValidator` into itinerary generation handler (return 400 PromptRejectionResponse on match) | | | P1 | Backlog | 002-T025, 001-T038 | no | | |
-| 002-T030 | Wire `OutputSanitizer` into itinerary service before every DB INSERT of AI-generated content | | | P1 | Backlog | 002-T027, 001-T037 | no | | |
-| 002-T031 | Write integration test for prompt rejection (10 injection payloads → assert 400 + request_id matches header) | | | P1 | Backlog | 002-T029 | yes | | |
-| 002-T032 | Implement `DELETE /users/me` auth endpoint (cascade delete all PII; respond 204) | G-SEC-USER-DELETION | | P1 | Backlog | 001-T021 | yes | | |
-| 002-T033 | Write integration test for user deletion (register → create trip → DELETE → assert 204 + zero DB rows) | G-SEC-USER-DELETION | | P1 | Backlog | 002-T032 | no | | |
-| 002-T034 | Extend `backend-lint.yml` with `gosec -severity high` and `govulncheck` steps (gate on non-zero exit) | G-SEC-CI-GATES | | P1 | Backlog | 001-T076 | yes | | |
-| 002-T035 | Extend `frontend-lint.yml` with `npm audit --audit-level=high` step (gate on critical/high findings) | G-SEC-CI-GATES | | P1 | Backlog | 001-T077 | yes | | |
-| 002-T036 | Add `gitleaks detect` secret-scanning step to `backend-lint.yml` (every PR and push to main) | | | P1 | Backlog | 001-T076, 002-T005 | no | | |
+| 002-T017 | Implement `PrivacyPolicyPage` static component (WCAG-compliant heading, section structure, landmarks) | G-A11Y-PRIVACY-PAGE | 9 | P1 | Backlog | 002-T002 | yes | | |
+| 002-T018 | Write Vitest unit test for `PrivacyPolicyPage` (renders heading, ≥ 3 sections, no dangerouslySetInnerHTML) | G-A11Y-PRIVACY-PAGE | 9 | P1 | Backlog | 002-T017 | yes | | |
+| 002-T019 | Implement `PrivacyPolicyLink` atom component (accessible `<a>` linking to /privacy-policy) | G-A11Y-PRIVACY-LINK | 9 | P1 | Backlog | 002-T002 | yes | | |
+| 002-T020 | Write Vitest unit test for `PrivacyPolicyLink` (correct href, accessible text present) | G-A11Y-PRIVACY-LINK | 9 | P1 | Backlog | 002-T019 | yes | | |
+| 002-T021 | Add `/privacy-policy` route to React Router; add `PrivacyPolicyLink` to registration form footer | | 9 | P1 | Backlog | 002-T017, 002-T019 | no | | |
+| 002-T022 | Create accessibility E2E helper `checkPageA11y(page)` wrapping `@axe-core/playwright` | | 9 | P1 | Backlog | 002-T002 | yes | | |
+| 002-T023 | Add `checkPageA11y(page)` call to every existing Playwright E2E spec; tag with `@accessibility` | | 9 | P1 | Backlog | 002-T022 | no | | |
+| 002-T024 | Create `accessibility.yml` GitHub Actions workflow (axe-core Playwright run + lhci autorun; PR gate) | | 9 | P1 | Backlog | 002-T022, 002-T004 | no | | |
+
+#### Phase 5 — User Story 3: Security Reviewer Confirms Security Posture (Priority: P1) → **Sprint 9**
+
+| ID | Task | Group | Sprint | Priority | Status | Depends on | Parallel | Issue | Notes |
+|----|------|-------|--------|----------|--------|------------|----------|-------|-------|
+| 002-T025 | Implement `PromptValidator` (load rules from YAML; Validate() with substring + regex modes; panic on invalid regex) | G-SEC-PROMPT-VALIDATOR | 9 | P1 | Backlog | 002-T003 | yes | | |
+| 002-T026 | Write unit tests for `PromptValidator` (clean prompt passes; 5 seed rules trigger match; disabled rule skipped) | G-SEC-PROMPT-VALIDATOR | 9 | P1 | Backlog | 002-T025 | no | | |
+| 002-T027 | Implement `OutputSanitizer` using `bluemonday.UGCPolicy()` (strip HTML/script before storage) | G-SEC-OUTPUT-SANITIZER | 9 | P1 | Backlog | 002-T001 | yes | | |
+| 002-T028 | Write unit tests for `OutputSanitizer` (script stripped, event handlers stripped, plain text preserved) | G-SEC-OUTPUT-SANITIZER | 9 | P1 | Backlog | 002-T027 | no | | |
+| 002-T029 | Wire `PromptValidator` into itinerary generation handler (return 400 PromptRejectionResponse on match) | | 9 | P1 | Backlog | 002-T025, 001-T038 | no | | |
+| 002-T030 | Wire `OutputSanitizer` into itinerary service before every DB INSERT of AI-generated content | | 9 | P1 | Backlog | 002-T027, 001-T037 | no | | |
+| 002-T031 | Write integration test for prompt rejection (10 injection payloads → assert 400 + request_id matches header) | | 9 | P1 | Backlog | 002-T029 | yes | | |
+| 002-T032 | Implement `DELETE /users/me` auth endpoint (cascade delete all PII; respond 204) | G-SEC-USER-DELETION | 9 | P1 | Backlog | 001-T021 | yes | | |
+| 002-T033 | Write integration test for user deletion (register → create trip → DELETE → assert 204 + zero DB rows) | G-SEC-USER-DELETION | 9 | P1 | Backlog | 002-T032 | no | | |
+| 002-T034 | Extend `backend-lint.yml` with `gosec -severity high` and `govulncheck` steps (gate on non-zero exit) | G-SEC-CI-GATES | 9 | P1 | Backlog | 001-T076 | yes | | |
+| 002-T035 | Extend `frontend-lint.yml` with `npm audit --audit-level=high` step (gate on critical/high findings) | G-SEC-CI-GATES | 9 | P1 | Backlog | 001-T077 | yes | | |
+| 002-T036 | Add `gitleaks detect` secret-scanning step to `backend-lint.yml` (every PR and push to main) | | 9 | P1 | Backlog | 001-T076, 002-T005 | no | | |
 
 #### Phase 6 — User Story 4: On-Call Engineer Diagnoses a Production Issue (Priority: P2)
 
@@ -272,13 +275,13 @@
 | 003-T012 | Create GitHub Actions OIDC trust policy JSON templates for staging and production environments | G-INFRA-TF-CONFIG | | P1 | Backlog | 003-T001 | yes | | |
 | 003-T013 | Create IAM OIDC identity provider Terraform module: configures GitHub OIDC provider in AWS, creates IAM roles for staging and production | | | P1 | Backlog | 003-T012 | no | | |
 
-#### Phase 3 — User Story 1: Infrastructure Provisioning & Environment Setup (Priority: P1) 🎯 MVP
+#### Phase 3 — User Story 1: Infrastructure Provisioning & Environment Setup (Priority: P1) 🎯 MVP → **Sprint 10**
 
 | ID | Task | Group | Sprint | Priority | Status | Depends on | Parallel | Issue | Notes |
 |----|------|-------|--------|----------|--------|------------|----------|-------|-------|
-| 003-T014 | Create VPC module: provisions VPC with CIDR from tfvars, 2 public subnets (ALB), 2 private subnets (ECS, RDS), internet gateway, route tables | G-INFRA-VPC-MODULE | | P1 | Backlog | 003-T009 | yes | | |
-| 003-T015 | Create VPC security groups: `alb-sg`, `ecs-sg`, `rds-sg` | G-INFRA-VPC-MODULE | | P1 | Backlog | 003-T009 | yes | | |
-| 003-T016 | Create VPC NAT resource: conditional NAT instance (staging) or NAT Gateway (production) | G-INFRA-VPC-MODULE | | P1 | Backlog | 003-T009 | yes | | |
+| 003-T014 | Create VPC module: provisions VPC with CIDR from tfvars, 2 public subnets (ALB), 2 private subnets (ECS, RDS), internet gateway, route tables | G-INFRA-VPC-MODULE | 10 | P1 | Backlog | 003-T009 | yes | | |
+| 003-T015 | Create VPC security groups: `alb-sg`, `ecs-sg`, `rds-sg` | G-INFRA-VPC-MODULE | 10 | P1 | Backlog | 003-T009 | yes | | |
+| 003-T016 | Create VPC NAT resource: conditional NAT instance (staging) or NAT Gateway (production) | G-INFRA-VPC-MODULE | 10 | P1 | Backlog | 003-T009 | yes | | |
 | 003-T017 | Define VPC module variables: `environment`, `vpc_cidr`, `availability_zones`, `nat_gateway_type` | G-INFRA-VPC-MODULE | | P1 | Backlog | 003-T009 | yes | | |
 | 003-T018 | Define VPC module outputs: `vpc_id`, `public_subnet_ids`, `private_subnet_ids`, security group IDs | G-INFRA-VPC-MODULE | | P1 | Backlog | 003-T009 | yes | | |
 | 003-T019 | Create ALB module: provisions Application Load Balancer in public subnets, HTTP/HTTPS listeners, target group for ECS | G-INFRA-ALB-MODULE | | P1 | Backlog | 003-T009 | yes | | |
@@ -297,26 +300,26 @@
 | 003-T032 | Create IAM module: provisions ECS task execution role, ECS task role, GitHub Actions roles | G-INFRA-IAM-MODULE | | P1 | Backlog | 003-T009 | yes | | |
 | 003-T033 | Define IAM module variables: `environment`, `ecr_repository_arn`, `secrets_manager_arns`, `s3_bucket_arns` | G-INFRA-IAM-MODULE | | P1 | Backlog | 003-T009 | yes | | |
 | 003-T034 | Define IAM module outputs: `ecs_task_execution_role_arn`, `ecs_task_role_arn`, `github_actions_role_arn` | G-INFRA-IAM-MODULE | | P1 | Backlog | 003-T009 | yes | | |
-| 003-T035 | Wire VPC module in root `main.tf`: call `modules/vpc` with staging/production-specific CIDR blocks and NAT type | | | P1 | Backlog | 003-T014 | no | | |
-| 003-T036 | Wire ALB module in root `main.tf`: call `modules/alb` with VPC outputs (public subnets, security group) | | | P1 | Backlog | 003-T019 | no | | |
-| 003-T037 | Wire RDS module in root `main.tf`: call `modules/rds` with VPC outputs and environment-specific instance class, Multi-AZ flag | | | P1 | Backlog | 003-T022 | no | | |
-| 003-T038 | Wire ECS module in root `main.tf`: call `modules/ecs` with VPC outputs, ALB target group ARN, environment-specific task sizing | | | P1 | Backlog | 003-T025 | no | | |
-| 003-T039 | Wire S3+CloudFront module in root `main.tf`: call `modules/s3-cloudfront` with environment-specific bucket name and CloudFront price class | | | P1 | Backlog | 003-T029 | no | | |
-| 003-T040 | Wire IAM module in root `main.tf`: call `modules/iam` with resource ARNs (ECR, Secrets Manager, S3) from other modules | | | P1 | Backlog | 003-T032 | no | | |
-| 003-T041 | Define root module variables: `environment`, `aws_region`, `vpc_cidr`, `availability_zones`, ECS task sizing, RDS config, NAT type, cost budget, tags | | | P1 | Backlog | 003-T035 | no | | |
-| 003-T042 | Define root module outputs: all outputs from modules (VPC, ALB, RDS, ECS, S3+CloudFront, IAM) | | | P1 | Backlog | 003-T035 | no | | |
-| 003-T043 | Populate `staging.tfvars` with staging-specific values: vpc_cidr, ECS task sizing, RDS instance class, NAT instance, cost budget | | | P1 | Backlog | 003-T041 | yes | | |
-| 003-T044 | Populate `production.tfvars` with production-specific values: vpc_cidr, ECS task sizing, RDS Multi-AZ, NAT Gateway, cost budget | | | P1 | Backlog | 003-T041 | yes | | |
+| 003-T035 | Wire VPC module in root `main.tf`: call `modules/vpc` with staging/production-specific CIDR blocks and NAT type | | 10 | P1 | Backlog | 003-T014 | no | | |
+| 003-T036 | Wire ALB module in root `main.tf`: call `modules/alb` with VPC outputs (public subnets, security group) | | 10 | P1 | Backlog | 003-T019 | no | | |
+| 003-T037 | Wire RDS module in root `main.tf`: call `modules/rds` with VPC outputs and environment-specific instance class, Multi-AZ flag | | 10 | P1 | Backlog | 003-T022 | no | | |
+| 003-T038 | Wire ECS module in root `main.tf`: call `modules/ecs` with VPC outputs, ALB target group ARN, environment-specific task sizing | | 10 | P1 | Backlog | 003-T025 | no | | |
+| 003-T039 | Wire S3+CloudFront module in root `main.tf`: call `modules/s3-cloudfront` with environment-specific bucket name and CloudFront price class | | 10 | P1 | Backlog | 003-T029 | no | | |
+| 003-T040 | Wire IAM module in root `main.tf`: call `modules/iam` with resource ARNs (ECR, Secrets Manager, S3) from other modules | | 10 | P1 | Backlog | 003-T032 | no | | |
+| 003-T041 | Define root module variables: `environment`, `aws_region`, `vpc_cidr`, `availability_zones`, ECS task sizing, RDS config, NAT type, cost budget, tags | | 10 | P1 | Backlog | 003-T035 | no | | |
+| 003-T042 | Define root module outputs: all outputs from modules (VPC, ALB, RDS, ECS, S3+CloudFront, IAM) | | 10 | P1 | Backlog | 003-T035 | no | | |
+| 003-T043 | Populate `staging.tfvars` with staging-specific values: vpc_cidr, ECS task sizing, RDS instance class, NAT instance, cost budget | | 10 | P1 | Backlog | 003-T041 | yes | | |
+| 003-T044 | Populate `production.tfvars` with production-specific values: vpc_cidr, ECS task sizing, RDS Multi-AZ, NAT Gateway, cost budget | | 10 | P1 | Backlog | 003-T041 | yes | | |
 
-#### Phase 4 — User Story 2: Secrets & Configuration Management (Priority: P1)
+#### Phase 4 — User Story 2: Secrets & Configuration Management (Priority: P1) → **Sprint 10**
 
 | ID | Task | Group | Sprint | Priority | Status | Depends on | Parallel | Issue | Notes |
 |----|------|-------|--------|----------|--------|------------|----------|-------|-------|
-| 003-T045 | Create secrets initialization script: uses AWS CLI to create secrets in Secrets Manager with naming pattern `${environment}/${service}/${secret_name}` | G-INFRA-SECRETS | | P1 | Backlog | 003-T009 | yes | | |
-| 003-T046 | Create Terraform data sources for Secrets Manager: reference existing secrets for database URL, Anthropic API key, JWT secret | G-INFRA-SECRETS | | P1 | Backlog | 003-T009 | yes | | |
-| 003-T047 | Update ECS task definition in T025 to reference secret ARNs from T046 in `secrets` block | | | P1 | Backlog | 003-T025, 003-T046 | no | | |
+| 003-T045 | Create secrets initialization script: uses AWS CLI to create secrets in Secrets Manager with naming pattern `${environment}/${service}/${secret_name}` | G-INFRA-SECRETS | 10 | P1 | Backlog | 003-T009 | yes | | |
+| 003-T046 | Create Terraform data sources for Secrets Manager: reference existing secrets for database URL, Anthropic API key, JWT secret | G-INFRA-SECRETS | 10 | P1 | Backlog | 003-T009 | yes | | |
+| 003-T047 | Update ECS task definition in T025 to reference secret ARNs from T046 in `secrets` block | | 10 | P1 | Backlog | 003-T025, 003-T046 | no | | |
 
-#### Phase 5 — User Story 3: CI/CD Pipeline & Deployment Promotion (Priority: P1)
+#### Phase 5 — User Story 3: CI/CD Pipeline & Deployment Promotion (Priority: P1) → **Sprint 10**
 
 | ID | Task | Group | Sprint | Priority | Status | Depends on | Parallel | Issue | Notes |
 |----|------|-------|--------|----------|--------|------------|----------|-------|-------|
@@ -394,7 +397,7 @@
 | 004-T013 | Implement correlation ID generator in `backend/internal/observability/correlation.go` | G-SEC-CORE-UTILITIES | | P1 | Backlog | - | yes | | |
 | 004-T014 | Implement structured logger in `backend/internal/observability/logger.go` with CloudWatch JSON output | G-SEC-CORE-UTILITIES | | P1 | Backlog | - | yes | | |
 
-#### Phase 3 — User Story 1: Backend Engineer Implements Secure API Endpoint (Priority: P1) 🎯 MVP
+#### Phase 3 — User Story 1: Backend Engineer Implements Secure API Endpoint (Priority: P1) 🎯 MVP → **Sprint 9**
 
 | ID | Task | Group | Sprint | Priority | Status | Depends on | Parallel | Issue | Notes |
 |----|------|-------|--------|----------|--------|------------|----------|-------|-------|
@@ -541,87 +544,87 @@
 > requirements from 002. Infrastructure modules depend on 003 cloud strategy decisions. Integration patterns
 > unify error handling across all layers.
 
-#### Phase 1 — Setup (Project Initialization)
+#### Phase 1 — Setup (Project Initialization) → **Sprint 1**
 
 | ID | Task | Group | Sprint | Priority | Status | Depends on | Parallel | Issue | Notes |
 |----|------|-------|--------|----------|--------|------------|----------|-------|-------|
-| 005-T001 | Create backend directory structure per plan.md: backend/{cmd/api,internal/{middleware,database,ai,errors},pkg,config,migrations,tests/{integration,fixtures}} | | | P1 | Backlog | - | no | | |
-| 005-T002 | Create frontend directory structure per plan.md: frontend/src/{components/{primitives,composites},features,hooks,lib,stores,styles,routes} | G-ARCH-SETUP-DIRS | | P1 | Backlog | - | yes | | |
-| 005-T003 | Create e2e directory structure: e2e/{tests,fixtures,playwright.config.ts} | G-ARCH-SETUP-DIRS | | P1 | Backlog | - | yes | | |
-| 005-T004 | Create infrastructure directory structure: infra/{modules/{vpc,ecs,rds,alb,cloudfront,secrets},environments} | G-ARCH-SETUP-DIRS | | P1 | Backlog | - | yes | | |
-| 005-T005 | Initialize Go module in backend/go.mod with Go 1.24+ and core dependencies (Chi, pgx/v5, goose/v3, google/uuid, log/slog) | | | P1 | Backlog | 005-T001 | no | | |
-| 005-T006 | Initialize React project in frontend/ with Vite, TypeScript strict mode, and core dependencies (TanStack Query v5, Zustand, React Router v7, Lucide React) | G-ARCH-SETUP-INIT | | P1 | Backlog | 005-T002 | yes | | |
-| 005-T007 | Initialize E2E project in e2e/ with Playwright and axe-core dependencies | G-ARCH-SETUP-INIT | | P1 | Backlog | 005-T003 | yes | | |
-| 005-T008 | Create backend/.env.example with required environment variables (DATABASE_URL, HTTP_PORT, LOG_LEVEL, ANTHROPIC_API_KEY) | G-ARCH-SETUP-CONFIG | | P1 | Backlog | 005-T001 | yes | | |
-| 005-T009 | Create frontend/.env.example with VITE_API_BASE_URL variable | G-ARCH-SETUP-CONFIG | | P1 | Backlog | 005-T002 | yes | | |
-| 005-T010 | Create backend/README.md with quickstart instructions, directory structure explanation, and development workflow | G-ARCH-SETUP-DOCS | | P1 | Backlog | 005-T001 | yes | | |
-| 005-T011 | Create frontend/README.md with development server instructions, component guidelines, and testing commands | G-ARCH-SETUP-DOCS | | P1 | Backlog | 005-T002 | yes | | |
-| 005-T012 | Create infra/README.md with Terraform initialization instructions and environment deployment guide | G-ARCH-SETUP-DOCS | | P1 | Backlog | 005-T004 | yes | | |
+| 005-T001 | Create backend directory structure per plan.md: backend/{cmd/api,internal/{middleware,database,ai,errors},pkg,config,migrations,tests/{integration,fixtures}} | | 1 | P1 | Backlog | - | no | https://github.com/JosemaPereira/capstone-project-ai-bootcamp/issues/13 | |
+| 005-T002 | Create frontend directory structure per plan.md: frontend/src/{components/{primitives,composites},features,hooks,lib,stores,styles,routes} | G-ARCH-SETUP-DIRS | | P1 | Backlog | - | yes | https://github.com/JosemaPereira/capstone-project-ai-bootcamp/issues/20 | |
+| 005-T003 | Create e2e directory structure: e2e/{tests,fixtures,playwright.config.ts} | G-ARCH-SETUP-DIRS | | P1 | Backlog | - | yes | https://github.com/JosemaPereira/capstone-project-ai-bootcamp/issues/21 | |
+| 005-T004 | Create infrastructure directory structure: infra/{modules/{vpc,ecs,rds,alb,cloudfront,secrets},environments} | G-ARCH-SETUP-DIRS | | P1 | Backlog | - | yes | https://github.com/JosemaPereira/capstone-project-ai-bootcamp/issues/22 | |
+| 005-T005 | Initialize Go module in backend/go.mod with Go 1.24+ and core dependencies (Chi, pgx/v5, goose/v3, google/uuid, log/slog) | | | P1 | Backlog | 005-T001 | no | https://github.com/JosemaPereira/capstone-project-ai-bootcamp/issues/14 | |
+| 005-T006 | Initialize React project in frontend/ with Vite, TypeScript strict mode, and core dependencies (TanStack Query v5, Zustand, React Router v7, Lucide React) | G-ARCH-SETUP-INIT | | P1 | Backlog | 005-T002 | yes | https://github.com/JosemaPereira/capstone-project-ai-bootcamp/issues/23 | |
+| 005-T007 | Initialize E2E project in e2e/ with Playwright and axe-core dependencies | G-ARCH-SETUP-INIT | | P1 | Backlog | 005-T003 | yes | https://github.com/JosemaPereira/capstone-project-ai-bootcamp/issues/24 | |
+| 005-T008 | Create backend/.env.example with required environment variables (DATABASE_URL, HTTP_PORT, LOG_LEVEL, ANTHROPIC_API_KEY) | G-ARCH-SETUP-CONFIG | | P1 | Backlog | 005-T001 | yes | https://github.com/JosemaPereira/capstone-project-ai-bootcamp/issues/25 | |
+| 005-T009 | Create frontend/.env.example with VITE_API_BASE_URL variable | G-ARCH-SETUP-CONFIG | | P1 | Backlog | 005-T002 | yes | https://github.com/JosemaPereira/capstone-project-ai-bootcamp/issues/26 | |
+| 005-T010 | Create backend/README.md with quickstart instructions, directory structure explanation, and development workflow | G-ARCH-SETUP-DOCS | | P1 | Backlog | 005-T001 | yes | https://github.com/JosemaPereira/capstone-project-ai-bootcamp/issues/27 | |
+| 005-T011 | Create frontend/README.md with development server instructions, component guidelines, and testing commands | G-ARCH-SETUP-DOCS | | P1 | Backlog | 005-T002 | yes | https://github.com/JosemaPereira/capstone-project-ai-bootcamp/issues/28 | |
+| 005-T012 | Create infra/README.md with Terraform initialization instructions and environment deployment guide | G-ARCH-SETUP-DOCS | | P1 | Backlog | 005-T004 | yes | https://github.com/JosemaPereira/capstone-project-ai-bootcamp/issues/29 | |
 
-#### Phase 2 — Foundational (Blocking Prerequisites)
-
-| ID | Task | Group | Sprint | Priority | Status | Depends on | Parallel | Issue | Notes |
-|----|------|-------|--------|----------|--------|------------|----------|-------|-------|
-| 005-T013 | Create backend/config/config.go with configuration struct and environment variable loading using os.Getenv with validation | | | P1 | Backlog | 005-T001 | no | | |
-| 005-T014 | Create backend/Dockerfile with multi-stage build (builder stage with Go 1.24+, runtime stage with minimal Alpine) | G-ARCH-FOUNDATIONAL-DOCKER | | P1 | Backlog | 005-T001 | yes | | |
-| 005-T015 | Create .gitignore files for backend/ (exclude vendor/, .env, binary), frontend/ (exclude node_modules/, dist/, .env), and infra/ (exclude .terraform/, *.tfstate) | G-ARCH-FOUNDATIONAL-DOCKER | | P1 | Backlog | 005-T001 | yes | | |
-| 005-T016 | Create docker-compose.yml for local development with PostgreSQL 15.4 service and backend service configuration | G-ARCH-FOUNDATIONAL-DOCKER | | P1 | Backlog | 005-T001 | yes | | |
-| 005-T017 | Create .github/workflows/backend-ci.yml skeleton (lint, test, build jobs without full implementation) | G-ARCH-FOUNDATIONAL-CI | | P1 | Backlog | 005-T001 | yes | | |
-| 005-T018 | Create .github/workflows/frontend-ci.yml skeleton (lint, test, build, accessibility jobs without full implementation) | G-ARCH-FOUNDATIONAL-CI | | P1 | Backlog | 005-T002 | yes | | |
-| 005-T019 | Create .github/workflows/infra-plan.yml skeleton (validate, format check, plan jobs) | G-ARCH-FOUNDATIONAL-CI | | P1 | Backlog | 005-T004 | yes | | |
-| 005-T020 | Configure golangci-lint in backend/.golangci.yml with required linters (errcheck, govet, staticcheck, revive, gosec) | | | P1 | Backlog | 005-T001 | yes | | |
-| 005-T021 | Configure ESLint and Prettier in frontend/ with TypeScript strict mode rules and no-any enforcement | | | P1 | Backlog | 005-T002 | yes | | |
-| 005-T022 | Create infra/backend.tf with S3 backend configuration for remote state (bucket: traveler-terraform-state, DynamoDB table: traveler-terraform-locks) | | | P1 | Backlog | 005-T004 | yes | | |
-| 005-T023 | Create infra/versions.tf with Terraform >= 1.5 and AWS provider ~> 5.0 version constraints | | | P1 | Backlog | 005-T004 | yes | | |
-
-#### Phase 3 — User Story 1: Backend Service Architecture (Priority: P1) 🎯 MVP
+#### Phase 2 — Foundational (Blocking Prerequisites) → **Sprint 1**
 
 | ID | Task | Group | Sprint | Priority | Status | Depends on | Parallel | Issue | Notes |
 |----|------|-------|--------|----------|--------|------------|----------|-------|-------|
-| 005-T024 | Create backend/internal/middleware/request_id.go implementing UUID v4 generation, context injection, and X-Request-ID response header | G-ARCH-BACKEND-MIDDLEWARE | | P1 | Backlog | 005-T013 | yes | | |
-| 005-T025 | Create backend/internal/middleware/logger.go using log/slog for structured JSON logging with method, path, status, duration, correlation ID | G-ARCH-BACKEND-MIDDLEWARE | | P1 | Backlog | 005-T013 | yes | | |
-| 005-T026 | Create backend/internal/middleware/recovery.go implementing panic recovery with stack trace logging and 500 response | G-ARCH-BACKEND-MIDDLEWARE | | P1 | Backlog | 005-T013 | yes | | |
-| 005-T027 | Create backend/internal/middleware/cors.go with configurable allowed origins from environment variable | G-ARCH-BACKEND-MIDDLEWARE | | P1 | Backlog | 005-T013 | yes | | |
-| 005-T028 | Create backend/internal/middleware/body_size.go limiting request body to 10 MB with 413 response on violation | G-ARCH-BACKEND-MIDDLEWARE | | P1 | Backlog | 005-T013 | yes | | |
-| 005-T029 | Create backend/internal/database/client.go implementing pgx connection pool with min 5, max 25 connections, health check (Ping), and graceful closure | | | P1 | Backlog | 005-T013 | yes | | |
-| 005-T030 | Create backend/internal/ai/client.go defining AIClient interface with GenerateItinerary and StreamItinerary methods | G-ARCH-BACKEND-AI | | P1 | Backlog | 005-T013 | yes | | |
-| 005-T031 | Create backend/internal/ai/validator.go implementing prompt validation stub (to be enhanced with injection detection rules later) | G-ARCH-BACKEND-AI | | P1 | Backlog | 005-T013 | yes | | |
-| 005-T032 | Create backend/internal/ai/sanitizer.go implementing output sanitization stub (HTML/script stripping to be enhanced later) | G-ARCH-BACKEND-AI | | P1 | Backlog | 005-T013 | yes | | |
-| 005-T033 | Create backend/internal/errors/handler.go implementing domain error-to-HTTP status mapping (404, 400, 401, 403, 409, 500) with structured JSON responses | G-ARCH-BACKEND-ERRORS | | P1 | Backlog | 005-T013 | yes | | |
-| 005-T034 | Create backend/internal/errors/types.go defining domain error types (ErrNotFound, ErrValidation, ErrUnauthorized, ErrForbidden, ErrConflict) | G-ARCH-BACKEND-ERRORS | | P1 | Backlog | 005-T013 | yes | | |
-| 005-T035 | Create backend/cmd/api/main.go implementing HTTPServer with Chi router, middleware chain registration (RequestID → Logger → Recovery → CORS → BodySize), health check endpoint, and graceful shutdown | | | P1 | Backlog | 005-T024, 005-T029 | no | | |
-| 005-T036 | Integrate backend/internal/database/client.go initialization in main.go with configuration from config package and connection pool lifecycle management | | | P1 | Backlog | 005-T035 | no | | |
-| 005-T037 | Add /healthz endpoint to main.go verifying database Ping() succeeds before returning 200 OK | | | P1 | Backlog | 005-T036 | no | | |
-| 005-T038 | Create backend/internal/example/model.go with sample domain model struct demonstrating naming conventions and field tags | G-ARCH-BACKEND-EXAMPLE | | P1 | Backlog | 005-T013 | yes | | |
-| 005-T039 | Create backend/internal/example/repository.go implementing repository interface pattern with Create, FindByID, Update, Delete, List methods using pgx connection pool | G-ARCH-BACKEND-EXAMPLE | | P1 | Backlog | 005-T029 | yes | | |
-| 005-T040 | Create backend/internal/example/service.go implementing service interface pattern with business logic, repository dependency injection, and domain error returns | G-ARCH-BACKEND-EXAMPLE | | P1 | Backlog | 005-T039 | yes | | |
-| 005-T041 | Create backend/internal/example/handler.go implementing HTTP handler calling service layer, using errors.HandleError for error responses, and demonstrating context value extraction (requestID, userID) | | | P1 | Backlog | 005-T040 | no | | |
+| 005-T013 | Create backend/config/config.go with configuration struct and environment variable loading using os.Getenv with validation | | 1 | P1 | Backlog | 005-T001 | no | https://github.com/JosemaPereira/capstone-project-ai-bootcamp/issues/15 | |
+| 005-T014 | Create backend/Dockerfile with multi-stage build (builder stage with Go 1.24+, runtime stage with minimal Alpine) | G-ARCH-FOUNDATIONAL-DOCKER | | P1 | Backlog | 005-T001 | yes | https://github.com/JosemaPereira/capstone-project-ai-bootcamp/issues/30 | |
+| 005-T015 | Create .gitignore files for backend/ (exclude vendor/, .env, binary), frontend/ (exclude node_modules/, dist/, .env), and infra/ (exclude .terraform/, *.tfstate) | G-ARCH-FOUNDATIONAL-DOCKER | | P1 | Backlog | 005-T001 | yes | https://github.com/JosemaPereira/capstone-project-ai-bootcamp/issues/31 | |
+| 005-T016 | Create docker-compose.yml for local development with PostgreSQL 15.4 service and backend service configuration | G-ARCH-FOUNDATIONAL-DOCKER | | P1 | Backlog | 005-T001 | yes | https://github.com/JosemaPereira/capstone-project-ai-bootcamp/issues/32 | |
+| 005-T017 | Create .github/workflows/backend-ci.yml skeleton (lint, test, build jobs without full implementation) | G-ARCH-FOUNDATIONAL-CI | | P1 | Backlog | 005-T001 | yes | https://github.com/JosemaPereira/capstone-project-ai-bootcamp/issues/33 | |
+| 005-T018 | Create .github/workflows/frontend-ci.yml skeleton (lint, test, build, accessibility jobs without full implementation) | G-ARCH-FOUNDATIONAL-CI | | P1 | Backlog | 005-T002 | yes | https://github.com/JosemaPereira/capstone-project-ai-bootcamp/issues/34 | |
+| 005-T019 | Create .github/workflows/infra-plan.yml skeleton (validate, format check, plan jobs) | G-ARCH-FOUNDATIONAL-CI | | P1 | Backlog | 005-T004 | yes | https://github.com/JosemaPereira/capstone-project-ai-bootcamp/issues/35 | |
+| 005-T020 | Configure golangci-lint in backend/.golangci.yml with required linters (errcheck, govet, staticcheck, revive, gosec) | | | P1 | Backlog | 005-T001 | yes | https://github.com/JosemaPereira/capstone-project-ai-bootcamp/issues/16 | |
+| 005-T021 | Configure ESLint and Prettier in frontend/ with TypeScript strict mode rules and no-any enforcement | | | P1 | Backlog | 005-T002 | yes | https://github.com/JosemaPereira/capstone-project-ai-bootcamp/issues/17 | |
+| 005-T022 | Create infra/backend.tf with S3 backend configuration for remote state (bucket: traveler-terraform-state, DynamoDB table: traveler-terraform-locks) | G-ARCH-FOUNDATIONAL-TERRAFORM | | P1 | Backlog | 005-T004 | yes | https://github.com/JosemaPereira/capstone-project-ai-bootcamp/issues/18 | |
+| 005-T023 | Create infra/versions.tf with Terraform >= 1.5 and AWS provider ~> 5.0 version constraints | | | P1 | Backlog | 005-T004 | yes | https://github.com/JosemaPereira/capstone-project-ai-bootcamp/issues/19 | |
 
-#### Phase 4 — User Story 2: Frontend Application Structure (Priority: P1) 🎯 MVP
+#### Phase 3 — User Story 1: Backend Service Architecture (Priority: P1) 🎯 MVP → **Sprint 2**
 
 | ID | Task | Group | Sprint | Priority | Status | Depends on | Parallel | Issue | Notes |
 |----|------|-------|--------|----------|--------|------------|----------|-------|-------|
-| 005-T042 | Create frontend/src/styles/tokens.css defining CSS custom properties for colors (primary, surface, text), spacing (sm, md, lg), typography (font-size-base, font-size-lg, font-weight-bold), border-radius (radius-md), and shadows (shadow-sm, shadow-md) | | | P1 | Backlog | 005-T002 | yes | | |
-| 005-T043 | Create frontend/src/styles/global.css importing tokens.css and setting base styles (font-family, box-sizing, CSS reset) | | | P1 | Backlog | 005-T042 | yes | | |
-| 005-T044 | Create frontend/src/lib/api-client.ts implementing fetch wrapper with base URL from env var, Content-Type and X-Request-ID headers, credentials include, and APIError class (status, message, requestId fields) | | | P1 | Backlog | 005-T002 | yes | | |
-| 005-T045 | Create frontend/src/lib/query-client.ts configuring TanStack Query defaults (staleTime: 5 min, retry: 1, refetchOnWindowFocus: false) | | | P1 | Backlog | 005-T002 | yes | | |
-| 005-T046 | Create frontend/src/stores/auth-store.ts implementing Zustand store with isAuthenticated, user, login, logout, refreshSession actions (no persistence for MVP - session storage can be added later) | | | P1 | Backlog | 005-T002 | yes | | |
-| 005-T047 | Create frontend/src/App.tsx wrapping application with QueryClientProvider from lib/query-client.ts and importing global.css | | | P1 | Backlog | 005-T043, 005-T045 | no | | |
-| 005-T048 | Create frontend/src/components/primitives/Button.tsx with variant prop (primary, secondary, danger), size prop (sm, md, lg), CSS Module styling using design tokens, and aria-label support | G-ARCH-FRONTEND-PRIMITIVES | | P1 | Backlog | 005-T042 | yes | | |
-| 005-T049 | Create frontend/src/components/primitives/Button.module.css referencing var(--color-primary), var(--space-md), var(--radius-md) from tokens.css | G-ARCH-FRONTEND-PRIMITIVES | | P1 | Backlog | 005-T042 | yes | | |
-| 005-T050 | Create frontend/src/components/primitives/Input.tsx with label, id, name, required props, CSS Module styling, and associated label for accessibility | G-ARCH-FRONTEND-PRIMITIVES | | P1 | Backlog | 005-T042 | yes | | |
-| 005-T051 | Create frontend/src/components/primitives/Card.tsx with children prop and CSS Module styling using var(--color-surface), var(--shadow-sm), var(--space-lg) | G-ARCH-FRONTEND-PRIMITIVES | | P1 | Backlog | 005-T042 | yes | | |
-| 005-T052 | Create frontend/src/components/primitives/LoadingSpinner.tsx with aria-label prop for screen readers | G-ARCH-FRONTEND-PRIMITIVES | | P1 | Backlog | 005-T042 | yes | | |
-| 005-T053 | Create frontend/src/components/primitives/ErrorMessage.tsx displaying error with retry button (optional onClick prop) | G-ARCH-FRONTEND-PRIMITIVES | | P1 | Backlog | 005-T042 | yes | | |
-| 005-T054 | Create frontend/src/components/primitives/EmptyState.tsx with message and optional action button | G-ARCH-FRONTEND-PRIMITIVES | | P1 | Backlog | 005-T042 | yes | | |
-| 005-T055 | Create frontend/src/components/composites/Form.tsx composing Button and Input primitives, handling onSubmit with loading state, error display, and validation error mapping | | | P1 | Backlog | 005-T048, 005-T050 | no | | |
-| 005-T056 | Create frontend/src/features/.gitkeep as placeholder (actual features will be added in subsequent specs) | | | P1 | Backlog | 005-T002 | yes | | |
-| 005-T057 | Create frontend/src/components/ErrorBoundary.tsx implementing React.Component error boundary with fallback UI showing error message and "Go Home" action | | | P1 | Backlog | 005-T002 | yes | | |
-| 005-T058 | Create frontend/src/routes/index.tsx defining React Router v7 routes configuration (root route returning simple "TrAIveler" heading as placeholder) | | | P1 | Backlog | 005-T002 | no | | |
-| 005-T059 | Update frontend/src/App.tsx to include RouterProvider with routes from routes/index.tsx | | | P1 | Backlog | 005-T047, 005-T058 | no | | |
-| 005-T060 | Wrap App.tsx with ErrorBoundary component | | | P1 | Backlog | 005-T057, 005-T059 | no | | |
+| 005-T024 | Create backend/internal/middleware/request_id.go implementing UUID v4 generation, context injection, and X-Request-ID response header | G-SPRINT2-BACKEND-MIDDLEWARE | 2 | P1 | Backlog | 005-T013 | yes | | |
+| 005-T025 | Create backend/internal/middleware/logger.go using log/slog for structured JSON logging with method, path, status, duration, correlation ID | G-SPRINT2-BACKEND-MIDDLEWARE | 2 | P1 | Backlog | 005-T013 | yes | | |
+| 005-T026 | Create backend/internal/middleware/recovery.go implementing panic recovery with stack trace logging and 500 response | G-SPRINT2-BACKEND-MIDDLEWARE | 2 | P1 | Backlog | 005-T013 | yes | | |
+| 005-T027 | Create backend/internal/middleware/cors.go with configurable allowed origins from environment variable | G-SPRINT2-BACKEND-MIDDLEWARE | 2 | P1 | Backlog | 005-T013 | yes | | |
+| 005-T028 | Create backend/internal/middleware/body_size.go limiting request body to 10 MB with 413 response on violation | G-SPRINT2-BACKEND-MIDDLEWARE | 2 | P1 | Backlog | 005-T013 | yes | | |
+| 005-T029 | Create backend/internal/database/client.go implementing pgx connection pool with min 5, max 25 connections, health check (Ping), and graceful closure | | 2 | P1 | Backlog | 005-T013 | yes | | |
+| 005-T030 | Create backend/internal/ai/client.go defining AIClient interface with GenerateItinerary and StreamItinerary methods | G-SPRINT2-BACKEND-AI | 2 | P1 | Backlog | 005-T013 | yes | | |
+| 005-T031 | Create backend/internal/ai/validator.go implementing prompt validation stub (to be enhanced with injection detection rules later) | G-SPRINT2-BACKEND-AI | 2 | P1 | Backlog | 005-T013 | yes | | |
+| 005-T032 | Create backend/internal/ai/sanitizer.go implementing output sanitization stub (HTML/script stripping to be enhanced later) | G-SPRINT2-BACKEND-AI | 2 | P1 | Backlog | 005-T013 | yes | | |
+| 005-T033 | Create backend/internal/errors/handler.go implementing domain error-to-HTTP status mapping (404, 400, 401, 403, 409, 500) with structured JSON responses | G-SPRINT2-BACKEND-ERRORS | 2 | P1 | Backlog | 005-T013 | yes | | |
+| 005-T034 | Create backend/internal/errors/types.go defining domain error types (ErrNotFound, ErrValidation, ErrUnauthorized, ErrForbidden, ErrConflict) | G-SPRINT2-BACKEND-ERRORS | 2 | P1 | Backlog | 005-T013 | yes | | |
+| 005-T035 | Create backend/cmd/api/main.go implementing HTTPServer with Chi router, middleware chain registration (RequestID → Logger → Recovery → CORS → BodySize), health check endpoint, and graceful shutdown | | 2 | P1 | Backlog | 005-T024, 005-T029 | no | | |
+| 005-T036 | Integrate backend/internal/database/client.go initialization in main.go with configuration from config package and connection pool lifecycle management | | 2 | P1 | Backlog | 005-T035 | no | | |
+| 005-T037 | Add /healthz endpoint to main.go verifying database Ping() succeeds before returning 200 OK | | 2 | P1 | Backlog | 005-T036 | no | | |
+| 005-T038 | Create backend/internal/example/model.go with sample domain model struct demonstrating naming conventions and field tags | G-SPRINT2-BACKEND-EXAMPLE | 2 | P1 | Backlog | 005-T013 | yes | | |
+| 005-T039 | Create backend/internal/example/repository.go implementing repository interface pattern with Create, FindByID, Update, Delete, List methods using pgx connection pool | G-SPRINT2-BACKEND-EXAMPLE | 2 | P1 | Backlog | 005-T029 | yes | | |
+| 005-T040 | Create backend/internal/example/service.go implementing service interface pattern with business logic, repository dependency injection, and domain error returns | G-SPRINT2-BACKEND-EXAMPLE | 2 | P1 | Backlog | 005-T039 | yes | | |
+| 005-T041 | Create backend/internal/example/handler.go implementing HTTP handler calling service layer, using errors.HandleError for error responses, and demonstrating context value extraction (requestID, userID) | | 2 | P1 | Backlog | 005-T040 | no | | |
 
-#### Phase 5 — User Story 3: Infrastructure as Code Foundations (Priority: P1) 🎯 MVP
+#### Phase 4 — User Story 2: Frontend Application Structure (Priority: P1) 🎯 MVP → **Sprint 2**
+
+| ID | Task | Group | Sprint | Priority | Status | Depends on | Parallel | Issue | Notes |
+|----|------|-------|--------|----------|--------|------------|----------|-------|-------|
+| 005-T042 | Create frontend/src/styles/tokens.css defining CSS custom properties for colors (primary, surface, text), spacing (sm, md, lg), typography (font-size-base, font-size-lg, font-weight-bold), border-radius (radius-md), and shadows (shadow-sm, shadow-md) | G-SPRINT2-FRONTEND-TOKENS | 2 | P1 | Backlog | 005-T002 | yes | | |
+| 005-T043 | Create frontend/src/styles/global.css importing tokens.css and setting base styles (font-family, box-sizing, CSS reset) | G-SPRINT2-FRONTEND-TOKENS | 2 | P1 | Backlog | 005-T042 | yes | | |
+| 005-T044 | Create frontend/src/lib/api-client.ts implementing fetch wrapper with base URL from env var, Content-Type and X-Request-ID headers, credentials include, and APIError class (status, message, requestId fields) | G-SPRINT2-FRONTEND-API-CONFIG | 2 | P1 | Backlog | 005-T002 | yes | | |
+| 005-T045 | Create frontend/src/lib/query-client.ts configuring TanStack Query defaults (staleTime: 5 min, retry: 1, refetchOnWindowFocus: false) | G-SPRINT2-FRONTEND-API-CONFIG | 2 | P1 | Backlog | 005-T002 | yes | | |
+| 005-T046 | Create frontend/src/stores/auth-store.ts implementing Zustand store with isAuthenticated, user, login, logout, refreshSession actions (no persistence for MVP - session storage can be added later) | | 2 | P1 | Backlog | 005-T002 | yes | | |
+| 005-T047 | Create frontend/src/App.tsx wrapping application with QueryClientProvider from lib/query-client.ts and importing global.css | G-SPRINT2-FRONTEND-APP-SHELL | 2 | P1 | Backlog | 005-T043, 005-T045 | no | | |
+| 005-T048 | Create frontend/src/components/primitives/Button.tsx with variant prop (primary, secondary, danger), size prop (sm, md, lg), CSS Module styling using design tokens, and aria-label support | G-SPRINT2-FRONTEND-PRIMITIVES-CORE | 2 | P1 | Backlog | 005-T042 | yes | | |
+| 005-T049 | Create frontend/src/components/primitives/Button.module.css referencing var(--color-primary), var(--space-md), var(--radius-md) from tokens.css | G-SPRINT2-FRONTEND-PRIMITIVES-CORE | 2 | P1 | Backlog | 005-T042 | yes | | |
+| 005-T050 | Create frontend/src/components/primitives/Input.tsx with label, id, name, required props, CSS Module styling, and associated label for accessibility | G-SPRINT2-FRONTEND-PRIMITIVES-CORE | 2 | P1 | Backlog | 005-T042 | yes | | |
+| 005-T051 | Create frontend/src/components/primitives/Card.tsx with children prop and CSS Module styling using var(--color-surface), var(--shadow-sm), var(--space-lg) | G-SPRINT2-FRONTEND-PRIMITIVES-CORE | 2 | P1 | Backlog | 005-T042 | yes | | |
+| 005-T052 | Create frontend/src/components/primitives/LoadingSpinner.tsx with aria-label prop for screen readers | G-SPRINT2-FRONTEND-PRIMITIVES-STATE | 2 | P1 | Backlog | 005-T042 | yes | | |
+| 005-T053 | Create frontend/src/components/primitives/ErrorMessage.tsx displaying error with retry button (optional onClick prop) | G-SPRINT2-FRONTEND-PRIMITIVES-STATE | 2 | P1 | Backlog | 005-T042 | yes | | |
+| 005-T054 | Create frontend/src/components/primitives/EmptyState.tsx with message and optional action button | G-SPRINT2-FRONTEND-PRIMITIVES-STATE | 2 | P1 | Backlog | 005-T042 | yes | | |
+| 005-T055 | Create frontend/src/components/composites/Form.tsx composing Button and Input primitives, handling onSubmit with loading state, error display, and validation error mapping | | 2 | P1 | Backlog | 005-T048, 005-T050 | no | | |
+| 005-T056 | Create frontend/src/features/.gitkeep as placeholder (actual features will be added in subsequent specs) | | 2 | P1 | Backlog | 005-T002 | yes | | |
+| 005-T057 | Create frontend/src/components/ErrorBoundary.tsx implementing React.Component error boundary with fallback UI showing error message and "Go Home" action | | 2 | P1 | Backlog | 005-T002 | yes | | |
+| 005-T058 | Create frontend/src/routes/index.tsx defining React Router v7 routes configuration (root route returning simple "TrAIveler" heading as placeholder) | | 2 | P1 | Backlog | 005-T002 | no | | |
+| 005-T059 | Update frontend/src/App.tsx to include RouterProvider with routes from routes/index.tsx | G-SPRINT2-FRONTEND-APP-SHELL | 2 | P1 | Backlog | 005-T047, 005-T058 | no | | |
+| 005-T060 | Wrap App.tsx with ErrorBoundary component | G-SPRINT2-FRONTEND-APP-SHELL | 2 | P1 | Backlog | 005-T057, 005-T059 | no | | |
+
+#### Phase 5 — User Story 3: Infrastructure as Code Foundations (Priority: P1) 🎯 MVP → **Sprints 2-3**
 
 | ID | Task | Group | Sprint | Priority | Status | Depends on | Parallel | Issue | Notes |
 |----|------|-------|--------|----------|--------|------------|----------|-------|-------|
@@ -675,7 +678,7 @@
 | 005-T108 | Create .github/workflows/infra-apply.yml implementing terraform apply -auto-approve for staging on main merge, with output export to GitHub Secrets for backend-ci.yml and frontend-ci.yml | | | P1 | Backlog | 005-T107 | no | | |
 | 005-T109 | Configure OIDC federation in AWS IAM (manual step documented in infra/README.md) creating IAM role with trust policy for GitHub Actions and permissions for Terraform operations | | | P1 | Backlog | 005-T108 | no | | |
 
-#### Phase 6 — User Story 4: Integration and Error Handling Patterns (Priority: P2)
+#### Phase 6 — User Story 4: Integration and Error Handling Patterns (Priority: P2) → **Sprint 4**
 
 | ID | Task | Group | Sprint | Priority | Status | Depends on | Parallel | Issue | Notes |
 |----|------|-------|--------|----------|--------|------------|----------|-------|-------|
@@ -690,7 +693,7 @@
 | 005-T118 | Create integration test scenario in backend/tests/integration/error_test.go verifying database timeout returns 500 with correlation ID and structured error response | G-ARCH-INTEGRATION-TESTS | | P2 | Backlog | 005-T033 | yes | | |
 | 005-T119 | Document error handling patterns in backend/README.md and frontend/README.md with examples of domain error creation, error wrapping, and client error handling | | | P2 | Backlog | 005-T010, 005-T011, 005-T116 | no | | |
 
-#### Phase 7 — Polish & Cross-Cutting Concerns (Priority: P2-P3)
+#### Phase 7 — Polish & Cross-Cutting Concerns (Priority: P2-P3) → **Sprint 4**
 
 | ID | Task | Group | Sprint | Priority | Status | Depends on | Parallel | Issue | Notes |
 |----|------|-------|--------|----------|--------|------------|----------|-------|-------|
@@ -976,11 +979,11 @@
 | 008-T007 | Create E2E test structure: e2e/specs/{auth,collaboration,accessibility}/ directories | G-008-SETUP | | P1 | Backlog | 005-T003 | yes | | |
 | 008-T008 | Create infrastructure directory: infra/terraform/modules/secrets/ for JWT key rotation | G-008-SETUP | | P1 | Backlog | 005-T004 | yes | | |
 
-#### Phase 2 — Foundational (Blocking Prerequisites)
+#### Phase 2 — Foundational (Blocking Prerequisites) → **Sprint 5**
 
 | ID | Task | Group | Sprint | Priority | Status | Depends on | Parallel | Issue | Notes |
 |----|------|-------|--------|----------|--------|------------|----------|-------|-------|
-| 008-T009 | Setup PostgreSQL connection pooling with pgx/v5 in backend/pkg/database/connection.go | | | P1 | Backlog | 008-T001 | no | | |
+| 008-T009 | Setup PostgreSQL connection pooling with pgx/v5 in backend/pkg/database/connection.go | | 5 | P1 | Backlog | 008-T001 | no | | |
 | 008-T010 | Configure goose migrations framework in backend/pkg/database/migrations/ directory | G-008-DATABASE | | P1 | Backlog | 008-T009 | yes | | |
 | 008-T011 | Create migration 001_create_users.sql: users table with id, email (unique), password_hash, full_name, has_subscription (boolean), failed_login_attempts (integer default 0), last_failed_login_at (timestamp), email_verified (boolean default false), created_at, updated_at, version (integer for optimistic locking) | G-008-MIGRATIONS | | P1 | Backlog | 008-T010 | yes | | |
 | 008-T012 | Create migration 002_create_subscriptions.sql: subscriptions table with id, user_id (FK), plan_id (FK), status, current_period_start, current_period_end, grace_period_ends_at (nullable), cancelled_at (nullable), created_at, updated_at, version | G-008-MIGRATIONS | | P1 | Backlog | 008-T010 | yes | | |
@@ -1009,11 +1012,11 @@
 | 008-T035 | Create global styles in frontend/src/styles/global.css: CSS reset, base typography, box-sizing border-box, accessible focus styles using tokens | | | P1 | Backlog | 008-T034 | yes | | |
 | 008-T036 | Create React Router configuration in frontend/src/routes/router.tsx: routes for /register, /login, /dashboard, /trips/:id, /settings, /password-reset, with protected route wrapper checking authStore.isAuthenticated | | | P1 | Backlog | 008-T033 | no | | |
 
-#### Phase 3 — User Story 1: Paid User Registration & First Trip Creation (Priority: P1) 🎯 MVP
+#### Phase 3 — User Story 1: Paid User Registration & First Trip Creation (Priority: P1) 🎯 MVP → **Sprints 6-7**
 
 | ID | Task | Group | Sprint | Priority | Status | Depends on | Parallel | Issue | Notes |
 |----|------|-------|--------|----------|--------|------------|----------|-------|-------|
-| 008-T037 | Create User model in backend/internal/auth/models.go: User struct with ID, Email, PasswordHash, FullName, HasSubscription, FailedLoginAttempts, LastFailedLoginAt, EmailVerified, CreatedAt, UpdatedAt, Version | G-008-US1-MODELS | | P1 | Backlog | 008-T001 | yes | | |
+| 008-T037 | Create User model in backend/internal/auth/models.go: User struct with ID, Email, PasswordHash, FullName, HasSubscription, FailedLoginAttempts, LastFailedLoginAt, EmailVerified, CreatedAt, UpdatedAt, Version | G-008-US1-MODELS | 6 | P1 | Backlog | 008-T001 | yes | | |
 | 008-T038 | Create RegisterRequest/RegisterResponse models in backend/internal/auth/models.go: RegisterRequest{Email, Password, FullName, PaymentMethodToken}, RegisterResponse{User, Subscription} | G-008-US1-MODELS | | P1 | Backlog | 008-T037 | yes | | |
 | 008-T039 | Create Subscription model in backend/internal/subscription/models.go: Subscription struct with ID, UserID, PlanID, Status, CurrentPeriodStart, CurrentPeriodEnd, GracePeriodEndsAt, CancelledAt, CreatedAt, UpdatedAt, Version | G-008-US1-MODELS | | P1 | Backlog | 008-T001 | yes | | |
 | 008-T040 | Create User repository in backend/internal/auth/repository.go: CreateUser(user), GetUserByEmail(email), UpdateUser(user) with optimistic locking check | | | P1 | Backlog | 008-T037, 008-T011 | no | | |
@@ -1083,11 +1086,11 @@ _Checkpoint: Paid User can now register, create subscription, and generate first
 
 _Checkpoint: Free Users can register, accept invitations, enforce single-collaboration limit, leave trips (US2 complete and independently testable)_
 
-#### Phase 5 — User Story 3: Returning User Login & Trip Management (Priority: P1)
+#### Phase 5 — User Story 3: Returning User Login & Trip Management (Priority: P1) → **Sprint 8**
 
 | ID | Task | Group | Sprint | Priority | Status | Depends on | Parallel | Issue | Notes |
 |----|------|-------|--------|----------|--------|------------|----------|-------|-------|
-| 008-T097 | Create LoginRequest/LoginResponse models in backend/internal/auth/models.go: LoginRequest{Email, Password}, LoginResponse{User} | G-008-US3-MODELS | | P1 | Backlog | 008-T037 | yes | | |
+| 008-T097 | Create LoginRequest/LoginResponse models in backend/internal/auth/models.go: LoginRequest{Email, Password}, LoginResponse{User} | G-008-US3-MODELS | 8 | P1 | Backlog | 008-T037 | yes | | |
 | 008-T098 | Implement auth service Login method in backend/internal/auth/service.go: validates email format, retrieves user by email (returns 401 "Invalid credentials" if not found, no enumeration), checks rate limit via rate limiter (returns 429 with retry_after if exceeded), compares password hash with bcrypt (returns 401 if mismatch, increments failed attempts), resets failed_login_attempts=0 on success, logs auth_login_success or auth_login_failure security event | | | P1 | Backlog | 008-T040, 008-T022, 008-T024 | no | | |
 | 008-T099 | Implement POST /auth/login handler in backend/internal/auth/handler.go: validates request body, calls authService.Login, generates JWT tokens (access 24h, refresh 30d), sets HTTP-only cookies, returns 200 with user JSON | | | P1 | Backlog | 008-T098, 008-T019 | no | | |
 | 008-T100 | Register POST /api/v1/auth/login route in backend/cmd/api/main.go: attach login handler with rate limit middleware (progressive delay after 5 failures) | | | P1 | Backlog | 008-T099, 008-T030 | no | | |
@@ -1312,6 +1315,250 @@ The minimum sequential chain to reach a fully functional, security-hardened, dem
 - **Sprint 5+**: Feature implementation (specs 001-004, 331 tasks) — 8-12 weeks
 
 **Total time to first deployable MVP**: ~15-20 weeks with architecture-first approach
+
+---
+
+## Sprint Plan
+
+> **Planning Assumptions**: 2-3 full-stack developers, 2-week sprints, ~20-30 tasks/sprint velocity, foundation-first approach.
+> **MVP Timeline**: 10 sprints (20 weeks) to deployable MVP covering P1 features only.
+> **Post-MVP**: Sprints 11+ for P2-P3 features (collaboration, password reset, design system, observability).
+> 
+> **GitHub Workflow**: Uses native sub-issues (parent with `- [ ] #N` tasklists), GitHub Projects for organization, and epic labels (`epic:name`) instead of separate epic issues. See [ISSUE-CREATION-GUIDELINES.md](../.github/ISSUE-CREATION-GUIDELINES.md) for details.
+
+### 🏗️ Sprint 1: Architecture Foundation (Weeks 1-2)
+
+**Epic Label**: `epic:architecture-foundation`
+
+**Goal**: Establish project structure, Docker, CI skeletons, and configuration patterns that gate all feature work.
+
+**Scope**: Spec 005 Phases 1-2 (Setup + Foundational)
+
+| Work Items | Task Count | Key Deliverables |
+|------------|------------|------------------|
+| Project structure setup | 12 | backend/, frontend/, e2e/, infra/ directories with .gitignore |
+| Foundational blocking prerequisites | 11 | Docker, linting configs, CI skeletons, config loaders |
+
+**Total**: 23 tasks  
+**Risks**: Team onboarding delays, tooling setup issues  
+**Dependencies**: None (starting point)
+
+---
+
+### ⚡ Sprint 2: Backend & Frontend Architecture (Weeks 3-4)
+
+**Epic Labels**: `epic:architecture-backend`, `epic:architecture-frontend`, `epic:architecture-infra`
+
+**Goal**: Implement backend and frontend architectural patterns in parallel.
+
+**Scope**: Spec 005 Phase 3-4 (Backend + Frontend Architecture) + Phase 5 Part 1
+
+| Work Items | Task Count | Assignee | Key Deliverables |
+|------------|------------|----------|------------------|
+| Backend architecture patterns | 18 | Backend Dev | Middleware chain, DB pooling, AI client interface, HTTP server, domain patterns |
+| Frontend architecture patterns | 19 | Frontend Dev | Design tokens, primitives, composites, routing patterns |
+| Infrastructure modules (Part 1) | 25 | Shared | Terraform modules for VPC, security groups, NAT |
+
+**Total**: 62 tasks  
+**Risks**: Parallel track synchronization, pattern adoption  
+**Dependencies**: Sprint 1 complete
+
+---
+
+### ☁️ Sprint 3: Infrastructure Architecture (Weeks 5-6)
+
+**Epic Label**: `epic:architecture-infra` (continuation)
+
+**Goal**: Complete Terraform modules for all AWS resources and CI/CD patterns.
+
+**Scope**: Spec 005 Phase 5 Part 2 (Infrastructure completion)
+
+| Work Items | Task Count | Key Deliverables |
+|------------|------------|------------------|
+| Infrastructure modules (Part 2) | 24 | Terraform modules for ECS, RDS, ALB, CloudFront, IAM, Secrets Manager |
+
+**Total**: 24 tasks  
+**Risks**: AWS account limits, Terraform state management  
+**Dependencies**: Sprint 2 complete
+
+---
+
+### 🔗 Sprint 4: Integration & Observability (Weeks 7-8)
+
+**Epic Label**: `epic:integration-observability`
+
+**Goal**: Unify architecture layers with error correlation, retry logic, and observability primitives.
+
+**Scope**: Spec 005 Phases 6-7 + Spec 002 Phase 2
+
+| Work Items | Task Count | Key Deliverables |
+|------------|------------|------------------|
+| Integration patterns | 10 | Error correlation across layers, retry strategies with exponential backoff |
+| Architecture polish | 12 | Documentation, example domain, validation |
+| Observability core | 7 | RequestID → Logger → /healthz middleware chain |
+
+**Total**: 29 tasks  
+**Risks**: Cross-layer integration complexity  
+**Dependencies**: Sprint 3 complete
+
+---
+
+### 🔐 Sprint 5: Authentication & Security Foundation (Weeks 9-10)
+
+**Epic Label**: `epic:auth-security`
+
+**Goal**: Implement secure authentication, JWT handling, and security middleware.
+
+**Scope**: Spec 004 Phase 2 + Spec 008 Phase 2
+
+| Work Items | Task Count | Key Deliverables |
+|------------|------------|------------------|
+| Security foundations | 36 | JWT RS256 multi-key rotation, refresh tokens, RBAC middleware, security event logging |
+| Auth infrastructure | 28 | bcrypt password hashing (cost 12), rate limiting, validation, Chi router middleware chain |
+
+**Total**: 64 tasks  
+**Risks**: JWT multi-key rotation complexity, rate limiter tuning  
+**Dependencies**: Sprint 4 complete
+
+---
+
+### 📝 Sprint 6: Core Data Layer & Repositories (Weeks 11-12)
+
+**Epic Label**: `epic:data-layer`
+
+**Goal**: Implement database migrations, repositories, and core domain models.
+
+**Scope**: Spec 001 Phase 2 (Data Layer) + Spec 008 Phase 3 Part 1
+
+| Work Items | Task Count | Key Deliverables |
+|------------|------------|------------------|
+| Database migrations | 7 | 8 migration files (users, plans, subscriptions, trips, days, activities, collaborators, suggestions) |
+| Backend repositories | 15 | User, Subscription, Trip repositories with optimistic locking; Payment provider stub |
+
+**Total**: 22 tasks  
+**Risks**: Migration ordering, foreign key constraints  
+**Dependencies**: Sprint 5 complete
+
+---
+
+### 🎨 Sprint 7: Frontend Shell & Components (Weeks 13-14)
+
+**Epic Label**: `epic:frontend-shell`
+
+**Goal**: Build React app shell, authentication pages, and component library primitives.
+
+**Scope**: Spec 001 Phase 2 (Frontend) + Spec 008 Phase 3 Part 2
+
+| Work Items | Task Count | Key Deliverables |
+|------------|------------|------------------|
+| Frontend shell | 9 | Design tokens, API client, Zustand auth store, routing, primitives (Button, Input, Label) |
+| Authentication UI | 19 | Register/Login/Dashboard pages, TripCard, TripDashboard, TripDetail with TanStack Query hooks |
+
+**Total**: 28 tasks  
+**Risks**: Component library scope creep, TanStack Query learning curve  
+**Dependencies**: Sprint 6 complete
+
+---
+
+### 🚀 Sprint 8: MVP User Stories (Trip Generation) (Weeks 15-16)
+
+**Epic Label**: `epic:trip-generation`
+
+**Goal**: Implement core trip generation flow with AI integration (stubbed for MVP).
+
+**Scope**: Spec 001 Phase 3 + Spec 008 Phase 5
+
+| Work Items | Task Count | Key Deliverables |
+|------------|------------|------------------|
+| Trip generation backend | 18 | Trip/Conversation/Itinerary services, AI Claude streaming (stub: 3-day Paris itinerary), HTTP handlers |
+| Login & trip management | 26 | Login/logout flow, trips list/detail/update/delete handlers, trip CRUD UI pages |
+
+**Total**: 44 tasks  
+**Risks**: SSE streaming complexity, AI stub maintainability  
+**Dependencies**: Sprint 7 complete
+
+---
+
+### 🔒 Sprint 9: Security Hardening & NFR Gates (Weeks 17-18)
+
+**Epic Label**: `epic:security-hardening`
+
+**Goal**: Wire security validators and implement NFR CI gates (accessibility, performance, security).
+
+**Scope**: Spec 002 Phases 3-5 + Spec 004 Phase 3
+
+| Work Items | Task Count | Key Deliverables |
+|------------|------------|------------------|
+| Performance validation | 4 | k6 load tests (500 VUs, p95 ≤ 500ms), API latency scenarios |
+| Accessibility gates | 8 | axe-core + LHCI, privacy policy page, @accessibility E2E tag |
+| Security validation | 12 | Prompt injection validator (YAML deny-list), output sanitizer (bluemonday), GDPR user deletion, CI gates (gosec, gitleaks) |
+| Security backend implementation | 32 | Wire PromptValidator into handlers, OutputSanitizer into services, security logging, multi-key JWT storage |
+
+**Total**: 56 tasks  
+**Risks**: Load test threshold tuning, CI gate false positives  
+**Dependencies**: Sprint 8 complete
+
+---
+
+### ☁️ Sprint 10: Infrastructure Deployment & MVP (Weeks 19-20)
+
+**Epic Label**: `epic:deployment`
+
+**Goal**: Deploy to AWS staging, validate end-to-end flow, achieve deployable MVP.
+
+**Scope**: Spec 003 Phases 3-5 + E2E validation
+
+| Work Items | Task Count | Key Deliverables |
+|------------|------------|------------------|
+| AWS infrastructure provisioning | 23 | Terraform apply (VPC, ALB, RDS, ECS, CloudFront), wire all modules in root main.tf |
+| Secrets & configuration | 6 | Populate AWS Secrets Manager (DB credentials, Anthropic API key, JWT signing keys), wire into ECS task definitions |
+| CI/CD pipeline deployment | 14 | GitHub Actions workflows with OIDC, backend ECR build/push, ECS deployment, frontend S3+CloudFront deploy, smoke tests |
+| E2E validation | 1 | Full user journey: register → subscribe → generate itinerary → verify Day 1 activities |
+
+**Total**: 44 tasks  
+**Risks**: AWS service limits, IAM permission issues, Terraform state conflicts, ECS deployment failures  
+**Dependencies**: Sprint 9 complete
+
+---
+
+### 📊 Sprint Summary Statistics
+
+| Metric | Value |
+|--------|-------|
+| **MVP sprints** | 10 sprints (20 weeks) |
+| **Total MVP tasks** | 390 tasks (52% of project) |
+| **Average velocity** | 39 tasks/sprint |
+| **Parallelization rate** | 54% of tasks can run concurrently |
+| **GitHub Issues (estimated)** | ~270 parent + sub-issues (vs 745 if ungrouped) |
+| **Epic labels** | 11 epics across all sprints (see each sprint header) |
+| **Team size assumption** | 2-3 full-stack developers |
+
+**GitHub Organization**:
+- **Epic tracking**: Filter by `epic:architecture-foundation`, `epic:auth-security`, etc. in GitHub Projects
+- **Issue hierarchy**: Parent issues with `- [ ] #N` tasklists auto-create sub-issue relationships
+- **Sprint tracking**: Filter by `sprint:1`, `sprint:2`, etc. in GitHub Projects Sprint Board view
+- **Workflow**: Create sub-issues first (to get numbers), then parent with tasklist references
+
+### 🎯 Post-MVP Roadmap (Sprints 11+)
+
+**Sprints 11-12: Collaboration Features (P2)**
+- Spec 008 Phase 4: Free user registration + collaboration acceptance (26 tasks)
+- Spec 008 Phase 6: Suggestion workflow (17 tasks)
+- Spec 001 Phase 6: Group collaboration advanced (13 tasks)
+- **Total**: ~56 tasks
+
+**Sprints 13-14: Enhanced UX & Security (P2)**
+- Spec 008 Phase 7: Password reset + account security (21 tasks)
+- Spec 008 Phase 9: Subscription lifecycle (16 tasks)
+- Spec 004 Phases 4-5: Frontend security + QA (35 tasks)
+- **Total**: ~72 tasks
+
+**Sprints 15+: Polish & Observability (P2-P3)**
+- Spec 002 Phases 6-8: Observability validation + maintainability (8 tasks)
+- Spec 003 Phases 6-8: Cost monitoring + infra observability (36 tasks)
+- Spec 006-007: Documentation + API standards validation (125 tasks)
+- Spec 008 Phases 8-10: Design system + polish (40 tasks)
+- **Total**: ~209 tasks
 
 ---
 

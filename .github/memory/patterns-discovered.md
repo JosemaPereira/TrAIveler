@@ -393,3 +393,245 @@ graph LR
 - `frontend/README.md`
 - `e2e/README.md`
 - `infra/README.md`
+
+---
+
+### Simplified GitHub Issue Workflow (One Task = One Issue)
+
+### Context
+- Project management — GitHub issue creation from roadmap tasks; applies to all sprints
+
+### Problem
+- Creating parent issues + sub-issues for task groups adds overhead (e.g., 23 tasks → 29 issues with 6 parents). Duplicate tracking occurs: parent completion % vs. individual task status. Parent-child hierarchies require specific creation order (sub-issues first to get numbers, then parent with tasklist references). Scales poorly (Sprint 2: 62 tasks → ~82 issues with parents).
+
+### Solution
+- **One task = one issue** (1:1 mapping with roadmap). No parent issues, no sub-issues.
+- Use GitHub Projects for organization:
+  - **Epic labels** (`epic:architecture-foundation`) for high-level grouping
+  - **Group custom field** in Projects (set to `G-ARCH-SETUP-DIRS`, etc.) for work package visualization
+  - **Project views** (Sprint Board, Epic Board, Group Board) to see related work together
+- Create issues in any order (no parent-first or sub-issue-first constraint)
+- Track progress through issue status only (no parent completion % to maintain)
+- Result: Cleaner backlog, simpler workflow, scales linearly (N tasks = N issues)
+
+### Example
+```bash
+# Sprint 1: 23 tasks → 23 issues (not 29)
+for task_id in 005-T001 005-T002 ...; do
+  gh issue create \
+    --title "$task_id — <title>" \
+    --label "epic:architecture-foundation,sprint:1,priority:P1"
+done
+
+# Set Group in Projects UI for visualization
+# No parent issues needed — Projects handles grouping
+```
+
+### Related Files
+- `.github/ISSUE-CREATION-GUIDELINES.md` (simplified workflow section)
+- `.github/prompts/create-sprint-issues.prompt.md`
+- `docs/roadmap.md` (Group column for Projects grouping)
+
+---
+
+### Dependency Tracking via Cross-Reference Comments
+
+### Context
+- GitHub issue management — making "Blocked by" / "Blocks" relationships visible in UI
+
+### Problem
+- GitHub's native relationship dropdown requires manual linking in UI (click issue → Development → Add link → search for blocker). For sprints with 20+ issues and complex dependency chains, manual linking is time-consuming and error-prone. Roadmap has dependency data ("Depends on" column), but GitHub doesn't auto-import it.
+
+### Solution
+- **Automated cross-reference comments** create visible relationships:
+  - For dependent issues: Add comment `**Dependency Tracking**: Blocked by #<blocker>`
+  - For blocker issues: Add comment `**Blocks the following issues**: #A, #B, #C`
+  - GitHub auto-links issue numbers in comments → creates clickable cross-references
+  - Relationships appear in issue timelines and linked issues sections
+  - Visible in GitHub Projects dependency views
+- Create script (`.github/scripts/setup-issue-relationships.sh`) that:
+  1. Reads roadmap dependencies
+  2. Maps stable IDs to issue numbers
+  3. Calls `gh issue comment` to create cross-references
+  4. Idempotent (checks for existing comments before adding)
+- Run after all sprint issues are created
+
+### Example
+```bash
+# Add relationship tracking
+gh issue comment 16 --body "**Dependency Tracking**: Blocked by #13
+
+This task (005-T020) requires completion of the blocking issue before work can begin."
+
+gh issue comment 13 --body "**Blocks the following issues**:
+- #14 - #15 - #16 - #25 - #27 - #30 - #31 - #32 - #33
+
+These issues depend on completion of this task."
+```
+
+### Related Files
+- `.github/scripts/setup-issue-relationships.sh` (template script)
+- `.github/ISSUE-CREATION-GUIDELINES.md` (dependency tracking section)
+- `docs/roadmap.md` (source of "Depends on" relationships)
+
+---
+
+### Template-Based Script Customization for Sprint-Specific Needs
+
+### Context
+- Automation scripts — sprint-specific dependency tracking, data transformation, batch operations
+
+### Problem
+- Hard-coded scripts become obsolete after one use (e.g., Sprint 1 dependency script can't be used for Sprint 2). Copy-paste leads to errors (wrong issue numbers, missed dependencies). Need reusable pattern that forces correct customization.
+
+### Solution
+- **Template scripts with placeholder logic**:
+  1. Create script with reusable functions (e.g., `add_relationship()`, `add_blocks_comment()`)
+  2. Replace sprint-specific data with comments and examples
+  3. Add prominent warning: "⚠️ TEMPLATE SCRIPT — Customize for Your Sprint"
+  4. Provide clear instructions and example pattern in script header
+  5. Script won't work as-is (forces user to read and customize)
+- Pattern: Functions at top, sprint-specific calls at bottom (commented out)
+- User must: (1) Analyze their data, (2) Uncomment/adapt example, (3) Run script
+- Prevents blind copy-paste; ensures sprint-specific correctness
+
+### Example
+```bash
+#!/bin/bash
+# TEMPLATE SCRIPT — Customize for your sprint
+
+add_relationship() {
+  local issue=$1
+  local blocker=$2
+  # ... function logic
+}
+
+# CUSTOMIZE BELOW with your sprint's dependencies:
+# Example (Sprint 1 pattern):
+# add_blocks_comment 13 "14 15 16"
+# add_relationship 14 13 "005-T005"
+# add_relationship 15 13 "005-T013"
+
+# ADD YOUR SPRINT'S CALLS HERE:
+# (Analyze docs/roadmap.md first)
+```
+
+### Related Files
+- `.github/scripts/setup-issue-relationships.sh` (template example)
+- `.github/scripts/README.md` (template usage instructions)
+
+---
+
+### Multi-Layer Enforcement for Mandatory Steps
+
+### Context
+- Process compliance — ensuring critical steps aren't skipped in complex workflows
+
+### Problem
+- Single-point documentation is easy to miss. Developers skip steps if they're only mentioned in one place. Example: Dependency tracking was initially documented only in guidelines, but wasn't enforced in workflow prompt or checked in script.
+
+### Solution
+- **Enforce mandatory steps through 4+ layers**:
+  1. **Workflow prompt** — Add mandatory step in agent workflow (e.g., "Step 11: SET UP DEPENDENCY TRACKING")
+  2. **Guidelines** — Add rule with ⚠️ warning (e.g., "Rule #5: Dependency Tracking is MANDATORY")
+  3. **Checklist** — Mark item with **MANDATORY** in post-work checklist
+  4. **Tool design** — Template script forces customization (won't work as-is)
+  5. **README** — Repeat requirement with rationale ("Why it's required")
+- Each layer reinforces others; no single failure point
+- Add "Why" explanation in at least 2 layers (motivation prevents shortcuts)
+
+### Example
+Enforcement layers for dependency tracking:
+- Prompt: "Step 11: SET UP DEPENDENCY TRACKING (mandatory)"
+- Guidelines: "Rule #5: Dependency Tracking is MANDATORY ⚠️"
+- Checklist: "[ ] **MANDATORY: Customize and run dependency tracking script**"
+- Script: Template won't work until customized
+- README: "Why it's required: Makes dependencies visible..."
+
+### Related Files
+- `.github/prompts/create-sprint-issues.prompt.md` (workflow layer)
+- `.github/ISSUE-CREATION-GUIDELINES.md` (guidelines + checklist layer)
+- `.github/scripts/setup-issue-relationships.sh` (tool design layer)
+- `.github/scripts/README.md` (documentation layer)
+
+---
+
+### Consolidation-First Issue Creation (Backlog Optimization Pattern)
+
+### Context
+- Sprint planning and issue creation — applies BEFORE creating GitHub issues from roadmap tasks
+
+### Problem
+- Creating one GitHub issue per atomic task fragments the backlog and wastes tickets. Small related tasks (middleware files, config pairs, primitive components) should be developed together in one PR but create 3-5 separate issues, increasing review overhead and context switching. Post-creation consolidation requires manual GitHub issue closing and roadmap updates.
+
+### Solution
+- **Consolidate BEFORE creating issues, not after**:
+  1. Group related tasks during sprint planning by shared context (same area/module + same tech stack + similar size)
+  2. Assign Group values (e.g., `G-SPRINT2-BACKEND-MIDDLEWARE`) to roadmap rows
+  3. Create ONE issue per group with member tasks as a checklist
+  4. Each group becomes one reviewable PR (~150-200 LOC)
+- **Consolidation Rules (apply automatically)**:
+  - ✅ DO consolidate: Same spec + same area/module + same tech stack + shared context + size 2-4 tasks + no blocking deps + independent tracking not required
+  - ❌ DON'T consolidate: Different tech stacks (Go + TypeScript) + critical blocker + different dependency chains + cross-spec + already large (>200 LOC)
+- **Optimal group size**: 2-4 tasks per group
+- **Target**: 10-25% ticket reduction (Sprint 2 achieved -49%)
+- **Permanent integration**: Consolidation analysis is now a MANDATORY step in PM agent's sprint planning workflow
+
+### Example
+```markdown
+Before Consolidation:
+- 005-T024: request_id.go → Issue #X
+- 005-T025: logger.go → Issue #Y
+- 005-T026: recovery.go → Issue #Z
+- 005-T027: cors.go → Issue #A
+- 005-T028: body_size.go → Issue #B
+Result: 5 issues, 5 PRs
+
+After Consolidation:
+- G-SPRINT2-BACKEND-MIDDLEWARE → Issue #N with 5-task checklist
+Result: 1 issue, 1 PR (~150 LOC, reviewable in 30-60 min)
+```
+
+### Related Files
+- `.github/agents/product-manager.agent.md` (Task Consolidation section)
+- `.github/prompts/plan-sprints.prompt.md` (mandatory consolidation step)
+- `.github/ISSUE-CREATION-GUIDELINES.md` (Consolidation-First Workflow)
+- `.github/copilot-instructions.md` (Task Consolidation Policy)
+- `.github/PM-WORKFLOW-CONSOLIDATION.md` (detailed workflow reference)
+
+---
+
+### Existing Sprints as Refinement Evidence (Idempotency Pattern)
+
+### Context
+- Sprint replanning, roadmap updates — when running `/plan-sprints` or modifying sprint assignments
+
+### Problem
+- A sprint with issues already created represents completed planning work. Re-planning or recreating those issues causes duplication, GitHub issue URL conflicts in roadmap, and wasted effort. Manual cleanup is required to reconcile.
+
+### Solution
+- **Detect existing sprints by Issue URL presence**: If roadmap tasks in a sprint already have values in the Issue column, treat that sprint as refinement evidence and SKIP all modification:
+  - Do NOT propose consolidation (already decided)
+  - Do NOT recreate issues (already exist)
+  - Do NOT modify Sprint/Priority/Group values (human-curated)
+  - Use sprint as historical data to inform future sprint patterns
+- **Apply consolidation ONLY to new sprints**: Check if tasks in target sprint have Issue URLs; if empty, proceed with consolidation analysis
+- **Idempotent workflow**: Running `/plan-sprints` multiple times converges correctly — completed sprints remain untouched, new sprints receive fresh analysis
+
+### Example
+```
+Sprint 1: 23 tasks with Issue URLs (#13-35)
+Action: SKIP — treat as evidence of 1-task-per-issue approach
+
+Sprint 2: 37 tasks with NO Issue URLs
+Action: APPLY — mandatory consolidation analysis, propose groups, assign Sprint
+
+Sprint 3: Empty (no tasks assigned yet)
+Action: APPLY — full sprint planning workflow
+```
+
+### Related Files
+- `.github/agents/product-manager.agent.md` (Handling Existing Sprints section)
+- `.github/prompts/plan-sprints.prompt.md` (Step 3: Check for existing sprints)
+- `docs/roadmap.md` (Issue column presence = refinement complete)
+

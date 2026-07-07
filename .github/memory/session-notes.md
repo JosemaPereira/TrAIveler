@@ -344,3 +344,121 @@ Historical summaries of completed development sessions. Committed to git as a re
   - Session closed: 2026-07-06
 
 ---
+
+### Session: Sprint Planning, GitHub Infrastructure, and Dependency Tracking Automation
+- **Date**: 2026-07-06
+- **Branch**: main (working in docs/ and .github/)
+- **What was accomplished**:
+  - **10-Sprint MVP Plan Created** — comprehensive sprint planning covering 390 of 745 roadmap tasks:
+    - Sprint 1: Architecture Foundation (23 tasks, epic:architecture-foundation)
+    - Sprint 2: Backend & Frontend Architecture (62 tasks, 3 epics)
+    - Sprint 3: Infrastructure Architecture (24 tasks)
+    - Sprint 4: Integration & Observability (29 tasks)
+    - Sprint 5: Authentication & Security (64 tasks)
+    - Sprint 6: Core Data Layer (22 tasks)
+    - Sprint 7: Frontend Shell (28 tasks)
+    - Sprint 8: Trip Generation MVP (44 tasks)
+    - Sprint 9: Security Hardening (56 tasks)
+    - Sprint 10: Deployment & Launch (44 tasks)
+    - Timeline: 20 weeks to deployable MVP with 2-3 full-stack developers
+    - MoSCoW prioritization framework applied
+    - 54% of tasks identified as parallelizable
+  - **GitHub Infrastructure Setup**:
+    - Created 39 labels: 11 epic labels, 10 sprint labels (sprint:1-10), 3 priority labels (P1-P3), 4 type labels (backend/frontend/infra/e2e), 2 status labels (blocked/ready), 1 group label, 8 spec labels (spec:001-008)
+    - Created `.github/setup-github-labels.sh` script for reproducible label creation
+    - Verified GitHub Project #2 "TrAIveler" (ID: PVT_kwHOANUiQs4BcqYQ) exists with 13 custom fields
+  - **Sprint 1 Issue Creation** — implemented simplified workflow:
+    - Created 23 task issues (#13-35) — one issue per roadmap task (1:1 mapping)
+    - All issues properly labeled (epic, spec, sprint, priority, type)
+    - All issues added to GitHub Project #2
+    - All issue URLs written back to roadmap Issue column
+    - Initially created 29 issues (23 tasks + 6 parent issues), then simplified by closing 6 parent issues (#36-41)
+    - **Lesson learned**: Parent + sub-issue hierarchies add unnecessary overhead; GitHub Projects provides all needed grouping natively
+  - **Dependency Tracking Automation**:
+    - Analyzed all Sprint 1 dependencies from roadmap's "Depends on" column
+    - Created and executed `.github/scripts/setup-issue-relationships.sh` — automated dependency tracking via cross-reference comments
+    - Established 19 blocking relationships across 4 foundation issues:
+      - Issue #13 (Backend directory) blocks 9 issues
+      - Issue #20 (Frontend directory) blocks 5 issues
+      - Issue #21 (E2E directory) blocks 1 issue
+      - Issue #22 (Infra directory) blocks 4 issues
+    - All relationships now visible in GitHub UI timelines, linked issues sections, and Projects dependency views
+    - Converted script to reusable template for future sprints
+  - **Documentation Updates**:
+    - **`.github/ISSUE-CREATION-GUIDELINES.md`** — completely rewritten (simplified workflow):
+      - Removed all parent/sub-issue complexity
+      - Added Rule #5: "Dependency Tracking is MANDATORY"
+      - Updated Sprint 1 example to show actual 23-issue structure (not 29)
+      - Added comprehensive "Dependency Tracking Script" section
+      - Updated checklist to enforce dependency tracking
+      - Removed deprecated parent issue templates and workflows
+    - **`.github/prompts/create-sprint-issues.prompt.md`** — updated workflow:
+      - Added Step 11: "SET UP DEPENDENCY TRACKING" (mandatory)
+      - Instructs agent to analyze roadmap dependencies and create/run tracking script
+      - Updated notes with dependency tracking requirement
+    - **`.github/scripts/README.md`** — created comprehensive script documentation explaining template-based approach
+    - **`docs/roadmap.md`** — updated with Sprint Plan section (165 lines) showing 10 sprints with goals, deliverables, risks, and critical path
+  - **Cleanup and Enforcement**:
+    - Deleted Sprint 1-specific temporary documentation (SPRINT-1-DEPENDENCIES.md)
+    - Removed redundant template file (setup-issue-relationships-template.sh)
+    - Converted actual script to template with usage instructions and example pattern
+    - Enforced dependency tracking as mandatory for all future sprints through multiple documentation layers
+- **Key findings and decisions**:
+  - **Simplified workflow scales better**: One task = one issue (no parent issues) reduces Sprint 1 from 29 to 23 issues; Sprint 2 would be 62 issues instead of ~82 with parents. GitHub Projects custom fields handle grouping without issue hierarchy overhead.
+  - **Dependency tracking must be automated**: GitHub's native relationship dropdown requires manual linking OR cross-reference comments. Manual linking for 20+ issues per sprint is error-prone. Automated script creates "Blocked by #N" and "Blocks #A, #B, #C" comments that make relationships visible in timelines, linked issues, and Projects.
+  - **Template-based scripts for sprint-specific needs**: Rather than hard-coding relationships, template scripts force customization based on roadmap analysis. Prevents copy-paste errors and ensures sprint-specific dependency tracking.
+  - **Multiple enforcement layers required**: Made dependency tracking mandatory through: (1) workflow prompt (Step 11), (2) guidelines (Rule #5 + checklist), (3) template script (won't work as-is), (4) README instructions. No single layer is sufficient.
+  - **Foundation issues enable parallelization**: 4 foundation issues (#13, #20, #21, #22) unlock 19 dependent issues once complete. After foundation (2-4 hours), 9 backend + 5 frontend + 1 e2e + 4 infra tasks can run concurrently (6-8 days with 2-3 developers).
+  - **Epic labels replace epic issues**: Using `epic:architecture-foundation` label + Projects views provides same organization as separate epic issues without the overhead. 11 epic labels cover entire MVP (architecture x4, integration, auth, data-layer, frontend-shell, trip-generation, security-hardening, deployment).
+  - **Projects custom fields for work packages**: "Group" custom field in Projects (e.g., `G-ARCH-SETUP-DIRS`) groups related tasks visually without parent-child issue complexity. Manual setup in UI after issue creation.
+- **Outcomes**:
+  - Sprint 1 ready to start: 23 issues created with proper labels, all dependencies tracked, GitHub Project #2 configured
+  - 10-sprint MVP plan documented in roadmap with goals, deliverables, and risks
+  - Simplified issue workflow established: one task = one issue, use Projects for grouping
+  - Dependency tracking automated and enforced for all future sprints
+  - All workflow documentation updated (guidelines, prompts, scripts, README)
+  - Foundation work can begin immediately (#13, #20, #21, #22 have no dependencies)
+  - Template script ready for Sprint 2 customization
+  - All changes staged, ready for commit
+
+---
+
+### Session: Consolidation Policy Integration and Sprint 2 Assignment
+- **Date**: 2026-07-07
+- **Branch**: `main` (direct updates to PM agent and guidelines)
+- **What was accomplished**:
+  - **Permanent Integration of Consolidation Policy**:
+    - Updated `.github/agents/product-manager.agent.md` with Task Consolidation (MANDATORY - Core Workflow) section including consolidation rules, handling of existing sprints, group mechanics, and success metrics
+    - Updated `.github/prompts/plan-sprints.prompt.md` with mandatory consolidation analysis step and check for existing sprints
+    - Updated `.github/ISSUE-CREATION-GUIDELINES.md` with Consolidation-First Workflow (MANDATORY) section, detailed rules, and examples
+    - Updated `.github/copilot-instructions.md` with Task Consolidation Policy (MANDATORY) and reference to PM-WORKFLOW-CONSOLIDATION.md
+  - **Cleanup of Temporary Remediation Files**:
+    - Deleted 5 temporary scripts: consolidate-terraform-issues.sh, update-roadmap-terraform.sh, run-consolidation.sh, analyze-sprint-consolidation.sh, apply-sprint-consolidation.sh
+    - Deleted 4 temporary docs: sprint-consolidation-analysis.md, CONSOLIDATION-INTEGRATION-COMPLETE.md, SPRINT-REPLANNING-SUMMARY.md, SPRINT-REPLANNING-README.md, scripts/CONSOLIDATION-README.md
+    - Deleted 2 roadmap backups: roadmap.md.backup-20260707-104152, roadmap.md.backup-20260707-104920
+    - Kept permanent files: PM-WORKFLOW-CONSOLIDATION.md (reference), setup-issue-relationships.sh (dependency tracking tool)
+  - **Sprint 2 Assignment Completion**:
+    - Filled Sprint column with "2" for 36 tasks (T025-T060) that already had consolidation groups assigned
+    - Verified 9 consolidation groups: G-SPRINT2-BACKEND-MIDDLEWARE (5), G-SPRINT2-BACKEND-AI (3), G-SPRINT2-BACKEND-ERRORS (2), G-SPRINT2-BACKEND-EXAMPLE (3), G-SPRINT2-FRONTEND-TOKENS (2), G-SPRINT2-FRONTEND-API-CONFIG (2), G-SPRINT2-FRONTEND-PRIMITIVES-CORE (4), G-SPRINT2-FRONTEND-PRIMITIVES-STATE (3), G-SPRINT2-FRONTEND-APP-SHELL (3)
+    - 10 standalone tasks: database client, main.go, DB init, /healthz, handler, auth-store, Form, .gitkeep, ErrorBoundary, routes
+    - Total: 37 tasks → 19 work items (-49% ticket reduction)
+- **Key findings and decisions**:
+  - **Consolidation groups were already assigned**: Sprint 2 consolidation was completed in a previous session, only Sprint column assignments were missing. This validated that the consolidation approach works and is reproducible.
+  - **PM agent now respects Sprint 1 as refinement evidence**: Added explicit logic to SKIP sprints that already have Issue URLs in roadmap, treating them as evidence of completed refinement work rather than something to recreate.
+  - **Mandatory consolidation prevents future ticket waste**: By making consolidation analysis a required step in `/plan-sprints`, the system will automatically propose groupings for all future sprints before issue creation, not after.
+  - **Four-layer enforcement strategy**: (1) PM agent core workflow, (2) /plan-sprints prompt step 4, (3) ISSUE-CREATION-GUIDELINES mandatory section, (4) copilot-instructions.md policy. Multiple layers ensure the policy is discoverable and enforceable.
+  - **Cleanup removes remediation artifacts**: All scripts and docs created to fix Sprint 1 post-creation consolidation are now deleted. The permanent integration into agents/prompts makes them unnecessary.
+  - **Optimal group size is 2-4 tasks**: Sprint 2 groups averaging 3 tasks each hit the sweet spot for reviewable PRs (~150-200 LOC) that preserve context without becoming unwieldy.
+  - **Consolidation rules are automatic and explicit**: DO consolidate: same spec + same area/module + same tech + shared context + size 2-4 + no blocking deps. DON'T consolidate: different tech stacks, critical blockers, different dependency chains, cross-spec, already large.
+- **Outcomes**:
+  - PM agent and /plan-sprints prompt now enforce consolidation-first workflow automatically
+  - Sprint 1 (23 issues) treated as refinement evidence, never modified
+  - Sprint 2 ready for issue creation: 37 tasks assigned, 19 work items defined, -49% ticket reduction
+  - All temporary remediation files deleted (9 files), permanent tools retained (2 files)
+  - Future sprints will automatically receive consolidation analysis before issue creation
+  - Documentation updated with consolidation patterns, examples, and success metrics
+  - System ready for `/create-sprint-issues 2` to create 19 consolidated GitHub issues
+  - Changes staged, ready for commit
+
+---
+
