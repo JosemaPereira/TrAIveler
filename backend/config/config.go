@@ -1,3 +1,17 @@
+// Package config provides application configuration loading from environment variables
+// with fail-fast validation. All configuration is loaded once at startup and validated
+// before the application begins serving requests.
+//
+// Configuration is organized into logical groups (Server, Database, AI, Auth, Log)
+// with sensible defaults for development. Production environments must explicitly
+// provide required values (DATABASE_URL, ANTHROPIC_API_KEY, JWT_SIGNING_KEY).
+//
+// Usage:
+//
+//	cfg, err := config.Load()
+//	if err != nil {
+//	    log.Fatal("Failed to load configuration: %w", err)
+//	}
 package config
 
 import (
@@ -159,6 +173,7 @@ func validate(cfg *Config) error {
 
 // Helper functions for environment variable parsing
 
+// getEnv retrieves a string environment variable or returns the default if unset or empty.
 func getEnv(key, defaultValue string) string {
 	if value := os.Getenv(key); value != "" {
 		return value
@@ -166,6 +181,8 @@ func getEnv(key, defaultValue string) string {
 	return defaultValue
 }
 
+// getEnvInt retrieves an integer environment variable or returns the default if unset, empty, or invalid.
+// Invalid values (non-numeric strings) are silently ignored and the default is used.
 func getEnvInt(key string, defaultValue int) int {
 	if value := os.Getenv(key); value != "" {
 		if intValue, err := strconv.Atoi(value); err == nil {
@@ -175,6 +192,9 @@ func getEnvInt(key string, defaultValue int) int {
 	return defaultValue
 }
 
+// getEnvBool retrieves a boolean environment variable or returns the default if unset, empty, or invalid.
+// Valid boolean strings: "1", "t", "T", "true", "True", "TRUE", "0", "f", "F", "false", "False", "FALSE".
+// Invalid values are silently ignored and the default is used.
 func getEnvBool(key string, defaultValue bool) bool {
 	if value := os.Getenv(key); value != "" {
 		if boolValue, err := strconv.ParseBool(value); err == nil {
@@ -184,6 +204,9 @@ func getEnvBool(key string, defaultValue bool) bool {
 	return defaultValue
 }
 
+// getEnvDuration retrieves a duration environment variable or returns the default if unset, empty, or invalid.
+// Durations must be in Go duration format (e.g., "30s", "5m", "1h30m").
+// Invalid values are silently ignored and the default is used.
 func getEnvDuration(key string, defaultValue time.Duration) time.Duration {
 	if value := os.Getenv(key); value != "" {
 		if duration, err := time.ParseDuration(value); err == nil {
