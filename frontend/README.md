@@ -9,7 +9,14 @@ typed API client, accessibility helpers, and unit/integration tests.
 
 ---
 
-> **Implementation Status**: Project scaffolding pending. Vite + React 19 + TypeScript setup will be initialized in Sprint 2. See `docs/roadmap.md` for task sequencing.
+> **Implementation Status**: ✅ Project scaffolding complete (Sprint 1, 2026-07-07)
+> - Directory structure with Atomic Design layers created
+> - Vite + React 19 + TypeScript strict mode initialized  
+> - Core dependencies installed (TanStack Query v5, Zustand, React Router v7, Lucide React)
+> - ESLint + Prettier configured with no-any enforcement
+> - Development server functional at http://localhost:5173
+> 
+> ⏳ **Next**: Component library, routing, state management, and API client implementation pending (Sprint 2+)
 
 ---
 

@@ -1,0 +1,34 @@
+{
+  "compilerOptions": {
+    /* Language & Environment */
+    "target": "ES2022",                           // Target modern JavaScript (async/await, optional chaining, etc.)
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],    // Include browser APIs and modern JS features
+    "module": "ESNext",                           // Use latest ECMAScript module syntax
+    "skipLibCheck": true,                         // Skip type checking of declaration files for faster builds
+
+    /* Bundler mode - Vite-specific optimizations */
+    "moduleResolution": "bundler",                // Use Vite's module resolution (faster than Node)
+    "allowImportingTsExtensions": true,           // Allow importing .ts/.tsx files with extensions
+    "resolveJsonModule": true,                    // Allow importing JSON files as modules
+    "isolatedModules": true,                      // Ensure each file can be transpiled independently (required by Vite)
+    "noEmit": true,                               // Don't emit JS files (Vite handles bundling)
+    "jsx": "react-jsx",                           // Use React 17+ JSX transform (no need to import React)
+
+    /* Linting - Strict Mode for Maximum Type Safety */
+    "strict": true,                               // Enable all strict type checking options
+    "noUnusedLocals": true,                       // Error on unused local variables (prevents dead code)
+    "noUnusedParameters": true,                   // Error on unused function parameters (use _ prefix to bypass)
+    "noFallthroughCasesInSwitch": true,          // Require break/return in switch cases (prevents bugs)
+    "noUncheckedIndexedAccess": true,            // Array/object access returns T | undefined (prevents runtime errors)
+    "noImplicitReturns": true,                   // Ensure all code paths in function return a value
+    "forceConsistentCasingInFileNames": true,    // Prevent case-sensitivity issues across OS filesystems
+
+    /* Path Aliases - Cleaner Imports */
+    "baseUrl": ".",                               // Base directory for path resolution
+    "paths": {
+      "@/*": ["./src/*"]                          // Map @/ to src/ (e.g., import from '@/components/Button')
+    }
+  },
+  "include": ["src"],                             // Only compile files in src/ directory
+  "references": [{ "path": "./tsconfig.node.json" }]  // Reference Node.js config for build tools (Vite)
+}
