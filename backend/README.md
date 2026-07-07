@@ -9,7 +9,7 @@ repositories, AI integration, observability middleware, and security primitives.
 
 ---
 
-> **Implementation Status**: Go module initialized with core dependencies (Chi, pgx, goose, uuid). Directory structure in place. Source code implementation in progress following Sprint 1 tasks.
+> **Implementation Status**: Configuration system, linting, and environment templates complete (Sprint 1). HTTP server, middleware chain, and database client implementation in progress (Sprint 2).
 
 ---
 
@@ -125,23 +125,92 @@ backend/
 
 ## Environment Variables
 
-Copy `.env.example` at the repo root and create a `.env` file. **Never commit real secret values.**
+Copy `backend/.env.example` to `backend/.env` and populate with actual values. **Never commit .env to version control.**
 
-| Variable | Required | Description |
-|----------|----------|-------------|
-| `DATABASE_URL` | ✅ | PostgreSQL connection string, e.g. `postgres://traiveler:pass@localhost:5432/traiveler` |
-| `ANTHROPIC_API_KEY` | ✅ | Anthropic API key for Claude — never hard-coded in source |
-| `JWT_SECRET` | ✅ | Random secret for signing JWT tokens (min 32 bytes) |
-| `JWT_TTL_SECONDS` | ✅ | Access token lifetime, e.g. `86400` (24 hours) |
-| `PORT` | ✅ | HTTP listen port, e.g. `8080` |
-| `FRONTEND_ORIGIN` | ✅ | Allowed CORS origin, e.g. `http://localhost:5173` |
-| `AI_SYSTEM_PROMPT` | ✅ | Claude system prompt text — treated as a secret; never logged or returned to clients |
-| `ENV` | ❌ | `development` \| `production`; controls log format and error verbosity |
+Configuration is loaded via `config/config.go` with fail-fast validation on startup.
 
----
+### Required Variables
 
-## Setup
+| Variable | Description |
+|----------|-------------|
+| `DATABASE_URL` | PostgreSQL connection string (format: `postgresql://user:pass@host:port/db?sslmode=disable`) |
+| `ANTHROPIC_API_KEY` | Anthropic API key from https://console.anthropic.com/settings/keys |
+| `JWT_SIGNING_KEY` | JWT signing secret (required in production; generate with: `openssl rand -base64 32`) |
 
+### Optional Variables (with defaults)
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `HTTP_PORT` | `8080` | HTTP server listen port |
+### Quick Start
+
+```bash
+# 1. Copy environment template and configure
+cp backend/.env.example backend/.env
+# Edit backend/.env with your DATABASE_URL and ANTHROPIC_API_KEY
+
+# 2. Start PostgreSQL (via Docker Compose from root)
+docker compose up -d postgres
+
+# 3. Run database migrations (when migrations/ is implemented)
+cd backend
+goose -dir migrations postgres "$DATABASE_URL" up
+
+# 4. Start the API server (when cmd/api/main.go is implemented)
+go run ./cmd/api
+```
+
+API will be available at `http://localhost:8080`. The `/healthz` endpoint confirms readiness:
+
+```bash
+curl http://localhost:8080/healthz
+# Expected: {"status":"ok","database":"connected"}
+```
+
+### Development Workflow
+
+```bash
+# Install dependencies
+go mod download
+
+# Format code (run before committing)
+go fmt ./...
+goimports -w .
+
+# Run linter (must pass before merge)
+golangci-lint run ./...
+
+# Run tests with race detector
+go test ./... -race -count=1
+
+# Run tests with coverage (target: 80% for business logic)
+go test ./internal/... -coverprofile=coverage.out
+go tool cover -html=coverage.out
+
+# Security scanning
+gosec -severity high -confidence medium ./...
+govulncheck ./...
+```
+
+### Configuration Validation
+
+The `config` package validates all configuration on startup with descriptive error messages:
+
+```bash
+# Missing required variable
+$ unset DATABASE_URL
+$ go run ./cmd/api
+# Error: config validation failed: DATABASE_URL is required
+
+# Invalid port
+$ export HTTP_PORT=99999
+$ go run ./cmd/api
+# Error: HTTP_PORT must be between 1 and 65535, got 99999
+
+# Invalid log level
+$ export LOG_LEVEL=verbose
+$ go run ./cmd/api
+# Error: LOG_LEVEL must be one of: debug, info, warn, error; got verbose
 ```bash
 # 1. Start PostgreSQL
 docker compose up -d postgres

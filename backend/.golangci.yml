@@ -1,0 +1,125 @@
+run:
+  timeout: 5m
+  tests: true
+  build-tags:
+    - integration
+
+linters:
+  enable:
+    - errcheck        # Check for unchecked errors
+    - govet           # Vet examines Go source code and reports suspicious constructs
+    - staticcheck     # Staticcheck is a go vet on steroids, applying a ton of static analysis checks
+    - revive          # Fast, configurable, extensible, flexible, and beautiful linter for Go
+    - gosec           # Inspects source code for security problems
+    - gofmt           # Gofmt checks whether code was gofmt-ed
+    - goimports       # Check import statements are formatted according to the 'goimport' command
+    - misspell        # Finds commonly misspelled English words in comments
+    - unparam         # Reports unused function parameters
+    - unconvert       # Remove unnecessary type conversions
+    - goconst         # Finds repeated strings that could be replaced by a constant
+    - gocyclo         # Computes and checks the cyclomatic complexity of functions
+    - gosimple        # Linter for Go source code that specializes in simplifying code
+    - ineffassign     # Detects when assignments to existing variables are not used
+    - unused          # Checks Go code for unused constants, variables, functions and types
+
+  disable:
+    - typecheck       # Disabled because it duplicates govet type checking
+
+linters-settings:
+  errcheck:
+    check-type-assertions: true
+    check-blank: true
+    exclude-functions:
+      - (*database/sql.Rows).Close
+      - (*database/sql.DB).Close
+
+  govet:
+    enable-all: true
+    disable:
+      - shadow        # Warns about variable shadowing (too noisy for now)
+
+  staticcheck:
+    checks: ["all"]
+
+  revive:
+    severity: warning
+    rules:
+      - name: blank-imports
+      - name: context-as-argument
+      - name: context-keys-type
+      - name: dot-imports
+      - name: error-return
+      - name: error-strings
+      - name: error-naming
+      - name: exported
+      - name: if-return
+      - name: increment-decrement
+      - name: var-naming
+      - name: var-declaration
+      - name: package-comments
+      - name: range
+      - name: receiver-naming
+      - name: time-naming
+      - name: unexported-return
+      - name: indent-error-flow
+      - name: errorf
+      - name: empty-block
+      - name: superfluous-else
+      - name: unused-parameter
+      - name: unreachable-code
+      - name: redefines-builtin-id
+
+  gosec:
+    severity: medium
+    confidence: medium
+    excludes:
+      - G104  # Audit errors not checked (covered by errcheck)
+      - G404  # Use of weak random number generator (math/rand) - okay for non-security use
+
+  gocyclo:
+    min-complexity: 15
+
+  goconst:
+    min-len: 3
+    min-occurrences: 3
+
+  misspell:
+    locale: US
+
+  gofmt:
+    simplify: true
+
+issues:
+  exclude-use-default: false
+  exclude-rules:
+    # Exclude some linters from running on tests files
+    - path: _test\.go
+      linters:
+        - gocyclo
+        - errcheck
+        - gosec
+        - goconst
+
+    # Exclude linters for generated files
+    - path: ".*\\.pb\\.go$"
+      linters:
+        - all
+
+    # Exclude specific linters for vendor directory
+    - path: vendor/
+      linters:
+        - all
+
+  max-issues-per-linter: 0
+  max-same-issues: 0
+
+output:
+  format: colored-line-number
+  print-issued-lines: true
+  print-linter-name: true
+  uniq-by-line: true
+  sort-results: true
+
+severity:
+  default-severity: error
+  case-sensitive: false
