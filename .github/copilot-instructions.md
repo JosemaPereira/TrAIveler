@@ -104,8 +104,36 @@ Read the following files before generating code, tests, or UI for this project:
 
 **At session end**: Summarize key findings into .github/memory/session-notes.md
 
+## Task Consolidation Policy (MANDATORY)
+
+**Core Principle**: Consolidate atomic tasks BEFORE creating issues to reduce ticket waste and improve backlog health.
+
+### Consolidation Rules
+
+**DO consolidate** tasks into ONE issue when they meet ALL criteria:
+- ✅ Same spec (never cross spec boundaries)
+- ✅ Same area/module (same directory or logical component)
+- ✅ Same tech stack (all Go OR all React, never mixed)
+- ✅ Shared context (config files, middleware package, primitives set)
+- ✅ Similar size (2-4 small tasks = 1 reviewable PR)
+- ✅ No blocking dependencies between them
+- ✅ Independent tracking not required
+
+**DON'T consolidate** when:
+- ❌ Different tech stacks (Go + TypeScript = separate)
+- ❌ Critical blocker task (needs visibility)
+- ❌ Different dependency chains
+- ❌ Already large task (>200 LOC)
+- ❌ Cross-spec boundary
+
+**Group Column**: Use `docs/roadmap.md` Group column to mark consolidated tasks (e.g., `G-BACKEND-MIDDLEWARE`). Tasks sharing a Group value become ONE issue with checklist.
+
+**Reference**: See `.github/PM-WORKFLOW-CONSOLIDATION.md` for detailed guidelines.
+
 ## Project Reports (Audit Trail)
 - **PROMOTION-REPORT.md**: Tracks which foundational specs (001-006) have been promoted to docs/ and constitution. Update when new foundation specs are created or existing ones are revised.
 - **ROADMAP-RECONCILIATION-REPORT.md**: Documents integration of spec tasks into docs/roadmap.md. Update when new specs are added, tasks change status/priority, or critical path changes.
+- **ISSUE-CREATION-GUIDELINES.md**: Defines rules for epic vs issue classification, relationship management (blocks/blocked by/related to), label strategy, GitHub issue creation workflow, and **task consolidation policy**. **MANDATORY** reading before creating any GitHub issues.
+- **PM-WORKFLOW-CONSOLIDATION.md**: Detailed consolidation-first PM workflow with rules, examples, and success metrics. **MANDATORY** for sprint planning and issue creation.
 - **Update trigger**: When running `/promote-fundations` or `/build-roadmap` workflows, update the relevant report with new spec information, date, and statistics.
 - **Location**: All reports live in .github/ directory for centralized audit trail.
