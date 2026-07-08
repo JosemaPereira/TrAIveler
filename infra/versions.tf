@@ -16,7 +16,7 @@ terraform {
   required_providers {
     aws = {
       source = "hashicorp/aws"
-      
+
       # Use AWS provider ~> 5.0 (any 5.x version, but not 6.x)
       # Provider 5.x brings:
       # - CloudFront function improvements
