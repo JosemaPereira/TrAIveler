@@ -19,12 +19,35 @@ Instructions:
    stop and tell the user to run `gh auth login`.
 6. Analyze the commits and diff of the current branch against the base branch to
    understand the change set.
-7. Generate, in English:
-   - A concise PR title in conventional format (feat:, fix:, chore:, docs:, etc.).
-   - A short PR body with: a one-paragraph summary, a bullet list of key changes,
-     and a "Testing" note describing how it was validated. Reference the related
-     spec (e.g. `specs/001-*/spec.md`) if one exists.
-8. Create the PR:
+7. **Read the PR template** from `.github/PULL_REQUEST_TEMPLATE.md` to understand the
+   required structure.
+8. Generate PR content in English following the template structure:
+   - **Title**: Concise conventional format (feat:, fix:, chore:, docs:, etc.)
+   - **Description**: Brief summary of what this PR accomplishes
+   - **Stable IDs**: Extract from commit messages or branch name if available (e.g., 005-T024)
+   - **Spec**: Reference the spec number (e.g., "005 — System Architecture")
+   - **Sprint**: Identify sprint number if applicable (e.g., "Sprint 2")
+   - **Group**: Group ID if tasks are consolidated (e.g., "G-SPRINT2-BACKEND-MIDDLEWARE") or "Standalone"
+   - **Implementation Summary**: List key files changed and what was implemented
+   - **Testing**: Describe test coverage, manual testing performed, verification steps
+   - **Related Specifications**: Reference relevant specs/ and docs/ files
+   - **Dependencies**: Note any PR dependencies (Depends on, Blocks, Related)
+   - **Next Steps**: Recommend follow-up work if applicable
+   - **Deployment Notes**: Note breaking changes, migrations, env vars
+   - **Closes**: Reference GitHub issues this PR closes (if applicable)
+   - **Review focus**: Highlight what reviewers should pay special attention to
+9. Create the PR using the structured body:
    `gh pr create --base <base-branch> --head <current-branch> --title "<title>" --body "<body>"`
-9. Return the resulting PR URL.
-10. Do NOT merge the PR. Leave it open for review.
+   
+   **Note**: The body should be formatted as valid Markdown following the template structure.
+   Use `\n` for line breaks in the `--body` argument.
+10. Return the resulting PR URL.
+11. Do NOT merge the PR. Leave it open for review.
+
+## Template Compliance
+
+The PR body MUST follow the structure defined in `.github/PULL_REQUEST_TEMPLATE.md`:
+- All major sections included (Description, Implementation Summary, Testing, etc.)
+- Proper Markdown formatting (headers with ##, bullet lists, checkboxes)
+- English language throughout
+- Stable IDs and Spec references when available from commits or roadmap
