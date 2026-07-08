@@ -402,3 +402,43 @@ This package implements the cross-cutting NFR primitives defined in
 | Right-to-deletion endpoint | `internal/auth/handler.go` — `DELETE /users/me` | NFR-PRIV-001 |
 
 Validation scenarios for each: [`specs/002-nfr-system-constraints/quickstart.md`](../specs/002-nfr-system-constraints/quickstart.md).
+
+---
+
+## Continuous Integration
+
+The backend CI pipeline runs automatically on every pull request and push to main that modifies backend code.
+
+**Workflow**: [`.github/workflows/backend-ci.yml`](../.github/workflows/backend-ci.yml)
+
+**Triggers**:
+- Pull requests modifying `backend/**`
+- Push to `main` branch modifying `backend/**`
+- Manual workflow dispatch
+
+**Jobs**:
+
+1. **Lint** — Runs `golangci-lint` with all configured linters (errcheck, govet, staticcheck, revive, gosec). Must pass with zero errors before merge.
+
+2. **Test** — Executes `go test ./... -race -coverprofile=coverage.out` against a PostgreSQL 15.4 service container. Runs with race detector enabled and generates coverage report (target: ≥80% for `internal/` packages). Coverage artifact uploaded for review.
+
+3. **Build** — Builds Docker image using multi-stage Dockerfile for `linux/arm64` (ECS Fargate Graviton2). Image is tagged with git SHA and uploaded as artifact. Does not push to ECR yet (Sprint 3).
+
+**Future Enhancements** (TODO comments in workflow):
+- **Sprint 3**: ECR push job using AWS OIDC authentication
+- **Sprint 10**: ECS deployment job with rolling updates and health checks
+
+**Local Equivalent**:
+
+Run the same checks locally before pushing:
+
+```bash
+# Lint
+golangci-lint run ./...
+
+# Test with race detection
+go test ./... -race -count=1
+
+# Build Docker image
+docker buildx build --platform linux/arm64 --tag traveler-backend:local backend/
+```

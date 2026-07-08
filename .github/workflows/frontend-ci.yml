@@ -1,0 +1,242 @@
+# Frontend CI Workflow - Lint, Test, Build, and Accessibility
+#
+# This workflow runs on pull requests and pushes that modify frontend code.
+# It validates code quality, runs tests, builds production bundle, and checks accessibility.
+#
+# Workflow steps:
+# 1. Lint - Run ESLint and Prettier to enforce code style
+# 2. Test - Execute Vitest unit and component tests
+# 3. Build - Build production bundle with Vite
+# 4. Accessibility - Run Lighthouse CI audit (WCAG 2.1 AA)
+# 5. Deploy (main only) - Sync to S3 and invalidate CloudFront (placeholder for Sprint 10)
+#
+# Status: SKELETON - Jobs defined, deployment placeholder for future sprints
+# Sprint 1 deliverable: lint, test, build, and accessibility jobs functional
+
+name: Frontend CI
+
+on:
+  pull_request:
+    paths:
+      - 'frontend/**'
+      - '.github/workflows/frontend-ci.yml'
+  push:
+    branches:
+      - main
+    paths:
+      - 'frontend/**'
+      - '.github/workflows/frontend-ci.yml'
+  workflow_dispatch:
+
+# Prevent concurrent runs on the same PR
+concurrency:
+  group: frontend-ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  lint:
+    name: Lint Frontend Code
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: frontend/package-lock.json
+      
+      - name: Install dependencies
+        working-directory: frontend
+        run: npm ci
+      
+      - name: Run ESLint
+        working-directory: frontend
+        run: npm run lint
+      
+      - name: Check Prettier formatting
+        working-directory: frontend
+        run: npx prettier --check "src/**/*.{ts,tsx,css}"
+
+  test:
+    name: Run Frontend Tests
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: frontend/package-lock.json
+      
+      - name: Install dependencies
+        working-directory: frontend
+        run: npm ci
+      
+      - name: Run tests with coverage
+        working-directory: frontend
+        run: npm test -- --coverage --run
+      
+      - name: Upload coverage to artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: frontend-coverage
+          path: frontend/coverage
+          retention-days: 7
+
+  build:
+    name: Build Production Bundle
+    runs-on: ubuntu-latest
+    needs: [lint, test]
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: frontend/package-lock.json
+      
+      - name: Install dependencies
+        working-directory: frontend
+        run: npm ci
+      
+      - name: Build production bundle
+        working-directory: frontend
+        env:
+          # Use placeholder API URL for build validation
+          # Actual deployment will use environment-specific URLs
+          VITE_API_BASE_URL: https://api.example.com
+        run: npm run build
+      
+      - name: Check bundle size
+        working-directory: frontend
+        run: |
+          BUNDLE_SIZE=$(du -sh dist | cut -f1)
+          echo "Production bundle size: $BUNDLE_SIZE"
+      
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: frontend-dist
+          path: frontend/dist
+          retention-days: 7
+
+  accessibility:
+    name: Accessibility Audit
+    runs-on: ubuntu-latest
+    needs: build
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: frontend/package-lock.json
+      
+      - name: Download build artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: frontend-dist
+          path: frontend/dist
+      
+      - name: Install dependencies
+        working-directory: frontend
+        run: npm ci
+      
+      - name: Install Playwright browsers
+        working-directory: frontend
+        run: npx playwright install chromium
+      
+      # TODO Sprint 2: Implement Lighthouse CI with @lhci/cli
+      # For now, run a basic Playwright accessibility check as placeholder
+      # 
+      # - name: Run Lighthouse CI
+      #   working-directory: frontend
+      #   run: |
+      #     npx lhci autorun \
+      #       --collect.staticDistDir=./dist \
+      #       --assert.preset=lighthouse:recommended \
+      #       --assert.assertions.accessibility=error
+      
+      - name: Placeholder accessibility check
+        working-directory: frontend
+        run: |
+          echo "✓ Accessibility audit placeholder"
+          echo "  Sprint 2 will implement full Lighthouse CI with:"
+          echo "  - WCAG 2.1 AA compliance checks"
+          echo "  - Axe-core integration via @axe-core/playwright"
+          echo "  - Performance, SEO, and best practices audits"
+          echo ""
+          echo "  Current status: Build artifact available for manual testing"
+
+  # TODO Sprint 10: S3 + CloudFront Deployment Job
+  # Uncomment and configure when AWS infrastructure is provisioned
+  # 
+  # deploy:
+  #   name: Deploy to S3 + CloudFront
+  #   runs-on: ubuntu-latest
+  #   needs: [build, accessibility]
+  #   if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+  #   
+  #   steps:
+  #     - name: Download build artifact
+  #       uses: actions/download-artifact@v4
+  #       with:
+  #         name: frontend-dist
+  #         path: dist
+  #     
+  #     - name: Configure AWS credentials
+  #       uses: aws-actions/configure-aws-credentials@v4
+  #       with:
+  #         role-to-assume: ${{ secrets.AWS_ROLE_ARN_STAGING }}
+  #         aws-region: us-east-1
+  #     
+  #     - name: Sync to S3
+  #       env:
+  #         S3_BUCKET: ${{ vars.S3_BUCKET_NAME_STAGING }}
+  #       run: |
+  #         aws s3 sync dist/ s3://$S3_BUCKET/ \
+  #           --delete \
+  #           --cache-control "public,max-age=31536000,immutable" \
+  #           --exclude "index.html" \
+  #           --exclude "*.map"
+  #         
+  #         # index.html should not be cached (always fresh)
+  #         aws s3 cp dist/index.html s3://$S3_BUCKET/index.html \
+  #           --cache-control "public,max-age=0,must-revalidate"
+  #     
+  #     - name: Invalidate CloudFront cache
+  #       env:
+  #         CLOUDFRONT_DISTRIBUTION_ID: ${{ vars.CLOUDFRONT_DISTRIBUTION_ID_STAGING }}
+  #       run: |
+  #         aws cloudfront create-invalidation \
+  #           --distribution-id $CLOUDFRONT_DISTRIBUTION_ID \
+  #           --paths "/*"
+  #     
+  #     - name: Wait for invalidation
+  #       env:
+  #         CLOUDFRONT_DISTRIBUTION_ID: ${{ vars.CLOUDFRONT_DISTRIBUTION_ID_STAGING }}
+  #       run: |
+  #         INVALIDATION_ID=$(aws cloudfront list-invalidations \
+  #           --distribution-id $CLOUDFRONT_DISTRIBUTION_ID \
+  #           --query 'InvalidationList.Items[0].Id' \
+  #           --output text)
+  #         
+  #         aws cloudfront wait invalidation-completed \
+  #           --distribution-id $CLOUDFRONT_DISTRIBUTION_ID \
+  #           --id $INVALIDATION_ID
