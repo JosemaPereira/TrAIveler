@@ -1,0 +1,43 @@
+# Node.js dependencies
+node_modules/
+package-lock.json
+
+# Playwright test artifacts
+test-results/
+playwright-report/
+playwright/.cache/
+
+# Playwright traces and videos
+# (Generated on test failures for debugging)
+*.trace.zip
+*.webm
+
+# Playwright screenshots
+# (Keep these in git for visual regression testing)
+# screenshots/
+
+# Environment variables
+.env
+.env.local
+.env.*.local
+
+# Operating System files
+.DS_Store
+Thumbs.db
+
+# IDE / Editor directories
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Test coverage reports
+coverage/
+.nyc_output/
