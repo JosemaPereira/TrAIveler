@@ -56,10 +56,11 @@ Read the following files before generating code, tests, or UI for this project:
 - Validation before commit: tests pass, no lint errors
 
 ## Git Workflow
-- Conventional commits (in English): feat:, fix:, chore:, docs:, etc.
-- Feature branches: feature/<descriptive-name>  (branch names in English)
-- Never commit directly to main
-- Versioning: Semantic Versioning (SemVer) 2.0.0
+- **Commit messages**: Follow `.github/COMMIT_GUIDELINES.md` (Conventional Commits, imperative mood, English only)
+- **Pull requests**: Use `.github/PULL_REQUEST_TEMPLATE.md` (auto-loaded by GitHub, includes task checklist, dependencies, verification steps)
+- **Branch naming**: feature/<descriptive-name> (English, lowercase, hyphens)
+- **Protection**: Never commit directly to main
+- **Versioning**: Semantic Versioning (SemVer) 2.0.0
 
 ## Memory System
 

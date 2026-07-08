@@ -550,16 +550,16 @@
 |----|------|-------|--------|----------|--------|------------|----------|-------|-------|
 | 005-T001 | Create backend directory structure per plan.md: backend/{cmd/api,internal/{middleware,database,ai,errors},pkg,config,migrations,tests/{integration,fixtures}} | | 1 | P1 | Done | - | no | https://github.com/JosemaPereira/capstone-project-ai-bootcamp/issues/13 | PR #43 - Backend directory structure with .gitkeep files |
 | 005-T002 | Create frontend directory structure per plan.md: frontend/src/{components/{primitives,composites},features,hooks,lib,stores,styles,routes} | G-ARCH-SETUP-DIRS | | P1 | Done | - | yes | https://github.com/JosemaPereira/capstone-project-ai-bootcamp/issues/20 | PR #47 - React 19 + Vite project with strict TypeScript |
-| 005-T003 | Create e2e directory structure: e2e/{tests,fixtures,playwright.config.ts} | G-ARCH-SETUP-DIRS | | P1 | Backlog | - | yes | https://github.com/JosemaPereira/capstone-project-ai-bootcamp/issues/21 | |
-| 005-T004 | Create infrastructure directory structure: infra/{modules/{vpc,ecs,rds,alb,cloudfront,secrets},environments} | G-ARCH-SETUP-DIRS | | P1 | Backlog | - | yes | https://github.com/JosemaPereira/capstone-project-ai-bootcamp/issues/22 | |
+| 005-T003 | Create e2e directory structure: e2e/{tests,fixtures,playwright.config.ts} | G-ARCH-SETUP-DIRS | 1 | P1 | Done | - | yes | https://github.com/JosemaPereira/capstone-project-ai-bootcamp/issues/21 | PR #48 - E2E infrastructure with Playwright |
+| 005-T004 | Create infrastructure directory structure: infra/{modules/{vpc,ecs,rds,alb,cloudfront,secrets},environments} | G-ARCH-SETUP-DIRS | 1 | P1 | Done | - | yes | https://github.com/JosemaPereira/capstone-project-ai-bootcamp/issues/22 | PR #49 - Infrastructure foundation (modules, backend.tf, versions.tf, CI) |
 | 005-T005 | Initialize Go module in backend/go.mod with Go 1.24+ and core dependencies (Chi, pgx/v5, goose/v3, google/uuid, log/slog) | | 1 | P1 | Done | 005-T001 | no | https://github.com/JosemaPereira/capstone-project-ai-bootcamp/issues/14 | PR #44 - Go 1.25.7 with core dependencies |
 | 005-T006 | Initialize React project in frontend/ with Vite, TypeScript strict mode, and core dependencies (TanStack Query v5, Zustand, React Router v7, Lucide React) | G-ARCH-SETUP-INIT | | P1 | Done | 005-T002 | yes | https://github.com/JosemaPereira/capstone-project-ai-bootcamp/issues/23 | PR #47 - React 19 + Vite project with strict TypeScript |
-| 005-T007 | Initialize E2E project in e2e/ with Playwright and axe-core dependencies | G-ARCH-SETUP-INIT | | P1 | Backlog | 005-T003 | yes | https://github.com/JosemaPereira/capstone-project-ai-bootcamp/issues/24 | |
+| 005-T007 | Initialize E2E project in e2e/ with Playwright and axe-core dependencies | G-ARCH-SETUP-INIT | 1 | P1 | Done | 005-T003 | yes | https://github.com/JosemaPereira/capstone-project-ai-bootcamp/issues/24 | PR #48 - Playwright 1.61.1, @axe-core/playwright 4.12.1, sample test |
 | 005-T008 | Create backend/.env.example with required environment variables (DATABASE_URL, HTTP_PORT, LOG_LEVEL, ANTHROPIC_API_KEY) | G-ARCH-SETUP-CONFIG | 1 | P1 | Done | 005-T001 | yes | https://github.com/JosemaPereira/capstone-project-ai-bootcamp/issues/25 | PR #45 - Complete template with 25+ config options |
 | 005-T009 | Create frontend/.env.example with VITE_API_BASE_URL variable | G-ARCH-SETUP-CONFIG | | P1 | Done | 005-T002 | yes | https://github.com/JosemaPereira/capstone-project-ai-bootcamp/issues/26 | PR #47 - React 19 + Vite project with strict TypeScript |
 | 005-T010 | Create backend/README.md with quickstart instructions, directory structure explanation, and development workflow | G-ARCH-SETUP-DOCS | 1 | P1 | Done | 005-T001 | yes | https://github.com/JosemaPereira/capstone-project-ai-bootcamp/issues/27 | PR #45 - Enhanced with config validation examples |
 | 005-T011 | Create frontend/README.md with development server instructions, component guidelines, and testing commands | G-ARCH-SETUP-DOCS | | P1 | Done | 005-T002 | yes | https://github.com/JosemaPereira/capstone-project-ai-bootcamp/issues/28 | PR #47 - React 19 + Vite project with strict TypeScript |
-| 005-T012 | Create infra/README.md with Terraform initialization instructions and environment deployment guide | G-ARCH-SETUP-DOCS | | P1 | Backlog | 005-T004 | yes | https://github.com/JosemaPereira/capstone-project-ai-bootcamp/issues/29 | |
+| 005-T012 | Create infra/README.md with Terraform initialization instructions and environment deployment guide | G-ARCH-SETUP-DOCS | 1 | P1 | Done | 005-T004 | yes | https://github.com/JosemaPereira/capstone-project-ai-bootcamp/issues/29 | PR #49 - Comprehensive infrastructure documentation |
 
 #### Phase 2 — Foundational (Blocking Prerequisites) → **Sprint 1**
 
@@ -567,15 +567,15 @@
 |----|------|-------|--------|----------|--------|------------|----------|-------|-------|
 | 005-T013 | Create backend/config/config.go with configuration struct and environment variable loading using os.Getenv with validation | | 1 | P1 | Done | 005-T001 | no | https://github.com/JosemaPereira/capstone-project-ai-bootcamp/issues/15 | PR #45 - Includes tests with 100% coverage |
 | 005-T014 | Create backend/Dockerfile with multi-stage build (builder stage with Go 1.24+, runtime stage with minimal Alpine) | G-ARCH-FOUNDATIONAL-DOCKER | | P1 | Done | 005-T001 | yes | https://github.com/JosemaPereira/capstone-project-ai-bootcamp/issues/30 | PR #46 - Docker infrastructure with comprehensive documentation |
-| 005-T015 | Create .gitignore files for backend/ (exclude vendor/, .env, binary), frontend/ (exclude node_modules/, dist/, .env), and infra/ (exclude .terraform/, *.tfstate) | G-ARCH-FOUNDATIONAL-DOCKER | | P1 | In Progress | 005-T001 | yes | https://github.com/JosemaPereira/capstone-project-ai-bootcamp/issues/31 | Partial: backend/.gitignore done (PR #45) |
+| 005-T015 | Create .gitignore files for backend/ (exclude vendor/, .env, binary), frontend/ (exclude node_modules/, dist/, .env), and infra/ (exclude .terraform/, *.tfstate) | G-ARCH-FOUNDATIONAL-DOCKER | 1 | P1 | Done | 005-T001 | yes | https://github.com/JosemaPereira/capstone-project-ai-bootcamp/issues/31 | backend (PR #45), frontend (PR #47), e2e+infra (PR #48+49) |
 | 005-T016 | Create docker-compose.yml for local development with PostgreSQL 15.4 service and backend service configuration | G-ARCH-FOUNDATIONAL-DOCKER | | P1 | Done | 005-T001 | yes | https://github.com/JosemaPereira/capstone-project-ai-bootcamp/issues/32 | PR #46 - Docker infrastructure with comprehensive documentation |
-| 005-T017 | Create .github/workflows/backend-ci.yml skeleton (lint, test, build jobs without full implementation) | G-ARCH-FOUNDATIONAL-CI | 1 | P1 | Done | 005-T001 | yes | https://github.com/JosemaPereira/capstone-project-ai-bootcamp/issues/33 | 216 lines: lint, test with PostgreSQL, Docker build; placeholders for Sprint 3/10 |
-| 005-T018 | Create .github/workflows/frontend-ci.yml skeleton (lint, test, build, accessibility jobs without full implementation) | G-ARCH-FOUNDATIONAL-CI | 1 | P1 | Done | 005-T002 | yes | https://github.com/JosemaPereira/capstone-project-ai-bootcamp/issues/34 | 242 lines: lint, test, build, accessibility placeholder; Sprint 10 deployment |
-| 005-T019 | Create .github/workflows/infra-plan.yml skeleton (validate, format check, plan jobs) | G-ARCH-FOUNDATIONAL-CI | | P1 | Backlog | 005-T004 | yes | https://github.com/JosemaPereira/capstone-project-ai-bootcamp/issues/35 | |
+| 005-T017 | Create .github/workflows/backend-ci.yml skeleton (lint, test, build jobs without full implementation) | G-ARCH-FOUNDATIONAL-CI | 1 | P1 | Done | 005-T001 | yes | https://github.com/JosemaPereira/capstone-project-ai-bootcamp/issues/33 | PR #50 - 216 lines: lint, test with PostgreSQL, Docker build; placeholders Sprint 3/10 |
+| 005-T018 | Create .github/workflows/frontend-ci.yml skeleton (lint, test, build, accessibility jobs without full implementation) | G-ARCH-FOUNDATIONAL-CI | 1 | P1 | Done | 005-T002 | yes | https://github.com/JosemaPereira/capstone-project-ai-bootcamp/issues/34 | PR #50 - 242 lines: lint, test, build, accessibility placeholder; Sprint 10 deployment |
+| 005-T019 | Create .github/workflows/infra-plan.yml skeleton (validate, format check, plan jobs) | G-ARCH-FOUNDATIONAL-CI | 1 | P1 | Done | 005-T004 | yes | https://github.com/JosemaPereira/capstone-project-ai-bootcamp/issues/35 | PR #49 - 133 lines: validate, format-check, plan; OIDC placeholders for Sprint 3 |
 | 005-T020 | Configure golangci-lint in backend/.golangci.yml with required linters (errcheck, govet, staticcheck, revive, gosec) | | 1 | P1 | Done | 005-T001 | yes | https://github.com/JosemaPereira/capstone-project-ai-bootcamp/issues/16 | PR #45 - 15 linters enabled with test exclusions |
 | 005-T021 | Configure ESLint and Prettier in frontend/ with TypeScript strict mode rules and no-any enforcement | | | P1 | Done | 005-T002 | yes | https://github.com/JosemaPereira/capstone-project-ai-bootcamp/issues/17 | PR #47 - React 19 + Vite project with strict TypeScript |
-| 005-T022 | Create infra/backend.tf with S3 backend configuration for remote state (bucket: traveler-terraform-state, DynamoDB table: traveler-terraform-locks) | G-ARCH-FOUNDATIONAL-TERRAFORM | | P1 | Backlog | 005-T004 | yes | https://github.com/JosemaPereira/capstone-project-ai-bootcamp/issues/18 | |
-| 005-T023 | Create infra/versions.tf with Terraform >= 1.5 and AWS provider ~> 5.0 version constraints | | | P1 | Backlog | 005-T004 | yes | https://github.com/JosemaPereira/capstone-project-ai-bootcamp/issues/19 | |
+| 005-T022 | Create infra/backend.tf with S3 backend configuration for remote state (bucket: traveler-terraform-state, DynamoDB table: traveler-terraform-locks) | G-ARCH-FOUNDATIONAL-TERRAFORM | 1 | P1 | Done | 005-T004 | yes | https://github.com/JosemaPereira/capstone-project-ai-bootcamp/issues/18 | PR #49 - 47 lines with S3+DynamoDB state management, workspace isolation |
+| 005-T023 | Create infra/versions.tf with Terraform >= 1.5 and AWS provider ~> 5.0 version constraints | G-ARCH-FOUNDATIONAL-TERRAFORM | 1 | P1 | Done | 005-T004 | yes | https://github.com/JosemaPereira/capstone-project-ai-bootcamp/issues/19 | PR #49 - 59 lines with version constraints, default tags, provider config |
 
 #### Phase 3 — User Story 1: Backend Service Architecture (Priority: P1) 🎯 MVP → **Sprint 2**
 
@@ -592,13 +592,13 @@
 | 005-T032 | Create backend/internal/ai/sanitizer.go implementing output sanitization stub (HTML/script stripping to be enhanced later) | G-SPRINT2-BACKEND-AI | 2 | P1 | Backlog | 005-T013 | yes | | |
 | 005-T033 | Create backend/internal/errors/handler.go implementing domain error-to-HTTP status mapping (404, 400, 401, 403, 409, 500) with structured JSON responses | G-SPRINT2-BACKEND-ERRORS | 2 | P1 | Backlog | 005-T013 | yes | | |
 | 005-T034 | Create backend/internal/errors/types.go defining domain error types (ErrNotFound, ErrValidation, ErrUnauthorized, ErrForbidden, ErrConflict) | G-SPRINT2-BACKEND-ERRORS | 2 | P1 | Backlog | 005-T013 | yes | | |
-| 005-T035 | Create backend/cmd/api/main.go implementing HTTPServer with Chi router, middleware chain registration (RequestID → Logger → Recovery → CORS → BodySize), health check endpoint, and graceful shutdown | | 2 | P1 | Backlog | 005-T024, 005-T029 | no | | |
-| 005-T036 | Integrate backend/internal/database/client.go initialization in main.go with configuration from config package and connection pool lifecycle management | | 2 | P1 | Backlog | 005-T035 | no | | |
-| 005-T037 | Add /healthz endpoint to main.go verifying database Ping() succeeds before returning 200 OK | | 2 | P1 | Backlog | 005-T036 | no | | |
+| 005-T035 | Create backend/cmd/api/main.go implementing HTTPServer with Chi router, middleware chain registration (RequestID → Logger → Recovery → CORS → BodySize), health check endpoint, and graceful shutdown | G-SPRINT2-BACKEND-HTTP-SERVER | 2 | P1 | Backlog | 005-T024, 005-T029 | no | | |
+| 005-T036 | Integrate backend/internal/database/client.go initialization in main.go with configuration from config package and connection pool lifecycle management | G-SPRINT2-BACKEND-HTTP-SERVER | 2 | P1 | Backlog | 005-T035 | no | | |
+| 005-T037 | Add /healthz endpoint to main.go verifying database Ping() succeeds before returning 200 OK | G-SPRINT2-BACKEND-HTTP-SERVER | 2 | P1 | Backlog | 005-T036 | no | | |
 | 005-T038 | Create backend/internal/example/model.go with sample domain model struct demonstrating naming conventions and field tags | G-SPRINT2-BACKEND-EXAMPLE | 2 | P1 | Backlog | 005-T013 | yes | | |
 | 005-T039 | Create backend/internal/example/repository.go implementing repository interface pattern with Create, FindByID, Update, Delete, List methods using pgx connection pool | G-SPRINT2-BACKEND-EXAMPLE | 2 | P1 | Backlog | 005-T029 | yes | | |
 | 005-T040 | Create backend/internal/example/service.go implementing service interface pattern with business logic, repository dependency injection, and domain error returns | G-SPRINT2-BACKEND-EXAMPLE | 2 | P1 | Backlog | 005-T039 | yes | | |
-| 005-T041 | Create backend/internal/example/handler.go implementing HTTP handler calling service layer, using errors.HandleError for error responses, and demonstrating context value extraction (requestID, userID) | | 2 | P1 | Backlog | 005-T040 | no | | |
+| 005-T041 | Create backend/internal/example/handler.go implementing HTTP handler calling service layer, using errors.HandleError for error responses, and demonstrating context value extraction (requestID, userID) | G-SPRINT2-BACKEND-EXAMPLE | 2 | P1 | Backlog | 005-T040 | no | | |
 
 #### Phase 4 — User Story 2: Frontend Application Structure (Priority: P1) 🎯 MVP → **Sprint 2**
 
@@ -618,9 +618,9 @@
 | 005-T053 | Create frontend/src/components/primitives/ErrorMessage.tsx displaying error with retry button (optional onClick prop) | G-SPRINT2-FRONTEND-PRIMITIVES-STATE | 2 | P1 | Backlog | 005-T042 | yes | | |
 | 005-T054 | Create frontend/src/components/primitives/EmptyState.tsx with message and optional action button | G-SPRINT2-FRONTEND-PRIMITIVES-STATE | 2 | P1 | Backlog | 005-T042 | yes | | |
 | 005-T055 | Create frontend/src/components/composites/Form.tsx composing Button and Input primitives, handling onSubmit with loading state, error display, and validation error mapping | | 2 | P1 | Backlog | 005-T048, 005-T050 | no | | |
-| 005-T056 | Create frontend/src/features/.gitkeep as placeholder (actual features will be added in subsequent specs) | | 2 | P1 | Backlog | 005-T002 | yes | | |
-| 005-T057 | Create frontend/src/components/ErrorBoundary.tsx implementing React.Component error boundary with fallback UI showing error message and "Go Home" action | | 2 | P1 | Backlog | 005-T002 | yes | | |
-| 005-T058 | Create frontend/src/routes/index.tsx defining React Router v7 routes configuration (root route returning simple "TrAIveler" heading as placeholder) | | 2 | P1 | Backlog | 005-T002 | no | | |
+| 005-T056 | Create frontend/src/features/.gitkeep as placeholder (actual features will be added in subsequent specs) | G-SPRINT2-FRONTEND-INFRASTRUCTURE | 2 | P1 | Backlog | 005-T002 | yes | | |
+| 005-T057 | Create frontend/src/components/ErrorBoundary.tsx implementing React.Component error boundary with fallback UI showing error message and "Go Home" action | G-SPRINT2-FRONTEND-INFRASTRUCTURE | 2 | P1 | Backlog | 005-T002 | yes | | |
+| 005-T058 | Create frontend/src/routes/index.tsx defining React Router v7 routes configuration (root route returning simple "TrAIveler" heading as placeholder) | G-SPRINT2-FRONTEND-INFRASTRUCTURE | 2 | P1 | Backlog | 005-T002 | no | | |
 | 005-T059 | Update frontend/src/App.tsx to include RouterProvider with routes from routes/index.tsx | G-SPRINT2-FRONTEND-APP-SHELL | 2 | P1 | Backlog | 005-T047, 005-T058 | no | | |
 | 005-T060 | Wrap App.tsx with ErrorBoundary component | G-SPRINT2-FRONTEND-APP-SHELL | 2 | P1 | Backlog | 005-T057, 005-T059 | no | | |
 
@@ -1326,7 +1326,7 @@ The minimum sequential chain to reach a fully functional, security-hardened, dem
 > 
 > **GitHub Workflow**: Uses native sub-issues (parent with `- [ ] #N` tasklists), GitHub Projects for organization, and epic labels (`epic:name`) instead of separate epic issues. See [ISSUE-CREATION-GUIDELINES.md](../.github/ISSUE-CREATION-GUIDELINES.md) for details.
 
-### 🏗️ Sprint 1: Architecture Foundation (Weeks 1-2)
+### 🏗️ Sprint 1: Architecture Foundation (Weeks 1-2) ✅ **COMPLETE**
 
 **Epic Label**: `epic:architecture-foundation`
 
@@ -1334,33 +1334,43 @@ The minimum sequential chain to reach a fully functional, security-hardened, dem
 
 **Scope**: Spec 005 Phases 1-2 (Setup + Foundational)
 
-| Work Items | Task Count | Key Deliverables |
-|------------|------------|------------------|
-| Project structure setup | 12 | backend/, frontend/, e2e/, infra/ directories with .gitignore |
-| Foundational blocking prerequisites | 11 | Docker, linting configs, CI skeletons, config loaders |
+**Status**: ✅ **Complete** (2026-07-08) — All 23 tasks done across 7 PRs
 
-**Total**: 23 tasks  
-**Risks**: Team onboarding delays, tooling setup issues  
+| Work Items | Task Count | Status | Key PRs |
+|------------|------------|--------|---------|
+| Project structure setup | 12 | ✅ Done | #43, #44, #45, #46, #47, #48, #49 |
+| Foundational blocking prerequisites | 11 | ✅ Done | #45, #46, #47, #48, #49, #50 |
+
+**Total**: 23 tasks (all complete)  
+**PRs**: #43 (backend dirs), #44 (Go module), #45 (config+lint), #46 (Docker), #47 (frontend), #48 (e2e), #49 (infra), #50 (CI workflows)  
+**Actual completion**: 2026-07-08 (on schedule)  
 **Dependencies**: None (starting point)
 
 ---
 
 ### ⚡ Sprint 2: Backend & Frontend Architecture (Weeks 3-4)
 
-**Epic Labels**: `epic:architecture-backend`, `epic:architecture-frontend`, `epic:architecture-infra`
+**Epic Labels**: `epic:architecture-backend`, `epic:architecture-frontend`
 
 **Goal**: Implement backend and frontend architectural patterns in parallel.
 
-**Scope**: Spec 005 Phase 3-4 (Backend + Frontend Architecture) + Phase 5 Part 1
+**Scope**: Spec 005 Phase 3-4 (Backend + Frontend Architecture)
 
-| Work Items | Task Count | Assignee | Key Deliverables |
-|------------|------------|----------|------------------|
-| Backend architecture patterns | 18 | Backend Dev | Middleware chain, DB pooling, AI client interface, HTTP server, domain patterns |
-| Frontend architecture patterns | 19 | Frontend Dev | Design tokens, primitives, composites, routing patterns |
-| Infrastructure modules (Part 1) | 25 | Shared | Terraform modules for VPC, security groups, NAT |
+**Status**: ✅ **Consolidation Applied** — 37 tasks → 14 work items (-62%)
 
-**Total**: 62 tasks  
-**Risks**: Parallel track synchronization, pattern adoption  
+| Track | Tasks | Work Items | Key Deliverables |
+|-------|-------|------------|------------------|
+| Backend architecture | 18 | 6 groups/standalone | Middleware chain (5), DB client, AI interfaces (3), error handling (2), HTTP server (3), example domain (4) |
+| Frontend architecture | 19 | 8 groups/standalone | Design tokens (2), API config (2), auth store, App shell (3), primitives (7), composites, infrastructure (3) |
+
+**Total**: 37 tasks → **14 work items** (6 backend + 8 frontend)
+
+**Consolidation Groups**:
+- Backend: G-SPRINT2-BACKEND-{MIDDLEWARE, AI, ERRORS, HTTP-SERVER, EXAMPLE} + 1 standalone (DB client)
+- Frontend: G-SPRINT2-FRONTEND-{TOKENS, API-CONFIG, APP-SHELL, PRIMITIVES-CORE, PRIMITIVES-STATE, INFRASTRUCTURE} + 2 standalone (auth-store, Form)
+
+**Issue Creation**: Run `/create-sprint-issues 2` to create 14 consolidated GitHub issues (not 37)
+
 **Dependencies**: Sprint 1 complete
 
 ---

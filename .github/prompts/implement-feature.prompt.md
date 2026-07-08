@@ -9,7 +9,29 @@ Implement a feature using a strict TDD execution flow. Switches to the tdd-devel
 
 Feature or task input (required): ${input:feature:Required. Describe the feature or task to implement (or point to a spec/tasks file, e.g. specs/001-*/tasks.md).}
 
-Instructions:
+## MANDATORY Prerequisites (Memory Loading)
+
+Before implementing, load project memory to ensure continuity:
+
+1. **Load Session Notes**: `read_file(".github/memory/session-notes.md")`
+   - Understand what has been built and decided
+   - Check for related work in previous sprints
+2. **Load Patterns Discovered**: `read_file(".github/memory/patterns-discovered.md")`
+   - Apply proven implementation patterns
+   - Avoid re-discovering known solutions
+3. **Load Working Notes**: `read_file(".github/memory/scratch/working-notes.md")`
+   - Check for in-progress work
+   - Avoid conflicts with current session
+4. **Confirm Memory Load**: Output brief confirmation before proceeding
+
+**Why this is mandatory:**
+- Prevents duplicate implementations
+- Ensures consistency with established patterns
+- Avoids conflicts with in-progress work
+- Maintains code quality standards
+
+## Implementation Instructions
+
 1. Read the relevant context in `.github/copilot-instructions.md` and any referenced
    spec/plan/tasks files under `specs/`.
 2. Break the work into small, testable increments.
