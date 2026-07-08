@@ -38,6 +38,27 @@ Use this memory system to:
 3. Read `scratch/working-notes.md` — check for in-progress work
 4. Confirm loading with a status message before proceeding with any task
 
+## Prerequisites for Implementation Workflows
+
+**MANDATORY: Before using `/implement-feature` or any SpecKit implementation workflow:**
+
+1. **Load Session Notes** — `read_file(".github/memory/session-notes.md")` to understand project history
+2. **Load Patterns Discovered** — `read_file(".github/memory/patterns-discovered.md")` to apply proven solutions
+3. **Load Working Notes** — `read_file(".github/memory/scratch/working-notes.md")` to check for in-progress work
+4. **Confirm Memory Load** — Output confirmation message before proceeding
+
+**Why this is critical:**
+- Prevents re-discovering known solutions
+- Avoids conflicting with in-progress work
+- Ensures consistency with project patterns
+- Maintains continuity across sessions
+
+**Failure to load memory may result in:**
+- Duplicate implementations
+- Pattern violations
+- Inconsistent code style
+- Wasted development time
+
 ## When to Use Each File
 - **While working**: take notes in `scratch/working-notes.md`.
 - **When a reusable approach appears**: add it to `patterns-discovered.md`.
