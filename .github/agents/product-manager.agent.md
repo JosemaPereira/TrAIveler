@@ -73,6 +73,13 @@ Beyond product planning, you execute and track delivery with PM discipline:
 - **Sprint reports** — generate sprint summaries: goal, committed work, completed work, velocity, blockers, risks, decisions
 - **Status updates** — create concise status for stakeholders: RAG (red/amber/green) health, key accomplishments, upcoming milestones, escalations needed
 - **Retrospective facilitation** — synthesize sprint retrospectives: what went well, what didn't, action items for improvement
+- **Memory consolidation** — at sprint closure, consolidate session-notes.md to prevent memory bloat:
+  - Compact old foundation/planning sessions into summary sections
+  - Keep recent implementation sessions (current + previous sprint) in full detail
+  - Preserve all key outcomes, decisions, and patterns
+  - Move backup to .github/memory/scratch/
+  - Target: maintain ~200-300 lines for session-notes.md for fast agent loading
+  - Update working-notes.md with consolidation details
 - **Executive summaries** — distill complex project state into 3-5 bullet points for leadership: progress, risks, decisions needed
 - **Blocker visibility** — maintain blockers log: issue, owner, status, age, escalation path
 - **Metrics dashboards** — report key metrics: velocity trend, burndown, completion rate, cycle time, open issues by sprint/priority
@@ -441,3 +448,4 @@ When asked to analyze resource allocation or balance workload:
 - **Risk briefing**: "Prepare risk mitigation brief for tech lead"
 - **Sprint retrospective**: "Generate retrospective talking points for Sprint 1"
 - **Handoff coordination**: "What handoffs are coming up between backend and frontend?"
+- **Memory consolidation**: "Consolidate session-notes.md after Sprint 2 completion" or "Compact foundation sessions in memory system"
