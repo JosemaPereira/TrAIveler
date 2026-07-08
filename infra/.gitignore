@@ -1,0 +1,60 @@
+# Terraform Infrastructure .gitignore
+#
+# Excludes Terraform state files, lock files, cached modules, and environment-specific
+# configuration from version control. State files contain sensitive data and are
+# managed remotely via S3 backend.
+
+# Local .terraform directories
+# Contains downloaded provider plugins and modules
+**/.terraform/*
+
+# Terraform state files
+# Never commit state - managed remotely via S3 backend
+*.tfstate
+*.tfstate.*
+
+# Crash log files from Terraform
+crash.log
+crash.*.log
+
+# Exclude all .tfvars files (may contain secrets)
+# Exception: *.tfvars.example files should be committed as templates
+*.tfvars
+*.tfvars.json
+
+# Ignore override files (local development customizations)
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+
+# CLI configuration files
+# Contains personal credentials and settings
+.terraformrc
+terraform.rc
+
+# Ignore CLI command files
+.terraform.lock.hcl
+
+# IDE files
+.idea/
+*.swp
+*.swo
+*~
+
+# macOS files
+.DS_Store
+
+# Environment files (may contain secrets)
+.env
+.env.local
+.env.*.local
+
+# Backup files
+*.backup
+*.bak
+
+# Temporary files
+*.tmp
+tmp/
+temp/

@@ -1,0 +1,137 @@
+# Infrastructure CI Workflow - Terraform Validation and Planning
+#
+# This workflow runs on pull requests that modify infrastructure code.
+# It validates Terraform syntax, checks formatting, and generates a plan
+# for review before infrastructure changes are applied.
+#
+# Workflow steps:
+# 1. Validate - Check HCL syntax and configuration validity
+# 2. Format Check - Ensure consistent code formatting
+# 3. Plan - Generate execution plan for staging environment
+#
+# Status: SKELETON - Jobs defined without full implementation
+# Sprint 1 deliverable: workflow structure with placeholders
+
+name: Infrastructure Plan
+
+on:
+  pull_request:
+    paths:
+      - 'infra/**'
+      - '.github/workflows/infra-plan.yml'
+  workflow_dispatch:
+
+# Prevent concurrent runs on the same PR
+concurrency:
+  group: infra-plan-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  validate:
+    name: Validate Terraform Configuration
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: "~> 1.5"
+      
+      # TODO Sprint 3: Add AWS credentials via OIDC
+      # - name: Configure AWS credentials
+      #   uses: aws-actions/configure-aws-credentials@v4
+      #   with:
+      #     role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+      #     aws-region: us-east-1
+      
+      - name: Terraform Init
+        run: |
+          cd infra
+          # TODO Sprint 3: Uncomment when S3 backend resources exist
+          # terraform init -backend=false
+          echo "Terraform init placeholder - backend not yet provisioned"
+      
+      - name: Terraform Validate
+        run: |
+          cd infra
+          # TODO Sprint 3: Uncomment when modules have valid syntax
+          # terraform validate
+          echo "Terraform validate placeholder - modules not yet implemented"
+
+  format-check:
+    name: Check Terraform Formatting
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: "~> 1.5"
+      
+      - name: Terraform Format Check
+        run: |
+          cd infra
+          # Check if all .tf files are formatted correctly
+          # Fails if any files need formatting
+          terraform fmt -check -recursive
+
+  plan:
+    name: Terraform Plan (Staging)
+    runs-on: ubuntu-latest
+    needs: [validate, format-check]
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: "~> 1.5"
+      
+      # TODO Sprint 3: Add AWS credentials via OIDC
+      # - name: Configure AWS credentials
+      #   uses: aws-actions/configure-aws-credentials@v4
+      #   with:
+      #     role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+      #     aws-region: us-east-1
+      
+      - name: Terraform Init
+        run: |
+          cd infra
+          # TODO Sprint 3: Uncomment when S3 backend resources exist
+          # terraform init
+          echo "Terraform init placeholder - backend not yet provisioned"
+      
+      - name: Terraform Plan
+        run: |
+          cd infra
+          # TODO Sprint 3: Uncomment when modules are implemented
+          # terraform plan -var-file=environments/staging.tfvars -out=tfplan
+          echo "Terraform plan placeholder - modules not yet implemented"
+      
+      # TODO Sprint 3: Add plan output as PR comment
+      # - name: Comment Plan on PR
+      #   uses: actions/github-script@v7
+      #   with:
+      #     script: |
+      #       const output = `#### Terraform Plan
+      #       <details><summary>Show Plan</summary>
+      #       
+      #       \`\`\`
+      #       ${process.env.PLAN_OUTPUT}
+      #       \`\`\`
+      #       
+      #       </details>`;
+      #       github.rest.issues.createComment({
+      #         issue_number: context.issue.number,
+      #         owner: context.repo.owner,
+      #         repo: context.repo.repo,
+      #         body: output
+      #       });
