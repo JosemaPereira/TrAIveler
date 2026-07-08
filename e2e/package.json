@@ -1,8 +1,8 @@
 {
-  "name": "e2e",
+  "name": "@traveler/e2e",
   "version": "1.0.0",
-  "description": "> Playwright end-to-end test suite for TrAIveler — validates complete user flows through a real browser.",
-  "main": "index.js",
+  "description": "End-to-end test suite for TrAIveler — validates complete user flows through real browsers using Playwright",
+  "private": true,
   "directories": {
     "test": "tests"
   },
@@ -11,14 +11,23 @@
     "test:headed": "playwright test --headed",
     "test:debug": "playwright test --debug",
     "test:ui": "playwright test --ui",
-    "report": "playwright show-report"
+    "report": "playwright show-report",
+    "codegen": "playwright codegen http://localhost:5173"
   },
-  "keywords": [],
+  "keywords": [
+    "e2e",
+    "playwright",
+    "testing",
+    "browser-automation"
+  ],
   "author": "",
   "license": "ISC",
-  "type": "commonjs",
   "devDependencies": {
     "@axe-core/playwright": "^4.12.1",
     "@playwright/test": "^1.61.1"
+  },
+  "engines": {
+    "node": ">=20.0.0",
+    "npm": ">=9.0.0"
   }
 }
