@@ -235,6 +235,49 @@ See [`specs/002-nfr-system-constraints/spec.md`](../specs/002-nfr-system-constra
 
 ---
 
+## Continuous Integration
+
+The frontend CI pipeline runs automatically on every pull request and push to main that modifies frontend code.
+
+**Workflow**: [`.github/workflows/frontend-ci.yml`](../.github/workflows/frontend-ci.yml)
+
+**Triggers**:
+- Pull requests modifying `frontend/**`
+- Push to `main` branch modifying `frontend/**`
+- Manual workflow dispatch
+
+**Jobs**:
+
+1. **Lint** — Runs ESLint with strict TypeScript rules (no-explicit-any enforced as error) and Prettier formatting check. Must pass with zero errors and consistent formatting before merge.
+
+2. **Test** — Executes Vitest unit and component tests with coverage reporting (`npm test -- --coverage --run`). Coverage artifact uploaded for review.
+
+3. **Build** — Builds production bundle with Vite, reports bundle size, and uploads `dist/` artifact. Validates that the production build completes successfully without errors.
+
+4. **Accessibility** — Placeholder job for Lighthouse CI accessibility audit (WCAG 2.1 AA). Full implementation scheduled for Sprint 2 with `@lhci/cli` and `@axe-core/playwright` integration.
+
+**Future Enhancements** (TODO comments in workflow):
+- **Sprint 2**: Full Lighthouse CI with WCAG 2.1 AA compliance checks, performance audits, and Core Web Vitals thresholds
+- **Sprint 10**: S3 + CloudFront deployment job with cache invalidation
+
+**Local Equivalent**:
+
+Run the same checks locally before pushing:
+
+```bash
+# Lint and format
+npm run lint
+npx prettier --check "src/**/*.{ts,tsx,css}"
+
+# Test with coverage
+npm test -- --coverage --run
+
+# Build production bundle
+npm run build
+```
+
+---
+
 ## Related Specifications
 
 | Document | Relevance |

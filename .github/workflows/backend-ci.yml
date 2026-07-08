@@ -1,0 +1,216 @@
+# Backend CI Workflow - Lint, Test, and Build
+#
+# This workflow runs on pull requests and pushes that modify backend code.
+# It validates code quality, runs tests, and builds a Docker image for deployment.
+#
+# Workflow steps:
+# 1. Lint - Run golangci-lint to enforce code quality standards
+# 2. Test - Execute Go tests with race detection and coverage
+# 3. Build - Build Docker image for linux/arm64 (ECS Fargate)
+# 4. Push (main only) - Push image to ECR (placeholder for Sprint 3)
+# 5. Deploy (main only) - Update ECS service (placeholder for Sprint 10)
+#
+# Status: SKELETON - Jobs defined, deployment placeholders for future sprints
+# Sprint 1 deliverable: lint, test, and build jobs functional
+
+name: Backend CI
+
+on:
+  pull_request:
+    paths:
+      - 'backend/**'
+      - '.github/workflows/backend-ci.yml'
+  push:
+    branches:
+      - main
+    paths:
+      - 'backend/**'
+      - '.github/workflows/backend-ci.yml'
+  workflow_dispatch:
+
+# Prevent concurrent runs on the same PR
+concurrency:
+  group: backend-ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  lint:
+    name: Lint Backend Code
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.25'
+          cache-dependency-path: backend/go.sum
+      
+      - name: Run golangci-lint
+        uses: golangci/golangci-lint-action@v6
+        with:
+          version: latest
+          working-directory: backend
+          args: --timeout=5m
+
+  test:
+    name: Run Backend Tests
+    runs-on: ubuntu-latest
+    
+    # PostgreSQL service container for integration tests
+    services:
+      postgres:
+        image: postgres:15.4-alpine
+        env:
+          POSTGRES_USER: testuser
+          POSTGRES_PASSWORD: testpass
+          POSTGRES_DB: traveler_test
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.25'
+          cache-dependency-path: backend/go.sum
+      
+      - name: Run tests with coverage
+        working-directory: backend
+        env:
+          DATABASE_URL: postgres://testuser:testpass@localhost:5432/traveler_test?sslmode=disable
+        run: |
+          go test ./... -race -coverprofile=coverage.out -covermode=atomic
+          go tool cover -func=coverage.out
+      
+      - name: Upload coverage to artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: backend-coverage
+          path: backend/coverage.out
+          retention-days: 7
+
+  build:
+    name: Build Docker Image
+    runs-on: ubuntu-latest
+    needs: [lint, test]
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+      
+      - name: Extract metadata
+        id: meta
+        run: |
+          # Use git SHA for development builds
+          SHORT_SHA=$(git rev-parse --short HEAD)
+          echo "version=dev-${SHORT_SHA}" >> $GITHUB_OUTPUT
+          echo "timestamp=$(date -u +%Y%m%d-%H%M%S)" >> $GITHUB_OUTPUT
+      
+      - name: Build Docker image
+        uses: docker/build-push-action@v6
+        with:
+          context: ./backend
+          file: ./backend/Dockerfile
+          platforms: linux/arm64
+          push: false
+          tags: |
+            traveler-backend:${{ steps.meta.outputs.version }}
+            traveler-backend:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          outputs: type=docker,dest=/tmp/backend-image.tar
+      
+      - name: Upload image artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: backend-docker-image
+          path: /tmp/backend-image.tar
+          retention-days: 1
+
+  # TODO Sprint 3: ECR Push Job
+  # Uncomment and configure when AWS infrastructure is provisioned
+  # 
+  # push:
+  #   name: Push to ECR
+  #   runs-on: ubuntu-latest
+  #   needs: build
+  #   if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+  #   
+  #   steps:
+  #     - name: Download image artifact
+  #       uses: actions/download-artifact@v4
+  #       with:
+  #         name: backend-docker-image
+  #         path: /tmp
+  #     
+  #     - name: Load Docker image
+  #       run: docker load --input /tmp/backend-image.tar
+  #     
+  #     - name: Configure AWS credentials
+  #       uses: aws-actions/configure-aws-credentials@v4
+  #       with:
+  #         role-to-assume: ${{ secrets.AWS_ROLE_ARN_STAGING }}
+  #         aws-region: us-east-1
+  #     
+  #     - name: Login to Amazon ECR
+  #       id: login-ecr
+  #       uses: aws-actions/amazon-ecr-login@v2
+  #     
+  #     - name: Tag and push image
+  #       env:
+  #         ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+  #         ECR_REPOSITORY: traveler-backend
+  #       run: |
+  #         SHORT_SHA=$(git rev-parse --short HEAD)
+  #         docker tag traveler-backend:dev-${SHORT_SHA} \
+  #           $ECR_REGISTRY/$ECR_REPOSITORY:v1.0-${SHORT_SHA}
+  #         docker push $ECR_REGISTRY/$ECR_REPOSITORY:v1.0-${SHORT_SHA}
+
+  # TODO Sprint 10: ECS Deployment Job
+  # Uncomment and configure when ECS infrastructure is ready
+  # 
+  # deploy:
+  #   name: Deploy to ECS
+  #   runs-on: ubuntu-latest
+  #   needs: push
+  #   if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+  #   
+  #   steps:
+  #     - name: Configure AWS credentials
+  #       uses: aws-actions/configure-aws-credentials@v4
+  #       with:
+  #         role-to-assume: ${{ secrets.AWS_ROLE_ARN_STAGING }}
+  #         aws-region: us-east-1
+  #     
+  #     - name: Update ECS service
+  #       env:
+  #         ECS_CLUSTER: ${{ vars.ECS_CLUSTER_NAME_STAGING }}
+  #         ECS_SERVICE: ${{ vars.ECS_SERVICE_NAME_STAGING }}
+  #       run: |
+  #         aws ecs update-service \
+  #           --cluster $ECS_CLUSTER \
+  #           --service $ECS_SERVICE \
+  #           --force-new-deployment
+  #     
+  #     - name: Wait for service stability
+  #       env:
+  #         ECS_CLUSTER: ${{ vars.ECS_CLUSTER_NAME_STAGING }}
+  #         ECS_SERVICE: ${{ vars.ECS_SERVICE_NAME_STAGING }}
+  #       run: |
+  #         aws ecs wait services-stable \
+  #           --cluster $ECS_CLUSTER \
+  #           --services $ECS_SERVICE
