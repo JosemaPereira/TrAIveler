@@ -90,7 +90,7 @@ jobs:
         env:
           DATABASE_URL: postgres://testuser:testpass@localhost:5432/traveler_test?sslmode=disable
         run: |
-          go test ./... -race -coverprofile=coverage.out -covermode=atomic
+          make test-coverage
           go tool cover -func=coverage.out
       
       - name: Upload coverage to artifact

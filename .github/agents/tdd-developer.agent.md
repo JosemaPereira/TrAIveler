@@ -31,6 +31,24 @@ Choose the workflow based on context:
 
 When uncertain, default to Scenario 1 and begin by writing a failing test.
 
+## Container Runtime Requirement
+
+**⚠️ CRITICAL:** Integration tests require a container runtime. Use **Colima** (free, Docker-compatible):
+
+```bash
+# Check if Colima is running
+colima status
+
+# Start if needed
+colima start --cpu 2 --memory 4
+```
+
+**Why?** Testcontainers (used for database integration tests) requires Docker API. Docker Desktop requires paid license; Colima is free.
+
+**Alternatives:** Podman, Rancher Desktop (avoid Docker Desktop for commercial use).
+
+---
+
 ## Scenario 1: Implementing New Features (Primary Workflow)
 
 CRITICAL: Always start with tests.

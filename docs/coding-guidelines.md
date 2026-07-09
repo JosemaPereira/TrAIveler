@@ -53,6 +53,111 @@ Use `goimports` (or an equivalent tool) to keep imports sorted and remove unused
 - Wrap errors with context using `fmt.Errorf("context: %w", err)` to preserve the error chain.
 - Return errors to callers; do not use `log.Fatal` or `os.Exit` outside of `main`.
 
+### Dependency Injection (Interface-First Design)
+- **Define interfaces before implementations** to enable easy mocking, testing, and component swapping.
+- Interfaces should be small and focused (1-5 methods). Prefer multiple small interfaces over large ones.
+- **Accept interfaces, return concrete types** in most cases. Exception: factories return interfaces when multiple implementations exist.
+- Place the interface in the package that uses it (consumer), not where it's implemented (producer).
+- Use descriptive interface names ending in `-er` when appropriate: `Reader`, `Writer`, `Closer`, `Client`.
+
+**Example — Database Client:**
+```go
+// Define interface first
+type Client interface {
+    Ping(ctx context.Context) error
+    Close() error
+    Pool() *pgxpool.Pool
+}
+
+// Concrete implementation (private)
+type pgxClient struct {
+    pool *pgxpool.Pool
+}
+
+// Factory returns interface
+func NewClient(ctx context.Context, url string) (Client, error) {
+    return &pgxClient{pool: ...}, nil
+}
+
+// Usage in main.go
+var dbClient database.Client
+dbClient, err = database.NewClient(ctx, cfg.Database.URL)
+```
+
+**Benefits:**
+- Easy to mock in tests: create `type mockClient struct{}` that implements `Client`
+- Swap implementations without changing consumers (e.g., in-memory vs PostgreSQL)
+- Clear contract: interface documents what operations are available
+- Encourages loose coupling between components
+
+### Mock Generation with Mockery
+- Use **[vektra/mockery](https://github.com/vektra/mockery)** to automatically generate type-safe mocks for interfaces.
+- **Standard location**: Mocks are generated in a `/mocks` subdirectory relative to the interface.
+  - Example: `internal/database/client.go` → `internal/database/mocks/client_mock.go`
+- All mock files are excluded from production builds using `//go:build test` build tag.
+
+**Configuration:**
+- Mockery configuration is defined in `backend/.mockery.yaml`
+- Settings: `with-expecter: true` enables fluent API for setting expectations
+- Settings: `dir: "{{.InterfaceDir}}/mocks"` generates mocks in /mocks subdirectory
+- Settings: `filename: "{{.InterfaceName | snakecase}}_mock.go"` uses snake_case naming
+
+**Generating Mocks:**
+```bash
+# From backend/ directory
+
+# Generate all mocks defined in .mockery.yaml
+make mocks
+
+# Or use mockery directly
+mockery --config .mockery.yaml --all
+```
+
+**Using Mocks in Tests:**
+```go
+import (
+    "testing"
+    "github.com/stretchr/testify/mock"
+    "github.com/yourproject/internal/database"
+    dbmocks "github.com/yourproject/internal/database/mocks"
+)
+
+func TestMyService_Success(t *testing.T) {
+    // Create mock from mocks subdirectory
+    mockDB := dbmocks.NewMockClient(t)
+    
+    // Setup expectation using fluent API
+    mockDB.EXPECT().Ping(mock.Anything).Return(nil).Once()
+    
+    // Use mock in service
+    service := NewMyService(mockDB)
+    err := service.DoSomething(context.Background())
+    
+    assert.NoError(t, err)
+    // mockDB.AssertExpectations(t) is automatically called on cleanup
+}
+```
+
+**Mock Expectations API:**
+- `.Return(value)` — specify return values
+- `.Once()`, `.Twice()`, `.Times(n)` — number of calls expected
+- `.Run(func(...) { })` — execute custom logic when method is called
+- `.Maybe()` — call is optional (won't fail if not called)
+- `mock.Anything` — match any argument value
+- Specific values — match exact argument (e.g., `Ping(ctx)` expects that exact context)
+
+**Best Practices:**
+- Generate mocks for all interfaces in `internal/` packages
+- **Always place mocks in `/mocks` subdirectory** (e.g., `internal/database/mocks/`)
+- Import mocks with alias: `dbmocks "path/to/package/mocks"`
+- Commit generated mock files to git for consistency across team
+- Regenerate mocks after interface changes: `make mocks`
+- Use `mock.Anything` for arguments you don't care about
+- Use specific values when testing argument passing
+- Prefer `.EXPECT()` fluent API over `.On()` for better type safety
+
+**See Also:** [Mock Standards](mock-standards.md) for complete reference
+
 ### Linting
 - The project uses `golangci-lint`. All lint checks must pass before a pull request can be merged.
 - Key enabled linters: `errcheck`, `govet`, `staticcheck`, `revive`, `gosec`.

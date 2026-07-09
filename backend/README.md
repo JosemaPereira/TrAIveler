@@ -48,6 +48,219 @@ The backend exposes a RESTful JSON API consumed by the frontend SPA. Its primary
 
 ---
 
+## Database Client
+
+The backend uses `internal/database/client.go` for PostgreSQL connection pooling via `pgx/v5`.
+
+### Architecture
+
+The database client follows **Dependency Injection with interface-first design**:
+- `database.Client` interface defines the contract (Ping, Close, Pool methods)
+- `pgxClient` struct is the private concrete implementation
+- `NewClient()` factory returns the interface, allowing easy mocking and implementation swapping
+
+**Benefits:**
+- Easy to mock in tests without requiring a real database
+- Can swap implementations (e.g., in-memory for testing, different database providers)
+- Clear contract documented by the interface
+- Loose coupling between components
+
+### Configuration
+
+Connection pool settings (configured in `config.go`):
+- **MinConns**: 5 — minimum idle connections maintained
+- **MaxConns**: 25 — maximum concurrent connections
+- **MaxConnLifetime**: 1 hour — connection reuse limit
+- **MaxConnIdleTime**: 30 minutes — idle connection timeout
+
+### Usage
+
+```go
+import (
+    "context"
+    "time"
+    "github.com/JosemaPereira/capstone-project-ai-bootcamp/backend/config"
+    "github.com/JosemaPereira/capstone-project-ai-bootcamp/backend/internal/database"
+)
+
+// Initialize client (returns interface, not concrete type)
+ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+defer cancel()
+
+cfg, err := config.Load()
+if err != nil {
+    log.Fatal(err)
+}
+
+var dbClient database.Client
+dbClient, err = database.NewClient(ctx, cfg.Database.URL)
+if err != nil {
+    log.Fatalf("failed to connect: %v", err)
+}
+defer dbClient.Close()
+
+// Health check
+if err := dbClient.Ping(ctx); err != nil {
+    log.Fatalf("health check failed: %v", err)
+}
+
+// Execute queries using Pool()
+var version string
+err = dbClient.Pool().QueryRow(ctx, "SELECT version()").Scan(&version)
+```
+
+### Mocking for Tests
+
+The project uses **[vektra/mockery](https://github.com/vektra/mockery)** for automated type-safe mock generation.
+
+**Generate mocks:**
+```bash
+# From backend/ directory
+make mocks
+
+# Mocks are generated in /mocks subdirectory
+# Example: internal/database/mocks/client_mock.go
+```
+
+**Use generated mocks in tests:**
+```go
+import (
+    "testing"
+    "github.com/stretchr/testify/mock"
+    "github.com/JosemaPereira/capstone-project-ai-bootcamp/backend/internal/database"
+    dbmocks "github.com/JosemaPereira/capstone-project-ai-bootcamp/backend/internal/database/mocks"
+)
+
+func TestMyService_HealthCheck_Success(t *testing.T) {
+    // Create mock from mocks subdirectory
+    mockDB := dbmocks.NewMockClient(t)
+    
+    // Setup expectation using fluent API
+    mockDB.EXPECT().Ping(mock.Anything).Return(nil).Once()
+    
+    // Use mock in service
+    service := NewMyService(mockDB)
+    err := service.HealthCheck(context.Background())
+    
+    assert.NoError(t, err)
+    // mockDB.AssertExpectations(t) called automatically
+}
+
+// Match specific arguments
+func TestMyService_WithSpecificContext(t *testing.T) {
+    mockDB := database.NewMockClient(t)
+    
+    ctx := context.WithValue(context.Background(), "request_id", "123")
+    mockDB.On("Ping", ctx).Return(nil).Once()
+    
+    service := NewMyService(mockDB)
+    err := service.HealthCheck(ctx)
+    assert.NoError(t, err)
+}
+```
+
+**See full examples:** `internal/database/client_mock_example_test.go`
+
+**Mock Location Standard:**
+- All mocks are in `/mocks` subdirectory: `internal/database/mocks/client_mock.go`
+- Import with alias: `dbmocks "path/to/package/mocks"`
+
+**Documentation:**
+- [Mock Standards](../docs/mock-standards.md) — Comprehensive mock generation reference
+- [Testing Guidelines](../docs/testing-guidelines.md) — Mockery usage guide
+- [Coding Guidelines](../docs/coding-guidelines.md) — Mock generation standards
+
+### Retry Logic
+
+`NewClient` implements fail-fast connection with retry logic:
+- **3 attempts** with 2-second delays between retries
+- Logs warnings on each failed attempt
+- Returns error after all retries exhausted
+- Respects context cancellation during retries
+
+### Testing
+
+**Makefile targets:**
+```bash
+make test              # Run unit tests (DEFAULT - safe for local dev)
+make test-all          # Run ALL tests including testcontainers (requires Colima)
+make test-integration  # Run integration tests (requires DATABASE_URL)
+make test-coverage     # Generate coverage report (same config as CI)
+make mocks             # Generate mocks using mockery
+```
+
+**Quick Start (Local Development):**
+```bash
+# Default: unit tests only (no Docker required)
+make test
+
+# If you have Colima running and want full test coverage:
+colima start --cpu 2 --memory 4
+make test-all
+```
+
+**Unit tests** (no database required):
+```bash
+make test
+# Or directly:
+go test -tags=test -v ./... -short
+```
+
+**All tests including testcontainers** (requires Colima):
+```bash
+# ⚠️ Requires Colima running
+colima status  # Check if running
+colima start --cpu 2 --memory 4  # Start if needed
+
+make test-all
+```
+
+# Run integration tests
+make test-integration
+# Or directly:
+go test -v ./internal/database/ -tags=integration -run="TestIntegration"
+```
+
+---
+
+## Development Tools
+
+### Makefile Commands
+
+The backend includes a Makefile with common development tasks:
+
+```bash
+make help              # Show all available targets
+make test              # Run all tests
+make test-unit         # Run unit tests only
+make test-integration  # Run integration tests
+make test-coverage     # Generate coverage report
+make mocks             # Generate mocks using mockery
+make lint              # Run golangci-lint
+make fmt               # Format code with gofmt
+make vet               # Run go vet
+make clean             # Remove build artifacts
+make install-tools     # Install development tools (mockery)
+```
+
+### Installing Development Tools
+
+```bash
+# Install all required tools
+make install-tools
+
+# Or manually:
+go install github.com/vektra/mockery/v2@latest
+
+# Install golangci-lint (see: https://golangci-lint.run/usage/install/)
+# macOS:
+brew install golangci-lint
+# Linux:
+curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(go env GOPATH)/bin
+```
+
+---
+
 ## Project Structure
 
 ```
@@ -168,14 +381,37 @@ When deployed to ECS, failed health checks trigger automatic container replaceme
 
 ## Prerequisites
 
-| Tool | Version | Check |
-|------|---------|-------|
-| Go | ≥ 1.24 | `go version` |
-| Docker + Docker Compose | ≥ 24 / ≥ 2 | `docker --version` |
-| `golangci-lint` | ≥ 1.59 | `golangci-lint --version` |
-| `gosec` | ≥ 2.21 | `gosec --version` |
-| `govulncheck` | latest | `govulncheck -version` |
-| `gitleaks` | ≥ 8 | `gitleaks version` |
+| Tool | Version | Check | Notes |
+|------|---------|-------|-------|
+| Go | ≥ 1.24 | `go version` | |
+| **Container Runtime** | Latest | `docker --version` | **Use Colima or Podman** (free alternatives to Docker Desktop) |
+| Docker Compose | ≥ 2 | `docker-compose --version` | |
+| `golangci-lint` | ≥ 1.59 | `golangci-lint --version` | |
+| `gosec` | ≥ 2.21 | `gosec --version` | |
+| `govulncheck` | latest | `govulncheck -version` | |
+| `gitleaks` | ≥ 8 | `gitleaks version` | |
+
+### Container Runtime Setup
+
+**⚠️ IMPORTANT:** Use a free container runtime alternative to Docker Desktop:
+
+```bash
+# Install Colima (recommended for macOS)
+brew install colima
+
+# Start Colima with Docker compatibility
+colima start --cpu 2 --memory 4
+
+# Verify Docker CLI works
+docker ps
+```
+
+**Alternatives:**
+- **Colima** (macOS/Linux) — Lightweight, Docker-compatible
+- **Podman** (macOS/Linux) — Daemonless, Docker-compatible
+- **Rancher Desktop** (macOS/Windows/Linux) — Full Kubernetes support
+
+**Why not Docker Desktop?** Requires paid license for commercial use.
 
 ---
 
