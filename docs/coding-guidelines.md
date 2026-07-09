@@ -283,7 +283,22 @@ func TestMyService_Success(t *testing.T) {
 
 ### Linting
 - The project uses `golangci-lint`. All lint checks must pass before a pull request can be merged.
-- Key enabled linters: `errcheck`, `govet`, `staticcheck`, `revive`, `gosec`.
+- Key enabled linters: `errcheck`, `govet` (with `fieldalignment`), `staticcheck`, `revive`, `gosec`, `gofmt`, `goimports`, `misspell`, `unparam`, `unconvert`, `goconst`, `gocyclo`, `gosimple`, `ineffassign`, `unused`.
+- **govet configuration**: `enable-all: true` with `shadow` disabled (too noisy).
+- **Test file exemptions**: The following linters are disabled for `*_test.go` files:
+  - `gocyclo` - Cyclomatic complexity (test helpers can be complex)
+  - `errcheck` - Error checking (some test errors are intentionally ignored)
+  - `gosec` - Security checks (tests don't need production security)
+  - `goconst` - Constant detection (test data repetition is acceptable)
+  - `fieldalignment` - Struct field ordering (test struct performance doesn't matter)
+
+**Running lints locally:**
+```bash
+# From backend/ directory
+make lint              # Run all configured linters
+make fmt               # Format code with gofmt + go mod tidy
+make vet               # Run go vet only
+```
 
 ### Project Structure (Backend)
 ```
