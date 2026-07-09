@@ -1,0 +1,126 @@
+{
+  "schema_version": 1,
+  "description": "Tracks sha256 content hashes of hand-ported agent/prompt pairs between GitHub Copilot (.github/agents/, .github/prompts/) and Claude Code (.claude/agents/) subagents, so scripts/check-agent-drift.py can detect when either side changed without the other being updated. Does NOT cover .claude/skills/speckit-*/ (managed by the official spec-kit CLI, use `specify integration upgrade claude` for those). Update the hashes here only after manually reconciling a detected drift — this file is not auto-generated.",
+  "pairs": [
+    {
+      "name": "code-reviewer",
+      "claude_file": ".claude/agents/code-reviewer.md",
+      "copilot_files": [".github/agents/code-reviewer.agent.md"],
+      "hashes": {
+        ".claude/agents/code-reviewer.md": "43c33359970f6e900209606d0cbff0d9ddbab837b831d13a517ab10c2358671c",
+        ".github/agents/code-reviewer.agent.md": "88dd046315cc3d1083323e9c79d436351190680bba2cbc4d508255e9e79dda7a"
+      },
+      "last_synced": "2026-07-09"
+    },
+    {
+      "name": "product-manager",
+      "claude_file": ".claude/agents/product-manager.md",
+      "copilot_files": [
+        ".github/agents/product-manager.agent.md",
+        ".github/prompts/create-sprint-issues.prompt.md",
+        ".github/prompts/plan-sprints.prompt.md"
+      ],
+      "hashes": {
+        ".claude/agents/product-manager.md": "b9d1ca2d5952371db5f6fec8a221c6440c41058bc6e4f16f91ea6066f284af48",
+        ".github/agents/product-manager.agent.md": "67e5a32fa4ed17b7469c6db49851ba5af1e6656fef97b84a28e4bf1c95ef0f70",
+        ".github/prompts/create-sprint-issues.prompt.md": "076748ec8cd1bb43e19f6dd2b7259a071d593eac19ce7103fdaae15572879d96",
+        ".github/prompts/plan-sprints.prompt.md": "51eb559e8ff8d4d4006263e8a89821f3771175d59fe0c5ec0f3bb5916ac68399"
+      },
+      "last_synced": "2026-07-09"
+    },
+    {
+      "name": "tdd-developer",
+      "claude_file": ".claude/agents/tdd-developer.md",
+      "copilot_files": [
+        ".github/agents/tdd-developer.agent.md",
+        ".github/prompts/implement-feature.prompt.md"
+      ],
+      "hashes": {
+        ".claude/agents/tdd-developer.md": "bcad9e5b44bf9af7344e948a43991a4f70c5d508934778efbf3397f39132a0df",
+        ".github/agents/tdd-developer.agent.md": "bae7abdc6f5b51835bf2b3d595605dd6468424dce330cecd09a03537bb995e75",
+        ".github/prompts/implement-feature.prompt.md": "3fabf7d38b874f28a6ba7363e41846ed93caf81910b6a78dfb0d3da70d8359e9"
+      },
+      "last_synced": "2026-07-09"
+    },
+    {
+      "name": "technical-writer",
+      "claude_file": ".claude/agents/technical-writer.md",
+      "copilot_files": [
+        ".github/agents/technical-writer.agent.md",
+        ".github/prompts/technical-writer.prompt.md"
+      ],
+      "hashes": {
+        ".claude/agents/technical-writer.md": "23698dcaa79b918218e6fd19d7c8c963cc5a4a2cf7e005940a9e3fda330560ad",
+        ".github/agents/technical-writer.agent.md": "ca0fbacae7bd63b31fee94afa05d110e4e8e21b4b58b7a77b0f97e91b723010a",
+        ".github/prompts/technical-writer.prompt.md": "aa41656ec911f8c33b7b9a0c42f88eb12c66ecb74afbae7924592411b838818d"
+      },
+      "last_synced": "2026-07-09"
+    },
+    {
+      "name": "test-engineer",
+      "claude_file": ".claude/agents/test-engineer.md",
+      "copilot_files": [
+        ".github/agents/test-engineer.agent.md",
+        ".github/prompts/create-ui-tests.prompt.md",
+        ".github/prompts/run-ui-tests.prompt.md"
+      ],
+      "hashes": {
+        ".claude/agents/test-engineer.md": "d03df08aad837cfe43a98a37b1e1f961cc6f6fc4e064b813596466b08be5e0e9",
+        ".github/agents/test-engineer.agent.md": "f4490b35ad3a524d6260c34471b86880c72d9286c3d145741154bb797e0e2775",
+        ".github/prompts/create-ui-tests.prompt.md": "ea483c73ff50029c29573af8b0426e503587c9540e5f8330f1dc8874805af472",
+        ".github/prompts/run-ui-tests.prompt.md": "a85d295e4d5f7a2c49688c196a7c62a0ec9a4759b361f1b14c0989783ccfb109"
+      },
+      "last_synced": "2026-07-09"
+    },
+    {
+      "name": "build-roadmap",
+      "claude_file": ".claude/agents/build-roadmap.md",
+      "copilot_files": [".github/prompts/build-roadmap.prompt.md"],
+      "hashes": {
+        ".claude/agents/build-roadmap.md": "5dafa4db135739fd91194f852abfa975a0518bc71a976c160f5db549ed6ce4a3",
+        ".github/prompts/build-roadmap.prompt.md": "d3817e035c13b247cd24c510cd74d8a5dcf1aed0230916b0de594310b61a0a35"
+      },
+      "last_synced": "2026-07-09"
+    },
+    {
+      "name": "commit-and-push",
+      "claude_file": ".claude/agents/commit-and-push.md",
+      "copilot_files": [".github/prompts/commit-and-push.prompt.md"],
+      "hashes": {
+        ".claude/agents/commit-and-push.md": "13d1381dec44290413b306eb0762063b270bfc44f17f6f36fb01d77eb9e86d55",
+        ".github/prompts/commit-and-push.prompt.md": "79135fd933c2c218c6cec94d4a2074e2b74e1d2530f019e2e5b63a9a2576d33f"
+      },
+      "last_synced": "2026-07-09"
+    },
+    {
+      "name": "open-pr",
+      "claude_file": ".claude/agents/open-pr.md",
+      "copilot_files": [".github/prompts/open-pr.prompt.md"],
+      "hashes": {
+        ".claude/agents/open-pr.md": "61590c04ae6c06da5fd7d972f5353beb844f7a411f2a32fd79a63a433b3104e6",
+        ".github/prompts/open-pr.prompt.md": "c36a77aa72a21db5bcdb8e9e8b9dead070629489e49a151d8fbae428ecc0ea85"
+      },
+      "last_synced": "2026-07-09"
+    },
+    {
+      "name": "promote-fundations",
+      "claude_file": ".claude/agents/promote-fundations.md",
+      "copilot_files": [".github/prompts/promote-fundations.prompt.md"],
+      "hashes": {
+        ".claude/agents/promote-fundations.md": "ee0726a1c69048a18f16cc5981502cb7a2b4eaa1e5500f9b419077c4662049cf",
+        ".github/prompts/promote-fundations.prompt.md": "4aefeca49ef35bf394c2ae1f2a6600c5a83226c7e12d7edaacf052da2fa22b40"
+      },
+      "last_synced": "2026-07-09"
+    },
+    {
+      "name": "sync-issues",
+      "claude_file": ".claude/agents/sync-issues.md",
+      "copilot_files": [".github/prompts/sync-issues.prompt.md"],
+      "hashes": {
+        ".claude/agents/sync-issues.md": "233d2cb1c5fadc7c6aae0748d266353032bfc7969a4392300a3b61df1fb8bf57",
+        ".github/prompts/sync-issues.prompt.md": "5c954b8e8ebc2a4f43ef20fdfc15e6e7fe4727e7e6fd9f274a415931d24092cc"
+      },
+      "last_synced": "2026-07-09"
+    }
+  ]
+}

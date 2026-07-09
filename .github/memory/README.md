@@ -11,17 +11,31 @@ Use this memory system to:
 - Capture troubleshooting lessons from failures and fixes.
 - Improve consistency across iterative, feedback-driven development cycles.
 
+## Single Source of Truth for Any AI Tool
+
+This system is **tool-agnostic and shared**: Claude Code, GitHub Copilot, and any other AI tool
+used in this repository read and write the exact same files under `.github/memory/`. There is no
+per-tool copy of memory.
+
+This file is the **canonical protocol**. `CLAUDE.md` (primary) and `.github/copilot-instructions.md`
+(auxiliary) each summarize their tool's obligations under it, but the rules themselves live here
+only — so update the protocol here first, and it never drifts out of sync between tools.
+
 ## Two Types of Memory
 
 1. **Persistent Memory**
-- Location: `.github/copilot-instructions.md`
-- Role: Stable, foundational guidance (principles, workflows, responsibilities).
-- Changes: Infrequent and deliberate.
+
+   - Location: `CLAUDE.md` (primary, canonical — Claude Code is the primary AI tool for this
+     project). `.github/copilot-instructions.md` mirrors it for GitHub Copilot, kept as an
+     auxiliary tool.
+   - Role: Stable, foundational guidance (principles, workflows, responsibilities).
+   - Changes: Infrequent and deliberate, made in `CLAUDE.md` first.
 
 2. **Working Memory**
-- Location: `.github/memory/`
-- Role: Day-to-day discoveries and emerging implementation knowledge.
-- Changes: Frequent, session-driven updates.
+
+   - Location: `.github/memory/`
+   - Role: Day-to-day discoveries and emerging implementation knowledge.
+   - Changes: Frequent, session-driven updates.
 
 ## Directory Structure
 - `session-notes.md`: Historical summaries of completed sessions (committed).
@@ -29,9 +43,30 @@ Use this memory system to:
 - `scratch/working-notes.md`: Active session notes and in-progress thinking (NOT committed).
 - `scratch/.gitignore`: Ignores everything in scratch to keep ephemeral work out of git.
 
+## Avoiding Conflicts & Stale Entries Across Tools
+
+Because Claude Code and Copilot sessions can run concurrently on different branches, follow these
+rules so entries never clash or silently overwrite each other:
+
+- **Append-only.** New entries go at the end of the relevant section. Never edit, reorder, or
+  delete another session's entry — not even to "clean it up."
+- **Tag every new entry with the tool that wrote it.** Add a `**Tool**: Claude Code` or
+  `**Tool**: GitHub Copilot` line next to the date in every new `### Session: ...` and
+  `### Pattern Name` entry (see templates in each file). This makes provenance and freshness
+  obvious at a glance and is the main defense against confusion between tools.
+- **Sync before writing.** Pull the latest committed version of the memory files before appending,
+  so a new entry lands after the true last entry rather than a stale local copy.
+- **On merge conflicts, keep both sides.** If a git merge conflicts inside these files, never
+  resolve by discarding one tool's addition — concatenate both entries and move on. Exact ordering
+  is not critical since every entry is dated.
+- **Compaction preserves both tools' substance.** When a phase's entries pile up and get folded
+  into a `(Compacted)` summary block, whoever compacts must carry forward the substance of every
+  tool's entries, not just their own.
+
 ## Session Start Protocol
 
-**MANDATORY: Every new session must begin by loading memory files in this order:**
+**MANDATORY for any AI tool working in this repository (Claude Code, GitHub Copilot, or others).
+Every new session must begin by loading memory files in this order:**
 
 1. Read `session-notes.md` — understand what has been built and decided
 2. Read `patterns-discovered.md` — review proven implementation patterns

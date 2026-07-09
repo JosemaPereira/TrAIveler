@@ -7,6 +7,7 @@ This is an accumulated knowledge base and should grow over time. Written in Engl
 
 ### Pattern Name
 - <short, descriptive name>
+- **Discovered**: <YYYY-MM-DD> — **Tool**: <Claude Code | GitHub Copilot>
 
 ### Context
 - <where this appears: backend/frontend/tests/build/debug>
@@ -976,4 +977,75 @@ Action: APPLY — full sprint planning workflow
 - `.github/agents/product-manager.agent.md` (Handling Existing Sprints section)
 - `.github/prompts/plan-sprints.prompt.md` (Step 3: Check for existing sprints)
 - `docs/roadmap.md` (Issue column presence = refinement complete)
+
+---
+
+### Pattern Name
+- Prefer the official multi-agent integration over hand-porting a tool's own config
+- **Discovered**: 2026-07-09 — **Tool**: Claude Code
+
+### Context
+- Adding a new AI coding agent (e.g. Claude Code) to a project already set up for a different one
+  (e.g. GitHub Copilot) via a shared toolkit that has its own agent/prompt files (here: GitHub
+  spec-kit's SpecKit workflow).
+
+### Problem
+- It's tempting to hand-adapt the existing agent's config files (frontmatter, prompt text) into the
+  new tool's format yourself. This is slow, error-prone, and — critically — if the toolkit later
+  ships (or already has) a native integration for the new tool, your hand-port can silently collide
+  with it (same invocation names, competing/duplicate definitions) once the official one is added.
+
+### Solution
+- Before hand-porting anything, check whether the source toolkit already has first-class support
+  for the target AI tool. For spec-kit: `specify integration list` shows all available integrations
+  and whether the target is "Multi-install Safe"; `specify integration install <key> --force` adds
+  it alongside an existing integration without removing the original (force is only needed when the
+  *existing* integration isn't declared multi-install-safe). Only hand-port the parts a toolkit's
+  official integration doesn't cover.
+
+### Example
+```
+specify integration list                        # confirm "claude" exists, check multi-install-safe
+specify integration install claude --script sh --force
+specify integration status                       # confirm default integration unchanged
+```
+
+### Related Files
+- `.specify/integration.json`
+- `.claude/skills/speckit-*/SKILL.md`
+- `CLAUDE.md` ("Local Agents & Workflows" section)
+
+---
+
+### Pattern Name
+- Hash-manifest drift detection for hand-ported config pairs
+- **Discovered**: 2026-07-09 — **Tool**: Claude Code
+
+### Context
+- Any situation where equivalent content must exist in two files/formats that can't be mechanically
+  auto-generated from one another (here: GitHub Copilot `.agent.md`/`.prompt.md` pairs vs. Claude
+  Code `.claude/agents/*.md` subagents — different frontmatter, prompt+agent merging, phrasing
+  adaptation) and either side could be edited independently in the future.
+
+### Problem
+- Without a canonical source and without full codegen, edits to one side silently drift out of sync
+  with the other, and nothing signals it happened until someone notices a behavioral difference.
+
+### Solution
+- Maintain a small JSON manifest recording the sha256 of every file in each pair as of the last
+  confirmed sync. A companion script recomputes current hashes and reports, per pair, whether
+  nothing changed, one side changed (needs porting), or both changed independently (needs manual
+  reconciliation) — exit non-zero on any drift so it can gate a workflow. The script only detects
+  drift; a human (or agent) still ports the actual content change and then refreshes the manifest.
+
+### Example
+```
+python3 scripts/check-agent-drift.py             # reports drift, exit 1 if any
+# ... manually port the change to the other side ...
+python3 scripts/check-agent-drift.py --update <name>   # refresh stored hashes after reconciling
+```
+
+### Related Files
+- `scripts/check-agent-drift.py`
+- `scripts/agent-port-manifest.json`
 
