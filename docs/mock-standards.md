@@ -47,7 +47,7 @@ filename: "{{.InterfaceName | snakecase}}_mock.go"
 
 # Package configurations
 packages:
-  github.com/JosemaPereira/capstone-project-ai-bootcamp/backend/internal/database:
+  github.com/JosemaPereira/TrAIveler/backend/internal/database:
     interfaces:
       Client:
 ```

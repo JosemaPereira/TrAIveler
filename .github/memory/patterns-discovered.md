@@ -804,11 +804,11 @@ These issues depend on completion of this task."
 ```markdown
 ## Related Specifications
 
-**Specs**: [specs/005-system-architecture/spec.md](https://github.com/JosemaPereira/capstone-project-ai-bootcamp/blob/main/specs/005-system-architecture/spec.md)  
-**Documentation**: [docs/architecture.md](https://github.com/JosemaPereira/capstone-project-ai-bootcamp/blob/main/docs/architecture.md)
+**Specs**: [specs/005-system-architecture/spec.md](https://github.com/JosemaPereira/TrAIveler/blob/main/specs/005-system-architecture/spec.md)  
+**Documentation**: [docs/architecture.md](https://github.com/JosemaPereira/TrAIveler/blob/main/docs/architecture.md)
 
 NOT:
-**Specs**: [specs/005-system-architecture/spec.md](https://github.com/JosemaPereira/capstone-project-ai-bootcamp/specs/005-system-architecture/spec.md) ❌
+**Specs**: [specs/005-system-architecture/spec.md](https://github.com/JosemaPereira/TrAIveler/specs/005-system-architecture/spec.md) ❌
 ```
 
 ### Related Files

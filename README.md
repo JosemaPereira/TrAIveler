@@ -2,8 +2,6 @@
 
 > **Your AI travel companion for planning unforgettable trips**
 
-_Capstone project for the AI Bootcamp at Slalom_
-
 ---
 
 ## Why TrAIveler?
@@ -97,7 +95,7 @@ Want to run TrAIveler locally? The project uses Docker Compose to provide a comp
 ```bash
 # 1. Clone the repository
 git clone <repository-url>
-cd capstone-project-ai-bootcamp
+cd TrAIveler
 
 # 2. Set up backend configuration
 cp backend/.env.example backend/.env

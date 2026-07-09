@@ -2,7 +2,7 @@
 
 ## Overview
 
-**TrAIveler** is a web application that uses artificial intelligence to help travelers generate, customize, and share travel itineraries. These requirements are derived from the project vision described in `docs/capstone-idea.md`.
+**TrAIveler** is a web application that uses artificial intelligence to help travelers generate, customize, and share travel itineraries. These requirements are derived from the project vision described in `docs/product-vision.md`.
 
 ---
 
