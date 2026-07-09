@@ -131,20 +131,29 @@ func TestLoad_Validation(t *testing.T) {
 			tt.setup()
 			_, err := Load()
 
-			if tt.wantErr {
-				if err == nil {
-					t.Errorf("Load() expected error containing %q, got nil", tt.errContains)
-					return
-				}
-				if !contains(err.Error(), tt.errContains) {
-					t.Errorf("Load() error = %v, want error containing %q", err, tt.errContains)
-				}
-			} else {
-				if err != nil {
-					t.Errorf("Load() unexpected error = %v", err)
-				}
-			}
+			assertValidationError(t, err, tt.wantErr, tt.errContains)
 		})
+	}
+}
+
+// assertValidationError checks if an error matches expected validation outcomes.
+// Extracted helper to reduce cognitive complexity.
+func assertValidationError(t *testing.T, err error, wantErr bool, errContains string) {
+	t.Helper()
+
+	if wantErr {
+		if err == nil {
+			t.Errorf("Load() expected error containing %q, got nil", errContains)
+			return
+		}
+		if !contains(err.Error(), errContains) {
+			t.Errorf("Load() error = %v, want error containing %q", err, errContains)
+		}
+		return
+	}
+
+	if err != nil {
+		t.Errorf("Load() unexpected error = %v", err)
 	}
 }
 
