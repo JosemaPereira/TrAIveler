@@ -9,9 +9,9 @@ import (
 func TestLoad_RequiredVariables(t *testing.T) {
 	tests := []struct {
 		name        string
+		errContains string
 		setup       func()
 		wantErr     bool
-		errContains string
 	}{
 		{
 			name: "missing DATABASE_URL",
@@ -83,9 +83,9 @@ func TestLoad_RequiredVariables(t *testing.T) {
 func TestLoad_Validation(t *testing.T) {
 	tests := []struct {
 		name        string
+		errContains string
 		setup       func()
 		wantErr     bool
-		errContains string
 	}{
 		{
 			name: "invalid port - too high",
@@ -227,8 +227,8 @@ func TestLoad_CustomValues(t *testing.T) {
 
 	tests := []struct {
 		name string
-		got  interface{}
 		want interface{}
+		got  interface{}
 	}{
 		{"HTTP_PORT", cfg.Server.Port, 3000},
 		{"LOG_LEVEL", cfg.Log.Level, "debug"},

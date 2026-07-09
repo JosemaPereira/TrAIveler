@@ -24,11 +24,11 @@ import (
 // Config holds all application configuration loaded from environment variables.
 // All fields are loaded at startup with fail-fast validation.
 type Config struct {
+	Log      LogConfig
 	Server   ServerConfig
 	Database DatabaseConfig
 	AI       AIConfig
 	Auth     AuthConfig
-	Log      LogConfig
 }
 
 // ServerConfig contains HTTP server settings.
