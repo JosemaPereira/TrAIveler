@@ -129,12 +129,4 @@ Read the following files before generating code, tests, or UI for this project:
 
 **Group Column**: Use `docs/roadmap.md` Group column to mark consolidated tasks (e.g., `G-BACKEND-MIDDLEWARE`). Tasks sharing a Group value become ONE issue with checklist.
 
-**Reference**: See `.github/PM-WORKFLOW-CONSOLIDATION.md` for detailed guidelines.
-
-## Project Reports (Audit Trail)
-- **PROMOTION-REPORT.md**: Tracks which foundational specs (001-006) have been promoted to docs/ and constitution. Update when new foundation specs are created or existing ones are revised.
-- **ROADMAP-RECONCILIATION-REPORT.md**: Documents integration of spec tasks into docs/roadmap.md. Update when new specs are added, tasks change status/priority, or critical path changes.
-- **ISSUE-CREATION-GUIDELINES.md**: Defines rules for epic vs issue classification, relationship management (blocks/blocked by/related to), label strategy, GitHub issue creation workflow, and **task consolidation policy**. **MANDATORY** reading before creating any GitHub issues.
-- **PM-WORKFLOW-CONSOLIDATION.md**: Detailed consolidation-first PM workflow with rules, examples, and success metrics. **MANDATORY** for sprint planning and issue creation.
-- **Update trigger**: When running `/promote-fundations` or `/build-roadmap` workflows, update the relevant report with new spec information, date, and statistics.
-- **Location**: All reports live in .github/ directory for centralized audit trail.
+**Tracking**: Sprint planning and issue creation details are tracked in `.github/memory/session-notes.md`. Consolidation checklist available in `.github/SPRINT-CONSOLIDATION-CHECKLIST.md`.

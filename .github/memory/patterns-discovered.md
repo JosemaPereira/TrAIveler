@@ -476,6 +476,43 @@ These issues depend on completion of this task."
 
 ---
 
+### GitHub Documentation URL Formatting (Issue Creation Pattern)
+
+### Context
+- GitHub issue creation — documentation and spec references in issue descriptions; product-manager mode
+
+### Problem
+- When creating GitHub issues with documentation references, URLs were malformed:
+  - ❌ Wrong: `https://github.com/OWNER/REPO/docs/architecture.md`
+  - ❌ Wrong: `https://github.com/OWNER/REPO/specs/005-system-architecture/spec.md`
+- These URLs return 404 because they're missing the `/blob/main/` path segment that GitHub requires for file viewing.
+
+### Solution
+- **ALWAYS use full GitHub blob URLs** when referencing documentation or specs in issues:
+  - ✅ Correct: `https://github.com/OWNER/REPO/blob/main/docs/architecture.md`
+  - ✅ Correct: `https://github.com/OWNER/REPO/blob/main/specs/005-system-architecture/spec.md`
+- Pattern for issue generation: `https://github.com/{owner}/{repo}/blob/main/{path}`
+- Apply to ALL documentation references: specs, docs/, README files, any project file referenced in issues
+- Verify URLs are clickable in issue preview before creating
+
+### Example
+```markdown
+## Related Specifications
+
+**Specs**: [specs/005-system-architecture/spec.md](https://github.com/JosemaPereira/capstone-project-ai-bootcamp/blob/main/specs/005-system-architecture/spec.md)  
+**Documentation**: [docs/architecture.md](https://github.com/JosemaPereira/capstone-project-ai-bootcamp/blob/main/docs/architecture.md)
+
+NOT:
+**Specs**: [specs/005-system-architecture/spec.md](https://github.com/JosemaPereira/capstone-project-ai-bootcamp/specs/005-system-architecture/spec.md) ❌
+```
+
+### Related Files
+- All GitHub issues created by product-manager mode
+- Issue enhancement templates in `/tmp/sprint2-enhancements/`
+- `.github/memory/session-notes.md` (2026-07-08 Sprint 2 session — issue creation and enhancement)
+
+---
+
 ### Template-Based Script Customization for Sprint-Specific Needs
 
 ### Context
