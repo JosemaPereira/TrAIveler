@@ -1,5 +1,16 @@
 # Copilot Instructions
 
+> **Auxiliary file.** Claude Code is the primary AI tool for this project as of the migration to
+> Claude; GitHub Copilot is kept as an auxiliary/secondary tool only. The canonical, source-of-truth
+> instructions live in [`/CLAUDE.md`](../CLAUDE.md). This file is a mirror for GitHub Copilot's
+> auto-loading mechanism — it must be kept in sync **with `CLAUDE.md`**, never the other way around.
+> If the two files disagree, `CLAUDE.md` wins.
+>
+> **Editing agents in `.github/agents/` or `.github/prompts/`?** Several of them are hand-ported to
+> Claude Code subagents under `.claude/agents/`. Before and after editing one, run
+> `python3 scripts/check-agent-drift.py` from the repo root and follow its instructions — see
+> `CLAUDE.md`'s "Local Agents & Workflows" section for the full explanation and adaptation rules.
+
 ## Project Context
 - Create a web tool to plan trips to any destination in the world. The tool offers suggestions for places, excursions, gastronomy, tips, and recommendations for exploring the most attractive and hidden treasures of a city or country within a specific timeframe.
 - Stack: Backend: Golang 1.24 or higher, Frontend: React 19 or higher
@@ -62,35 +73,17 @@ Read the following files before generating code, tests, or UI for this project:
 - **Protection**: Never commit directly to main
 - **Versioning**: Semantic Versioning (SemVer) 2.0.0
 
-## Memory System
+## Memory System (MANDATORY)
 
-### Overview
-- **Persistent memory**: This file (.github/copilot-instructions.md) holds foundational principles and workflows.
-- **Working memory**: The .github/memory/ directory holds discoveries, patterns, and session history.
-- **Scratch notes**: .github/memory/scratch/working-notes.md for active session notes (not committed).
-- **Patterns**: .github/memory/patterns-discovered.md for reusable implementation patterns (committed).
-- **Session history**: .github/memory/session-notes.md for completed session summaries (committed).
+This repository has **one** memory system, shared byte-for-byte between Copilot and Claude Code
+under `.github/memory/`. The full protocol — including how to avoid conflicts and stale entries
+between tools — is canonical in **`.github/memory/README.md`**. Read it once per session and
+follow it; do not rely on the summary below if it ever seems to diverge, the README wins.
 
-### Session Start Protocol (MANDATORY)
+Quick reference:
 
-**Every new session MUST begin by loading memory in this order:**
-
-1. **Load Session Notes** (`.github/memory/session-notes.md`)
-   - Review all completed session summaries
-   - Understand what has been built and decided
-   - Note any pending follow-ups or blockers
-
-2. **Load Patterns Discovered** (`.github/memory/patterns-discovered.md`)
-   - Review all accumulated implementation patterns
-   - Apply proven solutions to similar problems
-   - Avoid re-discovering known patterns
-
-3. **Load Working Notes** (`.github/memory/scratch/working-notes.md`)
-   - Check for in-progress work from previous session
-   - Resume from documented stopping point if applicable
-
-4. **Confirm Memory Load**
-   - After loading all memory files, output this confirmation:
+1. **Session start**: read `.github/memory/session-notes.md`, `.github/memory/patterns-discovered.md`,
+   and `.github/memory/scratch/working-notes.md`, then confirm loading:
    ```
    ✅ Memory System Loaded
    - Session notes: X sessions reviewed
@@ -98,12 +91,12 @@ Read the following files before generating code, tests, or UI for this project:
    - Working notes: [Active/Empty]
    - Ready to proceed with context-aware assistance
    ```
-
-**During active work**: Take notes in .github/memory/scratch/working-notes.md
-
-**When a reusable pattern emerges**: Document it in .github/memory/patterns-discovered.md
-
-**At session end**: Summarize key findings into .github/memory/session-notes.md
+2. **While working**: take notes in `.github/memory/scratch/working-notes.md` (not committed).
+3. **When a reusable pattern emerges**: append it to `.github/memory/patterns-discovered.md` using
+   its template, tagged with today's date and `**Tool**: GitHub Copilot`.
+4. **At session end**: append a summary to `.github/memory/session-notes.md` using its template,
+   tagged with today's date and `**Tool**: GitHub Copilot`.
+5. **Append-only**: never edit or delete another session's entry, regardless of which tool wrote it.
 
 ## Task Consolidation Policy (MANDATORY)
 
