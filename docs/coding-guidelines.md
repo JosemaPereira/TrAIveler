@@ -48,14 +48,265 @@ Use `goimports` (or an equivalent tool) to keep imports sorted and remove unused
 - Package names must be lowercase, single words, with no underscores or camelCase: `itinerary`, `handler`, `store`.
 - File names use snake_case: `itinerary_service.go`, `trip_handler.go`.
 
+### Struct Field Ordering
+- **Prioritize logical grouping and readability over memory alignment optimization**.
+- Group related fields together to make the struct's purpose clear.
+- Order fields by their importance to the struct's functionality, not by size.
+- Place configuration fields logically (e.g., timeouts together, connection settings together).
+- **Rationale**: The `fieldalignment` linter is disabled project-wide because:
+  - Memory savings are typically negligible (few bytes per struct instance)
+  - Modern hardware makes alignment differences minimal
+  - Readability and maintainability matter more than micro-optimizations
+  - Forced size-based ordering makes code harder to understand
+  - Time spent on alignment could be better used elsewhere
+
+**Example:**
+```go
+// ✅ Good - Logical grouping
+type ServerConfig struct {
+    // Server behavior
+    Port         int
+    AllowedCORS  string
+    
+    // Timeouts (grouped together)
+    ReadTimeout  time.Duration
+    WriteTimeout time.Duration
+    IdleTimeout  time.Duration
+}
+
+// ❌ Avoid - Scattered by size without clear logic
+type ServerConfig struct {
+    AllowedCORS  string        // 16 bytes
+    ReadTimeout  time.Duration // 8 bytes
+    WriteTimeout time.Duration // 8 bytes
+    IdleTimeout  time.Duration // 8 bytes
+    Port         int           // 8 bytes
+}
+    WriteTimeout time.Duration // 8 bytes
+    IdleTimeout  time.Duration // 8 bytes
+    Port         int           // 8 bytes
+}
+```
+
+### Function Parameters
+- **Context must always be the first parameter** when present (after receiver for methods).
+- Testing parameter `*testing.T` comes before context in test helpers (Go convention).
+
+**Example:**
+```go
+// ✅ Correct - context first
+func ProcessData(ctx context.Context, userID string, data []byte) error
+
+// ✅ Correct - test helper (t before ctx is acceptable)
+func setupTestDB(t *testing.T, ctx context.Context) *DB
+
+// ❌ Wrong - context not first
+func ProcessData(userID string, ctx context.Context, data []byte) error
+```
+
+### Spelling
+- Use **US English spelling** in all code, comments, and documentation.
+- Common corrections: "canceled" (not "cancelled"), "color" (not "colour"), "optimize" (not "optimise").
+- The `misspell` linter enforces US English spelling.
+
 ### Error Handling
 - Never ignore errors. Always handle or propagate them explicitly.
 - Wrap errors with context using `fmt.Errorf("context: %w", err)` to preserve the error chain.
 - Return errors to callers; do not use `log.Fatal` or `os.Exit` outside of `main`.
 
+### Code Complexity
+- **Keep cognitive complexity at 15 or below** to avoid triggering SonarQube warnings (rule `go:S3776`).
+- Cognitive complexity measures how difficult code is to understand based on nested control flow, not just lines of code.
+- If a function exceeds complexity 15, refactor by:
+  - **Extracting helper functions**: Pull out nested logic into separate, well-named functions with `t.Helper()` for test helpers
+  - **Early returns**: Use guard clauses to reduce nesting (return early on error conditions)
+  - **Simplifying conditionals**: Replace complex if/else chains with switch statements or lookup tables
+  - **Table-driven tests**: Use test tables instead of multiple similar test cases with duplicated assertion logic
+
+**Example — Reducing Test Complexity:**
+```go
+// ❌ High complexity (17) - nested conditionals in loop
+for _, tt := range tests {
+    t.Run(tt.name, func(t *testing.T) {
+        result, err := Process(tt.input)
+        
+        if tt.wantErr {
+            if err == nil {
+                t.Error("expected error, got nil")
+            }
+            if !strings.Contains(err.Error(), tt.errMsg) {
+                t.Errorf("error = %v, want %s", err, tt.errMsg)
+            }
+        } else {
+            if err != nil {
+                t.Errorf("unexpected error: %v", err)
+            }
+            if result != tt.want {
+                t.Errorf("got %v, want %v", result, tt.want)
+            }
+        }
+    })
+}
+
+// ✅ Low complexity - extracted helper
+for _, tt := range tests {
+    t.Run(tt.name, func(t *testing.T) {
+        result, err := Process(tt.input)
+        assertResult(t, result, err, tt.want, tt.wantErr, tt.errMsg)
+    })
+}
+
+func assertResult(t *testing.T, result, err, want interface{}, wantErr bool, errMsg string) {
+    t.Helper()
+    if wantErr {
+        if err == nil {
+            t.Error("expected error, got nil")
+            return
+        }
+        if !strings.Contains(err.Error(), errMsg) {
+            t.Errorf("error = %v, want %s", err, errMsg)
+        }
+        return
+    }
+    if err != nil {
+        t.Errorf("unexpected error: %v", err)
+    }
+    if result != want {
+        t.Errorf("got %v, want %v", result, want)
+    }
+}
+```
+
+**Benefits:**
+- Code passes SonarQube quality gates without warnings
+- Functions are easier to understand and maintain
+- Helper functions can be reused across multiple tests
+- Reduced cognitive load for code reviewers
+
+### Dependency Injection (Interface-First Design)
+- **Define interfaces before implementations** to enable easy mocking, testing, and component swapping.
+- Interfaces should be small and focused (1-5 methods). Prefer multiple small interfaces over large ones.
+- **Accept interfaces, return concrete types** in most cases. Exception: factories return interfaces when multiple implementations exist.
+- Place the interface in the package that uses it (consumer), not where it's implemented (producer).
+- Use descriptive interface names ending in `-er` when appropriate: `Reader`, `Writer`, `Closer`, `Client`.
+
+**Example — Database Client:**
+```go
+// Define interface first
+type Client interface {
+    Ping(ctx context.Context) error
+    Close() error
+    Pool() *pgxpool.Pool
+}
+
+// Concrete implementation (private)
+type pgxClient struct {
+    pool *pgxpool.Pool
+}
+
+// Factory returns interface
+func NewClient(ctx context.Context, url string) (Client, error) {
+    return &pgxClient{pool: ...}, nil
+}
+
+// Usage in main.go
+var dbClient database.Client
+dbClient, err = database.NewClient(ctx, cfg.Database.URL)
+```
+
+**Benefits:**
+- Easy to mock in tests: create `type mockClient struct{}` that implements `Client`
+- Swap implementations without changing consumers (e.g., in-memory vs PostgreSQL)
+- Clear contract: interface documents what operations are available
+- Encourages loose coupling between components
+
+### Mock Generation with Mockery
+- Use **[vektra/mockery](https://github.com/vektra/mockery)** to automatically generate type-safe mocks for interfaces.
+- **Standard location**: Mocks are generated in a `/mocks` subdirectory relative to the interface.
+  - Example: `internal/database/client.go` → `internal/database/mocks/client_mock.go`
+- All mock files are excluded from production builds using `//go:build test` build tag.
+
+**Configuration:**
+- Mockery configuration is defined in `backend/.mockery.yaml`
+- Settings: `with-expecter: true` enables fluent API for setting expectations
+- Settings: `dir: "{{.InterfaceDir}}/mocks"` generates mocks in /mocks subdirectory
+- Settings: `filename: "{{.InterfaceName | snakecase}}_mock.go"` uses snake_case naming
+
+**Generating Mocks:**
+```bash
+# From backend/ directory
+
+# Generate all mocks defined in .mockery.yaml
+make mocks
+
+# Or use mockery directly
+mockery --config .mockery.yaml --all
+```
+
+**Using Mocks in Tests:**
+```go
+import (
+    "testing"
+    "github.com/stretchr/testify/mock"
+    "github.com/yourproject/internal/database"
+    dbmocks "github.com/yourproject/internal/database/mocks"
+)
+
+func TestMyService_Success(t *testing.T) {
+    // Create mock from mocks subdirectory
+    mockDB := dbmocks.NewMockClient(t)
+    
+    // Setup expectation using fluent API
+    mockDB.EXPECT().Ping(mock.Anything).Return(nil).Once()
+    
+    // Use mock in service
+    service := NewMyService(mockDB)
+    err := service.DoSomething(context.Background())
+    
+    assert.NoError(t, err)
+    // mockDB.AssertExpectations(t) is automatically called on cleanup
+}
+```
+
+**Mock Expectations API:**
+- `.Return(value)` — specify return values
+- `.Once()`, `.Twice()`, `.Times(n)` — number of calls expected
+- `.Run(func(...) { })` — execute custom logic when method is called
+- `.Maybe()` — call is optional (won't fail if not called)
+- `mock.Anything` — match any argument value
+- Specific values — match exact argument (e.g., `Ping(ctx)` expects that exact context)
+
+**Best Practices:**
+- Generate mocks for all interfaces in `internal/` packages
+- **Always place mocks in `/mocks` subdirectory** (e.g., `internal/database/mocks/`)
+- Import mocks with alias: `dbmocks "path/to/package/mocks"`
+- Commit generated mock files to git for consistency across team
+- Regenerate mocks after interface changes: `make mocks`
+- Use `mock.Anything` for arguments you don't care about
+- Use specific values when testing argument passing
+- Prefer `.EXPECT()` fluent API over `.On()` for better type safety
+
+**See Also:** [Mock Standards](mock-standards.md) for complete reference
+
 ### Linting
 - The project uses `golangci-lint`. All lint checks must pass before a pull request can be merged.
-- Key enabled linters: `errcheck`, `govet`, `staticcheck`, `revive`, `gosec`.
+- Key enabled linters: `errcheck`, `govet`, `staticcheck`, `revive`, `gosec`, `gofmt`, `goimports`, `misspell`, `unparam`, `unconvert`, `goconst`, `gocyclo`, `gosimple`, `ineffassign`, `unused`.
+- **govet configuration**: `enable-all: true` with `shadow` and `fieldalignment` disabled.
+  - `shadow` - Variable shadowing warnings are too noisy for practical use
+  - `fieldalignment` - Struct field ordering micro-optimization sacrifices readability
+- **Test file exemptions**: The following linters are disabled for `*_test.go` files:
+  - `gocyclo` - Cyclomatic complexity (test helpers can be complex)
+  - `errcheck` - Error checking (some test errors are intentionally ignored)
+  - `gosec` - Security checks (tests don't need production security)
+  - `goconst` - Constant detection (test data repetition is acceptable)
+
+**Running lints locally:**
+```bash
+# From backend/ directory
+make lint              # Run all configured linters
+make fmt               # Format code with gofmt + go mod tidy
+make vet               # Run go vet only
+```
 
 ### Project Structure (Backend)
 ```

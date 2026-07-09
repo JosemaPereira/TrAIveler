@@ -1,0 +1,18 @@
+# Mockery configuration for automated mock generation
+# Run: make mocks
+# Or: mockery --all
+#
+# Standard: Mocks are generated in a /mocks subdirectory relative to the interface
+# Example: internal/database/client.go → internal/database/mocks/client_mock.go
+
+# Global settings
+quiet: false
+with-expecter: true
+dir: "{{.InterfaceDir}}/mocks"
+filename: "{{.InterfaceName | snakecase}}_mock.go"
+
+# Package configurations
+packages:
+  github.com/JosemaPereira/capstone-project-ai-bootcamp/backend/internal/database:
+    interfaces:
+      Client:

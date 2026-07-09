@@ -59,6 +59,110 @@ func TestGenerateItinerary_ValidInput_ReturnsItinerary(t *testing.T) { ... }
 func TestGenerateItinerary_EmptyDestination_ReturnsError(t *testing.T) { ... }
 ```
 
+#### Mocking Dependencies with Mockery
+
+TrAIveler uses **[vektra/mockery](https://github.com/vektra/mockery)** to automatically generate type-safe mocks for interfaces.
+
+**Why Mockery:**
+- ✅ Type-safe: Compiler catches interface changes immediately
+- ✅ Consistent: All mocks follow the same pattern
+- ✅ Fluent API: Readable and expressive test setup
+- ✅ Auto-cleanup: Automatic assertion verification
+- ✅ Low maintenance: Regenerate when interfaces change
+
+**Mock Location Standard:**
+- **All mocks must be in `/mocks` subdirectory**
+- Pattern: `<package>/mocks/<interface>_mock.go`
+- Example: `internal/database/client.go` → `internal/database/mocks/client_mock.go`
+
+**Generating Mocks:**
+```bash
+# From backend/ directory
+make mocks
+
+# Or directly
+mockery --config .mockery.yaml --all
+```
+
+**Using Generated Mocks:**
+```go
+import (
+    "testing"
+    "github.com/stretchr/testify/mock"
+    "github.com/yourproject/internal/database"
+    dbmocks "github.com/yourproject/internal/database/mocks"
+)
+
+func TestService_ProcessData_Success(t *testing.T) {
+    // Create mock from mocks subdirectory
+    mockDB := dbmocks.NewMockClient(t)
+    
+    // Setup expectations using fluent API
+    mockDB.EXPECT().Ping(mock.Anything).Return(nil).Once()
+    mockDB.EXPECT().Close().Return(nil).Once()
+    
+    // Use mock in service
+    service := NewDataService(mockDB)
+    err := service.ProcessData(context.Background())
+    
+    // Assert results
+    assert.NoError(t, err)
+    // mockDB.AssertExpectations(t) called automatically on cleanup
+}
+
+// Test with specific argument matching
+func TestService_ProcessData_WithSpecificContext(t *testing.T) {
+    mockDB := dbmocks.NewMockClient(t)
+    
+    // Match exact context value
+    ctx := context.WithValue(context.Background(), "request_id", "123")
+    mockDB.On("Ping", ctx).Return(nil).Once()
+    
+    service := NewDataService(mockDB)
+    err := service.ProcessData(ctx)
+    
+    assert.NoError(t, err)
+}
+
+// Test with custom behavior
+func TestService_ProcessData_WithRunFunction(t *testing.T) {
+    mockDB := dbmocks.NewMockClient(t)
+    
+    callCount := 0
+    mockDB.EXPECT().Ping(mock.Anything).Run(func(ctx context.Context) {
+        callCount++
+        // Custom logic during method call
+    }).Return(nil).Times(3)
+    
+    service := NewDataService(mockDB)
+    // ... test logic ...
+    
+    assert.Equal(t, 3, callCount)
+}
+```
+
+**Mock Expectations API:**
+- `.Return(value)` — specify return values
+- `.Once()`, `.Twice()`, `.Times(n)` — expected call count
+- `.Run(func(...) { })` — execute custom logic when called
+- `.Maybe()` — optional call (won't fail if not called)
+- `mock.Anything` — match any argument value
+- Specific values — match exact argument
+
+**Best Practices:**
+- Always use `NewMockClient(t)` to get automatic assertion checking
+- Prefer `.EXPECT()` fluent API over `.On()` for better type safety
+- Use `mock.Anything` for arguments you don't care about
+- Use specific values when testing argument passing matters
+- Regenerate mocks after interface changes: `make mocks`
+- Commit generated mocks to git for consistency
+
+**See Also:**
+- [Mock Standards](mock-standards.md) — Comprehensive mock generation reference
+- `backend/internal/database/client_mock_example_test.go` — Complete mockery usage examples
+- `backend/internal/database/mocks/client_mock.go` — Generated mock example
+- [Coding Guidelines](coding-guidelines.md) — Mock Generation section
+
 ### Frontend (React / TypeScript)
 
 - Test files live next to the source file they test: `TripCard.test.tsx` alongside `TripCard.tsx`.

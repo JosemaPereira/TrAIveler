@@ -24,20 +24,20 @@ import (
 // Config holds all application configuration loaded from environment variables.
 // All fields are loaded at startup with fail-fast validation.
 type Config struct {
+	Log      LogConfig
 	Server   ServerConfig
 	Database DatabaseConfig
 	AI       AIConfig
 	Auth     AuthConfig
-	Log      LogConfig
 }
 
 // ServerConfig contains HTTP server settings.
 type ServerConfig struct {
-	Port         int           // HTTP_PORT (default: 8080)
+	AllowedCORS  string        // ALLOWED_CORS_ORIGINS (default: http://localhost:5173)
 	ReadTimeout  time.Duration // HTTP_READ_TIMEOUT (default: 30s)
 	WriteTimeout time.Duration // HTTP_WRITE_TIMEOUT (default: 30s)
 	IdleTimeout  time.Duration // HTTP_IDLE_TIMEOUT (default: 120s)
-	AllowedCORS  string        // ALLOWED_CORS_ORIGINS (default: http://localhost:5173)
+	Port         int           // HTTP_PORT (default: 8080)
 }
 
 // DatabaseConfig contains PostgreSQL connection settings.
@@ -61,11 +61,11 @@ type AIConfig struct {
 // AuthConfig contains JWT and session settings.
 type AuthConfig struct {
 	JWTSigningKey     string        // JWT_SIGNING_KEY (required in production)
+	CookieDomain      string        // COOKIE_DOMAIN (default: localhost)
 	JWTExpiration     time.Duration // JWT_EXPIRATION (default: 24h)
 	RefreshExpiration time.Duration // REFRESH_TOKEN_EXPIRATION (default: 7 days)
-	CookieDomain      string        // COOKIE_DOMAIN (default: localhost)
-	CookieSecure      bool          // COOKIE_SECURE (default: false, true in production)
 	BcryptCost        int           // BCRYPT_COST (default: 12)
+	CookieSecure      bool          // COOKIE_SECURE (default: false, true in production)
 }
 
 // LogConfig contains structured logging settings.
@@ -92,6 +92,7 @@ func Load() (*Config, error) {
 	return cfg, nil
 }
 
+// loadServerConfig reads HTTP server configuration from environment variables.
 func loadServerConfig() ServerConfig {
 	return ServerConfig{
 		Port:         getEnvInt("HTTP_PORT", 8080),
@@ -102,6 +103,7 @@ func loadServerConfig() ServerConfig {
 	}
 }
 
+// loadDatabaseConfig reads PostgreSQL database configuration from environment variables.
 func loadDatabaseConfig() DatabaseConfig {
 	return DatabaseConfig{
 		URL:            getEnv("DATABASE_URL", ""),
@@ -112,6 +114,7 @@ func loadDatabaseConfig() DatabaseConfig {
 	}
 }
 
+// loadAIConfig reads AI provider (Anthropic) configuration from environment variables.
 func loadAIConfig() AIConfig {
 	return AIConfig{
 		APIKey:         getEnv("ANTHROPIC_API_KEY", ""),
@@ -122,6 +125,7 @@ func loadAIConfig() AIConfig {
 	}
 }
 
+// loadAuthConfig reads authentication and session configuration from environment variables.
 func loadAuthConfig() AuthConfig {
 	return AuthConfig{
 		JWTSigningKey:     getEnv("JWT_SIGNING_KEY", ""),
@@ -133,6 +137,7 @@ func loadAuthConfig() AuthConfig {
 	}
 }
 
+// loadLogConfig reads structured logging configuration from environment variables.
 func loadLogConfig() LogConfig {
 	return LogConfig{
 		Level:  getEnv("LOG_LEVEL", "info"),
@@ -140,7 +145,15 @@ func loadLogConfig() LogConfig {
 	}
 }
 
-// validate checks that all required configuration values are present and valid.
+// validate performs fail-fast validation of the loaded configuration.
+// It checks that:
+//   - Required environment variables are present (DATABASE_URL, ANTHROPIC_API_KEY)
+//   - JWT_SIGNING_KEY is set in production (not required in development for local testing)
+//   - Database connection pool limits are logical (min ≤ max)
+//   - HTTP port is within valid range (1-65535)
+//   - Log level is a recognized value (debug, info, warn, error)
+//
+// Returns an error if any validation rule fails.
 func validate(cfg *Config) error {
 	if cfg.Database.URL == "" {
 		return fmt.Errorf("DATABASE_URL is required")

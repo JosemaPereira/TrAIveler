@@ -45,13 +45,14 @@ jobs:
       - name: Setup Go
         uses: actions/setup-go@v5
         with:
-          go-version: '1.25'
+          go-version: '1.26'
           cache-dependency-path: backend/go.sum
       
       - name: Run golangci-lint
         uses: golangci/golangci-lint-action@v6
         with:
           version: latest
+          install-mode: goinstall
           working-directory: backend
           args: --timeout=5m
 
@@ -82,7 +83,7 @@ jobs:
       - name: Setup Go
         uses: actions/setup-go@v5
         with:
-          go-version: '1.25'
+          go-version: '1.26'
           cache-dependency-path: backend/go.sum
       
       - name: Run tests with coverage
@@ -90,7 +91,7 @@ jobs:
         env:
           DATABASE_URL: postgres://testuser:testpass@localhost:5432/traveler_test?sslmode=disable
         run: |
-          go test ./... -race -coverprofile=coverage.out -covermode=atomic
+          make test-coverage
           go tool cover -func=coverage.out
       
       - name: Upload coverage to artifact

@@ -26,7 +26,312 @@ This is an accumulated knowledge base and should grow over time. Written in Engl
 - <path 1>
 - <path 2>
 
----\n\n### Swappable Payment Provider (Go Interface Pattern)\n\n### Context\n- Backend \u2014 `internal/subscription/payment/`\n\n### Problem\n- MVP needs a mock payment stub, but post-MVP must plug in a real provider (Stripe, etc.) without rewriting subscription domain logic.\n\n### Solution\n- Define a `PaymentProvider` interface in `provider.go` with `CreateSubscription`, `CancelSubscription`, and `GetSubscription` methods. Implement `StubProvider` in `stub.go` (always returns `succeeded`, logs `[STUB]`). Inject via constructor; swap by changing the concrete type passed at startup.\n\n### Example\n```go\ntype PaymentProvider interface {\n    CreateSubscription(ctx context.Context, req CreateSubscriptionRequest) (*SubscriptionResult, error)\n    CancelSubscription(ctx context.Context, subscriptionID string) error\n    GetSubscription(ctx context.Context, subscriptionID string) (*SubscriptionStatus, error)\n}\n```\n\n### Related Files\n- `specs/001-product-vision-scope/research.md` (Decision 6)\n- `backend/internal/subscription/payment/provider.go`\n- `backend/internal/subscription/payment/stub.go`\n\n---\n\n### Suggest-Then-Approve Collaboration Workflow\n\n### Context\n- Backend \u2014 `internal/suggestion/`; Frontend \u2014 `features/suggestions/`\n\n### Problem\n- Multi-user collaboration needs write-access control: partners should be able to contribute without directly modifying the authoritative itinerary.\n\n### Solution\n- Partners submit `Suggestion` records (status: `pending`). The admin is the sole actor who can `approve` (applying the change) or `reject` (no itinerary change). All suggestions are retained permanently \u2014 never hard-deleted \u2014 for audit history.\n\n### Example\n```\nPOST /trips/:id/suggestions        \u2192 partner creates (pending)\nPATCH .../suggestions/:id/approve  \u2192 admin applies + status: approved\nPATCH .../suggestions/:id/reject   \u2192 admin rejects + status: rejected\n```\n\n### Related Files\n- `specs/001-product-vision-scope/spec.md` (FR-009, FR-011)\n- `specs/001-product-vision-scope/data-model.md` (Suggestion entity)\n- `specs/001-product-vision-scope/contracts/api.md` (Suggestions section)
+---
+
+### Free Container Runtime for Testcontainers (Go Integration Testing)
+
+### Context
+- Backend — integration tests using testcontainers-go; macOS/Linux development environments
+
+### Problem
+- Integration tests with testcontainers require Docker API access. Docker Desktop requires paid license for commercial use. Tests fail with "Cannot connect to Docker daemon" without container runtime.
+
+### Solution
+- Use **Colima** (or Podman/Rancher Desktop) as free Docker-compatible container runtime:
+  1. Install: `brew install colima` (macOS) or from GitHub releases (Linux)
+  2. Start: `colima start --cpu 2 --memory 4`
+  3. Verify: `docker ps` should work without errors
+  4. Colima provides Docker-compatible API that testcontainers can use
+  5. Lightweight (uses containerd under the hood)
+  6. No licensing restrictions
+
+**Configuration:**
+```bash
+# Start Colima with recommended settings
+colima start --cpu 2 --memory 4 --disk 60
+
+# Verify status
+colima status  # Should show "Running"
+
+# Stop when not needed
+colima stop
+```
+
+**Benefits:**
+- Free and open source
+- Docker CLI compatibility (no code changes)
+- Lightweight (lower resource usage than Docker Desktop)
+- Works with testcontainers-go without configuration
+- No licensing issues for commercial use
+
+### Example
+```bash
+# Before running integration tests:
+colima status || colima start --cpu 2 --memory 4
+
+# Run tests with PostgreSQL container
+go test -v ./internal/database/ -tags=integration
+
+# Testcontainers automatically uses Colima's Docker API
+```
+
+### Related Files
+- `backend/README.md` — Container Runtime Setup section
+- `backend/TESTING.md` — Comprehensive testing strategy guide
+- `backend/Makefile` — Test commands with clear documentation
+- `backend/internal/database/client_integration_test.go` — uses testcontainers
+- `.github/agents/tdd-developer.agent.md` — Container Runtime Requirement section
+- `.github/workflows/backend-ci.yml` — CI test configuration
+
+---
+
+### Layered Testing Strategy with Optional Testcontainers (Go)
+
+### Context
+- Backend — test organization, CI/CD pipeline, local development workflow; applies to any Go project using testcontainers
+
+### Problem
+- Testcontainers require Docker/Colima running locally, creating friction for quick TDD cycles. Developers want fast unit tests for daily work AND comprehensive integration tests before commits. Hard Docker dependency makes local development slower and CI configuration complex. Need consistent behavior between local and CI environments.
+
+### Solution
+- **Layered testing with `testing.Short()` flag** to make testcontainers optional:
+  1. **Unit tests** (always run) - No database, no Docker, < 10s feedback
+  2. **Testcontainer tests** (optional) - Real PostgreSQL, skip with `-short`
+  3. **Integration tests** (separate) - Real DATABASE_URL, different build tag
+
+**Test skip pattern:**
+```go
+func TestWithTestcontainer(t *testing.T) {
+    if testing.Short() {
+        t.Skip("skipping testcontainer test in short mode")
+    }
+    // Testcontainer code here
+}
+```
+
+**Makefile strategy:**
+```makefile
+# Default: unit tests only (no Docker)
+test:
+    go test -tags=test -v ./... -short
+
+# Full suite (requires Colima)
+test-all:
+    go test -tags=test -v ./...
+
+# CI configuration (same as default)
+test-coverage:
+    go test -tags=test -v ./... -short -race -coverprofile=coverage.out
+```
+
+**CI uses:** `make test-coverage` (unit tests only, fast and reliable)
+
+**Benefits:**
+- ✅ Fast local TDD cycle (< 10s)
+- ✅ No Docker/Colima required for daily dev
+- ✅ Optional comprehensive testing (`make test-all`)
+- ✅ CI runs fast without Docker-in-Docker
+- ✅ Consistent local/CI behavior
+- ✅ No test duplication (same tests, conditional execution)
+
+### Example
+```bash
+# Daily development (fast, no Docker)
+make test
+# Output: 3 unit tests PASS, 7 testcontainer tests SKIP
+
+# Before creating PR (full coverage, requires Colima)
+colima start --cpu 2 --memory 4
+make test-all
+# Output: All 10 tests PASS
+
+# CI pipeline (matches local default)
+make test-coverage
+# Output: 3 unit tests PASS, 7 skipped, coverage report generated
+```
+
+### Related Files
+- `backend/TESTING.md` — Complete testing strategy documentation with troubleshooting
+- `backend/Makefile` — Test command definitions with help text
+- `backend/README.md` — Quick start testing guide
+- `backend/internal/database/client_test.go` — testcontainer tests with Short() checks
+- `.github/workflows/backend-ci.yml` — CI pipeline using `make test-coverage`
+
+---
+
+### Automated Mock Generation with Mockery (Go Testing)
+
+### Context
+- Backend — all packages with interfaces that need mocking for tests
+
+### Problem
+- Manually writing mocks is tedious, error-prone, and requires maintenance when interfaces change. Hand-written mocks lack type safety and can get out of sync with interface definitions. Test setup becomes verbose and repetitive.
+
+### Solution
+- Use **vektra/mockery** to automatically generate type-safe mocks from interfaces:
+  1. Define interface in production code (Dependency Injection pattern)
+  2. Configure `.mockery.yaml` with interface locations and generation settings
+  3. Run `mockery` or `make mocks` to generate mock implementations
+  4. Generated mocks use `testify/mock` and include fluent expectation API
+  5. **Standard: Mocks are placed in `/mocks` subdirectory with `_mock.go` suffix**
+  6. Mock files include `//go:build test` tag to exclude from production
+  7. Commit generated mocks to git for team consistency
+
+**Mock Location Standard (MANDATORY):**
+```
+Pattern: <package_path>/mocks/<interface_name>_mock.go
+
+Examples:
+  internal/database/client.go          → internal/database/mocks/client_mock.go
+  internal/ai/provider.go              → internal/ai/mocks/provider_mock.go
+  internal/subscription/service.go     → internal/subscription/mocks/service_mock.go
+```
+
+**Mockery Configuration (.mockery.yaml):**
+```yaml
+with-expecter: true                          # Enable EXPECT() fluent API
+dir: "{{.InterfaceDir}}/mocks"              # Generate in /mocks subdirectory
+filename: "{{.InterfaceName | snakecase}}_mock.go"  # Use snake_case naming
+```
+
+**Benefits:**
+- Type-safe: Compiler catches interface changes immediately
+- Consistent: All mocks follow same pattern
+- Organized: Mocks separated in /mocks subdirectory
+- Fluent API: `.EXPECT().Method(args).Return(value).Once()`
+- Auto-cleanup: `NewMockClient(t)` registers automatic assertion checking
+- Low maintenance: Regenerate when interface changes
+
+### Example
+```go
+// 1. Define interface (production code)
+// File: internal/database/client.go
+type Client interface {
+    Ping(ctx context.Context) error
+    Close() error
+}
+
+// 2. Generate mock: make mocks
+// Creates: internal/database/mocks/client_mock.go
+//go:build test
+package database
+type MockClient struct { ... }
+
+// 3. Use in tests (note the import alias)
+import (
+    "github.com/yourproject/internal/database"
+    dbmocks "github.com/yourproject/internal/database/mocks"
+)
+
+func TestService(t *testing.T) {
+    // Create mock from mocks subdirectory
+    mockDB := dbmocks.NewMockClient(t)
+    mockDB.EXPECT().Ping(mock.Anything).Return(nil).Once()
+    
+    service := NewService(mockDB)
+    err := service.HealthCheck(context.Background())
+    
+    assert.NoError(t, err)
+    // Expectations verified automatically on t.Cleanup()
+}
+```
+
+### Related Files
+- `backend/.mockery.yaml` — mockery configuration
+- `backend/internal/database/mocks/client_mock.go` — generated mock example
+- `backend/internal/database/client_mock_example_test.go` — usage examples
+- `docs/mock-standards.md` — Comprehensive mock generation reference
+- `docs/coding-guidelines.md` — Mock Generation section
+- `docs/testing-guidelines.md` — Mockery usage patterns
+
+---
+
+### Dependency Injection with Interface-First Design (Go)
+
+### Context
+- Backend — all internal packages that need testability and component swapping
+
+### Problem
+- Direct dependencies on concrete types make code hard to test (can't mock), hard to change (tight coupling), and hard to extend (can't swap implementations). Testing requires real database connections, external API calls, or complex setup.
+
+### Solution
+- **Define the interface first**, then implement it:
+  1. Create a small, focused interface (1-5 methods) in the consumer package
+  2. Implement the interface with a private concrete type (lowercase name)
+  3. Factory function returns the interface, not the concrete type
+  4. Consumers depend on the interface, not the implementation
+  5. Tests create mock implementations of the interface (use mockery for automation)
+
+**Key principles:**
+- Accept interfaces, return interfaces (when multiple implementations exist)
+- Interfaces belong to the consumer, not the producer
+- Keep interfaces small and focused (Interface Segregation Principle)
+- Name interfaces with `-er` suffix when appropriate (Reader, Writer, Client)
+
+### Example
+```go
+// Define interface (public)
+type Client interface {
+    Ping(ctx context.Context) error
+    Close() error
+    Pool() *pgxpool.Pool
+}
+
+// Concrete implementation (private)
+type pgxClient struct {
+    pool   *pgxpool.Pool
+    closed bool
+}
+
+// Factory returns interface
+func NewClient(ctx context.Context, url string) (Client, error) {
+    client := &pgxClient{...}
+    return client, nil
+}
+
+// Usage in consumer
+var db database.Client
+db, err := database.NewClient(ctx, url)
+
+// Easy mocking in tests (use mockery to generate)
+mockDB := database.NewMockClient(t)
+mockDB.EXPECT().Ping(mock.Anything).Return(nil)
+```
+
+### Related Files
+- `backend/internal/database/client.go` — database client with interface
+- `backend/internal/subscription/payment/provider.go` — payment provider interface
+- `docs/coding-guidelines.md` — Dependency Injection section
+- `.github/memory/patterns-discovered.md` — Mockery pattern for automated mock generation
+
+---
+
+### Swappable Payment Provider (Go Interface Pattern)
+
+### Context
+- Backend — `internal/subscription/payment/`
+
+### Problem
+- MVP needs a mock payment stub, but post-MVP must plug in a real provider (Stripe, etc.) without rewriting subscription domain logic.
+
+### Solution
+- Define a `PaymentProvider` interface in `provider.go` with `CreateSubscription`, `CancelSubscription`, and `GetSubscription` methods. Implement `StubProvider` in `stub.go` (always returns `succeeded`, logs `[STUB]`). Inject via constructor; swap by changing the concrete type passed at startup.
+
+### Example
+```go
+type PaymentProvider interface {
+    CreateSubscription(ctx context.Context, req CreateSubscriptionRequest) (*SubscriptionResult, error)
+    CancelSubscription(ctx context.Context, subscriptionID string) error
+    GetSubscription(ctx context.Context, subscriptionID string) (*SubscriptionStatus, error)
+}
+```
+
+### Related Files
+- `specs/001-product-vision-scope/research.md` (Decision 6)
+- `backend/internal/subscription/payment/provider.go`
+- `backend/internal/subscription/payment/stub.go`
+
+---\n\n### Suggest-Then-Approve Collaboration Workflow\n\n### Context\n- Backend \u2014 `internal/suggestion/`; Frontend \u2014 `features/suggestions/`\n\n### Problem\n- Multi-user collaboration needs write-access control: partners should be able to contribute without directly modifying the authoritative itinerary.\n\n### Solution\n- Partners submit `Suggestion` records (status: `pending`). The admin is the sole actor who can `approve` (applying the change) or `reject` (no itinerary change). All suggestions are retained permanently \u2014 never hard-deleted \u2014 for audit history.\n\n### Example\n```\nPOST /trips/:id/suggestions        \u2192 partner creates (pending)\nPATCH .../suggestions/:id/approve  \u2192 admin applies + status: approved\nPATCH .../suggestions/:id/reject   \u2192 admin rejects + status: rejected\n```\n\n### Related Files\n- `specs/001-product-vision-scope/spec.md` (FR-009, FR-011)\n- `specs/001-product-vision-scope/data-model.md` (Suggestion entity)\n- `specs/001-product-vision-scope/contracts/api.md` (Suggestions section)
 
 ## Example Pattern
 
