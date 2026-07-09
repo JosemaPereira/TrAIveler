@@ -10,7 +10,7 @@ import (
 
 func TestCORS_AllowedOrigin_SetsAccessControlHeaders(t *testing.T) {
 	nextCalled := false
-	next := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	next := http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		nextCalled = true
 		w.WriteHeader(http.StatusOK)
 	})
@@ -32,7 +32,7 @@ func TestCORS_AllowedOrigin_SetsAccessControlHeaders(t *testing.T) {
 
 func TestCORS_DisallowedOrigin_SetsNoAccessControlHeadersButPassesThrough(t *testing.T) {
 	nextCalled := false
-	next := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	next := http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		nextCalled = true
 		w.WriteHeader(http.StatusOK)
 	})
@@ -53,7 +53,7 @@ func TestCORS_DisallowedOrigin_SetsNoAccessControlHeadersButPassesThrough(t *tes
 
 func TestCORS_OptionsPreflight_Returns204AndSkipsNext(t *testing.T) {
 	nextCalled := false
-	next := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	next := http.HandlerFunc(func(_ http.ResponseWriter, _ *http.Request) {
 		nextCalled = true
 	})
 
@@ -70,7 +70,7 @@ func TestCORS_OptionsPreflight_Returns204AndSkipsNext(t *testing.T) {
 
 func TestCORS_NoOriginHeader_PassesThroughUntouched(t *testing.T) {
 	nextCalled := false
-	next := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	next := http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		nextCalled = true
 		w.WriteHeader(http.StatusOK)
 	})
@@ -85,7 +85,7 @@ func TestCORS_NoOriginHeader_PassesThroughUntouched(t *testing.T) {
 }
 
 func TestCORS_CommaSeparatedOrigins_MatchesEachTrimmedOrigin(t *testing.T) {
-	next := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	next := http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		w.WriteHeader(http.StatusOK)
 	})
 

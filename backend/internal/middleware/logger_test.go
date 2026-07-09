@@ -45,7 +45,7 @@ func TestLogger_StatusCode_DeterminesLogLevel(t *testing.T) {
 			var buf bytes.Buffer
 			logger := newTestLogger(&buf)
 
-			next := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			next := http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 				w.WriteHeader(tt.statusCode)
 			})
 
@@ -64,7 +64,7 @@ func TestLogger_RequestCompletes_LogsExpectedFields(t *testing.T) {
 	var buf bytes.Buffer
 	logger := newTestLogger(&buf)
 
-	next := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	next := http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		w.WriteHeader(http.StatusCreated)
 	})
 
@@ -88,7 +88,7 @@ func TestLogger_NoRequestIDInContext_LogsEmptyString(t *testing.T) {
 	var buf bytes.Buffer
 	logger := newTestLogger(&buf)
 
-	next := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	next := http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		w.WriteHeader(http.StatusOK)
 	})
 

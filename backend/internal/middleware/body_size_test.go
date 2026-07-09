@@ -37,7 +37,7 @@ func TestBodySize_UnderLimit_PassesThroughToNext(t *testing.T) {
 
 func TestBodySize_ContentLengthExceedsLimit_Returns413AndSkipsNext(t *testing.T) {
 	nextCalled := false
-	next := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	next := http.HandlerFunc(func(_ http.ResponseWriter, _ *http.Request) {
 		nextCalled = true
 	})
 
@@ -62,7 +62,7 @@ func TestBodySize_ActualBodyExceedsLimitWithUnknownContentLength_Returns413(t *t
 	// sniffing, simulating a chunked-transfer request with no declared length.
 	body := io.MultiReader(bytes.NewReader(oversized))
 
-	next := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	next := http.HandlerFunc(func(_ http.ResponseWriter, r *http.Request) {
 		_, _ = io.ReadAll(r.Body)
 	})
 
@@ -81,7 +81,7 @@ func TestBodySize_ActualBodyExceedsLimitWithUnknownContentLength_Returns413(t *t
 }
 
 func TestBodySize_RequestIDInContext_IncludesItInEnvelope(t *testing.T) {
-	next := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {})
+	next := http.HandlerFunc(func(_ http.ResponseWriter, _ *http.Request) {})
 
 	req := httptest.NewRequest(http.MethodPost, "/trips", strings.NewReader("small"))
 	req.ContentLength = 11 * oneMB

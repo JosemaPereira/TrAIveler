@@ -10,7 +10,7 @@ import (
 )
 
 func TestRequestID_NoIncomingHeader_GeneratesAndSetsResponseHeader(t *testing.T) {
-	next := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	next := http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		w.WriteHeader(http.StatusOK)
 	})
 
@@ -24,7 +24,7 @@ func TestRequestID_NoIncomingHeader_GeneratesAndSetsResponseHeader(t *testing.T)
 }
 
 func TestRequestID_IncomingHeader_ReusesValueVerbatim(t *testing.T) {
-	next := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	next := http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		w.WriteHeader(http.StatusOK)
 	})
 

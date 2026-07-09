@@ -2,6 +2,7 @@ package middleware
 
 import (
 	"encoding/json"
+	"log/slog"
 	"net/http"
 )
 
@@ -20,9 +21,11 @@ func writeErrorEnvelope(w http.ResponseWriter, r *http.Request, status int, code
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(status)
-	_ = json.NewEncoder(w).Encode(errorEnvelope{
+	if err := json.NewEncoder(w).Encode(errorEnvelope{
 		Error:     code,
 		Message:   message,
 		RequestID: requestID,
-	})
+	}); err != nil {
+		slog.Default().Error("failed to write error envelope", "error", err, "request_id", requestID)
+	}
 }
