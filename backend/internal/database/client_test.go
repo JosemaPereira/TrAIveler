@@ -228,7 +228,12 @@ func TestNewClient_RetryLogic(t *testing.T) {
 	assert.GreaterOrEqual(t, elapsed.Seconds(), 3.5, "should retry with delays")
 }
 
-// setupPostgresContainer starts a PostgreSQL testcontainer and returns connection string
+// setupPostgresContainer is a test helper that starts a PostgreSQL testcontainer.
+// It returns the container instance and connection string for use in integration tests.
+// The container uses postgres:16-alpine with test credentials (testuser/testpass/testdb).
+// Waits for PostgreSQL to be fully ready before returning (2 occurrences of "ready" message).
+//
+// The caller is responsible for terminating the container in a defer statement.
 func setupPostgresContainer(t *testing.T, ctx context.Context) (*postgres.PostgresContainer, string) {
 	t.Helper()
 

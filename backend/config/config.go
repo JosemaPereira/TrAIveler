@@ -92,6 +92,7 @@ func Load() (*Config, error) {
 	return cfg, nil
 }
 
+// loadServerConfig reads HTTP server configuration from environment variables.
 func loadServerConfig() ServerConfig {
 	return ServerConfig{
 		Port:         getEnvInt("HTTP_PORT", 8080),
@@ -102,6 +103,7 @@ func loadServerConfig() ServerConfig {
 	}
 }
 
+// loadDatabaseConfig reads PostgreSQL database configuration from environment variables.
 func loadDatabaseConfig() DatabaseConfig {
 	return DatabaseConfig{
 		URL:            getEnv("DATABASE_URL", ""),
@@ -112,6 +114,7 @@ func loadDatabaseConfig() DatabaseConfig {
 	}
 }
 
+// loadAIConfig reads AI provider (Anthropic) configuration from environment variables.
 func loadAIConfig() AIConfig {
 	return AIConfig{
 		APIKey:         getEnv("ANTHROPIC_API_KEY", ""),
@@ -122,6 +125,7 @@ func loadAIConfig() AIConfig {
 	}
 }
 
+// loadAuthConfig reads authentication and session configuration from environment variables.
 func loadAuthConfig() AuthConfig {
 	return AuthConfig{
 		JWTSigningKey:     getEnv("JWT_SIGNING_KEY", ""),
@@ -133,6 +137,7 @@ func loadAuthConfig() AuthConfig {
 	}
 }
 
+// loadLogConfig reads structured logging configuration from environment variables.
 func loadLogConfig() LogConfig {
 	return LogConfig{
 		Level:  getEnv("LOG_LEVEL", "info"),
@@ -140,7 +145,15 @@ func loadLogConfig() LogConfig {
 	}
 }
 
-// validate checks that all required configuration values are present and valid.
+// validate performs fail-fast validation of the loaded configuration.
+// It checks that:
+//   - Required environment variables are present (DATABASE_URL, ANTHROPIC_API_KEY)
+//   - JWT_SIGNING_KEY is set in production (not required in development for local testing)
+//   - Database connection pool limits are logical (min ≤ max)
+//   - HTTP port is within valid range (1-65535)
+//   - Log level is a recognized value (debug, info, warn, error)
+//
+// Returns an error if any validation rule fails.
 func validate(cfg *Config) error {
 	if cfg.Database.URL == "" {
 		return fmt.Errorf("DATABASE_URL is required")
