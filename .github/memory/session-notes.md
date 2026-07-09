@@ -8,6 +8,7 @@ Historical summaries of completed development sessions. Committed to git as a re
 
 ### Session: <name>
 - **Date**: <YYYY-MM-DD>
+- **Tool**: <Claude Code | GitHub Copilot>
 - **What was accomplished**: <features built/fixed>
 - **Key findings and decisions**: <important learnings, trade-offs>
 - **Outcomes**: <what now works in the application>
@@ -209,4 +210,29 @@ Historical summaries of completed development sessions. Committed to git as a re
   - ✅ Documentation coverage report generated: Backend (Excellent), Frontend (Excellent), E2E (Excellent), Infra (Pending Sprint 3)
   - **Technical debt**: None identified - documentation quality is production-ready
   - **Follow-up work**: Terraform module documentation when implemented in Sprint 3
+
+### Session: Claude Code Migration — Primary Tool Setup, Memory Unification, Agent Porting & SpecKit Integration
+- **Date**: 2026-07-09
+- **Tool**: Claude Code
+- **What was accomplished**:
+  - **CLAUDE.md created**: canonical, auto-loaded instructions file for Claude Code at repo root, mirroring `.github/copilot-instructions.md`'s content (project context, documentation references, language policy, dev principles, git workflow, task consolidation policy).
+  - **Tool hierarchy established**: Claude Code declared primary, GitHub Copilot auxiliary. `.github/copilot-instructions.md` now carries a banner declaring itself a mirror of `CLAUDE.md`; `.github/memory/README.md`'s "Persistent Memory" section updated to match.
+  - **Memory system unified**: `.github/memory/README.md` is now the single canonical protocol doc for both tools (CLAUDE.md/copilot-instructions.md summarize and point to it instead of restating). Added a "Multi-Tool" policy: append-only, `**Tool**: <name>` tagging on every new entry, sync-before-write, keep-both-sides-on-merge-conflict. Templates in `session-notes.md` and `patterns-discovered.md` updated with a `Tool` field.
+  - **Copilot agents/prompts ported to Claude Code subagents** (`.claude/agents/`): 5 role agents (`code-reviewer`, `product-manager`, `tdd-developer`, `technical-writer`, `test-engineer`) each merged with their linked one-shot Copilot prompt(s) as `## Task: ...` sections in the same file (e.g. `product-manager.md` contains both Plan Sprints and Create Sprint Issues); 5 standalone workflow agents (`build-roadmap`, `commit-and-push`, `open-pr`, `promote-fundations`, `sync-issues`).
+  - **Official spec-kit Claude Code integration installed**: `uv`/`specify-cli` installed locally, then `specify integration install claude --script sh --force` run — added `claude` as a second, coexisting spec-kit integration (Copilot's stayed default and untouched). Generated `.claude/skills/speckit-*/SKILL.md` (10 skills: analyze, checklist, clarify, constitution, converge, implement, plan, specify, tasks, taskstoissues), directly invocable as `/speckit-*`.
+  - **Cleanup of a naming collision**: initially hand-ported all 10 SpecKit agents as `.claude/agents/speckit-*.md` + `.claude/commands/speckit-*.md` wrappers before discovering the official integration existed; deleted all 20 once the official skills were confirmed to cover the same names, keeping the official skills as sole source.
+  - **`.claude/commands/` wrapper layer removed entirely**: initially added thin `context: fork` command wrappers for all 10 non-SpecKit subagents for `/name` discoverability (Copilot UX parity), but removed them per explicit user request to minimize file count — subagents are now used purely via natural/explicit Agent-tool delegation.
+  - **Bidirectional drift detection built**: `scripts/agent-port-manifest.json` (sha256 hash per paired file) + `scripts/check-agent-drift.py` (compares current hashes to the manifest, reports `claude changed` / `copilot changed` / `both changed`, exits non-zero on drift, `--update <name>|all` refreshes hashes after manual reconciliation). Tested both directions (simulated a Copilot-side edit, confirmed detection, reverted, confirmed clean).
+  - Added `.gitignore` (previously empty) with `.specify/integrations/.cache/` (spec-kit's local catalog cache, not meant to be committed).
+- **Key findings and decisions**:
+  - **spec-kit has native, actively-maintained Claude Code support** (`specify integration list` → key `claude`, Skills-based, multi-install safe) — always check for and prefer an official integration over hand-porting a tool's own agent files; hand-porting SpecKit caused the naming collision that had to be cleaned up.
+  - `specify integration install <key> --force` is the correct way to add a second AI-agent integration to a project already initialized with another (the `--force` is only required because the *existing* integration, e.g. `copilot`, isn't declared multi-install-safe — it does not remove or modify the existing integration). `specify integration upgrade claude --force` is the way to pull upstream spec-kit updates for the Claude side later (diff-aware).
+  - Manual (non-mechanical) sync between Copilot's and Claude Code's agent/prompt formats is unavoidable for hand-ported agents (different frontmatter fields, prompt+agent merging, slash-command vs. subagent-delegation phrasing) — chose hash-manifest-based drift *detection* over full bidirectional codegen, since a generator would have to encode the same nuanced adaptation rules and still couldn't safely auto-apply them.
+  - User strongly prioritizes minimizing file count / token overhead in this repo's AI-agent tooling — traded away the `/name` slash-command discoverability layer once its redundancy with natural delegation was pointed out.
+  - Background `Agent` tool tasks were killed unexpectedly twice this session (environment issue, not user-initiated, confirmed with the user). Lesson: on an unexpected "killed" task-notification, resume once via `SendMessage`; if the same task gets killed again, stop retrying and do the work directly in the foreground instead.
+- **Outcomes**:
+  - New Claude Code sessions in this repo auto-load `CLAUDE.md` and can delegate to 10 project subagents (`.claude/agents/`) and 10 official SpecKit skills (`.claude/skills/`, invoked as `/speckit-*`) by name or natural language.
+  - `python3 scripts/check-agent-drift.py` (exit 0 = all 10 hand-ported pairs in sync) is now the required check before/after editing any hand-ported agent on either the Copilot or Claude side.
+  - Copilot's own setup is fully intact and still the default spec-kit integration; both tools read/write the same `.github/memory/` system with provenance tagging going forward.
+  - **Follow-up work**: none blocking; optionally revisit whether `.claude/commands/` wrappers are wanted later if `/name` discoverability turns out to matter in practice.
 
