@@ -37,6 +37,7 @@ linters-settings:
     enable-all: true
     disable:
       - shadow        # Warns about variable shadowing (too noisy for now)
+      - fieldalignment  # Struct field ordering micro-optimization - prioritize readability
 
   staticcheck:
     checks: ["all"]
@@ -112,12 +113,13 @@ issues:
 
   max-issues-per-linter: 0
   max-same-issues: 0
+  uniq-by-line: true
 
 output:
-  format: colored-line-number
+  formats:
+    - format: colored-line-number
   print-issued-lines: true
   print-linter-name: true
-  uniq-by-line: true
   sort-results: true
 
 severity:
