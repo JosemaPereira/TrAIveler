@@ -15,7 +15,7 @@ graph TD
     User[End User Browser]
     CF[CloudFront CDN<br/>React build artifacts from S3<br/>Global edge caching, HTTPS]
     ALB[Application Load Balancer<br/>HTTPS termination<br/>Health checks → /healthz<br/>Connection draining]
-    ECS[ECS Fargate Cluster<br/>Go 1.24+ RESTful API<br/>ARM64 Graviton2 containers<br/>Auto-scaling 1-5 tasks staging<br/>Stateless horizontal scaling]
+    ECS[ECS Fargate Cluster<br/>Go 1.26+ RESTful API<br/>ARM64 Graviton2 containers<br/>Auto-scaling 1-5 tasks staging<br/>Stateless horizontal scaling]
     RDS[Amazon RDS<br/>PostgreSQL 15.4<br/>Multi-AZ prod<br/>Single-AZ stage]
     AI[Anthropic AI API<br/>Claude external<br/>Itinerary generation<br/>Multi-turn conversation]
     Secrets[AWS Secrets Manager<br/>DB passwords<br/>API keys<br/>JWT secrets]

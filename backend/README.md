@@ -1,6 +1,6 @@
 # backend
 
-> Go 1.24 REST API for TrAIveler — AI-powered travel itinerary generation.
+> Go 1.26 REST API for TrAIveler — AI-powered travel itinerary generation.
 
 This directory contains the server-side application: HTTP handlers, domain services, database
 repositories, AI integration, observability middleware, and security primitives.
@@ -33,7 +33,7 @@ The backend exposes a RESTful JSON API consumed by the frontend SPA. Its primary
 
 | Concern | Library / Tool |
 |---------|----------------|
-| Language | Go 1.24 |
+| Language | Go 1.26 |
 | HTTP router | `github.com/go-chi/chi/v5` |
 | Database driver | `github.com/jackc/pgx/v5` (PostgreSQL 15.4, no ORM) |
 | Migrations | `github.com/pressly/goose/v3` |
@@ -330,7 +330,7 @@ The backend uses a multi-stage Dockerfile optimized for production deployment on
 ### Build Strategy
 
 **Stage 1 (builder):**
-- Base: `golang:1.25-alpine`
+- Base: `golang:1.26-alpine`
 - Installs build dependencies (git, ca-certificates, tzdata)
 - Downloads Go modules (cached layer when go.mod/go.sum unchanged)
 - Compiles static binary with `CGO_ENABLED=0` and stripped debug symbols (`-ldflags="-w -s"`)
