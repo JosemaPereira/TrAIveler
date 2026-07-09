@@ -112,12 +112,13 @@ issues:
 
   max-issues-per-linter: 0
   max-same-issues: 0
+  uniq-by-line: true
 
 output:
-  format: colored-line-number
+  formats:
+    - colored-line-number
   print-issued-lines: true
   print-linter-name: true
-  uniq-by-line: true
   sort-results: true
 
 severity:
