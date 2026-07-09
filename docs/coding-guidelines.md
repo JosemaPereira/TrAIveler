@@ -49,10 +49,14 @@ Use `goimports` (or an equivalent tool) to keep imports sorted and remove unused
 - File names use snake_case: `itinerary_service.go`, `trip_handler.go`.
 
 ### Struct Field Ordering
-- **Order struct fields by size (largest to smallest) to optimize memory alignment**.
+- **Order struct fields by size (largest to smallest) to optimize memory alignment** in production code.
 - Group fields logically when alignment permits, but prioritize alignment to avoid padding waste.
 - Place strings and pointers before smaller types (int64, int32, int, bool).
 - Use `fieldalignment` linter to detect suboptimal struct layouts.
+- **Exception**: Test struct field ordering is exempt from this rule (fieldalignment disabled for `_test.go` files).
+  - Test structs are ephemeral and don't impact runtime performance
+  - Prioritize readability and logical grouping in test tables
+  - Fields can be ordered for clarity: `name`, error fields, then test data
 
 **Example:**
 ```go

@@ -98,7 +98,7 @@ issues:
         - gocyclo
         - errcheck
         - gosec
-        - goconst
+        - fieldalignment  # Test struct field order doesn't impact runtime performance
 
     # Exclude linters for generated files
     - path: ".*\\.pb\\.go$"
