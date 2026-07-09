@@ -49,37 +49,44 @@ Use `goimports` (or an equivalent tool) to keep imports sorted and remove unused
 - File names use snake_case: `itinerary_service.go`, `trip_handler.go`.
 
 ### Struct Field Ordering
-- **Order struct fields by size (largest to smallest) to optimize memory alignment** in production code.
-- Group fields logically when alignment permits, but prioritize alignment to avoid padding waste.
-- Place strings and pointers before smaller types (int64, int32, int, bool).
-- Use `fieldalignment` linter to detect suboptimal struct layouts.
-- **Exception**: Test struct field ordering is exempt from this rule (fieldalignment disabled for `_test.go` files).
-  - Test structs are ephemeral and don't impact runtime performance
-  - Prioritize readability and logical grouping in test tables
-  - Fields can be ordered for clarity: `name`, error fields, then test data
+- **Prioritize logical grouping and readability over memory alignment optimization**.
+- Group related fields together to make the struct's purpose clear.
+- Order fields by their importance to the struct's functionality, not by size.
+- Place configuration fields logically (e.g., timeouts together, connection settings together).
+- **Rationale**: The `fieldalignment` linter is disabled project-wide because:
+  - Memory savings are typically negligible (few bytes per struct instance)
+  - Modern hardware makes alignment differences minimal
+  - Readability and maintainability matter more than micro-optimizations
+  - Forced size-based ordering makes code harder to understand
+  - Time spent on alignment could be better used elsewhere
 
 **Example:**
 ```go
-// ❌ Poor alignment (40 bytes with padding)
+// ✅ Good - Logical grouping
 type ServerConfig struct {
-    Port         int           // 8 bytes
-    ReadTimeout  time.Duration // 8 bytes  
-    WriteTimeout time.Duration // 8 bytes
-    IdleTimeout  time.Duration // 8 bytes
-    AllowedCORS  string        // 16 bytes (pointer + len)
+    // Server behavior
+    Port         int
+    AllowedCORS  string
+    
+    // Timeouts (grouped together)
+    ReadTimeout  time.Duration
+    WriteTimeout time.Duration
+    IdleTimeout  time.Duration
 }
 
-// ✅ Optimal alignment (8 bytes with proper ordering)
+// ❌ Avoid - Scattered by size without clear logic
 type ServerConfig struct {
-    AllowedCORS  string        // 16 bytes (string header)
+    AllowedCORS  string        // 16 bytes
     ReadTimeout  time.Duration // 8 bytes
     WriteTimeout time.Duration // 8 bytes
     IdleTimeout  time.Duration // 8 bytes
     Port         int           // 8 bytes
 }
+    WriteTimeout time.Duration // 8 bytes
+    IdleTimeout  time.Duration // 8 bytes
+    Port         int           // 8 bytes
+}
 ```
-
-**Rule**: Strings first, then time.Duration, then int, then bool. This minimizes padding.
 
 ### Function Parameters
 - **Context must always be the first parameter** when present (after receiver for methods).
@@ -283,14 +290,15 @@ func TestMyService_Success(t *testing.T) {
 
 ### Linting
 - The project uses `golangci-lint`. All lint checks must pass before a pull request can be merged.
-- Key enabled linters: `errcheck`, `govet` (with `fieldalignment`), `staticcheck`, `revive`, `gosec`, `gofmt`, `goimports`, `misspell`, `unparam`, `unconvert`, `goconst`, `gocyclo`, `gosimple`, `ineffassign`, `unused`.
-- **govet configuration**: `enable-all: true` with `shadow` disabled (too noisy).
+- Key enabled linters: `errcheck`, `govet`, `staticcheck`, `revive`, `gosec`, `gofmt`, `goimports`, `misspell`, `unparam`, `unconvert`, `goconst`, `gocyclo`, `gosimple`, `ineffassign`, `unused`.
+- **govet configuration**: `enable-all: true` with `shadow` and `fieldalignment` disabled.
+  - `shadow` - Variable shadowing warnings are too noisy for practical use
+  - `fieldalignment` - Struct field ordering micro-optimization sacrifices readability
 - **Test file exemptions**: The following linters are disabled for `*_test.go` files:
   - `gocyclo` - Cyclomatic complexity (test helpers can be complex)
   - `errcheck` - Error checking (some test errors are intentionally ignored)
   - `gosec` - Security checks (tests don't need production security)
   - `goconst` - Constant detection (test data repetition is acceptable)
-  - `fieldalignment` - Struct field ordering (test struct performance doesn't matter)
 
 **Running lints locally:**
 ```bash

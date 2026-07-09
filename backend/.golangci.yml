@@ -37,6 +37,7 @@ linters-settings:
     enable-all: true
     disable:
       - shadow        # Warns about variable shadowing (too noisy for now)
+      - fieldalignment  # Struct field ordering micro-optimization - prioritize readability
 
   staticcheck:
     checks: ["all"]
@@ -98,7 +99,7 @@ issues:
         - gocyclo
         - errcheck
         - gosec
-        - fieldalignment  # Test struct field order doesn't impact runtime performance
+        - goconst
 
     # Exclude linters for generated files
     - path: ".*\\.pb\\.go$"
