@@ -79,8 +79,8 @@ Connection pool settings (configured in `config.go`):
 import (
     "context"
     "time"
-    "github.com/JosemaPereira/capstone-project-ai-bootcamp/backend/config"
-    "github.com/JosemaPereira/capstone-project-ai-bootcamp/backend/internal/database"
+    "github.com/JosemaPereira/TrAIveler/backend/config"
+    "github.com/JosemaPereira/TrAIveler/backend/internal/database"
 )
 
 // Initialize client (returns interface, not concrete type)
@@ -127,8 +127,8 @@ make mocks
 import (
     "testing"
     "github.com/stretchr/testify/mock"
-    "github.com/JosemaPereira/capstone-project-ai-bootcamp/backend/internal/database"
-    dbmocks "github.com/JosemaPereira/capstone-project-ai-bootcamp/backend/internal/database/mocks"
+    "github.com/JosemaPereira/TrAIveler/backend/internal/database"
+    dbmocks "github.com/JosemaPereira/TrAIveler/backend/internal/database/mocks"
 )
 
 func TestMyService_HealthCheck_Success(t *testing.T) {

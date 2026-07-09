@@ -14,8 +14,8 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/JosemaPereira/capstone-project-ai-bootcamp/backend/config"
-	"github.com/JosemaPereira/capstone-project-ai-bootcamp/backend/internal/database"
+	"github.com/JosemaPereira/TrAIveler/backend/config"
+	"github.com/JosemaPereira/TrAIveler/backend/internal/database"
 )
 
 func main() {

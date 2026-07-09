@@ -1,4 +1,4 @@
-module github.com/JosemaPereira/capstone-project-ai-bootcamp/backend
+module github.com/JosemaPereira/TrAIveler/backend
 
 go 1.26
 
