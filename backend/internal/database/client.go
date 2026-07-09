@@ -99,7 +99,7 @@ func NewClient(ctx context.Context, databaseURL string) (Client, error) {
 			if attempt < maxRetries {
 				select {
 				case <-ctx.Done():
-					return nil, fmt.Errorf("context cancelled during connection retry: %w", ctx.Err())
+					return nil, fmt.Errorf("context canceled during connection retry: %w", ctx.Err())
 				case <-time.After(retryDelay):
 					// Continue to next retry
 				}
@@ -134,7 +134,7 @@ func NewClient(ctx context.Context, databaseURL string) (Client, error) {
 		if attempt < maxRetries {
 			select {
 			case <-ctx.Done():
-				return nil, fmt.Errorf("context cancelled during connection retry: %w", ctx.Err())
+				return nil, fmt.Errorf("context canceled during connection retry: %w", ctx.Err())
 			case <-time.After(retryDelay):
 				// Continue to next retry
 			}

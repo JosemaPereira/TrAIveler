@@ -20,7 +20,7 @@ func TestNewClient_Success(t *testing.T) {
 	ctx := context.Background()
 
 	// Start PostgreSQL container
-	pgContainer, connStr := setupPostgresContainer(t, ctx)
+	pgContainer, connStr := setupPostgresContainer(ctx, t)
 	defer func() {
 		if err := pgContainer.Terminate(ctx); err != nil {
 			t.Logf("failed to terminate container: %v", err)
@@ -64,12 +64,12 @@ func TestNewClient_InvalidURL(t *testing.T) {
 
 // TestNewClient_ContextCancellation verifies that NewClient respects context cancellation
 func TestNewClient_ContextCancellation(t *testing.T) {
-	// Create a context that's already cancelled
+	// Create a context that's already canceled
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel()
 
-	client, err := NewClient(ctx, "postgresql://localhost:5432/db?sslmode=disable")
-	assert.Error(t, err, "NewClient should fail with cancelled context")
+	client, err := NewClient(ctx, "postgresql://user:pass@localhost:5432/db?sslmode=disable")
+	assert.Error(t, err, "NewClient should fail with canceled context")
 	assert.Nil(t, client, "client should be nil on error")
 }
 
@@ -80,7 +80,7 @@ func TestPing_Success(t *testing.T) {
 	}
 	ctx := context.Background()
 
-	pgContainer, connStr := setupPostgresContainer(t, ctx)
+	pgContainer, connStr := setupPostgresContainer(ctx, t)
 	defer func() {
 		if err := pgContainer.Terminate(ctx); err != nil {
 			t.Logf("failed to terminate container: %v", err)
@@ -103,7 +103,7 @@ func TestPing_ClosedConnection(t *testing.T) {
 	}
 	ctx := context.Background()
 
-	pgContainer, connStr := setupPostgresContainer(t, ctx)
+	pgContainer, connStr := setupPostgresContainer(ctx, t)
 	defer func() {
 		if err := pgContainer.Terminate(ctx); err != nil {
 			t.Logf("failed to terminate container: %v", err)
@@ -129,7 +129,7 @@ func TestPing_ContextTimeout(t *testing.T) {
 	}
 	ctx := context.Background()
 
-	pgContainer, connStr := setupPostgresContainer(t, ctx)
+	pgContainer, connStr := setupPostgresContainer(ctx, t)
 	defer func() {
 		if err := pgContainer.Terminate(ctx); err != nil {
 			t.Logf("failed to terminate container: %v", err)
@@ -157,7 +157,7 @@ func TestClose_GracefulShutdown(t *testing.T) {
 	}
 	ctx := context.Background()
 
-	pgContainer, connStr := setupPostgresContainer(t, ctx)
+	pgContainer, connStr := setupPostgresContainer(ctx, t)
 	defer func() {
 		if err := pgContainer.Terminate(ctx); err != nil {
 			t.Logf("failed to terminate container: %v", err)
@@ -189,7 +189,7 @@ func TestConnectionPoolLimits(t *testing.T) {
 	}
 	ctx := context.Background()
 
-	pgContainer, connStr := setupPostgresContainer(t, ctx)
+	pgContainer, connStr := setupPostgresContainer(ctx, t)
 	defer func() {
 		if err := pgContainer.Terminate(ctx); err != nil {
 			t.Logf("failed to terminate container: %v", err)
@@ -234,7 +234,7 @@ func TestNewClient_RetryLogic(t *testing.T) {
 // Waits for PostgreSQL to be fully ready before returning (2 occurrences of "ready" message).
 //
 // The caller is responsible for terminating the container in a defer statement.
-func setupPostgresContainer(t *testing.T, ctx context.Context) (*postgres.PostgresContainer, string) {
+func setupPostgresContainer(ctx context.Context, t *testing.T) (*postgres.PostgresContainer, string) {
 	t.Helper()
 
 	pgContainer, err := postgres.Run(ctx,
@@ -263,7 +263,7 @@ func TestPool_ConcurrentOperations(t *testing.T) {
 	}
 	ctx := context.Background()
 
-	pgContainer, connStr := setupPostgresContainer(t, ctx)
+	pgContainer, connStr := setupPostgresContainer(ctx, t)
 	defer func() {
 		if err := pgContainer.Terminate(ctx); err != nil {
 			t.Logf("failed to terminate container: %v", err)
@@ -298,7 +298,7 @@ func TestPool_AcquireReleaseCycle(t *testing.T) {
 	}
 	ctx := context.Background()
 
-	pgContainer, connStr := setupPostgresContainer(t, ctx)
+	pgContainer, connStr := setupPostgresContainer(ctx, t)
 	defer func() {
 		if err := pgContainer.Terminate(ctx); err != nil {
 			t.Logf("failed to terminate container: %v", err)

@@ -48,6 +48,56 @@ Use `goimports` (or an equivalent tool) to keep imports sorted and remove unused
 - Package names must be lowercase, single words, with no underscores or camelCase: `itinerary`, `handler`, `store`.
 - File names use snake_case: `itinerary_service.go`, `trip_handler.go`.
 
+### Struct Field Ordering
+- **Order struct fields by size (largest to smallest) to optimize memory alignment**.
+- Group fields logically when alignment permits, but prioritize alignment to avoid padding waste.
+- Place strings and pointers before smaller types (int64, int32, int, bool).
+- Use `fieldalignment` linter to detect suboptimal struct layouts.
+
+**Example:**
+```go
+// ❌ Poor alignment (40 bytes with padding)
+type ServerConfig struct {
+    Port         int           // 8 bytes
+    ReadTimeout  time.Duration // 8 bytes  
+    WriteTimeout time.Duration // 8 bytes
+    IdleTimeout  time.Duration // 8 bytes
+    AllowedCORS  string        // 16 bytes (pointer + len)
+}
+
+// ✅ Optimal alignment (8 bytes with proper ordering)
+type ServerConfig struct {
+    AllowedCORS  string        // 16 bytes (string header)
+    ReadTimeout  time.Duration // 8 bytes
+    WriteTimeout time.Duration // 8 bytes
+    IdleTimeout  time.Duration // 8 bytes
+    Port         int           // 8 bytes
+}
+```
+
+**Rule**: Strings first, then time.Duration, then int, then bool. This minimizes padding.
+
+### Function Parameters
+- **Context must always be the first parameter** when present (after receiver for methods).
+- Testing parameter `*testing.T` comes before context in test helpers (Go convention).
+
+**Example:**
+```go
+// ✅ Correct - context first
+func ProcessData(ctx context.Context, userID string, data []byte) error
+
+// ✅ Correct - test helper (t before ctx is acceptable)
+func setupTestDB(t *testing.T, ctx context.Context) *DB
+
+// ❌ Wrong - context not first
+func ProcessData(userID string, ctx context.Context, data []byte) error
+```
+
+### Spelling
+- Use **US English spelling** in all code, comments, and documentation.
+- Common corrections: "canceled" (not "cancelled"), "color" (not "colour"), "optimize" (not "optimise").
+- The `misspell` linter enforces US English spelling.
+
 ### Error Handling
 - Never ignore errors. Always handle or propagate them explicitly.
 - Wrap errors with context using `fmt.Errorf("context: %w", err)` to preserve the error chain.

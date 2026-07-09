@@ -33,11 +33,11 @@ type Config struct {
 
 // ServerConfig contains HTTP server settings.
 type ServerConfig struct {
-	Port         int           // HTTP_PORT (default: 8080)
+	AllowedCORS  string        // ALLOWED_CORS_ORIGINS (default: http://localhost:5173)
 	ReadTimeout  time.Duration // HTTP_READ_TIMEOUT (default: 30s)
 	WriteTimeout time.Duration // HTTP_WRITE_TIMEOUT (default: 30s)
 	IdleTimeout  time.Duration // HTTP_IDLE_TIMEOUT (default: 120s)
-	AllowedCORS  string        // ALLOWED_CORS_ORIGINS (default: http://localhost:5173)
+	Port         int           // HTTP_PORT (default: 8080)
 }
 
 // DatabaseConfig contains PostgreSQL connection settings.
@@ -61,11 +61,11 @@ type AIConfig struct {
 // AuthConfig contains JWT and session settings.
 type AuthConfig struct {
 	JWTSigningKey     string        // JWT_SIGNING_KEY (required in production)
+	CookieDomain      string        // COOKIE_DOMAIN (default: localhost)
 	JWTExpiration     time.Duration // JWT_EXPIRATION (default: 24h)
 	RefreshExpiration time.Duration // REFRESH_TOKEN_EXPIRATION (default: 7 days)
-	CookieDomain      string        // COOKIE_DOMAIN (default: localhost)
-	CookieSecure      bool          // COOKIE_SECURE (default: false, true in production)
 	BcryptCost        int           // BCRYPT_COST (default: 12)
+	CookieSecure      bool          // COOKIE_SECURE (default: false, true in production)
 }
 
 // LogConfig contains structured logging settings.
