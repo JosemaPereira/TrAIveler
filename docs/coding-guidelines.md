@@ -53,6 +53,75 @@ Use `goimports` (or an equivalent tool) to keep imports sorted and remove unused
 - Wrap errors with context using `fmt.Errorf("context: %w", err)` to preserve the error chain.
 - Return errors to callers; do not use `log.Fatal` or `os.Exit` outside of `main`.
 
+### Code Complexity
+- **Keep cognitive complexity at 15 or below** to avoid triggering SonarQube warnings (rule `go:S3776`).
+- Cognitive complexity measures how difficult code is to understand based on nested control flow, not just lines of code.
+- If a function exceeds complexity 15, refactor by:
+  - **Extracting helper functions**: Pull out nested logic into separate, well-named functions with `t.Helper()` for test helpers
+  - **Early returns**: Use guard clauses to reduce nesting (return early on error conditions)
+  - **Simplifying conditionals**: Replace complex if/else chains with switch statements or lookup tables
+  - **Table-driven tests**: Use test tables instead of multiple similar test cases with duplicated assertion logic
+
+**Example — Reducing Test Complexity:**
+```go
+// ❌ High complexity (17) - nested conditionals in loop
+for _, tt := range tests {
+    t.Run(tt.name, func(t *testing.T) {
+        result, err := Process(tt.input)
+        
+        if tt.wantErr {
+            if err == nil {
+                t.Error("expected error, got nil")
+            }
+            if !strings.Contains(err.Error(), tt.errMsg) {
+                t.Errorf("error = %v, want %s", err, tt.errMsg)
+            }
+        } else {
+            if err != nil {
+                t.Errorf("unexpected error: %v", err)
+            }
+            if result != tt.want {
+                t.Errorf("got %v, want %v", result, tt.want)
+            }
+        }
+    })
+}
+
+// ✅ Low complexity - extracted helper
+for _, tt := range tests {
+    t.Run(tt.name, func(t *testing.T) {
+        result, err := Process(tt.input)
+        assertResult(t, result, err, tt.want, tt.wantErr, tt.errMsg)
+    })
+}
+
+func assertResult(t *testing.T, result, err, want interface{}, wantErr bool, errMsg string) {
+    t.Helper()
+    if wantErr {
+        if err == nil {
+            t.Error("expected error, got nil")
+            return
+        }
+        if !strings.Contains(err.Error(), errMsg) {
+            t.Errorf("error = %v, want %s", err, errMsg)
+        }
+        return
+    }
+    if err != nil {
+        t.Errorf("unexpected error: %v", err)
+    }
+    if result != want {
+        t.Errorf("got %v, want %v", result, want)
+    }
+}
+```
+
+**Benefits:**
+- Code passes SonarQube quality gates without warnings
+- Functions are easier to understand and maintain
+- Helper functions can be reused across multiple tests
+- Reduced cognitive load for code reviewers
+
 ### Dependency Injection (Interface-First Design)
 - **Define interfaces before implementations** to enable easy mocking, testing, and component swapping.
 - Interfaces should be small and focused (1-5 methods). Prefer multiple small interfaces over large ones.
