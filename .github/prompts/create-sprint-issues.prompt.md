@@ -46,7 +46,7 @@ Instructions:
 8. **Create issues** (one per task):
    ```bash
    gh issue create \
-     --repo JosemaPereira/capstone-project-ai-bootcamp \
+     --repo JosemaPereira/TrAIveler \
      --title "<stable-id> — <title>" \
      --body "<issue-template>" \
      --label "epic:<name>,spec:<n>,sprint:<n>,priority:<P>,type:<type>"
@@ -57,7 +57,7 @@ Instructions:
    for issue_num in {start..end}; do
      gh project item-add <PROJECT-NUMBER> \
        --owner JosemaPereira \
-       --url "https://github.com/JosemaPereira/capstone-project-ai-bootcamp/issues/$issue_num"
+       --url "https://github.com/JosemaPereira/TrAIveler/issues/$issue_num"
    done
    ```
 
