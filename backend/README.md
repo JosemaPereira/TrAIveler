@@ -93,6 +93,9 @@ backend/
 │   │   ├── cors.go                   # Exact-match CORS origin allow-list, handles OPTIONS preflight
 │   │   ├── body_size.go              # Caps request bodies at 10 MB, responds 413 when exceeded
 │   │   └── errors.go                 # Shared JSON error-envelope helper used by recovery.go/body_size.go
+│   ├── errors/
+│   │   ├── types.go                  # DomainError type + constructors (NotFound, Validation, Unauthorized, Forbidden, Conflict)
+│   │   └── handler.go                # HandleError(): maps *DomainError to the standard JSON error envelope (docs/api-design-standards.md §7)
 │   ├── ai/
 │   │   ├── validator/
 │   │   │   └── prompt_validator.go   # Pattern-based deny-list; blocks prompt injection (NFR-SEC-007)
@@ -263,6 +266,43 @@ trivially testable in isolation:
 `errors.go` holds the shared JSON error-envelope helper (used by `recovery.go` and `body_size.go`)
 that implements the standard error format in
 [`docs/api-design-standards.md`](../docs/api-design-standards.md) §7.
+
+### Error handling (`internal/errors/`)
+
+`DomainError` represents a business-rule failure (`Code`, `Message`, an optional `Fields` slice for
+per-field validation errors, a `Details` map, and an optional wrapped `Err`) and implements
+`error`/`Unwrap`, so it keeps composing with `errors.Is`/`errors.As` even after a lower layer wraps
+it (e.g. `fmt.Errorf("...: %w", err)`). Five constructors — `NotFound`, `Validation`, `Unauthorized`,
+`Forbidden`, `Conflict` — each build a fresh `*DomainError`; none is a shared package-level value,
+since every occurrence needs its own dynamic message, fields, and cause.
+
+`HandleError(w, r, err)` maps a `*DomainError` to the standard JSON error envelope from
+[`docs/api-design-standards.md`](../docs/api-design-standards.md) §7:
+
+| Domain error code | HTTP status |
+|--------------------|-------------|
+| `not_found` | 404 |
+| `validation_failed` | 422 |
+| `authentication_required` | 401 |
+| `forbidden` | 403 |
+| `conflict` | 409 |
+| anything unrecognized (incl. non-`*DomainError` errors) | 500 / `internal_error` |
+
+Any error that is not a `*DomainError` (and does not wrap one) is logged server-side via
+`slog.Default()` — its real message never reaches the client, which sees only a generic
+`internal_error`/500 so internals never leak.
+
+This is a second, independent implementation from `internal/middleware`'s `errors.go`
+(`writeErrorEnvelope`), not a reuse of it: that helper is unexported and used only internally by
+`Recovery`/`BodySize` for transport-layer failures (panics, oversized bodies). `internal/errors` is
+the exported, richer package — it adds `fields`/`details` and error wrapping — meant for every
+future domain/business handler (trips, suggestions, auth, ...) to use. The two can't share one
+implementation because `internal/errors` already imports `middleware` (for
+`RequestIDFromContext`); a reverse import would create an import cycle.
+
+Not yet wired into any handler — no existing endpoint calls `errors.HandleError()` (`/healthz` uses
+its own local `writeJSON`, unrelated). Issue #58, next in the sprint and currently blocked on this
+one, is what will first import and use this package from a real handler.
 
 ### HTTP server (`cmd/api/`)
 
