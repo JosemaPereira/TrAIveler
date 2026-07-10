@@ -94,7 +94,7 @@ func (h *Handler) handleCreate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	ex, err := h.service.CreateExample(r.Context(), CreateInput{Name: req.Name, Email: req.Email})
+	ex, err := h.service.CreateExample(r.Context(), CreateInput(req))
 	if err != nil {
 		domainerrors.HandleError(w, r, err)
 		return
@@ -136,11 +136,7 @@ func (h *Handler) handleUpdate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	ex, err := h.service.UpdateExample(r.Context(), id, version, UpdateInput{
-		Name:   req.Name,
-		Status: req.Status,
-		Count:  req.Count,
-	})
+	ex, err := h.service.UpdateExample(r.Context(), id, version, UpdateInput(req))
 	if err != nil {
 		domainerrors.HandleError(w, r, err)
 		return
