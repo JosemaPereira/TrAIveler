@@ -1196,3 +1196,65 @@ jobs:
 - `.github/memory/session-notes.md` (2026-07-09 session — "Repo Ruleset on `main` + Fixing Path-Filtered Required Checks")
 - [Troubleshooting required status checks – GitHub Docs](https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/collaborating-on-repositories-with-code-quality-features/troubleshooting-required-status-checks)
 
+---
+
+### Two-Query Pagination, Not COUNT(*) OVER(), for a Truthful Empty-Page Envelope
+
+### Context
+- Backend — any `List`/index repository method that returns both a page of rows and a total count for the standard `data`+`pagination` envelope (`docs/api-design-standards.md` §9); first hit in `internal/example/repository.go`'s `List`.
+
+### Problem
+- Combining the paginated `SELECT` and the total count into one query via `COUNT(*) OVER()` (a window function) is tempting — one round trip instead of two. But a window function only produces a value on rows actually returned by that query. When `LIMIT`/`OFFSET` lands past the end of the result set (an out-of-range page), zero rows come back, so the window function never evaluates and the total silently reads as 0 — even though matching rows exist. This breaks the documented contract that an empty page's response must still carry the real `total`/`total_pages` (`docs/api-design-standards.md` §9's "return empty array for page beyond total_pages, not 404" implies the envelope stays truthful, not zeroed out). A unit test against a mocked repository can't catch this — the mock just returns whatever `Total` the test hard-codes; only a real database exercising the actual out-of-range-page SQL surfaces it.
+
+### Solution
+- Run two queries: a `SELECT COUNT(*) FROM t WHERE <filters>` first, then only run the paginated `SELECT ... LIMIT $ OFFSET $` if `total > 0` (short-circuit to an empty items slice otherwise, skipping the second round trip entirely for the already-known-empty case). Slightly more DB round trips than a window function in the common case, but correct in the edge case that actually matters for the API contract. Always add an integration test that requests a page number known to be past the end of a small, real seeded dataset and asserts `total` is still correct with an empty `items` — this is the only way the window-function bug reliably surfaces.
+
+### Example
+```go
+// Wrong: total silently reads 0 for out-of-range pages.
+const query = `SELECT id, ..., COUNT(*) OVER() AS total_count
+               FROM examples WHERE ... ORDER BY created_at DESC LIMIT $1 OFFSET $2`
+
+// Right: total is always correct, independent of which page was requested.
+var total int
+db.QueryRow(ctx, `SELECT COUNT(*) FROM examples WHERE ...`, ...).Scan(&total)
+if total == 0 {
+    return &ListResult{Items: []*Example{}, Total: 0}, nil
+}
+rows, _ := db.Query(ctx, `SELECT ... FROM examples WHERE ... LIMIT $1 OFFSET $2`, ...)
+```
+
+### Related Files
+- `backend/internal/example/repository.go` (`List`)
+- `backend/internal/example/repository_integration_test.go` (`TestIntegrationList_PaginatesAndFiltersByStatus/empty_result_set_for_out-of-range_page` — the test that caught it)
+- `docs/api-design-standards.md` §9 (Pagination)
+
+---
+
+### Testcontainers-go with Colima Needs Two Docker Env Vars, Not Just `docker context`
+
+### Context
+- Backend — any `testcontainers-go` test (e.g. `internal/database/client_test.go`, `internal/example/repository_integration_test.go`) run locally on macOS with Colima as the Docker runtime, rather than Docker Desktop.
+
+### Problem
+- `docker context ls` showing `colima` as the active context is not sufficient for testcontainers-go to find the daemon — without `DOCKER_HOST` set, it attempts an unsupported "rootless Docker" provider path and fails immediately (`get provider: rootless Docker not found`). Setting `DOCKER_HOST` to Colima's macOS-visible socket path gets past that, but then the Ryuk reaper container (which testcontainers-go starts automatically to clean up test containers) fails to start: it tries to bind-mount the Docker socket path *as seen from inside a container*, and the macOS host path (`/Users/.../.colima/default/docker.sock`) doesn't exist inside the Colima Linux VM — error: `error while creating mount source path '...': mkdir ...: operation not supported`.
+
+### Solution
+- Set both env vars before running tests, using two *different* paths for two different purposes:
+  1. `DOCKER_HOST=unix:///Users/<you>/.colima/default/docker.sock` — the real host-visible socket, used by the Docker API client itself.
+  2. `TESTCONTAINERS_DOCKER_SOCKET_OVERRIDE=/var/run/docker.sock` — the path *as seen inside containers* (Colima's VM maps its own `/var/run/docker.sock` internally), used only for the Ryuk reaper's bind mount.
+- Confirm `colima status` shows "Running" first; these two vars are the missing piece once it is.
+
+### Example
+```bash
+colima status || colima start --cpu 2 --memory 4
+export DOCKER_HOST=unix:///Users/$(whoami)/.colima/default/docker.sock
+export TESTCONTAINERS_DOCKER_SOCKET_OVERRIDE=/var/run/docker.sock
+go test -tags=test ./internal/example/... -run TestIntegration -v
+```
+
+### Related Files
+- `backend/internal/database/client_test.go`, `backend/internal/example/repository_integration_test.go`
+- `.github/memory/patterns-discovered.md` ("Free Container Runtime for Testcontainers" — this entry adds the env-var detail that one was missing)
+- `.github/memory/session-notes.md` (2026-07-10 session — "Reference Implementation Pattern")
+
