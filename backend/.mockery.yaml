@@ -20,3 +20,7 @@ packages:
   github.com/JosemaPereira/TrAIveler/backend/internal/ai:
     interfaces:
       AIClient:
+  github.com/JosemaPereira/TrAIveler/backend/internal/example:
+    interfaces:
+      Repository:
+      Service:
