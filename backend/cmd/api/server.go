@@ -11,6 +11,7 @@ import (
 
 	"github.com/JosemaPereira/TrAIveler/backend/config"
 	"github.com/JosemaPereira/TrAIveler/backend/internal/database"
+	"github.com/JosemaPereira/TrAIveler/backend/internal/example"
 	"github.com/JosemaPereira/TrAIveler/backend/internal/middleware"
 )
 
@@ -21,10 +22,11 @@ const healthzTimeout = 2 * time.Second
 // structured logger together and exposes the API's operational HTTP
 // endpoints. Domain routes are registered the same way in routes.go.
 type HTTPServer struct {
-	router *chi.Mux
-	db     database.Client
-	cfg    *config.Config
-	logger *slog.Logger
+	router         *chi.Mux
+	db             database.Client
+	cfg            *config.Config
+	logger         *slog.Logger
+	exampleHandler *example.Handler
 }
 
 // NewHTTPServer builds an HTTPServer with the standard middleware chain
@@ -42,11 +44,21 @@ func NewHTTPServer(db database.Client, cfg *config.Config, logger *slog.Logger) 
 	router.Use(middleware.CORS(cfg.Server.AllowedCORS))
 	router.Use(middleware.BodySize)
 
+	// internal/example is the canonical layered-pattern reference (model ->
+	// repository -> service -> handler); wiring it here is what makes it a
+	// runnable demo instead of just unit-tested code in isolation. Future
+	// domain packages (Trip, User, ...) follow the same three-line
+	// construction and get mounted the same way in registerRoutes below.
+	exampleRepo := example.NewPostgresRepository(db)
+	exampleService := example.NewService(exampleRepo)
+	exampleHandler := example.NewHandler(exampleService)
+
 	s := &HTTPServer{
-		router: router,
-		db:     db,
-		cfg:    cfg,
-		logger: logger,
+		router:         router,
+		db:             db,
+		cfg:            cfg,
+		logger:         logger,
+		exampleHandler: exampleHandler,
 	}
 
 	s.registerRoutes()
