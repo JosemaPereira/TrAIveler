@@ -288,10 +288,10 @@ The frontend CI pipeline runs automatically on every pull request and push to ma
 
 3. **Build** — Builds production bundle with Vite, reports bundle size, and uploads `dist/` artifact. Validates that the production build completes successfully without errors.
 
-4. **Accessibility** — Placeholder job for Lighthouse CI accessibility audit (WCAG 2.1 AA). Full implementation scheduled for Sprint 2 with `@lhci/cli` and `@axe-core/playwright` integration.
+4. **Accessibility** — Placeholder job for Lighthouse CI accessibility audit (WCAG 2.1 AA). Full implementation with `@lhci/cli` and `@axe-core/playwright` is not yet scheduled — see `docs/roadmap.md` tasks 002-T002/T004/T024 (currently unscheduled/Sprint 9, not Sprint 2).
 
 **Future Enhancements** (TODO comments in workflow):
-- **Sprint 2**: Full Lighthouse CI with WCAG 2.1 AA compliance checks, performance audits, and Core Web Vitals thresholds
+- **Not yet scheduled**: Full Lighthouse CI with WCAG 2.1 AA compliance checks, performance audits, and Core Web Vitals thresholds — pending roadmap 002-T002/T004/T024 (re-check at Sprint 3 planning)
 - **Sprint 10**: S3 + CloudFront deployment job with cache invalidation
 
 **Local Equivalent**:

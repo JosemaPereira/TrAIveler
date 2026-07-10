@@ -1377,6 +1377,15 @@ The minimum sequential chain to reach a fully functional, security-hardened, dem
 
 ### ☁️ Sprint 3: Infrastructure Architecture (Weeks 5-6)
 
+> ⚠️ **Planning note (added 2026-07-10, review before finalizing Sprint 3 scope)**: `frontend-ci.yml`'s
+> accessibility job has carried a stale `TODO Sprint 2: Implement Lighthouse CI` comment since Sprint 1 —
+> corrected, but the underlying tasks (**002-T002** add `@lhci/cli`/`@axe-core/playwright` deps,
+> **002-T004** create `lighthouserc.yml`, **002-T024** create `accessibility.yml` PR-gate workflow)
+> currently sit unscheduled or in Sprint 9, with no GitHub issues yet. Decide explicitly whether to pull
+> some or all of these into Sprint 3 (accessibility CI gating is otherwise deferred a long way past when
+> frontend components — issues #63/#64/#66 — actually start needing it) or confirm Sprint 9 still stands.
+> See `.github/memory/session-notes.md` (2026-07-10) for full context.
+
 **Epic Label**: `epic:architecture-infra` (continuation)
 
 **Goal**: Complete Terraform modules for all AWS resources and CI/CD patterns.
