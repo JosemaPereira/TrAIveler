@@ -1139,3 +1139,60 @@ RUN CGO_ENABLED=0 GOOS=$TARGETOS GOARCH=$TARGETARCH go build -o api ./cmd/api
 - `.github/workflows/backend-ci.yml` ("Build Docker Image" job)
 - `.github/memory/session-notes.md` (2026-07-09 session — "Domain Error Handling + Docker Build Investigation")
 
+---
+
+### Required Status Checks Must Always Run (Gate Jobs, Not Workflow Triggers)
+
+### Context
+- Any repo with GitHub branch protection / repository rulesets requiring named CI status checks, where the underlying workflows are area-scoped (e.g. separate backend/frontend/infra CI files) — `.github/workflows/backend-ci.yml`, `frontend-ci.yml`, `infra-plan.yml` in this repo, required by the "Protect main" ruleset
+
+### Problem
+- Using `paths:` filters on a workflow's `pull_request:` trigger to skip irrelevant CI (e.g. only run `frontend-ci.yml` when `frontend/**` changed) seems like the obvious way to keep required checks scoped and CI fast. But if any job from that workflow is also a *required* status check, a PR that doesn't touch the filtered path never triggers the workflow at all — no check run is ever created for that context. GitHub does **not** treat a required check that never reported as passing/skipped; it shows **"Expected — Waiting for status to be reported"** and blocks merging **indefinitely**. This is confirmed, documented GitHub behavior (see Troubleshooting required status checks, cited below), not an edge case — and it's easy to ship without noticing, since the Dockerfile/workflow still "looks correct" and works fine for PRs that do touch the path.
+
+### Solution
+- Never put `paths:`/`branches:`/`paths-ignore:` filters on the *trigger* (`on: pull_request:`) of a workflow that contains a required check. Instead:
+  1. Add a cheap `changes` job (using `dorny/paths-filter@v3` or equivalent) that always runs and outputs a boolean per relevant area.
+  2. Gate every actual job with `needs: changes` + `if: needs.changes.outputs.<area> == 'true'` (add a `github.event_name == 'workflow_dispatch' ||` escape hatch so manual runs always execute fully, since manual dispatch has no meaningful diff base for the filter action).
+  3. Do not add `always()` to these `if:` conditions — the goal is for the job to be skipped (not force-run) when the area didn't change; `always()` would defeat that.
+- **A job that reports conclusion "skipped" (via a false job-level `if:`) counts as a *passing* required status check** — this is the distinct, documented behavior that makes the workaround work: "check never ran" blocks forever, "check ran and was skipped" does not. Confirmed via GitHub Actions documentation and community discussions, not assumed.
+- Verify with `actionlint` (`brew install actionlint`) after any change to `needs`/`if` graphs — it validates job-dependency and expression syntax without needing to push and wait on a real run.
+- **Always confirm the fix on a real PR against the real ruleset**, not just by reading the YAML — the actual GitHub Actions Checks UI is the only way to be sure a required check reports (pass/fail) instead of hanging at "Expected." In this repo, doing so also surfaced two genuine pre-existing bugs (`frontend/package.json` missing a `test` script, two unformatted files) that had gone unnoticed because the old path-filtered workflow had rarely run for real.
+
+### Example
+```yaml
+# Before: required check can hang forever on a PR that doesn't touch frontend/
+on:
+  pull_request:
+    paths:
+      - 'frontend/**'
+jobs:
+  lint:
+    name: Lint Frontend Code   # <- required in branch protection/ruleset
+    steps: [...]
+
+# After: workflow always triggers; the job itself is what's conditionally skipped
+on:
+  pull_request:
+jobs:
+  changes:
+    outputs:
+      frontend: ${{ steps.filter.outputs.frontend }}
+    steps:
+      - uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            frontend:
+              - 'frontend/**'
+  lint:
+    name: Lint Frontend Code
+    needs: changes
+    if: github.event_name == 'workflow_dispatch' || needs.changes.outputs.frontend == 'true'
+    steps: [...]
+```
+
+### Related Files
+- `.github/workflows/backend-ci.yml`, `frontend-ci.yml`, `infra-plan.yml`
+- `.github/memory/session-notes.md` (2026-07-09 session — "Repo Ruleset on `main` + Fixing Path-Filtered Required Checks")
+- [Troubleshooting required status checks – GitHub Docs](https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/collaborating-on-repositories-with-code-quality-features/troubleshooting-required-status-checks)
+
