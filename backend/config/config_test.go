@@ -23,10 +23,11 @@ func TestLoad_RequiredVariables(t *testing.T) {
 			errContains: "DATABASE_URL is required",
 		},
 		{
-			name: "missing ANTHROPIC_API_KEY",
+			name: "missing ANTHROPIC_API_KEY with AI_PROVIDER=anthropic",
 			setup: func() {
 				os.Clearenv()
 				os.Setenv("DATABASE_URL", "postgres://localhost/test")
+				os.Setenv("AI_PROVIDER", "anthropic")
 			},
 			wantErr:     true,
 			errContains: "ANTHROPIC_API_KEY is required",
@@ -37,6 +38,7 @@ func TestLoad_RequiredVariables(t *testing.T) {
 				os.Clearenv()
 				os.Setenv("DATABASE_URL", "postgres://localhost/test")
 				os.Setenv("ANTHROPIC_API_KEY", "test-key")
+				os.Setenv("AI_PROVIDER", "anthropic")
 				os.Setenv("GO_ENV", "production")
 			},
 			wantErr:     true,
@@ -51,6 +53,43 @@ func TestLoad_RequiredVariables(t *testing.T) {
 				os.Setenv("JWT_SIGNING_KEY", "test-signing-key")
 			},
 			wantErr: false,
+		},
+		{
+			name: "ollama default provider requires no AI env vars",
+			setup: func() {
+				os.Clearenv()
+				os.Setenv("DATABASE_URL", "postgres://localhost/test")
+			},
+			wantErr: false,
+		},
+		{
+			name: "explicit AI_PROVIDER=ollama requires no AI env vars",
+			setup: func() {
+				os.Clearenv()
+				os.Setenv("DATABASE_URL", "postgres://localhost/test")
+				os.Setenv("AI_PROVIDER", "ollama")
+			},
+			wantErr: false,
+		},
+		{
+			name: "explicit AI_PROVIDER=anthropic with key present",
+			setup: func() {
+				os.Clearenv()
+				os.Setenv("DATABASE_URL", "postgres://localhost/test")
+				os.Setenv("AI_PROVIDER", "anthropic")
+				os.Setenv("ANTHROPIC_API_KEY", "test-key")
+			},
+			wantErr: false,
+		},
+		{
+			name: "invalid AI_PROVIDER value is rejected",
+			setup: func() {
+				os.Clearenv()
+				os.Setenv("DATABASE_URL", "postgres://localhost/test")
+				os.Setenv("AI_PROVIDER", "invalid-value")
+			},
+			wantErr:     true,
+			errContains: "AI_PROVIDER must be 'ollama' or 'anthropic'",
 		},
 	}
 
@@ -185,10 +224,13 @@ func TestLoad_Defaults(t *testing.T) {
 		{"DB_MAX_LIFETIME", cfg.Database.MaxLifetime, 1 * time.Hour, "Database"},
 
 		// AI defaults
-		{"AI_MODEL", cfg.AI.Model, "claude-3-5-sonnet-20241022", "AI"},
+		{"AI_PROVIDER", cfg.AI.Provider, "ollama", "AI"},
 		{"AI_TIMEOUT", cfg.AI.Timeout, 60 * time.Second, "AI"},
 		{"AI_MAX_RETRIES", cfg.AI.MaxRetries, 3, "AI"},
 		{"AI_STREAMING_CHUNK_SIZE", cfg.AI.StreamingChunk, 4096, "AI"},
+		{"ANTHROPIC_MODEL", cfg.AI.Anthropic.Model, "claude-3-5-sonnet-20241022", "AI"},
+		{"OLLAMA_HOST", cfg.AI.Ollama.Host, "http://localhost:11434", "AI"},
+		{"OLLAMA_MODEL", cfg.AI.Ollama.Model, "gemma3:4b", "AI"},
 
 		// Auth defaults
 		{"JWT_EXPIRATION", cfg.Auth.JWTExpiration, 24 * time.Hour, "Auth"},
@@ -247,6 +289,41 @@ func TestLoad_CustomValues(t *testing.T) {
 	}
 }
 
+func TestLoad_CookieSecure_ProductionEnv_DefaultsTrue(t *testing.T) {
+	os.Clearenv()
+	os.Setenv("DATABASE_URL", "postgres://localhost/test")
+	os.Setenv("JWT_SIGNING_KEY", "test-signing-key")
+	os.Setenv("AI_PROVIDER", "ollama")
+	os.Setenv("GO_ENV", "production")
+
+	cfg, err := Load()
+	if err != nil {
+		t.Fatalf("Load() unexpected error = %v", err)
+	}
+
+	if !cfg.Auth.CookieSecure {
+		t.Errorf("CookieSecure in production: got false, want true")
+	}
+}
+
+func TestLoad_CookieSecure_ProductionEnvExplicitFalse_OverridesDefault(t *testing.T) {
+	os.Clearenv()
+	os.Setenv("DATABASE_URL", "postgres://localhost/test")
+	os.Setenv("JWT_SIGNING_KEY", "test-signing-key")
+	os.Setenv("AI_PROVIDER", "ollama")
+	os.Setenv("GO_ENV", "production")
+	os.Setenv("COOKIE_SECURE", "false")
+
+	cfg, err := Load()
+	if err != nil {
+		t.Fatalf("Load() unexpected error = %v", err)
+	}
+
+	if cfg.Auth.CookieSecure {
+		t.Errorf("CookieSecure with explicit COOKIE_SECURE=false in production: got true, want false")
+	}
+}
+
 func TestLoad_RequiredValues(t *testing.T) {
 	setValidEnv()
 
@@ -259,8 +336,8 @@ func TestLoad_RequiredValues(t *testing.T) {
 		t.Errorf("DATABASE_URL: got %q, want %q", cfg.Database.URL, "postgres://localhost/test")
 	}
 
-	if cfg.AI.APIKey != "test-key" {
-		t.Errorf("ANTHROPIC_API_KEY: got %q, want %q", cfg.AI.APIKey, "test-key")
+	if cfg.AI.Anthropic.APIKey != "test-key" {
+		t.Errorf("ANTHROPIC_API_KEY: got %q, want %q", cfg.AI.Anthropic.APIKey, "test-key")
 	}
 }
 

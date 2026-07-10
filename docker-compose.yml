@@ -1,22 +1,28 @@
 # Docker Compose configuration for TrAIveler local development environment
 #
-# This file orchestrates two services for local development:
+# This file orchestrates three services for local development:
 # 1. PostgreSQL 15.4 database with persistent storage
-# 2. Go backend API with automatic rebuild and health monitoring
+# 2. Ollama server running a local Gemma model (free, no API key — the MVP/local-dev
+#    AI backend; see docs/local-ai-setup.md)
+# 3. Go backend API with automatic rebuild and health monitoring
 #
 # Usage:
-#   docker-compose up -d              # Start all services in background
-#   docker-compose ps                 # Check service health status
-#   docker-compose logs -f backend    # Follow backend logs
-#   docker-compose down               # Stop and remove containers
+#   docker-compose up -d                          # Start all services in background
+#   docker-compose exec ollama ollama pull gemma3:4b  # One-time: download the model
+#   docker-compose ps                             # Check service health status
+#   docker-compose logs -f backend                # Follow backend logs
+#   docker-compose down                           # Stop and remove containers
 #
 # Prerequisites:
 #   - Docker Engine 20.10+ and Docker Compose v2+
-#   - backend/.env file with ANTHROPIC_API_KEY configured
+#   - backend/.env file (cp backend/.env.example backend/.env) — no API key needed for
+#     the default AI_PROVIDER=ollama; ANTHROPIC_API_KEY is only required if you set
+#     AI_PROVIDER=anthropic, see docs/local-ai-setup.md
 #
 # Network Architecture:
 #   All services communicate via a custom bridge network (traveler_network).
-#   The backend accesses PostgreSQL using the hostname "postgres" instead of "localhost".
+#   The backend accesses PostgreSQL using the hostname "postgres" and Ollama using the
+#   hostname "ollama" instead of "localhost".
 
 services:
   # ============================================================================
@@ -76,6 +82,48 @@ services:
           memory: 256M
 
   # ============================================================================
+  # Ollama Service (local AI backend — free, no API key)
+  # ============================================================================
+  # Runs the MVP/local-development AI provider: a local Gemma model served by Ollama.
+  # See docs/local-ai-setup.md for model choices, pulling the model, and switching to
+  # AI_PROVIDER=anthropic for staging/production instead.
+  ollama:
+    image: ollama/ollama:latest
+    container_name: traveler-ollama
+    restart: unless-stopped
+
+    ports:
+      # Exposed to the host so you can `ollama pull`/`ollama run` from outside Docker too
+      - "11434:11434"
+
+    volumes:
+      # Persistent storage: downloaded models survive container restarts and recreations
+      - ollama_data:/root/.ollama
+
+    networks:
+      - traveler-network
+
+    # Health check verifies the Ollama API is accepting requests.
+    # Used by depends_on to delay backend startup until Ollama is ready to serve.
+    healthcheck:
+      test: ["CMD-SHELL", "ollama list >/dev/null 2>&1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
+
+    # Resource limits: Gemma inference is CPU/memory heavier than the other services.
+    # Increase these (or run Ollama outside Docker) if generation is too slow.
+    deploy:
+      resources:
+        limits:
+          cpus: '2.0'
+          memory: 4G
+        reservations:
+          cpus: '1.0'
+          memory: 2G
+
+  # ============================================================================
   # Backend API Service
   # ============================================================================
   backend:
@@ -98,10 +146,17 @@ services:
       ALLOWED_CORS_ORIGINS: http://localhost:5173  # Frontend dev server
       
       # AI Provider configuration
-      # ⚠️  SECURITY: Replace placeholder with actual key before running
-      # Alternatively, set ANTHROPIC_API_KEY in your shell environment
-      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-your_anthropic_api_key_here}
-      AI_MODEL: claude-3-5-sonnet-20241022
+      # Default: local Ollama server (free, no API key) — see docs/local-ai-setup.md.
+      # The hostname "ollama" resolves to the ollama service via Docker DNS.
+      AI_PROVIDER: ollama
+      OLLAMA_HOST: http://ollama:11434
+      OLLAMA_MODEL: gemma3:4b
+      #
+      # To use Anthropic Claude instead (staging/production parity testing), set
+      # AI_PROVIDER: anthropic and provide a real key:
+      # AI_PROVIDER: anthropic
+      # ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-your_anthropic_api_key_here}
+      # ANTHROPIC_MODEL: claude-3-5-sonnet-20241022
       
       # Authentication configuration
       # ⚠️  SECURITY: Generate actual key for production environments
@@ -123,10 +178,12 @@ services:
     networks:
       - traveler-network
     
-    # Service dependencies: wait for PostgreSQL to be healthy before starting
-    # This prevents connection errors during startup when the database isn't ready yet
+    # Service dependencies: wait for PostgreSQL and Ollama to be healthy before starting
+    # This prevents connection errors during startup when either dependency isn't ready yet
     depends_on:
       postgres:
+        condition: service_healthy
+      ollama:
         condition: service_healthy
     
     # Health check polls the /healthz endpoint which verifies database connectivity
@@ -165,6 +222,12 @@ volumes:
     # Data survives container restarts, recreations, and docker-compose down
     # To completely remove data: docker-compose down -v
     name: traveler_postgres_data
+    driver: local
+  ollama_data:
+    # Named volume for downloaded Ollama models (multi-GB; avoid re-downloading)
+    # Data survives container restarts, recreations, and docker-compose down
+    # To completely remove data: docker-compose down -v
+    name: traveler_ollama_data
     driver: local
 
 # ============================================================================
