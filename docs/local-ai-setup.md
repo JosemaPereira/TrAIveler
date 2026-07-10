@@ -78,6 +78,7 @@ Relevant variables (see `backend/.env.example` for the full block):
 
 | Variable         | Default                    | Notes                                              |
 |------------------|-----------------------------|-----------------------------------------------------|
+| `GO_ENV`         | `development`               | `dev`/`prod` above means `GO_ENV != production` vs. `GO_ENV == production` — it's the switch behind `AI_PROVIDER`'s default |
 | `AI_PROVIDER`    | `ollama` (dev) / `anthropic` (prod) | Selects the backend; `config.Load()` fails fast on any other value |
 | `OLLAMA_HOST`    | `http://localhost:11434`   | Set to `http://ollama:11434` when running via `docker-compose` (Docker DNS hostname) |
 | `OLLAMA_MODEL`   | `gemma3:4b`                | Must match a model you've pulled                    |

@@ -139,6 +139,7 @@ backend/
 | `gosec` | ≥ 2.21 | `gosec --version` | |
 | `govulncheck` | latest | `govulncheck -version` | |
 | `gitleaks` | ≥ 8 | `gitleaks version` | |
+| Ollama | Latest | `ollama --version` | Only needed for the **Local Go** setup path below — `docker-compose` starts it automatically. See [docs/local-ai-setup.md](../docs/local-ai-setup.md) |
 
 ```bash
 brew install colima
@@ -167,6 +168,7 @@ a descriptive error if a required variable is missing or a value is out of range
 
 | Variable | Default | Description |
 |----------|---------|-------------|
+| `GO_ENV` | `development` | Deployment environment (`development`, `staging`, `production`); gates the `JWT_SIGNING_KEY` requirement and selects `AI_PROVIDER`'s default (`ollama` unless `production`, see below) |
 | `HTTP_PORT` | `8080` | HTTP server listen port |
 | `HTTP_READ_TIMEOUT` | `30s` | Max duration for reading the entire incoming request |
 | `HTTP_WRITE_TIMEOUT` | `30s` | Max duration before timing out writes of the response |
@@ -389,10 +391,15 @@ builder compiles a static (`CGO_ENABLED=0`, stripped) binary, copied into a non-
 `alpine:3.19` runtime image. A `HEALTHCHECK` polls `GET /healthz` (30s interval, 10s timeout, 30s
 start period, 3 retries) — ECS uses the same signal to replace unhealthy containers.
 
+This image mirrors the ECS deployment target, where `AI_PROVIDER=anthropic` is expected — pass it
+explicitly, since `AI_PROVIDER` otherwise defaults to `ollama` (see [Environment
+Variables](#environment-variables)):
+
 ```bash
 docker build -t traveler-backend:local backend/
 docker run -p 8080:8080 \
   -e DATABASE_URL="postgresql://..." \
+  -e AI_PROVIDER="anthropic" \
   -e ANTHROPIC_API_KEY="sk-..." \
   traveler-backend:local
 ```

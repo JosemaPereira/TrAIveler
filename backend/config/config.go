@@ -22,6 +22,14 @@ import (
 	"time"
 )
 
+// envProduction/envDevelopment are the two GO_ENV values that gate several
+// other defaults below (AI_PROVIDER, COOKIE_SECURE, JWT_SIGNING_KEY
+// requirement) — named constants so those checks can't drift out of sync.
+const (
+	envProduction  = "production"
+	envDevelopment = "development"
+)
+
 // Config holds all application configuration loaded from environment variables.
 // All fields are loaded at startup with fail-fast validation.
 type Config struct {
@@ -138,7 +146,7 @@ func loadDatabaseConfig() DatabaseConfig {
 // staging/production use Anthropic Claude.
 func loadAIConfig() AIConfig {
 	defaultProvider := "ollama"
-	if getEnv("GO_ENV", "development") == "production" {
+	if getEnv("GO_ENV", envDevelopment) == envProduction {
 		defaultProvider = "anthropic"
 	}
 
@@ -159,13 +167,17 @@ func loadAIConfig() AIConfig {
 }
 
 // loadAuthConfig reads authentication and session configuration from environment variables.
+// CookieSecure defaults to true in production (mirrors the GO_ENV-driven defaults in
+// loadAIConfig/validate below) so HTTPS-only cookies aren't accidentally disabled by omission.
 func loadAuthConfig() AuthConfig {
+	defaultCookieSecure := getEnv("GO_ENV", envDevelopment) == envProduction
+
 	return AuthConfig{
 		JWTSigningKey:     getEnv("JWT_SIGNING_KEY", ""),
 		JWTExpiration:     getEnvDuration("JWT_EXPIRATION", 24*time.Hour),
 		RefreshExpiration: getEnvDuration("REFRESH_TOKEN_EXPIRATION", 7*24*time.Hour),
 		CookieDomain:      getEnv("COOKIE_DOMAIN", "localhost"),
-		CookieSecure:      getEnvBool("COOKIE_SECURE", false),
+		CookieSecure:      getEnvBool("COOKIE_SECURE", defaultCookieSecure),
 		BcryptCost:        getEnvInt("BCRYPT_COST", 12),
 	}
 }
@@ -206,7 +218,7 @@ func validate(cfg *Config) error {
 		return fmt.Errorf("AI_PROVIDER must be 'ollama' or 'anthropic', got %q", cfg.AI.Provider)
 	}
 
-	if cfg.Auth.JWTSigningKey == "" && getEnv("GO_ENV", "development") == "production" {
+	if cfg.Auth.JWTSigningKey == "" && getEnv("GO_ENV", envDevelopment) == envProduction {
 		return fmt.Errorf("JWT_SIGNING_KEY is required in production")
 	}
 

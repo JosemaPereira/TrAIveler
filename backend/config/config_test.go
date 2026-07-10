@@ -289,6 +289,41 @@ func TestLoad_CustomValues(t *testing.T) {
 	}
 }
 
+func TestLoad_CookieSecure_ProductionEnv_DefaultsTrue(t *testing.T) {
+	os.Clearenv()
+	os.Setenv("DATABASE_URL", "postgres://localhost/test")
+	os.Setenv("JWT_SIGNING_KEY", "test-signing-key")
+	os.Setenv("AI_PROVIDER", "ollama")
+	os.Setenv("GO_ENV", "production")
+
+	cfg, err := Load()
+	if err != nil {
+		t.Fatalf("Load() unexpected error = %v", err)
+	}
+
+	if !cfg.Auth.CookieSecure {
+		t.Errorf("CookieSecure in production: got false, want true")
+	}
+}
+
+func TestLoad_CookieSecure_ProductionEnvExplicitFalse_OverridesDefault(t *testing.T) {
+	os.Clearenv()
+	os.Setenv("DATABASE_URL", "postgres://localhost/test")
+	os.Setenv("JWT_SIGNING_KEY", "test-signing-key")
+	os.Setenv("AI_PROVIDER", "ollama")
+	os.Setenv("GO_ENV", "production")
+	os.Setenv("COOKIE_SECURE", "false")
+
+	cfg, err := Load()
+	if err != nil {
+		t.Fatalf("Load() unexpected error = %v", err)
+	}
+
+	if cfg.Auth.CookieSecure {
+		t.Errorf("CookieSecure with explicit COOKIE_SECURE=false in production: got true, want false")
+	}
+}
+
 func TestLoad_RequiredValues(t *testing.T) {
 	setValidEnv()
 
