@@ -15,11 +15,14 @@
 
 name: Backend CI
 
+# No `paths:` filter on pull_request: a required status check whose workflow
+# never triggers (path-filtered out) gets stuck at "Expected" and blocks
+# merging forever — GitHub's own guidance is to always trigger the workflow
+# and gate individual jobs with `if:` instead (a skipped job counts as a
+# passing required check, unlike a check that never reports at all). See the
+# `changes` job below.
 on:
   pull_request:
-    paths:
-      - 'backend/**'
-      - '.github/workflows/backend-ci.yml'
   push:
     branches:
       - main
@@ -34,10 +37,30 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  changes:
+    name: Detect Changed Areas
+    runs-on: ubuntu-latest
+    outputs:
+      backend: ${{ steps.filter.outputs.backend }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Filter changed paths
+        id: filter
+        uses: dorny/paths-filter@v3
+        with:
+          filters: |
+            backend:
+              - 'backend/**'
+              - '.github/workflows/backend-ci.yml'
+
   lint:
     name: Lint Backend Code
     runs-on: ubuntu-latest
-    
+    needs: changes
+    if: github.event_name == 'workflow_dispatch' || needs.changes.outputs.backend == 'true'
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -59,7 +82,9 @@ jobs:
   test:
     name: Run Backend Tests
     runs-on: ubuntu-latest
-    
+    needs: changes
+    if: github.event_name == 'workflow_dispatch' || needs.changes.outputs.backend == 'true'
+
     # PostgreSQL service container for integration tests
     services:
       postgres:
@@ -104,12 +129,13 @@ jobs:
   build:
     name: Build Docker Image
     runs-on: ubuntu-latest
-    needs: [lint, test]
-    
+    needs: [changes, lint, test]
+    if: github.event_name == 'workflow_dispatch' || needs.changes.outputs.backend == 'true'
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-      
+
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
       
