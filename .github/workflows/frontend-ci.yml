@@ -189,7 +189,10 @@ jobs:
         working-directory: frontend
         run: npx playwright install chromium
       
-      # TODO Sprint 2: Implement Lighthouse CI with @lhci/cli
+      # TODO: Implement Lighthouse CI with @lhci/cli. Not scheduled for Sprint 2 — the
+      # underlying roadmap tasks (002-T002, 002-T004, 002-T024) currently sit unscheduled
+      # or in Sprint 9 (docs/roadmap.md), not Sprint 2. Re-check at Sprint 3 planning
+      # whether to pull this forward (see .github/memory/session-notes.md, 2026-07-10).
       # For now, run a basic Playwright accessibility check as placeholder
       # 
       # - name: Run Lighthouse CI
@@ -204,7 +207,7 @@ jobs:
         working-directory: frontend
         run: |
           echo "✓ Accessibility audit placeholder"
-          echo "  Sprint 2 will implement full Lighthouse CI with:"
+          echo "  Full Lighthouse CI is not yet scheduled (see docs/roadmap.md 002-T002/T004/T024):"
           echo "  - WCAG 2.1 AA compliance checks"
           echo "  - Axe-core integration via @axe-core/playwright"
           echo "  - Performance, SEO, and best practices audits"

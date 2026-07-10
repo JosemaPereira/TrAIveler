@@ -604,8 +604,8 @@
 
 | ID | Task | Group | Sprint | Priority | Status | Depends on | Parallel | Issue | Notes |
 |----|------|-------|--------|----------|--------|------------|----------|-------|-------|
-| 005-T042 | Create frontend/src/styles/tokens.css defining CSS custom properties for colors (primary, surface, text), spacing (sm, md, lg), typography (font-size-base, font-size-lg, font-weight-bold), border-radius (radius-md), and shadows (shadow-sm, shadow-md) | G-SPRINT2-FRONTEND-TOKENS | 2 | P1 | Backlog | 005-T002 | yes | https://github.com/JosemaPereira/TrAIveler/issues/59 | |
-| 005-T043 | Create frontend/src/styles/global.css importing tokens.css and setting base styles (font-family, box-sizing, CSS reset) | G-SPRINT2-FRONTEND-TOKENS | 2 | P1 | Backlog | 005-T042 | yes | https://github.com/JosemaPereira/TrAIveler/issues/59 | |
+| 005-T042 | Create frontend/src/styles/tokens.css defining CSS custom properties for colors (primary, surface, text), spacing (sm, md, lg), typography (font-size-base, font-size-lg, font-weight-bold), border-radius (radius-md), and shadows (shadow-sm, shadow-md) | G-SPRINT2-FRONTEND-TOKENS | 2 | P1 | Done | 005-T002 | yes | https://github.com/JosemaPereira/TrAIveler/issues/59 | PR #79 - tokens sourced from docs/ui-guidelines.md (canonical), not the issue body's example values |
+| 005-T043 | Create frontend/src/styles/global.css importing tokens.css and setting base styles (font-family, box-sizing, CSS reset) | G-SPRINT2-FRONTEND-TOKENS | 2 | P1 | Done | 005-T042 | yes | https://github.com/JosemaPereira/TrAIveler/issues/59 | PR #79 - also added Vitest/RTL/jest-dom/MSW test tooling (previously referenced in README/CI but not installed) and fixed stale frontend/README.md content |
 | 005-T044 | Create frontend/src/lib/api-client.ts implementing fetch wrapper with base URL from env var, Content-Type and X-Request-ID headers, credentials include, and APIError class (status, message, requestId fields) | G-SPRINT2-FRONTEND-API-CONFIG | 2 | P1 | Backlog | 005-T002 | yes | https://github.com/JosemaPereira/TrAIveler/issues/60 | |
 | 005-T045 | Create frontend/src/lib/query-client.ts configuring TanStack Query defaults (staleTime: 5 min, retry: 1, refetchOnWindowFocus: false) | G-SPRINT2-FRONTEND-API-CONFIG | 2 | P1 | Backlog | 005-T002 | yes | https://github.com/JosemaPereira/TrAIveler/issues/60 | |
 | 005-T046 | Create frontend/src/stores/auth-store.ts implementing Zustand store with isAuthenticated, user, login, logout, refreshSession actions (no persistence for MVP - session storage can be added later) | | 2 | P1 | Backlog | 005-T002 | yes | https://github.com/JosemaPereira/TrAIveler/issues/61 | |
@@ -1376,6 +1376,15 @@ The minimum sequential chain to reach a fully functional, security-hardened, dem
 ---
 
 ### ☁️ Sprint 3: Infrastructure Architecture (Weeks 5-6)
+
+> ⚠️ **Planning note (added 2026-07-10, review before finalizing Sprint 3 scope)**: `frontend-ci.yml`'s
+> accessibility job has carried a stale `TODO Sprint 2: Implement Lighthouse CI` comment since Sprint 1 —
+> corrected, but the underlying tasks (**002-T002** add `@lhci/cli`/`@axe-core/playwright` deps,
+> **002-T004** create `lighthouserc.yml`, **002-T024** create `accessibility.yml` PR-gate workflow)
+> currently sit unscheduled or in Sprint 9, with no GitHub issues yet. Decide explicitly whether to pull
+> some or all of these into Sprint 3 (accessibility CI gating is otherwise deferred a long way past when
+> frontend components — issues #63/#64/#66 — actually start needing it) or confirm Sprint 9 still stands.
+> See `.github/memory/session-notes.md` (2026-07-10) for full context.
 
 **Epic Label**: `epic:architecture-infra` (continuation)
 
