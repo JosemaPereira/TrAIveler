@@ -113,6 +113,40 @@ func ProcessData(userID string, ctx context.Context, data []byte) error
 - Never ignore errors. Always handle or propagate them explicitly.
 - Wrap errors with context using `fmt.Errorf("context: %w", err)` to preserve the error chain.
 - Return errors to callers; do not use `log.Fatal` or `os.Exit` outside of `main`.
+- `_ = someCall()` does **not** satisfy this project's `errcheck` config (`check-blank: true` in
+  `backend/.golangci.yml` flags blank-assigned errors too, not just unchecked ones). If an error
+  genuinely cannot be usefully propagated (e.g. a best-effort write to an already-committed HTTP
+  response), check it and log it — don't discard it with `_ =`.
+
+**Example:**
+```go
+// ❌ Still flagged by errcheck (check-blank: true)
+_ = json.NewEncoder(w).Encode(payload)
+
+// ✅ Correct - checked and logged
+if err := json.NewEncoder(w).Encode(payload); err != nil {
+    slog.Default().Error("failed to write response", "error", err)
+}
+```
+
+### Unused Parameters
+
+- `revive`'s `unused-parameter` rule is enabled repo-wide. In test doubles (e.g. an inline
+  `http.HandlerFunc` standing in for the next handler in a middleware test), name only the
+  parameters the closure body actually references and use `_` for the rest.
+
+**Example:**
+```go
+// ❌ Flagged: neither w nor r is used
+next := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+    nextCalled = true
+})
+
+// ✅ Correct
+next := http.HandlerFunc(func(_ http.ResponseWriter, _ *http.Request) {
+    nextCalled = true
+})
+```
 
 ### Code Complexity
 - **Keep cognitive complexity at 15 or below** to avoid triggering SonarQube warnings (rule `go:S3776`).
