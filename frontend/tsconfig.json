@@ -24,7 +24,8 @@
     "forceConsistentCasingInFileNames": true,    // Prevent case-sensitivity issues across OS filesystems
 
     /* Path Aliases - Cleaner Imports */
-    "baseUrl": ".",                               // Base directory for path resolution
+    // No "baseUrl" needed: since TS 4.1, "paths" resolves relative to this file's
+    // directory on its own. "baseUrl" is deprecated and slated for removal in TS 7.0.
     "paths": {
       "@/*": ["./src/*"]                          // Map @/ to src/ (e.g., import from '@/components/Button')
     }

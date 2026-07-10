@@ -9,14 +9,19 @@ typed API client, accessibility helpers, and unit/integration tests.
 
 ---
 
-> **Implementation Status**: ✅ Project scaffolding complete (Sprint 1, 2026-07-07)
-> - Directory structure with Atomic Design layers created
-> - Vite + React 19 + TypeScript strict mode initialized  
-> - Core dependencies installed (TanStack Query v5, Zustand, React Router v7, Lucide React)
-> - ESLint + Prettier configured with no-any enforcement
-> - Development server functional at http://localhost:5173
-> 
-> ⏳ **Next**: Component library, routing, state management, and API client implementation pending (Sprint 2+)
+> **Implementation Status**: 🔄 Sprint 2 in progress (as of 2026-07-10)
+> - ✅ Sprint 1 (2026-07-07): project scaffolding — Vite + React 19 + TypeScript strict mode, Atomic
+>   Design directories, core dependencies (TanStack Query v5, Zustand, React Router v7, Lucide
+>   React), ESLint + Prettier configured, dev server functional at http://localhost:5173
+> - ✅ Sprint 2 (005-T042/T043, issue #59): design system tokens — `src/styles/tokens.css` +
+>   `src/styles/global.css`, imported once in `src/main.tsx`
+> - ✅ Test tooling: Vitest + React Testing Library + jest-dom + MSW installed, `npm test` runs a
+>   passing smoke test (`src/App.test.tsx`); no coverage threshold enforced yet (roadmap 002-T041)
+> - ⏳ Next: core UI primitives (issue #63), state display primitives (issue #64), app shell —
+>   QueryClient/Router/ErrorBoundary (issue #66)
+>
+> The "Project Structure" and "Tech Stack" sections below describe the **target architecture**
+> once all Sprint 2 tasks land. Only what's marked ✅ above exists in the codebase today.
 
 ---
 
@@ -38,24 +43,51 @@ The frontend is the only client of the backend REST API. Its primary jobs are:
 
 ## Tech Stack
 
-| Concern | Library / Tool |
-|---------|----------------|
-| Language | TypeScript (strict mode) |
-| UI framework | React 19 |
-| Routing | React Router v7 |
-| Server state | TanStack Query v5 |
-| Client state | Zustand |
-| Build tool | Vite |
-| Styling | CSS Modules + CSS custom properties (design tokens) |
-| Icons | Lucide React |
-| Unit/integration tests | Vitest + React Testing Library + MSW |
-| E2E + accessibility tests | Playwright + `@axe-core/playwright` |
-| Performance auditing | `@lhci/cli` (Lighthouse CI) |
-| Linting/formatting | ESLint (strict) + Prettier |
+| Concern | Library / Tool | Status |
+|---------|----------------|--------|
+| Language | TypeScript (strict mode) | ✅ installed |
+| UI framework | React 19 | ✅ installed |
+| Routing | React Router v7 | ✅ installed, not yet wired up |
+| Server state | TanStack Query v5 | ✅ installed, not yet wired up |
+| Client state | Zustand | ✅ installed, not yet wired up |
+| Build tool | Vite | ✅ installed |
+| Styling | CSS Modules + CSS custom properties (design tokens) | ✅ tokens/global styles in place; CSS Modules land with the first components (issue #63) |
+| Icons | Lucide React | ✅ installed, not yet used |
+| Linting/formatting | ESLint (strict) + Prettier | ✅ installed |
+| Unit/integration tests | Vitest + React Testing Library + MSW | ✅ installed; MSW not wired up yet (no API client to mock) |
+| E2E + accessibility tests | Playwright + `@axe-core/playwright` | ⏳ planned, not yet installed |
+| Performance auditing | `@lhci/cli` (Lighthouse CI) | ⏳ planned, not yet installed |
 
 ---
 
 ## Project Structure
+
+### Current
+
+```
+frontend/
+├── src/
+│   ├── styles/
+│   │   ├── tokens.css                # Design tokens: color, spacing, typography, radius, shadow, z-index, transitions
+│   │   └── global.css                # Imports tokens.css; CSS reset + base element styles
+│   ├── test/
+│   │   └── setup.ts                  # Vitest setup: extends expect with jest-dom matchers
+│   ├── App.tsx                       # Root component (placeholder shell, not yet wired to routing/state)
+│   ├── App.test.tsx                  # Smoke test for App
+│   ├── main.tsx                      # React entry point (StrictMode + createRoot)
+│   └── vite-env.d.ts
+├── index.html
+├── vite.config.ts
+├── vitest.config.ts                  # jsdom environment, coverage via v8 (no enforced threshold yet)
+├── tsconfig.json / tsconfig.node.json  # TypeScript strict mode
+├── eslint.config.js                  # Flat ESLint config
+├── .prettierrc.json
+└── package.json
+```
+
+### Target (planned, Sprint 2+)
+
+Where the codebase is headed as the remaining Sprint 2 tasks land — most of this does not exist yet.
 
 ```
 frontend/
@@ -83,20 +115,14 @@ frontend/
 │   │   ├── suggestions.ts
 │   │   └── collaborators.ts
 │   ├── hooks/                        # Shared custom React hooks (prefix: use)
-│   ├── styles/
-│   │   └── tokens.css                # CSS custom property design tokens (color, spacing, typography)
 │   └── App.tsx                       # React Router v7 route declarations and layout wrappers
 ├── tests/
 │   └── helpers/
 │       └── a11y.ts                   # checkPageA11y(page): wraps @axe-core/playwright for E2E specs
-├── public/
-├── index.html
-├── vite.config.ts
-├── vitest.config.ts                  # Coverage thresholds: ≥ 80% for src/components/ and src/hooks/
-├── tsconfig.json                     # TypeScript strict mode
-├── .eslintrc.json
-└── .prettierrc
+└── public/
 ```
+
+Coverage thresholds (≥ 80% for `src/components/` and `src/hooks/`) will be enforced in `vitest.config.ts` once those directories exist (roadmap 002-T041).
 
 ---
 
@@ -145,12 +171,17 @@ Ensure the backend is running first — see [`backend/README.md`](../backend/REA
 # Unit and integration tests
 npm test
 
-# Unit tests with coverage report (must report ≥ 80% for src/components/ and src/hooks/)
+# Unit tests with a coverage report (no enforced threshold yet — see roadmap 002-T041)
 npm run test:coverage
 
 # Watch mode during development
-npm run test -- --watch
+npm run test:watch
 ```
+
+Test files live next to the source file they test (e.g. `App.test.tsx` alongside `App.tsx`), per
+[`docs/testing-guidelines.md`](../docs/testing-guidelines.md). MSW is installed for future
+integration tests that intercept HTTP calls but isn't wired up yet — there's no API client to mock
+against until `src/services/` exists.
 
 ---
 
@@ -205,9 +236,12 @@ Every data-dependent component must explicitly handle **Loading**, **Error**, an
 
 ## Design Tokens
 
-All components must reference CSS custom properties defined in `src/styles/tokens.css`. Hard-coded
-colour, spacing, or typography values are **forbidden** — they break theme consistency and will be
-flagged by code review.
+All design tokens are defined as CSS custom properties in `src/styles/tokens.css` (color, spacing,
+typography, radius, shadow, z-index, transitions — see [`docs/ui-guidelines.md`](../docs/ui-guidelines.md)
+for the authoritative values). `src/styles/global.css` imports `tokens.css` and applies the CSS
+reset and base element styles; it's imported once in `src/main.tsx`. Components must reference
+these custom properties — hard-coded colour, spacing, or typography values are **forbidden** and
+will be flagged by code review.
 
 ---
 
@@ -254,10 +288,10 @@ The frontend CI pipeline runs automatically on every pull request and push to ma
 
 3. **Build** — Builds production bundle with Vite, reports bundle size, and uploads `dist/` artifact. Validates that the production build completes successfully without errors.
 
-4. **Accessibility** — Placeholder job for Lighthouse CI accessibility audit (WCAG 2.1 AA). Full implementation scheduled for Sprint 2 with `@lhci/cli` and `@axe-core/playwright` integration.
+4. **Accessibility** — Placeholder job for Lighthouse CI accessibility audit (WCAG 2.1 AA). Full implementation with `@lhci/cli` and `@axe-core/playwright` is not yet scheduled — see `docs/roadmap.md` tasks 002-T002/T004/T024 (currently unscheduled/Sprint 9, not Sprint 2).
 
 **Future Enhancements** (TODO comments in workflow):
-- **Sprint 2**: Full Lighthouse CI with WCAG 2.1 AA compliance checks, performance audits, and Core Web Vitals thresholds
+- **Not yet scheduled**: Full Lighthouse CI with WCAG 2.1 AA compliance checks, performance audits, and Core Web Vitals thresholds — pending roadmap 002-T002/T004/T024 (re-check at Sprint 3 planning)
 - **Sprint 10**: S3 + CloudFront deployment job with cache invalidation
 
 **Local Equivalent**:

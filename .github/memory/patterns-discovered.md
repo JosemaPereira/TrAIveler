@@ -1279,3 +1279,59 @@ go test -tags=test ./internal/example/... -run TestIntegration -v
 - `backend/cmd/api/server.go`, `backend/cmd/api/routes.go`
 - `docs/roadmap.md` (rows `005-T038`-`005-T041`)
 - `.github/memory/session-notes.md` (2026-07-10 session — "Reference Implementation Pattern")
+
+---
+
+### Pattern Name
+- Treat README command blocks as an executable claim, not prose — verify against `package.json`
+- **Discovered**: 2026-07-10 — **Tool**: Claude Code
+
+### Context
+- Frontend — `frontend/README.md`, `frontend/package.json`, `.github/workflows/frontend-ci.yml`
+
+### Problem
+- `frontend/README.md` documented `npm test` and `npm run test:coverage` as if they worked, but `package.json` had no `test` script at all and no test framework installed — anyone following the README verbatim hit `Missing script: "test"`. The same broken command (`npm test -- --coverage --run`) was also what `frontend-ci.yml`'s `test` job actually ran, so this wasn't just a docs nit — it was a live CI-breaking gap waiting to surface the moment a PR touching `frontend/**` opened. It had already been flagged once in a prior session's follow-up list and left unfixed.
+
+### Solution
+- Whenever asked to review or update a README (frontend or backend), cross-check every documented command against the real `package.json` `scripts` + `dependencies`/`devDependencies` (or Go equivalent) before treating the doc as accurate — don't just read it for prose quality. A command that "reads fine" can still be a lie if the underlying script/dependency doesn't exist.
+- Also check whether any CI workflow (`.github/workflows/*.yml`) invokes the same command — a docs gap and a CI gap are often the same root cause, and fixing only the doc leaves CI broken (or vice versa).
+
+### Example
+```bash
+# Don't just read the README — check the claim is real:
+grep -A5 '"scripts"' frontend/package.json
+grep -n "npm test\|npm run" frontend/README.md .github/workflows/frontend-ci.yml
+```
+
+### Related Files
+- `frontend/README.md`, `frontend/package.json`, `.github/workflows/frontend-ci.yml`
+- `.github/memory/session-notes.md` (2026-07-10 session — "Design System Tokens + Frontend Doc/Test Tooling Audit")
+
+---
+
+### Pattern Name
+- Remove `compilerOptions.baseUrl` when only used to support `paths` (avoids the TS 7.0 deprecation)
+- **Discovered**: 2026-07-10 — **Tool**: Claude Code
+
+### Context
+- Frontend — any `tsconfig.json` using `paths` for import aliases (e.g. `@/*` → `./src/*`)
+
+### Problem
+- TypeScript's `baseUrl` compiler option is deprecated and slated for removal in TS 7.0; a project's IDE/`tsc` starts warning "Option 'baseUrl' is deprecated... Specify compilerOption 'ignoreDeprecations': '6.0' to silence this error." The instinctive fix (add `ignoreDeprecations`) only suppresses the warning and defers the real problem.
+
+### Solution
+- If `baseUrl` exists only to support `paths` (not for bare/non-relative imports), just delete it — since TypeScript 4.1, `paths` resolves relative to the `tsconfig.json` file's own directory without needing `baseUrl` at all. Verified no behavior change via `npm run type-check`/`npm run build` after removal (the `@/*` → `./src/*` alias still resolves correctly for both `tsc` and Vite's own `resolve.alias`, which is configured independently in `vite.config.ts` and unaffected by this).
+
+### Example
+```jsonc
+// Before (triggers TS 7.0 deprecation warning)
+"baseUrl": ".",
+"paths": { "@/*": ["./src/*"] }
+
+// After (same resolution, no deprecation)
+"paths": { "@/*": ["./src/*"] }
+```
+
+### Related Files
+- `frontend/tsconfig.json`
+- `.github/memory/session-notes.md` (2026-07-10 session — "Design System Tokens + Frontend Doc/Test Tooling Audit")
