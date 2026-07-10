@@ -47,7 +47,10 @@ TrAIveler is crafted following modern development best practices:
 
 - **Go backend** powering a robust REST API with PostgreSQL
 - **React + TypeScript frontend** for a smooth, type-safe user experience
-- **Anthropic Claude** as the AI engine, delivering natural conversations and intelligent recommendations
+- **Anthropic Claude** as the target AI engine for staging/production, delivering natural
+  conversations and intelligent recommendations — local development and MVP testing run against a
+  free local **Ollama + Gemma** setup instead (no API key needed; see
+  [docs/local-ai-setup.md](docs/local-ai-setup.md))
 - **Test-driven development** ensuring every feature works reliably
 - **Accessibility-first design** meeting WCAG 2.1 AA standards
 - **Security by design** with prompt injection defense, secret scanning, and sanitized outputs
@@ -99,10 +102,12 @@ cd TrAIveler
 
 # 2. Set up backend configuration
 cp backend/.env.example backend/.env
-# Edit backend/.env and add your ANTHROPIC_API_KEY
+# Defaults to AI_PROVIDER=ollama (free, local, no API key) — no edits needed to get started.
+# See docs/local-ai-setup.md if you want to use Anthropic Claude instead.
 
-# 3. Start all services
+# 3. Start all services (PostgreSQL, local Ollama AI server, backend)
 docker-compose up -d
+docker-compose exec ollama ollama pull gemma3:4b   # one-time: download the local AI model
 
 # 4. Verify services are running
 docker-compose ps

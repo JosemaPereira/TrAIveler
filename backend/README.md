@@ -10,9 +10,12 @@ repositories, AI integration, observability middleware, and security primitives.
 ---
 
 > **Implementation Status**: Configuration, linting, environment templates, the PostgreSQL client
-> (`internal/database/`), observability/security middleware (`internal/middleware/`), and the HTTP
-> server entry point (`cmd/api/`, issue #57) are complete and unit-tested (Sprint 2). The Chi router
-> exposes `GET /healthz`. Domain routes (trips, auth, itinerary, ...) are not yet built.
+> (`internal/database/`), observability/security middleware (`internal/middleware/`), the HTTP
+> server entry point (`cmd/api/`, issue #57), and the AI client foundation (`internal/ai/`, issue
+> #55 — `AIClient` interface, prompt-validator/output-sanitizer stubs, and a working `OllamaClient`
+> for local dev/MVP testing) are complete and unit-tested (Sprint 2). The Chi router exposes
+> `GET /healthz`. Domain routes (trips, auth, itinerary, ...) and the Anthropic-backed `AIClient`
+> implementation are not yet built.
 
 ---
 
@@ -41,7 +44,7 @@ The backend exposes a RESTful JSON API consumed by the frontend SPA. Its primary
 | Database driver | `github.com/jackc/pgx/v5` (PostgreSQL 15.4, no ORM) |
 | Migrations | `github.com/pressly/goose/v3` |
 | Auth tokens | `github.com/golang-jwt/jwt/v5` (HTTP-only cookies) |
-| AI provider | `github.com/anthropics/anthropic-sdk-go` (streaming, multi-turn, tool-use) |
+| AI provider | Local dev/MVP: **Ollama** (`internal/ai/ollama_client.go`, `net/http`, no SDK) running a Gemma model — see [docs/local-ai-setup.md](../docs/local-ai-setup.md). Staging/production: `github.com/anthropics/anthropic-sdk-go` (not yet implemented, tracked as `005-T112`) |
 | Structured logging | `log/slog` (stdlib, JSON handler) |
 | HTML sanitisation | `github.com/microcosm-cc/bluemonday` |
 | Unique IDs | `github.com/google/uuid` |
@@ -97,10 +100,13 @@ backend/
 │   │   ├── types.go                  # DomainError type + constructors (NotFound, Validation, Unauthorized, Forbidden, Conflict)
 │   │   └── handler.go                # HandleError(): maps *DomainError to the standard JSON error envelope (docs/api-design-standards.md §7)
 │   ├── ai/
-│   │   ├── validator/
-│   │   │   └── prompt_validator.go   # Pattern-based deny-list; blocks prompt injection (NFR-SEC-007)
-│   │   └── sanitizer/
-│   │       └── output_sanitizer.go   # bluemonday HTML sanitiser for AI responses (NFR-SEC-008)
+│   │   ├── client.go                 # AIClient interface (GenerateItinerary, StreamItinerary)
+│   │   ├── types.go                  # Shared request/response types (Message, ItineraryRequest/Response, ...)
+│   │   ├── validator.go              # PromptValidator stub — always valid; deny-list rules land in NFR-SEC-007
+│   │   ├── sanitizer.go              # OutputSanitizer stub — pass-through; bluemonday policy lands in NFR-SEC-008
+│   │   ├── ollama_client.go          # OllamaClient: real AIClient impl for local dev/MVP (see docs/local-ai-setup.md)
+│   │   └── mocks/
+│   │       └── ai_client_mock.go     # Generated AIClient mock (vektra/mockery)
 │   └── database/
 │       └── client.go                 # pgxpool connection pooling, fail-fast retry, DI-friendly interface
 ├── pkg/                              # Packages safe to import from outside internal/
@@ -154,8 +160,8 @@ a descriptive error if a required variable is missing or a value is out of range
 | Variable | Description |
 |----------|-------------|
 | `DATABASE_URL` | PostgreSQL connection string (format: `postgresql://user:pass@host:port/db?sslmode=disable`) |
-| `ANTHROPIC_API_KEY` | Anthropic API key from https://console.anthropic.com/settings/keys |
 | `JWT_SIGNING_KEY` | JWT signing secret (required in production; generate with: `openssl rand -base64 32`) |
+| `ANTHROPIC_API_KEY` | Anthropic API key from <https://console.anthropic.com/settings/keys> — **only required when `AI_PROVIDER=anthropic`** (default is `ollama`, no key needed; see [docs/local-ai-setup.md](../docs/local-ai-setup.md)) |
 
 ### Optional (with defaults)
 
@@ -168,9 +174,12 @@ a descriptive error if a required variable is missing or a value is out of range
 | `ALLOWED_CORS_ORIGINS` | `http://localhost:5173` | Comma-separated exact-match allow-list consumed by the CORS middleware (`internal/middleware/cors.go`) |
 | `DB_MAX_CONNECTIONS` | `25` | Maximum concurrent connections in the PostgreSQL pool |
 | `DB_MIN_CONNECTIONS` | `5` | Minimum idle connections maintained in the PostgreSQL pool |
-| `AI_MODEL` | `claude-3-5-sonnet-20241022` | Anthropic model used for itinerary generation |
-| `AI_TIMEOUT` | `60s` | Timeout applied to AI provider requests |
-| `AI_MAX_RETRIES` | `3` | Max retry attempts for failed AI provider requests |
+| `AI_PROVIDER` | `ollama` (dev) / `anthropic` (prod) | Selects the `ai.AIClient` backend; `config.Load()` fails fast on any other value — see [docs/local-ai-setup.md](../docs/local-ai-setup.md) |
+| `OLLAMA_HOST` | `http://localhost:11434` | Local Ollama server base URL (`http://ollama:11434` under `docker-compose`) |
+| `OLLAMA_MODEL` | `gemma3:4b` | Ollama model tag; must be pulled first (`ollama pull gemma3:4b`) |
+| `ANTHROPIC_MODEL` | `claude-3-5-sonnet-20241022` | Anthropic model used when `AI_PROVIDER=anthropic` |
+| `AI_TIMEOUT` | `60s` | Timeout applied to AI provider requests (shared across providers) |
+| `AI_MAX_RETRIES` | `3` | Max retry attempts for failed AI provider requests (shared across providers) |
 | `AI_STREAMING_CHUNK_SIZE` | `4096` | Buffer size (bytes) for streaming AI responses |
 | `COOKIE_DOMAIN` | `localhost` | Domain attribute set on the auth cookie |
 | `JWT_EXPIRATION` | `24h` | Access token lifetime |
@@ -184,22 +193,24 @@ a descriptive error if a required variable is missing or a value is out of range
 
 ## Setup
 
-**Docker Compose (recommended)** — starts PostgreSQL and the backend together:
+**Docker Compose (recommended)** — starts PostgreSQL, a local Ollama (AI) server, and the backend
+together; no API key needed with the default `AI_PROVIDER=ollama` (see
+[docs/local-ai-setup.md](../docs/local-ai-setup.md)):
 
 ```bash
 cp backend/.env.example backend/.env
-# edit backend/.env and add your ANTHROPIC_API_KEY
 docker-compose up -d
-docker-compose ps     # both traveler-db and traveler-api should be "healthy"
+docker-compose exec ollama ollama pull gemma3:4b   # one-time: download the local AI model
+docker-compose ps     # traveler-db, traveler-ollama, and traveler-api should all be "healthy"
 curl http://localhost:8080/healthz
 ```
 
 **Local Go (for active development/debugging)** — runs the API directly against a
-Dockerized PostgreSQL:
+Dockerized PostgreSQL and a natively-installed Ollama:
 
 ```bash
 docker-compose up -d postgres
-cp backend/.env.example backend/.env    # edit with your DATABASE_URL and ANTHROPIC_API_KEY
+cp backend/.env.example backend/.env    # defaults to AI_PROVIDER=ollama; edit DATABASE_URL as needed
 cd backend
 goose -dir migrations postgres "$DATABASE_URL" up
 go run ./cmd/api
@@ -304,6 +315,31 @@ Not yet wired into any handler — no existing endpoint calls `errors.HandleErro
 its own local `writeJSON`, unrelated). Issue #58, next in the sprint and currently blocked on this
 one, is what will first import and use this package from a real handler.
 
+### AI client foundation (`internal/ai/`)
+
+`AIClient` is the stable contract for generating trip itineraries from a conversation history
+(`GenerateItinerary`, `StreamItinerary`); `types.go` holds the shared request/response shapes
+(`Message`, `ItineraryRequest`, `ItineraryResponse`, `StreamChunk`, ...), matching the entity shapes
+in [`docs/data-model.md`](../docs/data-model.md).
+
+`PromptValidator.Validate` (`validator.go`) and `OutputSanitizer.Sanitize` (`sanitizer.go`) are
+intentional pass-through stubs for this ticket — real prompt-injection deny-list rules
+(NFR-SEC-007) and bluemonday HTML stripping (NFR-SEC-008) land in a future spec 002 ticket, per
+[`docs/security.md`](../docs/security.md).
+
+`OllamaClient` (`ollama_client.go`) is a real, non-stub implementation of `AIClient` against a
+local [Ollama](https://ollama.com) server's native `/api/chat` endpoint, used for local development
+and MVP testing (product decision, not upstream-mandated by this ticket) — free, no API key. It
+requests `format: "json"` from Ollama to force valid-JSON model output, retries transient failures
+(connection errors, 5xx) with linear backoff, and streams newline-delimited response chunks over a
+channel for `StreamItinerary`. It does not build itinerary-specific system prompts or do
+schema-guided generation — it forwards `ConversationHistory` as-is; that's spec 008's job. See
+[docs/local-ai-setup.md](../docs/local-ai-setup.md) for setup.
+
+The Anthropic-backed `AIClient` implementation for staging/production (`AI_PROVIDER=anthropic`) is
+tracked separately (`docs/roadmap.md` task `005-T112`) and not yet built; `AIClient`'s interface is
+designed so adding it won't require a breaking change.
+
 ### HTTP server (`cmd/api/`)
 
 `server.go`'s `NewHTTPServer` builds the Chi router and registers the middleware chain in this
@@ -383,4 +419,5 @@ PR and push to `main` touching `backend/**`.
 | [Mock Standards](../docs/mock-standards.md) | `vektra/mockery` generation and usage conventions |
 | [API Design Standards](../docs/api-design-standards.md) | Resource naming, error envelope, pagination, versioning |
 | [Architecture](../docs/architecture.md) | Component boundaries and integration rules |
+| [Local AI Setup](../docs/local-ai-setup.md) | Installing Ollama, pulling a Gemma model, and configuring `AI_PROVIDER` for local development |
 | [NFRs](../docs/nfrs.md) / [Spec 002 quickstart](../specs/002-nfr-system-constraints/quickstart.md) | Non-functional requirements and validation scenarios (NFR-OBS-*, NFR-SEC-*, NFR-PRIV-001 referenced in the project structure above) |

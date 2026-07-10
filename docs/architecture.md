@@ -272,3 +272,19 @@ graph TD
 - **Debugging**: Search CloudWatch by request ID
 
 <!-- PROMOTED:architecture END -->
+
+## Local Development Note: AI Provider Override (Ollama)
+
+This section is a local-development addendum, outside the promoted architecture above — it does
+not change the staging/production architecture, which still targets **Anthropic Claude** as shown
+in the Component Architecture diagram.
+
+For local development and MVP testing, the backend defaults to a local **Ollama** server running a
+**Gemma** model instead of Anthropic — free, no API key, no external network dependency once the
+model is downloaded. `backend/internal/ai.AIClient` is the stable interface both backends
+implement; `OllamaClient` (`backend/internal/ai/ollama_client.go`) is the concrete local
+implementation, selected via the `AI_PROVIDER` environment variable (default `ollama` when
+`GO_ENV=development`, `anthropic` when `GO_ENV=production` — see `backend/config/config.go`).
+
+See **[docs/local-ai-setup.md](local-ai-setup.md)** for installation, model selection, and
+`docker-compose` wiring.

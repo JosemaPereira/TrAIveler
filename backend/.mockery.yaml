@@ -10,9 +10,13 @@ quiet: false
 with-expecter: true
 dir: "{{.InterfaceDir}}/mocks"
 filename: "{{.InterfaceName | snakecase}}_mock.go"
+mock-build-tags: "test"
 
 # Package configurations
 packages:
   github.com/JosemaPereira/TrAIveler/backend/internal/database:
     interfaces:
       Client:
+  github.com/JosemaPereira/TrAIveler/backend/internal/ai:
+    interfaces:
+      AIClient:
