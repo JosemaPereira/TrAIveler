@@ -6,9 +6,11 @@ package main
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log"
 	"log/slog"
+	"net/http"
 	"os"
 	"os/signal"
 	"syscall"
@@ -18,8 +20,11 @@ import (
 	"github.com/JosemaPereira/TrAIveler/backend/internal/database"
 )
 
+// shutdownTimeout bounds how long graceful shutdown waits for in-flight
+// requests to complete before the process exits regardless.
+const shutdownTimeout = 30 * time.Second
+
 func main() {
-	// Initialize structured logger
 	logger := slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{
 		Level: slog.LevelInfo,
 	}))
@@ -30,19 +35,19 @@ func main() {
 		"environment", getEnv("GO_ENV", "development"),
 	)
 
-	// Load configuration
 	cfg, err := config.Load()
 	if err != nil {
 		log.Fatalf("failed to load configuration: %v", err)
 	}
 	slog.Info("configuration loaded successfully")
 
-	// Initialize database client
+	// NewClient already retries (3 attempts, 2s delay) and pings before
+	// returning, so any error here is fatal by construction — no separate
+	// health check is needed.
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 
-	var dbClient database.Client
-	dbClient, err = database.NewClient(ctx, cfg.Database.URL)
+	dbClient, err := database.NewClient(ctx, cfg.Database.URL)
 	if err != nil {
 		log.Fatalf("failed to initialize database client: %v", err)
 	}
@@ -57,34 +62,51 @@ func main() {
 		"min_connections", cfg.Database.MinConnections,
 	)
 
-	// Verify database health
-	if err := dbClient.Ping(ctx); err != nil {
-		log.Fatalf("database health check failed: %v", err)
+	apiServer := NewHTTPServer(dbClient, cfg, logger)
+
+	httpServer := &http.Server{
+		Addr:         fmt.Sprintf(":%d", cfg.Server.Port),
+		Handler:      apiServer.Router(),
+		ReadTimeout:  cfg.Server.ReadTimeout,
+		WriteTimeout: cfg.Server.WriteTimeout,
+		IdleTimeout:  cfg.Server.IdleTimeout,
 	}
-	slog.Info("database health check passed")
 
-	// TODO: Initialize HTTP router and middleware
-	// TODO: Register route handlers
-	// TODO: Start HTTP server
+	// Buffered so this goroutine can't leak: once Shutdown makes
+	// ListenAndServe return, the send below always has room.
+	serveErrCh := make(chan error, 1)
+	go func() {
+		slog.Info("HTTP server listening", "port", cfg.Server.Port)
+		if err := httpServer.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
+			serveErrCh <- err
+			return
+		}
+		serveErrCh <- nil
+	}()
 
-	// For now, just demonstrate successful startup
-	fmt.Println("✅ Backend initialization complete!")
-	fmt.Printf("📊 Database: connected (min: %d, max: %d connections)\n",
-		cfg.Database.MinConnections,
-		cfg.Database.MaxConnections,
-	)
-	fmt.Printf("🚀 Ready to start HTTP server on port %d (TODO)\n", cfg.Server.Port)
-
-	// Graceful shutdown
 	quit := make(chan os.Signal, 1)
 	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
-	<-quit
 
-	slog.Info("shutting down gracefully...")
-	fmt.Println("👋 Goodbye!")
+	// Race a shutdown signal against an early server failure (e.g. port
+	// already in use) so a startup error exits immediately instead of
+	// waiting indefinitely for a signal that will never arrive.
+	select {
+	case sig := <-quit:
+		slog.Info("shutting down gracefully...", "signal", sig.String())
+	case err := <-serveErrCh:
+		log.Fatalf("HTTP server failed: %v", err)
+	}
+
+	shutdownCtx, shutdownCancel := context.WithTimeout(context.Background(), shutdownTimeout)
+	defer shutdownCancel()
+
+	if err := httpServer.Shutdown(shutdownCtx); err != nil {
+		slog.Error("error during HTTP server shutdown", "error", err)
+	}
+
+	slog.Info("shutdown complete")
 }
 
-// getEnv retrieves an environment variable with a fallback default value.
 func getEnv(key, defaultValue string) string {
 	if value := os.Getenv(key); value != "" {
 		return value
