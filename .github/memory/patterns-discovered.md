@@ -1258,3 +1258,24 @@ go test -tags=test ./internal/example/... -run TestIntegration -v
 - `.github/memory/patterns-discovered.md` ("Free Container Runtime for Testcontainers" — this entry adds the env-var detail that one was missing)
 - `.github/memory/session-notes.md` (2026-07-10 session — "Reference Implementation Pattern")
 
+
+---
+
+### `internal/example/` Is Throwaway — Delete It Once the First Real Domain Ships
+
+### Context
+- Backend — `backend/internal/example/` (model.go, repository.go, service.go, handler.go, mocks, `backend/migrations/20260710120000_create_examples_table.sql`, and its mount in `backend/cmd/api/server.go`/`routes.go`).
+
+### Problem
+- This package exists solely to demonstrate the canonical layered pattern (model -> repository -> service -> handler) so future domain packages have a concrete template to copy — see its own package doc comment: "It is not a production feature: future domain packages (Trip, User, ...) should copy this package's structure rather than import it." Nothing prevents it from being forgotten and shipping alongside real domains indefinitely, becoming dead code, a confusing extra `/api/v1/examples` endpoint in the live API, and a stale example once the real patterns diverge from it.
+
+### Solution
+- **The first time a real domain package following this pattern is implemented (e.g. Trip: `001-T035`/`001-T038`, or `008-T049`/`008-T078`), delete `backend/internal/example/` in full as part of that same PR**: the four `.go` files, `mocks/`, the goose migration (`backend/migrations/20260710120000_create_examples_table.sql` — write a corresponding down-migration/drop as part of the deletion, don't just remove the file), the `Repository`/`Service` entries in `backend/.mockery.yaml`, and its route mount in `backend/cmd/api/server.go`/`routes.go`. Do not leave it "just in case" — the real domain package becomes the new canonical reference once it exists.
+- Flagged in `docs/roadmap.md`'s Notes column on rows `005-T038`-`005-T041` so it surfaces during sprint planning, not just in memory.
+
+### Related Files
+- `backend/internal/example/` (entire package)
+- `backend/migrations/20260710120000_create_examples_table.sql`
+- `backend/cmd/api/server.go`, `backend/cmd/api/routes.go`
+- `docs/roadmap.md` (rows `005-T038`-`005-T041`)
+- `.github/memory/session-notes.md` (2026-07-10 session — "Reference Implementation Pattern")
