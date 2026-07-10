@@ -9,10 +9,10 @@ repositories, AI integration, observability middleware, and security primitives.
 
 ---
 
-> **Implementation Status**: Configuration system, linting, environment templates, database client, and
-> observability/security middleware (`internal/middleware/`) complete and unit-tested (Sprint 2). The
-> middleware package is not yet wired into an HTTP router/server — that integration is tracked separately
-> (issue #57, blocked). HTTP server wiring remains in progress (Sprint 2).
+> **Implementation Status**: Configuration, linting, environment templates, the PostgreSQL client
+> (`internal/database/`), observability/security middleware (`internal/middleware/`), and the HTTP
+> server entry point (`cmd/api/`, issue #57) are complete and unit-tested (Sprint 2). The Chi router
+> exposes `GET /healthz`. Domain routes (trips, auth, itinerary, ...) are not yet built.
 
 ---
 
@@ -45,271 +45,9 @@ The backend exposes a RESTful JSON API consumed by the frontend SPA. Its primary
 | Structured logging | `log/slog` (stdlib, JSON handler) |
 | HTML sanitisation | `github.com/microcosm-cc/bluemonday` |
 | Unique IDs | `github.com/google/uuid` |
-| Test assertions | `github.com/stretchr/testify` |
+| Test assertions | `github.com/stretchr/testify` (+ `vektra/mockery` for mocks) |
 | Linting | `golangci-lint` (errcheck, govet, staticcheck, revive, gosec) |
-| Security scanning | `gosec`, `govulncheck` |
-
----
-
-## Database Client
-
-The backend uses `internal/database/client.go` for PostgreSQL connection pooling via `pgx/v5`.
-
-### Architecture
-
-The database client follows **Dependency Injection with interface-first design**:
-- `database.Client` interface defines the contract (Ping, Close, Pool methods)
-- `pgxClient` struct is the private concrete implementation
-- `NewClient()` factory returns the interface, allowing easy mocking and implementation swapping
-
-**Benefits:**
-- Easy to mock in tests without requiring a real database
-- Can swap implementations (e.g., in-memory for testing, different database providers)
-- Clear contract documented by the interface
-- Loose coupling between components
-
-### Configuration
-
-Connection pool settings (configured in `config.go`):
-- **MinConns**: 5 — minimum idle connections maintained
-- **MaxConns**: 25 — maximum concurrent connections
-- **MaxConnLifetime**: 1 hour — connection reuse limit
-- **MaxConnIdleTime**: 30 minutes — idle connection timeout
-
-### Usage
-
-```go
-import (
-    "context"
-    "time"
-    "github.com/JosemaPereira/TrAIveler/backend/config"
-    "github.com/JosemaPereira/TrAIveler/backend/internal/database"
-)
-
-// Initialize client (returns interface, not concrete type)
-ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
-defer cancel()
-
-cfg, err := config.Load()
-if err != nil {
-    log.Fatal(err)
-}
-
-var dbClient database.Client
-dbClient, err = database.NewClient(ctx, cfg.Database.URL)
-if err != nil {
-    log.Fatalf("failed to connect: %v", err)
-}
-defer dbClient.Close()
-
-// Health check
-if err := dbClient.Ping(ctx); err != nil {
-    log.Fatalf("health check failed: %v", err)
-}
-
-// Execute queries using Pool()
-var version string
-err = dbClient.Pool().QueryRow(ctx, "SELECT version()").Scan(&version)
-```
-
-### Mocking for Tests
-
-The project uses **[vektra/mockery](https://github.com/vektra/mockery)** for automated type-safe mock generation.
-
-**Generate mocks:**
-```bash
-# From backend/ directory
-make mocks
-
-# Mocks are generated in /mocks subdirectory
-# Example: internal/database/mocks/client_mock.go
-```
-
-**Use generated mocks in tests:**
-```go
-import (
-    "testing"
-    "github.com/stretchr/testify/mock"
-    "github.com/JosemaPereira/TrAIveler/backend/internal/database"
-    dbmocks "github.com/JosemaPereira/TrAIveler/backend/internal/database/mocks"
-)
-
-func TestMyService_HealthCheck_Success(t *testing.T) {
-    // Create mock from mocks subdirectory
-    mockDB := dbmocks.NewMockClient(t)
-    
-    // Setup expectation using fluent API
-    mockDB.EXPECT().Ping(mock.Anything).Return(nil).Once()
-    
-    // Use mock in service
-    service := NewMyService(mockDB)
-    err := service.HealthCheck(context.Background())
-    
-    assert.NoError(t, err)
-    // mockDB.AssertExpectations(t) called automatically
-}
-
-// Match specific arguments
-func TestMyService_WithSpecificContext(t *testing.T) {
-    mockDB := database.NewMockClient(t)
-    
-    ctx := context.WithValue(context.Background(), "request_id", "123")
-    mockDB.On("Ping", ctx).Return(nil).Once()
-    
-    service := NewMyService(mockDB)
-    err := service.HealthCheck(ctx)
-    assert.NoError(t, err)
-}
-```
-
-**See full examples:** `internal/database/client_mock_example_test.go`
-
-**Mock Location Standard:**
-- All mocks are in `/mocks` subdirectory: `internal/database/mocks/client_mock.go`
-- Import with alias: `dbmocks "path/to/package/mocks"`
-
-**Documentation:**
-- [Mock Standards](../docs/mock-standards.md) — Comprehensive mock generation reference
-- [Testing Guidelines](../docs/testing-guidelines.md) — Mockery usage guide
-- [Coding Guidelines](../docs/coding-guidelines.md) — Mock generation standards
-
-### Retry Logic
-
-`NewClient` implements fail-fast connection with retry logic:
-- **3 attempts** with 2-second delays between retries
-- Logs warnings on each failed attempt
-- Returns error after all retries exhausted
-- Respects context cancellation during retries
-
-### Testing
-
-**Makefile targets:**
-```bash
-make test              # Run unit tests (DEFAULT - safe for local dev)
-make test-all          # Run ALL tests including testcontainers (requires Colima)
-make test-integration  # Run integration tests (requires DATABASE_URL)
-make test-coverage     # Generate coverage report (same config as CI)
-make mocks             # Generate mocks using mockery
-```
-
-**Quick Start (Local Development):**
-```bash
-# Default: unit tests only (no Docker required)
-make test
-
-# If you have Colima running and want full test coverage:
-colima start --cpu 2 --memory 4
-make test-all
-```
-
-**Unit tests** (no database required):
-```bash
-make test
-# Or directly:
-go test -tags=test -v ./... -short
-```
-
-**All tests including testcontainers** (requires Colima):
-```bash
-# ⚠️ Requires Colima running
-colima status  # Check if running
-colima start --cpu 2 --memory 4  # Start if needed
-
-make test-all
-```
-
-**Integration tests only** (requires `DATABASE_URL`):
-```bash
-# Run integration tests
-make test-integration
-# Or directly:
-go test -v ./internal/database/ -tags=integration -run="TestIntegration"
-```
-
----
-
-## Middleware
-
-The backend uses `internal/middleware/` for cross-cutting HTTP concerns: request correlation,
-structured access logging, panic recovery, CORS, and request body size limiting.
-
-### Architecture
-
-Every middleware follows the same **constructor injection** pattern as the database client above —
-no globals, no hidden `config.Load()` or `slog.Default()` calls inside the package:
-- `RequestID` and `BodySize` are plain `func(http.Handler) http.Handler` — stateless, no dependencies
-  to inject.
-- `Logger(logger *slog.Logger)` and `Recovery(logger *slog.Logger)` take the `*slog.Logger` as a
-  constructor argument and return the `func(http.Handler) http.Handler` wrapper.
-- `CORS(allowedOrigins string)` takes the comma-separated allow-list — sourced by the caller from
-  `cfg.Server.AllowedCORS` (the existing `ALLOWED_CORS_ORIGINS` env var; see
-  [Environment Variables](#environment-variables)) — as a constructor argument.
-
-Dependencies are passed in explicitly by whatever wires the middleware chain, keeping each one
-trivially mockable and testable in isolation.
-
-### Components
-
-| Middleware | File | Purpose |
-|------------|------|---------|
-| `RequestID` | `request_id.go` | Reuses an incoming `X-Request-ID` header verbatim, or generates a UUID v4; stores the ID in request context and echoes it on the response |
-| `Logger` | `logger.go` | Structured JSON access log (`log/slog`) per request — `method`, `path`, `status`, `duration_ms`, `request_id` |
-| `Recovery` | `recovery.go` | Recovers panics from downstream handlers, logs the panic value and stack trace, and responds `500` without leaking details to the client |
-| `CORS` | `cors.go` | Exact-match origin allow-list; echoes the matched origin (never `*`) and handles `OPTIONS` preflight with `204` |
-| `BodySize` | `body_size.go` | Caps request bodies at 10 MB — eager `413` via `Content-Length`, lazy `413` via `http.MaxBytesReader` for chunked bodies |
-
-`errors.go` holds a shared `errorEnvelope` type and `writeErrorEnvelope` helper, used by
-`recovery.go` and `body_size.go` to emit the standard JSON error format defined in
-[`docs/api-design-standards.md`](../docs/api-design-standards.md) §7.
-
-### Testing
-
-Each middleware is unit-tested in isolation (`*_test.go` alongside its implementation) with no
-external dependencies required — 22 tests, 98.6% coverage for the package.
-
-### Status
-
-Implemented and unit-tested, but **not yet wired into an HTTP router**. Composing the chain (adding
-`github.com/go-chi/chi/v5` and registering it in `cmd/api/main.go`) is tracked separately and
-currently blocked (issue #57).
-
----
-
-## Development Tools
-
-### Makefile Commands
-
-The backend includes a Makefile with common development tasks:
-
-```bash
-make help              # Show all available targets
-make test              # Run all tests
-make test-unit         # Run unit tests only
-make test-integration  # Run integration tests
-make test-coverage     # Generate coverage report
-make mocks             # Generate mocks using mockery
-make lint              # Run golangci-lint
-make fmt               # Format code with gofmt
-make vet               # Run go vet
-make clean             # Remove build artifacts
-make install-tools     # Install development tools (mockery)
-```
-
-### Installing Development Tools
-
-```bash
-# Install all required tools
-make install-tools
-
-# Or manually:
-go install github.com/vektra/mockery/v2@latest
-
-# Install golangci-lint (see: https://golangci-lint.run/usage/install/)
-# macOS:
-brew install golangci-lint
-# Linux:
-curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(go env GOPATH)/bin
-```
+| Security scanning | `gosec`, `govulncheck`, `gitleaks` |
 
 ---
 
@@ -319,7 +57,9 @@ curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/insta
 backend/
 ├── cmd/
 │   └── api/
-│       └── main.go                   # Process entry point: wires config, DB, router, and starts server
+│       ├── main.go                   # Process entry point: config → DB client → HTTP server → graceful shutdown
+│       ├── server.go                 # HTTPServer: builds the Chi router, middleware chain, and /healthz handler
+│       └── routes.go                 # registerRoutes(): single place new endpoints are wired up
 ├── internal/                         # Domain packages — not importable outside this module
 │   ├── auth/
 │   │   ├── handler.go                # HTTP handlers: POST /register /login /logout, GET /me, DELETE /users/me
@@ -359,7 +99,7 @@ backend/
 │   │   └── sanitizer/
 │   │       └── output_sanitizer.go   # bluemonday HTML sanitiser for AI responses (NFR-SEC-008)
 │   └── database/
-│       └── db.go                     # pgxpool initialisation and teardown
+│       └── client.go                 # pgxpool connection pooling, fail-fast retry, DI-friendly interface
 ├── pkg/                              # Packages safe to import from outside internal/
 │   ├── health/
 │   │   └── handler.go                # GET /healthz — HealthCheckResponse (NFR-OBS-002)
@@ -379,105 +119,34 @@ backend/
 
 ---
 
-## Docker
-
-The backend uses a multi-stage Dockerfile optimized for production deployment on AWS ECS Fargate.
-
-### Build Strategy
-
-**Stage 1 (builder):**
-- Base: `golang:1.26-alpine`
-- Installs build dependencies (git, ca-certificates, tzdata)
-- Downloads Go modules (cached layer when go.mod/go.sum unchanged)
-- Compiles static binary with `CGO_ENABLED=0` and stripped debug symbols (`-ldflags="-w -s"`)
-
-**Stage 2 (runtime):**
-- Base: `alpine:3.19` (minimal ~5MB base image)
-- Copies only the compiled binary and migrations
-- Runs as non-root user (`appuser:1000`) for security
-- Includes health check polling `/healthz` endpoint every 30s
-
-### Building the Image
-
-```bash
-# Build locally
-cd backend
-docker build -t traveler-backend:local .
-
-# Build with custom tags
-docker build -t traveler-backend:v1.0.0 .
-
-# Test the image (requires DATABASE_URL and ANTHROPIC_API_KEY)
-docker run -p 8080:8080 \
-  -e DATABASE_URL="postgresql://..." \
-  -e ANTHROPIC_API_KEY="sk-..." \
-  traveler-backend:local
-```
-
-### Image Size
-
-The multi-stage build produces a minimal runtime image:
-- Builder stage: ~1.2GB (includes full Go toolchain)
-- Runtime image: ~50MB (Alpine + binary + migrations)
-
-Only the 50MB runtime image is pushed to ECR and deployed to ECS.
-
-### Health Checks
-
-The container includes a `HEALTHCHECK` instruction that Docker and ECS use to determine container health:
-- **Endpoint**: `GET http://localhost:8080/healthz`
-- **Interval**: 30s (check every 30 seconds)
-- **Timeout**: 10s (wait up to 10 seconds for response)
-- **Start Period**: 30s (wait 30s before first check to allow startup)
-- **Retries**: 3 (3 consecutive failures mark container unhealthy)
-
-When deployed to ECS, failed health checks trigger automatic container replacement.
-
----
-
 ## Prerequisites
 
 | Tool | Version | Check | Notes |
 |------|---------|-------|-------|
-| Go | ≥ 1.24 | `go version` | |
-| **Container Runtime** | Latest | `docker --version` | **Use Colima or Podman** (free alternatives to Docker Desktop) |
+| Go | ≥ 1.26 | `go version` | |
+| Container runtime | Latest | `docker --version` | Use [Colima](https://github.com/abiosoft/colima) or Podman — free alternatives to Docker Desktop, which requires a paid license for commercial use |
 | Docker Compose | ≥ 2 | `docker-compose --version` | |
 | `golangci-lint` | ≥ 1.59 | `golangci-lint --version` | |
 | `gosec` | ≥ 2.21 | `gosec --version` | |
 | `govulncheck` | latest | `govulncheck -version` | |
 | `gitleaks` | ≥ 8 | `gitleaks version` | |
 
-### Container Runtime Setup
-
-**⚠️ IMPORTANT:** Use a free container runtime alternative to Docker Desktop:
-
 ```bash
-# Install Colima (recommended for macOS)
 brew install colima
-
-# Start Colima with Docker compatibility
 colima start --cpu 2 --memory 4
-
-# Verify Docker CLI works
-docker ps
+docker ps   # verify the Docker CLI works
 ```
-
-**Alternatives:**
-- **Colima** (macOS/Linux) — Lightweight, Docker-compatible
-- **Podman** (macOS/Linux) — Daemonless, Docker-compatible
-- **Rancher Desktop** (macOS/Windows/Linux) — Full Kubernetes support
-
-**Why not Docker Desktop?** Requires paid license for commercial use.
 
 ---
 
 ## Environment Variables
 
-Copy `backend/.env.example` to `backend/.env` and populate with actual values. **Never commit .env to version control.**
+Copy `backend/.env.example` to `backend/.env` and populate with actual values. **Never commit
+`.env` to version control.** Configuration is loaded via `config/config.go`, which fails fast with
+a descriptive error if a required variable is missing or a value is out of range (e.g. bad
+`HTTP_PORT` or `LOG_LEVEL`).
 
-Configuration is loaded via `config/config.go` with fail-fast validation on startup.
-
-### Required Variables
+### Required
 
 | Variable | Description |
 |----------|-------------|
@@ -485,7 +154,7 @@ Configuration is loaded via `config/config.go` with fail-fast validation on star
 | `ANTHROPIC_API_KEY` | Anthropic API key from https://console.anthropic.com/settings/keys |
 | `JWT_SIGNING_KEY` | JWT signing secret (required in production; generate with: `openssl rand -base64 32`) |
 
-### Optional Variables (with defaults)
+### Optional (with defaults)
 
 | Variable | Default | Description |
 |----------|---------|-------------|
@@ -508,146 +177,113 @@ Configuration is loaded via `config/config.go` with fail-fast validation on star
 | `LOG_LEVEL` | `info` | Minimum log level (`debug`, `info`, `warn`, `error`) |
 | `LOG_FORMAT` | `json` | Structured log output format |
 
-### Quick Start
+---
 
-**Option A: Using Docker Compose (Recommended for Local Development)**
+## Setup
 
-The project includes a `docker-compose.yml` at the repository root that orchestrates PostgreSQL and the backend service.
+**Docker Compose (recommended)** — starts PostgreSQL and the backend together:
 
 ```bash
-# 1. Set up environment variables (from repository root)
 cp backend/.env.example backend/.env
-# Edit backend/.env and add your ANTHROPIC_API_KEY
-
-# 2. Start all services (PostgreSQL + backend)
+# edit backend/.env and add your ANTHROPIC_API_KEY
 docker-compose up -d
-
-# 3. Verify services are healthy
-docker-compose ps
-# Both traveler-db and traveler-api should show "healthy" status
-
-# 4. View logs
-docker-compose logs -f backend
-
-# 5. Stop services
-docker-compose down
-```
-
-The API will be available at `http://localhost:8080`. Test with:
-
-```bash
+docker-compose ps     # both traveler-db and traveler-api should be "healthy"
 curl http://localhost:8080/healthz
-# Expected: {"status":"ok","database":"connected"}
 ```
 
-**Option B: Local Go Development (without Docker)**
-
-Useful when actively developing and debugging backend code.
+**Local Go (for active development/debugging)** — runs the API directly against a
+Dockerized PostgreSQL:
 
 ```bash
-# 1. Start only PostgreSQL via Docker Compose
 docker-compose up -d postgres
-
-# 2. Copy environment template and configure
-cp backend/.env.example backend/.env
-# Edit backend/.env with your DATABASE_URL and ANTHROPIC_API_KEY
-
-# 3. Run database migrations (when migrations/ is implemented)
+cp backend/.env.example backend/.env    # edit with your DATABASE_URL and ANTHROPIC_API_KEY
 cd backend
 goose -dir migrations postgres "$DATABASE_URL" up
-
-# 4. Start the API server (when cmd/api/main.go is implemented)
 go run ./cmd/api
-```
-
-**Option C: Running Tests**
-
-Tests can run without Docker using in-memory or test fixtures.
-
-```bash
-cd backend
-go test ./... -race -count=1
-```
-
-### Development Workflow
-
-```bash
-# Install dependencies
-go mod download
-
-# Format code (run before committing)
-go fmt ./...
-goimports -w .
-
-# Run linter (must pass before merge)
-golangci-lint run ./...
-
-# Run tests with race detector
-go test ./... -race -count=1
-
-# Run tests with coverage (target: 80% for business logic)
-go test ./internal/... -coverprofile=coverage.out
-go tool cover -html=coverage.out
-
-# Security scanning
-gosec -severity high -confidence medium ./...
-govulncheck ./...
-```
-
-### Configuration Validation
-
-The `config` package validates all configuration on startup with descriptive error messages:
-
-```bash
-# Missing required variable
-$ unset DATABASE_URL
-$ go run ./cmd/api
-# Error: config validation failed: DATABASE_URL is required
-
-# Invalid port
-$ export HTTP_PORT=99999
-$ go run ./cmd/api
-# Error: HTTP_PORT must be between 1 and 65535, got 99999
-
-# Invalid log level
-$ export LOG_LEVEL=verbose
-$ go run ./cmd/api
-# Error: LOG_LEVEL must be one of: debug, info, warn, error; got verbose
+# HTTP server listening on :8080 (or $HTTP_PORT); Ctrl+C (SIGINT) drains in-flight requests
 ```
 
 ---
 
-## Running Tests
+## Development Commands
 
 ```bash
-# Unit and integration tests (with race detector)
-go test ./... -race -count=1
+go mod download                 # install dependencies
+go fmt ./... && goimports -w .  # format (run before committing)
+golangci-lint run ./...         # lint — must pass with zero errors before merge
 
-# Unit tests only, with coverage report
-go test ./internal/... -coverprofile=coverage.out
-go tool cover -func=coverage.out   # must report ≥ 80% for internal/
+go test ./... -race -count=1                          # unit + integration tests
+go test -tags=test -v ./... -short                     # unit tests only (no Docker required)
+go test ./internal/... -coverprofile=coverage.out       # coverage (target: ≥80% for internal/)
+go tool cover -func=coverage.out
 
-# Specific package
-go test ./internal/auth/... -v -run TestRegister
+gosec -severity high -confidence medium ./...   # SAST scan — zero HIGH findings required
+govulncheck ./...                               # dependency vulnerability audit
+gitleaks detect --source . --verbose            # secret scanning
+
+make mocks                      # regenerate mocks (vektra/mockery) into */mocks subdirectories
 ```
+
+Testcontainers-based integration tests (`make test-all`, `make test-integration`) additionally
+require a running container runtime and `DATABASE_URL`; see `Makefile` (`make help` for the full
+target list).
 
 ---
 
-## Linting and Security Scanning
+## Architecture Notes
 
-```bash
-# Lint (must report zero errors before merge)
-golangci-lint run ./...
+### Database client (`internal/database/`)
 
-# SAST security scan (must report zero HIGH findings)
-gosec -severity high -confidence medium ./...
+`database.NewClient()` returns the `database.Client` interface (`Ping`, `Close`, `Pool`) backed by
+a `pgxpool`; the interface-first design keeps callers mockable without a real database. It retries
+the initial connection up to 3 times (2s delay) and pings before returning, so a returned error is
+fail-fast and terminal — callers don't need a separate health check after construction. Pool sizing
+is driven by `DB_MAX_CONNECTIONS`/`DB_MIN_CONNECTIONS` (see [Environment
+Variables](#environment-variables)); connections are recycled after 1h (`MaxConnLifetime`) or 30m
+idle (`MaxConnIdleTime`).
 
-# Dependency vulnerability audit
-govulncheck ./...
+Mocks are generated with `vektra/mockery` (`make mocks`) into `<package>/mocks/`. See
+[Mock Standards](../docs/mock-standards.md) and `internal/database/client_mock_example_test.go`
+for usage examples.
 
-# Secret scanning
-gitleaks detect --source . --verbose
-```
+### Middleware (`internal/middleware/`)
+
+Cross-cutting HTTP concerns, each built via constructor injection (dependencies passed in
+explicitly — no globals, no hidden `config.Load()`/`slog.Default()` calls) so every middleware is
+trivially testable in isolation:
+
+| Middleware | File | Purpose |
+|------------|------|---------|
+| `RequestID` | `request_id.go` | Reuses an incoming `X-Request-ID` header verbatim, or generates a UUID v4; stores it in request context and echoes it on the response |
+| `Logger` | `logger.go` | Structured JSON access log (`log/slog`) per request — `method`, `path`, `status`, `duration_ms`, `request_id` |
+| `Recovery` | `recovery.go` | Recovers panics from downstream handlers, logs the panic value and stack trace, and responds `500` without leaking details |
+| `CORS` | `cors.go` | Exact-match origin allow-list; echoes the matched origin (never `*`) and handles `OPTIONS` preflight with `204` |
+| `BodySize` | `body_size.go` | Caps request bodies at 10 MB — eager `413` via `Content-Length`, lazy `413` via `http.MaxBytesReader` for chunked bodies |
+
+`errors.go` holds the shared JSON error-envelope helper (used by `recovery.go` and `body_size.go`)
+that implements the standard error format in
+[`docs/api-design-standards.md`](../docs/api-design-standards.md) §7.
+
+### HTTP server (`cmd/api/`)
+
+`server.go`'s `NewHTTPServer` builds the Chi router and registers the middleware chain in this
+exact order: `RequestID → Logger → Recovery → CORS → BodySize` — `RequestID` must run first so
+later middleware can correlate by request ID, and `Recovery` must wrap everything downstream so a
+panic anywhere still yields a clean `500`. `routes.go`'s `registerRoutes()` is the single place new
+endpoints get added as the API grows. `main.go` wires `config.Load()` → `database.NewClient()` →
+`NewHTTPServer()` → `*http.Server` (serving in a goroutine) → waits on `SIGINT`/`SIGTERM` →
+`server.Shutdown(ctx)` with a 30s timeout → closes the database client.
+
+**`GET /healthz`** pings the database with a 2-second bounded timeout:
+
+| Condition | Status | Body |
+|-----------|--------|------|
+| Database reachable | `200` | `{"status":"healthy","database":"connected"}` |
+| Database ping fails or times out | `503` | `{"status":"unhealthy","database":"disconnected","error":"<message>"}` |
+
+No authentication required. This is distinct from the simpler `{"status":"ok"}` contract described
+for `NFR-OBS-002` (tracked separately under roadmap group `G-OBS-HEALTHZ`) — this endpoint actively
+checks the database, that one does not.
 
 ---
 
@@ -670,68 +306,41 @@ Full request/response schemas: [`specs/001-product-vision-scope/contracts/api.md
 
 ---
 
-## Code Standards
+## Docker
 
-- All code, identifiers, and comments must be in **English** — see [coding guidelines](../docs/coding-guidelines.md).
-- Format all Go files with `gofmt` before committing.
-- Import order: stdlib → third-party → internal (see guidelines for exact format).
-- Errors must never be silently ignored. Wrap with `fmt.Errorf("context: %w", err)`.
-- Do not use `log.Fatal` or `os.Exit` outside of `main`.
+Multi-stage `Dockerfile`, optimized for AWS ECS Fargate (Graviton2/`linux/arm64`): a `golang:1.26-alpine`
+builder compiles a static (`CGO_ENABLED=0`, stripped) binary, copied into a non-root
+`alpine:3.19` runtime image. A `HEALTHCHECK` polls `GET /healthz` (30s interval, 10s timeout, 30s
+start period, 3 retries) — ECS uses the same signal to replace unhealthy containers.
 
----
-
-## NFR Infrastructure
-
-This package implements the cross-cutting NFR primitives defined in
-[`specs/002-nfr-system-constraints/`](../specs/002-nfr-system-constraints/):
-
-| Component | File | NFR |
-|-----------|------|-----|
-| Request-ID middleware | `internal/middleware/request_id.go` | NFR-OBS-003 |
-| Structured-log middleware | `internal/middleware/logger.go` | NFR-OBS-001 |
-| Health endpoint | `pkg/health/handler.go` | NFR-OBS-002 |
-| Prompt injection defence | `internal/ai/validator/prompt_validator.go` | NFR-SEC-007 |
-| AI output sanitisation | `internal/ai/sanitizer/output_sanitizer.go` | NFR-SEC-008 |
-| Right-to-deletion endpoint | `internal/auth/handler.go` — `DELETE /users/me` | NFR-PRIV-001 |
-
-Validation scenarios for each: [`specs/002-nfr-system-constraints/quickstart.md`](../specs/002-nfr-system-constraints/quickstart.md).
+```bash
+docker build -t traveler-backend:local backend/
+docker run -p 8080:8080 \
+  -e DATABASE_URL="postgresql://..." \
+  -e ANTHROPIC_API_KEY="sk-..." \
+  traveler-backend:local
+```
 
 ---
 
 ## Continuous Integration
 
-The backend CI pipeline runs automatically on every pull request and push to main that modifies backend code.
+Workflow: [`.github/workflows/backend-ci.yml`](../.github/workflows/backend-ci.yml) — runs on every
+PR and push to `main` touching `backend/**`.
 
-**Workflow**: [`.github/workflows/backend-ci.yml`](../.github/workflows/backend-ci.yml)
+1. **Lint** — `golangci-lint` (errcheck, govet, staticcheck, revive, gosec); must pass with zero errors.
+2. **Test** — `go test ./... -race -coverprofile=coverage.out` against a PostgreSQL 15.4 service container (target: ≥80% coverage for `internal/`).
+3. **Build** — multi-stage Docker image for `linux/arm64`, tagged with the git SHA and uploaded as an artifact (not yet pushed to ECR — planned for Sprint 3).
 
-**Triggers**:
-- Pull requests modifying `backend/**`
-- Push to `main` branch modifying `backend/**`
-- Manual workflow dispatch
+---
 
-**Jobs**:
+## Related Documentation
 
-1. **Lint** — Runs `golangci-lint` with all configured linters (errcheck, govet, staticcheck, revive, gosec). Must pass with zero errors before merge.
-
-2. **Test** — Executes `go test ./... -race -coverprofile=coverage.out` against a PostgreSQL 15.4 service container. Runs with race detector enabled and generates coverage report (target: ≥80% for `internal/` packages). Coverage artifact uploaded for review.
-
-3. **Build** — Builds Docker image using multi-stage Dockerfile for `linux/arm64` (ECS Fargate Graviton2). Image is tagged with git SHA and uploaded as artifact. Does not push to ECR yet (Sprint 3).
-
-**Future Enhancements** (TODO comments in workflow):
-- **Sprint 3**: ECR push job using AWS OIDC authentication
-- **Sprint 10**: ECS deployment job with rolling updates and health checks
-
-**Local Equivalent**:
-
-Run the same checks locally before pushing:
-
-```bash
-# Lint
-golangci-lint run ./...
-
-# Test with race detection
-go test ./... -race -count=1
-
-# Build Docker image
-docker buildx build --platform linux/arm64 --tag traveler-backend:local backend/
-```
+| Doc | Covers |
+|-----|--------|
+| [Coding Guidelines](../docs/coding-guidelines.md) | Go formatting, naming, import order, error handling |
+| [Testing Guidelines](../docs/testing-guidelines.md) | Test strategy, folder structure, coverage targets |
+| [Mock Standards](../docs/mock-standards.md) | `vektra/mockery` generation and usage conventions |
+| [API Design Standards](../docs/api-design-standards.md) | Resource naming, error envelope, pagination, versioning |
+| [Architecture](../docs/architecture.md) | Component boundaries and integration rules |
+| [NFRs](../docs/nfrs.md) / [Spec 002 quickstart](../specs/002-nfr-system-constraints/quickstart.md) | Non-functional requirements and validation scenarios (NFR-OBS-*, NFR-SEC-*, NFR-PRIV-001 referenced in the project structure above) |
