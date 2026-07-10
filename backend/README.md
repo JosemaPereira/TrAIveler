@@ -9,7 +9,10 @@ repositories, AI integration, observability middleware, and security primitives.
 
 ---
 
-> **Implementation Status**: Configuration system, linting, and environment templates complete (Sprint 1). HTTP server, middleware chain, and database client implementation in progress (Sprint 2).
+> **Implementation Status**: Configuration system, linting, environment templates, database client, and
+> observability/security middleware (`internal/middleware/`) complete and unit-tested (Sprint 2). The
+> middleware package is not yet wired into an HTTP router/server — that integration is tracked separately
+> (issue #57, blocked). HTTP server wiring remains in progress (Sprint 2).
 
 ---
 
@@ -215,11 +218,60 @@ colima start --cpu 2 --memory 4  # Start if needed
 make test-all
 ```
 
+**Integration tests only** (requires `DATABASE_URL`):
+```bash
 # Run integration tests
 make test-integration
 # Or directly:
 go test -v ./internal/database/ -tags=integration -run="TestIntegration"
 ```
+
+---
+
+## Middleware
+
+The backend uses `internal/middleware/` for cross-cutting HTTP concerns: request correlation,
+structured access logging, panic recovery, CORS, and request body size limiting.
+
+### Architecture
+
+Every middleware follows the same **constructor injection** pattern as the database client above —
+no globals, no hidden `config.Load()` or `slog.Default()` calls inside the package:
+- `RequestID` and `BodySize` are plain `func(http.Handler) http.Handler` — stateless, no dependencies
+  to inject.
+- `Logger(logger *slog.Logger)` and `Recovery(logger *slog.Logger)` take the `*slog.Logger` as a
+  constructor argument and return the `func(http.Handler) http.Handler` wrapper.
+- `CORS(allowedOrigins string)` takes the comma-separated allow-list — sourced by the caller from
+  `cfg.Server.AllowedCORS` (the existing `ALLOWED_CORS_ORIGINS` env var; see
+  [Environment Variables](#environment-variables)) — as a constructor argument.
+
+Dependencies are passed in explicitly by whatever wires the middleware chain, keeping each one
+trivially mockable and testable in isolation.
+
+### Components
+
+| Middleware | File | Purpose |
+|------------|------|---------|
+| `RequestID` | `request_id.go` | Reuses an incoming `X-Request-ID` header verbatim, or generates a UUID v4; stores the ID in request context and echoes it on the response |
+| `Logger` | `logger.go` | Structured JSON access log (`log/slog`) per request — `method`, `path`, `status`, `duration_ms`, `request_id` |
+| `Recovery` | `recovery.go` | Recovers panics from downstream handlers, logs the panic value and stack trace, and responds `500` without leaking details to the client |
+| `CORS` | `cors.go` | Exact-match origin allow-list; echoes the matched origin (never `*`) and handles `OPTIONS` preflight with `204` |
+| `BodySize` | `body_size.go` | Caps request bodies at 10 MB — eager `413` via `Content-Length`, lazy `413` via `http.MaxBytesReader` for chunked bodies |
+
+`errors.go` holds a shared `errorEnvelope` type and `writeErrorEnvelope` helper, used by
+`recovery.go` and `body_size.go` to emit the standard JSON error format defined in
+[`docs/api-design-standards.md`](../docs/api-design-standards.md) §7.
+
+### Testing
+
+Each middleware is unit-tested in isolation (`*_test.go` alongside its implementation) with no
+external dependencies required — 22 tests, 98.6% coverage for the package.
+
+### Status
+
+Implemented and unit-tested, but **not yet wired into an HTTP router**. Composing the chain (adding
+`github.com/go-chi/chi/v5` and registering it in `cmd/api/main.go`) is tracked separately and
+currently blocked (issue #57).
 
 ---
 
@@ -295,8 +347,12 @@ backend/
 │   │       ├── provider.go           # PaymentProvider interface (swappable for real provider post-MVP)
 │   │       └── stub.go               # StubProvider: always succeeds, logs [STUB] to stdout
 │   ├── middleware/
-│   │   ├── requestid.go              # Generates/propagates X-Request-ID correlation ID (NFR-OBS-003)
-│   │   └── logger.go                 # Structured HTTP log middleware using log/slog (NFR-OBS-001)
+│   │   ├── request_id.go             # Generates/propagates X-Request-ID correlation ID (NFR-OBS-003)
+│   │   ├── logger.go                 # Structured HTTP log middleware using log/slog (NFR-OBS-001)
+│   │   ├── recovery.go               # Recovers handler panics, logs stack trace, responds 500
+│   │   ├── cors.go                   # Exact-match CORS origin allow-list, handles OPTIONS preflight
+│   │   ├── body_size.go              # Caps request bodies at 10 MB, responds 413 when exceeded
+│   │   └── errors.go                 # Shared JSON error-envelope helper used by recovery.go/body_size.go
 │   ├── ai/
 │   │   ├── validator/
 │   │   │   └── prompt_validator.go   # Pattern-based deny-list; blocks prompt injection (NFR-SEC-007)
@@ -434,6 +490,24 @@ Configuration is loaded via `config/config.go` with fail-fast validation on star
 | Variable | Default | Description |
 |----------|---------|-------------|
 | `HTTP_PORT` | `8080` | HTTP server listen port |
+| `HTTP_READ_TIMEOUT` | `30s` | Max duration for reading the entire incoming request |
+| `HTTP_WRITE_TIMEOUT` | `30s` | Max duration before timing out writes of the response |
+| `HTTP_IDLE_TIMEOUT` | `120s` | Max time to wait for the next request on a keep-alive connection |
+| `ALLOWED_CORS_ORIGINS` | `http://localhost:5173` | Comma-separated exact-match allow-list consumed by the CORS middleware (`internal/middleware/cors.go`) |
+| `DB_MAX_CONNECTIONS` | `25` | Maximum concurrent connections in the PostgreSQL pool |
+| `DB_MIN_CONNECTIONS` | `5` | Minimum idle connections maintained in the PostgreSQL pool |
+| `AI_MODEL` | `claude-3-5-sonnet-20241022` | Anthropic model used for itinerary generation |
+| `AI_TIMEOUT` | `60s` | Timeout applied to AI provider requests |
+| `AI_MAX_RETRIES` | `3` | Max retry attempts for failed AI provider requests |
+| `AI_STREAMING_CHUNK_SIZE` | `4096` | Buffer size (bytes) for streaming AI responses |
+| `COOKIE_DOMAIN` | `localhost` | Domain attribute set on the auth cookie |
+| `JWT_EXPIRATION` | `24h` | Access token lifetime |
+| `REFRESH_TOKEN_EXPIRATION` | `7 days` | Refresh token lifetime |
+| `BCRYPT_COST` | `12` | bcrypt hashing cost factor for password storage |
+| `COOKIE_SECURE` | `false` (`true` in production) | Whether the auth cookie requires HTTPS |
+| `LOG_LEVEL` | `info` | Minimum log level (`debug`, `info`, `warn`, `error`) |
+| `LOG_FORMAT` | `json` | Structured log output format |
+
 ### Quick Start
 
 **Option A: Using Docker Compose (Recommended for Local Development)**
@@ -539,23 +613,6 @@ $ go run ./cmd/api
 $ export LOG_LEVEL=verbose
 $ go run ./cmd/api
 # Error: LOG_LEVEL must be one of: debug, info, warn, error; got verbose
-```bash
-# 1. Start PostgreSQL
-docker compose up -d postgres
-
-# 2. Run database migrations
-cd backend
-goose -dir migrations postgres "$DATABASE_URL" up
-
-# 3. Start the API server
-go run ./cmd/api
-```
-
-API is available at `http://localhost:8080`. The `/healthz` endpoint confirms it is ready:
-
-```bash
-curl http://localhost:8080/healthz
-# {"status":"ok","version":"0.1.0","uptime_seconds":2.3}
 ```
 
 ---
@@ -630,7 +687,7 @@ This package implements the cross-cutting NFR primitives defined in
 
 | Component | File | NFR |
 |-----------|------|-----|
-| Request-ID middleware | `internal/middleware/requestid.go` | NFR-OBS-003 |
+| Request-ID middleware | `internal/middleware/request_id.go` | NFR-OBS-003 |
 | Structured-log middleware | `internal/middleware/logger.go` | NFR-OBS-001 |
 | Health endpoint | `pkg/health/handler.go` | NFR-OBS-002 |
 | Prompt injection defence | `internal/ai/validator/prompt_validator.go` | NFR-SEC-007 |

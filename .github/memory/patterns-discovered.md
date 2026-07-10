@@ -1049,3 +1049,58 @@ python3 scripts/check-agent-drift.py --update <name>   # refresh stored hashes a
 - `scripts/check-agent-drift.py`
 - `scripts/agent-port-manifest.json`
 
+---
+
+### Pattern Name
+
+- Mockery scope vs. constructor-injection scope for testability
+- **Discovered**: 2026-07-09 — **Tool**: Claude Code
+
+### Context
+
+- Any Go package whose dependencies are entirely stdlib types (`http.Handler`, `*slog.Logger`,
+  plain config values) rather than domain interfaces defined in this codebase — e.g.
+  `backend/internal/middleware/` (`RequestID`, `Logger`, `Recovery`, `CORS`, `BodySize`).
+
+### Problem
+
+- "Use dependency injection and mock dependencies in tests" (`docs/testing-guidelines.md`) can be
+  misread as "every dependency needs a `mockery`-generated mock." Reaching for mockery when there's
+  no interface to mock is wasted effort and adds a needless abstraction layer purely to satisfy a
+  tool, violating this repo's own KISS/DRY guidance.
+
+### Solution
+
+- Mockery (`.mockery.yaml`) is scoped to actual domain interfaces representing real external
+  systems (currently only `internal/database.Client`, wrapping a live PostgreSQL pool) — mocking
+  those avoids needing the real system in unit tests. Constructor injection alone (passing
+  `*slog.Logger`, a config string, or a `next http.Handler` as a plain function argument) is
+  sufficient — and preferred — when the dependency is a stdlib type or a single-method interface
+  already trivially satisfied by a literal (`http.HandlerFunc`) or a real in-memory instance
+  (`slog.New(slog.NewJSONHandler(&bytes.Buffer{}, ...))`). Before reaching for mockery on a new
+  package, grep it for `interface` — if there are none, DI via constructor arguments is the whole
+  answer.
+
+### Example
+
+```go
+// No interface here — plain constructor injection is enough.
+func Logger(logger *slog.Logger) func(http.Handler) http.Handler { ... }
+
+// Test: real logger, in-memory sink, no mock needed.
+var buf bytes.Buffer
+logger := slog.New(slog.NewJSONHandler(&buf, nil))
+Logger(logger)(next).ServeHTTP(rec, req)
+
+// Contrast: internal/database.Client IS mocked, because it wraps a real
+// external system (PostgreSQL) that unit tests must not depend on.
+mockDB := dbmocks.NewMockClient(t)
+mockDB.EXPECT().Ping(mock.Anything).Return(nil).Once()
+```
+
+### Related Files
+
+- `backend/internal/middleware/*.go`
+- `.mockery.yaml`
+- `docs/testing-guidelines.md`
+
