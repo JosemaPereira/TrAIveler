@@ -4,7 +4,8 @@
 //
 // Configuration is organized into logical groups (Server, Database, AI, Auth, Log)
 // with sensible defaults for development. Production environments must explicitly
-// provide required values (DATABASE_URL, ANTHROPIC_API_KEY, JWT_SIGNING_KEY).
+// provide required values (DATABASE_URL, JWT_SIGNING_KEY, and ANTHROPIC_API_KEY when
+// AI_PROVIDER=anthropic).
 //
 // Usage:
 //
@@ -19,6 +20,14 @@ import (
 	"os"
 	"strconv"
 	"time"
+)
+
+// envProduction/envDevelopment are the two GO_ENV values that gate several
+// other defaults below (AI_PROVIDER, COOKIE_SECURE, JWT_SIGNING_KEY
+// requirement) — named constants so those checks can't drift out of sync.
+const (
+	envProduction  = "production"
+	envDevelopment = "development"
 )
 
 // Config holds all application configuration loaded from environment variables.
@@ -49,13 +58,29 @@ type DatabaseConfig struct {
 	MaxLifetime    time.Duration
 }
 
-// AIConfig contains AI provider settings.
+// AIConfig contains AI provider settings shared across both supported
+// backends (Ollama, Anthropic), plus each backend's own settings.
 type AIConfig struct {
-	APIKey         string        // ANTHROPIC_API_KEY (required)
-	Model          string        // AI_MODEL (default: claude-3-5-sonnet-20241022)
+	Provider       string        // AI_PROVIDER (default: "ollama" in development, "anthropic" in production)
 	Timeout        time.Duration // AI_TIMEOUT (default: 60s)
 	MaxRetries     int           // AI_MAX_RETRIES (default: 3)
 	StreamingChunk int           // AI_STREAMING_CHUNK_SIZE (default: 4096)
+	Anthropic      AnthropicConfig
+	Ollama         OllamaConfig
+}
+
+// AnthropicConfig contains settings for the Anthropic Claude backend, used
+// in staging/production (AI_PROVIDER=anthropic).
+type AnthropicConfig struct {
+	APIKey string // ANTHROPIC_API_KEY (required when AI_PROVIDER=anthropic)
+	Model  string // ANTHROPIC_MODEL (default: claude-3-5-sonnet-20241022)
+}
+
+// OllamaConfig contains settings for the local Ollama backend, used for
+// local development and MVP testing (AI_PROVIDER=ollama, the default).
+type OllamaConfig struct {
+	Host  string // OLLAMA_HOST (default: http://localhost:11434)
+	Model string // OLLAMA_MODEL (default: gemma3:4b)
 }
 
 // AuthConfig contains JWT and session settings.
@@ -114,25 +139,45 @@ func loadDatabaseConfig() DatabaseConfig {
 	}
 }
 
-// loadAIConfig reads AI provider (Anthropic) configuration from environment variables.
+// loadAIConfig reads AI provider configuration from environment variables.
+// The default provider is "ollama" everywhere except production (mirrors
+// the JWT_SIGNING_KEY-required-only-in-production pattern below): local
+// development and MVP testing run against a free local Ollama server, while
+// staging/production use Anthropic Claude.
 func loadAIConfig() AIConfig {
+	defaultProvider := "ollama"
+	if getEnv("GO_ENV", envDevelopment) == envProduction {
+		defaultProvider = "anthropic"
+	}
+
 	return AIConfig{
-		APIKey:         getEnv("ANTHROPIC_API_KEY", ""),
-		Model:          getEnv("AI_MODEL", "claude-3-5-sonnet-20241022"),
+		Provider:       getEnv("AI_PROVIDER", defaultProvider),
 		Timeout:        getEnvDuration("AI_TIMEOUT", 60*time.Second),
 		MaxRetries:     getEnvInt("AI_MAX_RETRIES", 3),
 		StreamingChunk: getEnvInt("AI_STREAMING_CHUNK_SIZE", 4096),
+		Anthropic: AnthropicConfig{
+			APIKey: getEnv("ANTHROPIC_API_KEY", ""),
+			Model:  getEnv("ANTHROPIC_MODEL", "claude-3-5-sonnet-20241022"),
+		},
+		Ollama: OllamaConfig{
+			Host:  getEnv("OLLAMA_HOST", "http://localhost:11434"),
+			Model: getEnv("OLLAMA_MODEL", "gemma3:4b"),
+		},
 	}
 }
 
 // loadAuthConfig reads authentication and session configuration from environment variables.
+// CookieSecure defaults to true in production (mirrors the GO_ENV-driven defaults in
+// loadAIConfig/validate below) so HTTPS-only cookies aren't accidentally disabled by omission.
 func loadAuthConfig() AuthConfig {
+	defaultCookieSecure := getEnv("GO_ENV", envDevelopment) == envProduction
+
 	return AuthConfig{
 		JWTSigningKey:     getEnv("JWT_SIGNING_KEY", ""),
 		JWTExpiration:     getEnvDuration("JWT_EXPIRATION", 24*time.Hour),
 		RefreshExpiration: getEnvDuration("REFRESH_TOKEN_EXPIRATION", 7*24*time.Hour),
 		CookieDomain:      getEnv("COOKIE_DOMAIN", "localhost"),
-		CookieSecure:      getEnvBool("COOKIE_SECURE", false),
+		CookieSecure:      getEnvBool("COOKIE_SECURE", defaultCookieSecure),
 		BcryptCost:        getEnvInt("BCRYPT_COST", 12),
 	}
 }
@@ -147,7 +192,10 @@ func loadLogConfig() LogConfig {
 
 // validate performs fail-fast validation of the loaded configuration.
 // It checks that:
-//   - Required environment variables are present (DATABASE_URL, ANTHROPIC_API_KEY)
+//   - Required environment variables are present (DATABASE_URL)
+//   - AI_PROVIDER is "ollama" or "anthropic"; ANTHROPIC_API_KEY is required only
+//     when AI_PROVIDER=anthropic (Ollama has no required secret — Host and Model
+//     both have defaults)
 //   - JWT_SIGNING_KEY is set in production (not required in development for local testing)
 //   - Database connection pool limits are logical (min ≤ max)
 //   - HTTP port is within valid range (1-65535)
@@ -159,11 +207,18 @@ func validate(cfg *Config) error {
 		return fmt.Errorf("DATABASE_URL is required")
 	}
 
-	if cfg.AI.APIKey == "" {
-		return fmt.Errorf("ANTHROPIC_API_KEY is required")
+	switch cfg.AI.Provider {
+	case "anthropic":
+		if cfg.AI.Anthropic.APIKey == "" {
+			return fmt.Errorf("ANTHROPIC_API_KEY is required when AI_PROVIDER=anthropic")
+		}
+	case "ollama":
+		// No required secret; Host and Model both have defaults.
+	default:
+		return fmt.Errorf("AI_PROVIDER must be 'ollama' or 'anthropic', got %q", cfg.AI.Provider)
 	}
 
-	if cfg.Auth.JWTSigningKey == "" && getEnv("GO_ENV", "development") == "production" {
+	if cfg.Auth.JWTSigningKey == "" && getEnv("GO_ENV", envDevelopment) == envProduction {
 		return fmt.Errorf("JWT_SIGNING_KEY is required in production")
 	}
 

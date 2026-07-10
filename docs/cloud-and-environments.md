@@ -374,3 +374,17 @@ graph TB
 - **Infrastructure Changes**: Only via CI/CD pipeline (no manual terraform apply)
 
 <!-- PROMOTED:cloud-environments END -->
+
+## Local Development Note: AI Provider Override (Ollama)
+
+This section is a local-development addendum, outside the promoted cloud/environment strategy
+above — staging and production still integrate with **Anthropic Claude** via the
+`staging/backend/anthropic-api-key` Secrets Manager entry noted earlier in this document.
+
+For local development and MVP testing only, no AWS Secrets Manager entry or external API key is
+needed: the backend defaults to a locally-running **Ollama** server with a **Gemma** model,
+configured via plain environment variables (`AI_PROVIDER=ollama`, `OLLAMA_HOST`, `OLLAMA_MODEL` —
+see `backend/.env.example`). This keeps local/dev environments free to run and independent of AWS
+credentials for AI functionality.
+
+See **[docs/local-ai-setup.md](local-ai-setup.md)** for setup steps.
