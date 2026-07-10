@@ -1104,3 +1104,38 @@ mockDB.EXPECT().Ping(mock.Anything).Return(nil).Once()
 - `.mockery.yaml`
 - `docs/testing-guidelines.md`
 
+---
+
+### Native Cross-Compilation to Avoid QEMU Emulation in Multi-Platform Docker Builds
+
+### Context
+- CI/CD — any multi-stage Dockerfile built for a target platform (e.g. `linux/arm64` for ECS Fargate Graviton2) on a CI runner with a different native architecture (e.g. `amd64` GitHub Actions runners); `backend/Dockerfile` + `.github/workflows/backend-ci.yml`'s "Build Docker Image" job
+
+### Problem
+- `docker buildx build --platform linux/arm64` on an amd64 runner, with a Dockerfile whose builder stage has no `--platform` pin, runs the *entire* stage — including compilers, package managers, everything — under QEMU emulation. This is easy to miss because the build still succeeds, just slowly, and `cache-from: type=gha` does not help (the cost is CPU-bound emulated execution, not something a layer cache can skip). Measured via real `gh run view --json jobs`/`--log` timing data: a single `RUN CGO_ENABLED=0 GOOS=linux go build ...` step took 451s — 7.5 of the job's ~8.5 total minutes.
+
+### Solution
+- Pin the builder stage to the *build machine's* native platform with `FROM --platform=$BUILDPLATFORM <image> AS builder`, then cross-compile explicitly inside it using the auto-populated `ARG TARGETOS` / `ARG TARGETARCH` build args. Go's own toolchain cross-compiles natively (no emulation needed for the compiler itself, especially trivial with `CGO_ENABLED=0`) — the builder stage now runs at full native speed for `go mod download`, `apk add`, and `go build` alike. Only the final runtime stage (copying a prebuilt static binary, tiny `apk add`, `chown`) still targets the real target platform, which is fast since it does no compilation.
+- **Always verify a Dockerfile change like this by actually running the multi-platform build**, not just by reasoning from documentation — install `docker buildx` locally if missing (`brew install docker-buildx`, symlink into `~/.docker/cli-plugins/`) and time the real `docker buildx build --platform <target>` command. Also smoke-test the resulting binary (`docker run --platform <target> <image>`) to confirm it actually starts, not just that it compiled — a cross-compile mistake can produce a binary that builds but is subtly broken (wrong arch/ABI).
+
+### Example
+```dockerfile
+# Before: builder stage inherits the target platform from the top-level
+# `docker buildx build --platform linux/arm64` flag -> entire stage runs
+# under QEMU on an amd64 CI runner.
+FROM golang:1.26-alpine AS builder
+RUN CGO_ENABLED=0 GOOS=linux go build -o api ./cmd/api
+
+# After: builder stage pinned to the build machine's real platform;
+# only the Go compiler's *output* targets arm64, not the compiler itself.
+FROM --platform=$BUILDPLATFORM golang:1.26-alpine AS builder
+ARG TARGETOS
+ARG TARGETARCH
+RUN CGO_ENABLED=0 GOOS=$TARGETOS GOARCH=$TARGETARCH go build -o api ./cmd/api
+```
+
+### Related Files
+- `backend/Dockerfile`
+- `.github/workflows/backend-ci.yml` ("Build Docker Image" job)
+- `.github/memory/session-notes.md` (2026-07-09 session — "Domain Error Handling + Docker Build Investigation")
+
