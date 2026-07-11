@@ -1405,3 +1405,66 @@ afterEach(() => {
 - `frontend/src/test/setup.ts`
 - `frontend/vitest.config.ts` (`test.globals` intentionally unset)
 - `.github/memory/session-notes.md` (2026-07-10 session — "Core UI Primitives + Form Composite")
+
+---
+
+### A Hardcoded Env-Var Fallback Can Silently Hide a CI Wiring Gap
+- **Discovered**: 2026-07-10 — **Tool**: Claude Code
+
+### Context
+- Frontend — any Vite `import.meta.env.VITE_*` value read at runtime; this session's instance was `frontend/src/lib/api-client.ts`'s `getBaseUrl()`
+
+### Problem
+- `getBaseUrl()` originally had `const DEFAULT_BASE_URL = 'http://localhost:8080/api/v1'` as a fallback when `VITE_API_BASE_URL` was unset. This violates `docs/coding-guidelines.md`'s "never hardcode environment-specific values" rule on its face, but the deeper problem only surfaced when the user asked to remove it: `.github/workflows/frontend-ci.yml`'s **test** job (`npm test -- --coverage --run`) never injected `VITE_API_BASE_URL` at all — only the later **build** job did. Every test in the file that didn't explicitly `vi.stubEnv(...)` the variable was silently passing *because* of the hardcoded fallback, not despite it. The fallback wasn't just a style violation — it was masking a real CI configuration gap that would only bite in a genuinely different scenario (e.g. a build step that also forgot to inject the var, silently shipping a broken `localhost` URL to production).
+
+### Solution
+- When you find a hardcoded fallback for an env-var that "should never really be needed," don't just delete it and add a comment — **remove it and see what actually breaks**. If tests were unknowingly relying on it, that's the real bug to fix (usually: add a committed `.env.<mode>` file, e.g. `frontend/.env.test`, so the test runner has a deterministic value without a code-level fallback; Vite/Vitest auto-load `.env.<mode>`/`.env.<mode>.local` for whatever mode is active — Vitest defaults to `test`). Make the missing-var case fail loudly (throw a clear error) instead of defaulting, so a real future misconfiguration surfaces immediately instead of silently pointing at the wrong target.
+
+### Example
+```ts
+// Before: silently hides whether VITE_API_BASE_URL is ever actually wired up anywhere
+const DEFAULT_BASE_URL = 'http://localhost:8080/api/v1'
+function getBaseUrl(): string {
+  return import.meta.env.VITE_API_BASE_URL ?? DEFAULT_BASE_URL
+}
+
+// After: fails loud; frontend/.env.test (committed) supplies the test-mode value instead
+function getBaseUrl(): string {
+  const baseUrl = import.meta.env.VITE_API_BASE_URL
+  if (!baseUrl) {
+    throw new Error('VITE_API_BASE_URL is not set. Copy frontend/.env.example to frontend/.env.local and set it.')
+  }
+  return baseUrl
+}
+```
+
+### Related Files
+- `frontend/src/lib/api-client.ts`
+- `frontend/.env.test`, `frontend/.env.example`
+- `.github/workflows/frontend-ci.yml`
+- `.github/memory/session-notes.md` (2026-07-10 session — "App Shell Infrastructure")
+
+---
+
+### The "Issue-Body Snippet Is Lowest Authority" Rule Also Covers Test-File Placement, Not Just Code
+- **Discovered**: 2026-07-10 — **Tool**: Claude Code
+
+### Context
+- Frontend — any ticket whose GitHub issue body's "Files Created" section lists a test file path
+
+### Problem
+- Issue #60's "Files Created" section listed `frontend/src/lib/__tests__/api-client.test.ts`. Following that path literally violates `docs/testing-guidelines.md`, which reserves `__tests__/` subfolders for Layer 2 *integration* tests — Layer 1 *unit* tests (this one mocks `fetch` directly, no real integration) are co-located next to their source file, matching every other component test in the repo (`Button.test.tsx`, `Card.test.tsx`, etc.). The existing "docs win over issue-body pseudocode" rule in this file was previously understood as covering token names, file paths for source *components*, and backend package signatures — this session showed it applies equally to where an issue *tells you to put a test file*, which is easy to overlook since it looks like directory-structure trivia rather than "pseudocode."
+
+### Solution
+- When an issue body's "Files Created"/"Testing" section specifies an exact test file path, verify it against `docs/testing-guidelines.md`'s Layer 1 vs. Layer 2 location rule before creating it — don't assume a stated path is correct just because it's specific and looks deliberate. If a test is genuinely a Layer 2 integration test (MSW-intercepted HTTP, multi-component interaction), `__tests__/` is correct; if it's a Layer 1 unit test (mocked `fetch`, isolated component), co-locate it directly.
+
+### Example
+```
+Issue body: frontend/src/lib/__tests__/api-client.test.ts   (wrong — implies integration test)
+Real convention (unit test, mocks fetch directly): frontend/src/lib/api-client.test.ts
+```
+
+### Related Files
+- `docs/testing-guidelines.md`
+- `frontend/src/lib/api-client.test.ts`, `frontend/src/lib/query-client.test.ts`
+- `.github/memory/session-notes.md` (2026-07-10 session — "App Shell Infrastructure")
