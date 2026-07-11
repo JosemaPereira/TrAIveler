@@ -22,8 +22,15 @@ typed API client, accessibility helpers, and unit/integration tests.
 >   test file
 > - ✅ Sprint 2 (005-T055, issue #65): `Form` composite under `src/components/composites/`,
 >   composing `Button` + `Input` with config-driven fields and loading/error state
-> - ⏳ Next: state display primitives — `LoadingSpinner`, `ErrorMessage`, `EmptyState` (issue #64),
->   app shell — QueryClient/Router/ErrorBoundary (issue #66)
+> - ✅ Sprint 2 (005-T044/T045, issue #60): API client and query infrastructure — `src/lib/api-client.ts`
+>   (`apiFetch`, `api.get/post/put/patch/delete`, `APIError`) and `src/lib/query-client.ts`
+>   (TanStack `queryClient` + `isAPIError`/`getErrorMessage`/`getFieldErrors` helpers)
+> - ✅ Sprint 2 (005-T056–T058, issue #62): `src/features/` placeholder directory for future feature
+>   modules, `ErrorBoundary` top-level component, and React Router v7 config (`src/routes/`:
+>   `index.tsx`, `RootLayout`, placeholder `HomePage`)
+> - ✅ Sprint 2 (005-T047/T059/T060, issue #66): `App.tsx` now wires the real provider stack
+>   (`ErrorBoundary` > `QueryClientProvider` > `RouterProvider`), replacing the static placeholder
+> - ⏳ Next: state display primitives — `LoadingSpinner`, `ErrorMessage`, `EmptyState` (issue #64)
 >
 > The "Project Structure" and "Tech Stack" sections below describe the **target architecture**
 > once all Sprint 2 tasks land. Only what's marked ✅ above exists in the codebase today.
@@ -52,14 +59,15 @@ The frontend is the only client of the backend REST API. Its primary jobs are:
 |---------|----------------|--------|
 | Language | TypeScript (strict mode) | ✅ installed |
 | UI framework | React 19 | ✅ installed |
-| Routing | React Router v7 | ✅ installed, not yet wired up |
-| Server state | TanStack Query v5 | ✅ installed, not yet wired up |
+| Routing | React Router v7 (`react-router` package) | ✅ wired up: `createBrowserRouter` config in `src/routes/index.tsx`, mounted via `RouterProvider` in `App.tsx` (issue #62) |
+| Server state | TanStack Query v5 | ✅ wired up: `queryClient` in `src/lib/query-client.ts`, mounted via `QueryClientProvider` in `App.tsx` (issue #60) |
+| API client | Native `fetch` wrapper | ✅ `src/lib/api-client.ts` — `apiFetch`/`api.*` helpers, `APIError` matching the `docs/api-design-standards.md` §7 error envelope (issue #60) |
 | Client state | Zustand | ✅ installed, not yet wired up |
 | Build tool | Vite | ✅ installed |
-| Styling | CSS Modules + CSS custom properties (design tokens) | ✅ tokens/global styles in place; CSS Modules in use by `primitives/` and `composites/` components (issues #63, #65) |
+| Styling | CSS Modules + CSS custom properties (design tokens) | ✅ tokens/global styles in place; CSS Modules in use by `primitives/`, `composites/`, and `ErrorBoundary` (issues #63, #65, #62) |
 | Icons | Lucide React | ✅ installed, not yet used |
 | Linting/formatting | ESLint (strict) + Prettier | ✅ installed |
-| Unit/integration tests | Vitest + React Testing Library + MSW | ✅ installed; MSW not wired up yet (no API client to mock) |
+| Unit/integration tests | Vitest + React Testing Library + MSW | ✅ installed; MSW still not wired up (tests mock `fetch` directly — see `api-client.test.ts`) |
 | E2E + accessibility tests | Playwright + `@axe-core/playwright` | ⏳ planned, not yet installed |
 | Performance auditing | `@lhci/cli` (Lighthouse CI) | ⏳ planned, not yet installed |
 
@@ -77,60 +85,61 @@ frontend/
 │   │   │   ├── Button.tsx / Button.module.css / Button.test.tsx
 │   │   │   ├── Input.tsx / Input.module.css / Input.test.tsx     # labeled field; wires aria-invalid/aria-describedby to a role="alert" error
 │   │   │   └── Card.tsx / Card.module.css / Card.test.tsx
-│   │   └── composites/                # Compositions of primitives
-│   │       └── Form.tsx / Form.module.css / Form.test.tsx        # config-driven form built on Button + Input; owns loading/error state
+│   │   ├── composites/                # Compositions of primitives
+│   │   │   └── Form.tsx / Form.module.css / Form.test.tsx        # config-driven form built on Button + Input; owns loading/error state
+│   │   └── ErrorBoundary.tsx / .module.css / .test.tsx           # Top-level class-based error boundary (see "Component Architecture" below); not a primitive or composite — sits outside the Atomic Design layers
+│   ├── routes/                       # React Router v7 route configuration
+│   │   ├── index.tsx                 # createBrowserRouter config: RootLayout > index route (HomePage)
+│   │   ├── RootLayout.tsx            # Shared layout; renders <Outlet /> (future: header/footer chrome)
+│   │   ├── HomePage.tsx              # Placeholder index-route page
+│   │   └── index.test.tsx
+│   ├── features/                     # Feature-scoped components and logic (empty placeholder; see .gitkeep)
+│   │   └── .gitkeep
+│   ├── lib/                          # Framework/infra wiring shared across the app
+│   │   ├── api-client.ts             # apiFetch base + api.get/post/put/patch/delete; APIError matching docs/api-design-standards.md §7
+│   │   ├── api-client.test.ts
+│   │   ├── query-client.ts           # TanStack queryClient config + isAPIError/getErrorMessage/getFieldErrors helpers
+│   │   └── query-client.test.ts
 │   ├── styles/
 │   │   ├── tokens.css                # Design tokens: color, spacing, typography, radius, shadow, z-index, transitions
 │   │   └── global.css                # Imports tokens.css; CSS reset + base element styles
 │   ├── test/
 │   │   ├── setup.ts                  # Vitest setup: extends expect with jest-dom matchers, registers RTL's afterEach(cleanup)
 │   │   └── cssModule.ts              # Test helper: resolves a CSS Module class into a definite `string` for toHaveClass() assertions
-│   ├── App.tsx                       # Root component (placeholder shell, not yet wired to routing/state)
-│   ├── App.test.tsx                  # Smoke test for App
+│   ├── App.tsx                       # Root component: ErrorBoundary > QueryClientProvider > RouterProvider
+│   ├── App.test.tsx
 │   ├── main.tsx                      # React entry point (StrictMode + createRoot)
-│   └── vite-env.d.ts
+│   └── vite-env.d.ts                 # ImportMetaEnv typing for VITE_* variables
 ├── index.html
 ├── vite.config.ts
 ├── vitest.config.ts                  # jsdom environment, coverage via v8 (no enforced threshold yet)
 ├── tsconfig.json / tsconfig.node.json  # TypeScript strict mode
 ├── eslint.config.js                  # Flat ESLint config
 ├── .prettierrc.json
+├── .env.test                          # Committed, deterministic VITE_API_BASE_URL for Vitest (see "Environment Variables")
 └── package.json
 ```
 
 ### Target (planned, Sprint 2+)
 
-Where the codebase is headed as the remaining Sprint 2 tasks land. `components/primitives/` and
-`components/composites/` are already real (see Current, above) — everything below is still
-aspirational.
+Where the codebase is still headed. Everything in "Current" above (`components/primitives/`,
+`components/composites/`, `components/ErrorBoundary.tsx`, `routes/`, `features/` placeholder,
+`lib/`, and the wired-up `App.tsx`) is already real — everything below is still aspirational.
 
 ```
 frontend/
 ├── src/
-│   ├── features/                     # Feature-scoped components and logic
+│   ├── features/                     # Feature-scoped components and logic (currently empty)
 │   │   ├── auth/
 │   │   │   └── store.ts              # Zustand auth store: user, setUser, clearUser
 │   │   └── ...
-│   ├── components/                   # Atomic Design component layers
+│   ├── components/
 │   │   ├── primitives/               # More state-display primitives to add: LoadingSpinner, ErrorMessage, EmptyState (issue #64)
 │   │   ├── composites/               # More composites to add: TripCard, ActivityItem, DaySection, SuggestionBubble
 │   │   └── features/                 # Feature-level UI blocks (ConversationPanel, ItineraryView, SuggestionQueue)
-│   ├── pages/                        # Route-level page components
-│   │   ├── RegisterPage.tsx          # User registration with privacy policy link
-│   │   ├── LoginPage.tsx
-│   │   ├── SubscribePage.tsx         # Stub checkout flow
-│   │   ├── DashboardPage.tsx         # Trip grid + "New Trip" CTA
-│   │   ├── GeneratePage.tsx          # ConversationPanel → ItineraryView flow
-│   │   ├── TripPage.tsx              # Trip detail: ItineraryView + collaboration panel
-│   │   └── PrivacyPolicyPage.tsx     # Static GDPR privacy policy (NFR-PRIV-003)
-│   ├── services/                     # Typed API client functions + TanStack Query hooks
-│   │   ├── api.ts                    # apiFetch base: credentials: include, JSON parsing, typed errors
-│   │   ├── trips.ts                  # useTrips, useTrip, useSendMessage, etc.
-│   │   ├── conversation.ts
-│   │   ├── suggestions.ts
-│   │   └── collaborators.ts
-│   ├── hooks/                        # Shared custom React hooks (prefix: use)
-│   └── App.tsx                       # React Router v7 route declarations and layout wrappers
+│   ├── routes/                       # More routes to add: register/login/dashboard/generate/trip/privacy-policy pages
+│   ├── lib/                          # More TanStack Query hooks to add on top of api-client.ts: useTrips, useTrip, useSendMessage, etc.
+│   └── hooks/                        # Shared custom React hooks (prefix: use)
 ├── tests/
 │   └── helpers/
 │       └── a11y.ts                   # checkPageA11y(page): wraps @axe-core/playwright for E2E specs
@@ -156,7 +165,13 @@ Create a `.env.local` file (gitignored) at `frontend/`. **Never commit real valu
 
 | Variable | Required | Description |
 |----------|----------|-------------|
-| `VITE_API_BASE_URL` | ✅ | Backend API base, e.g. `http://localhost:8080/api/v1` |
+| `VITE_API_BASE_URL` | ✅ | Backend API base, e.g. `http://localhost:8080/api/v1`. Read by `src/lib/api-client.ts`; there is no hardcoded fallback, so a missing value throws at request time instead of silently pointing at the wrong backend. |
+
+**`.env.test`** is committed (unlike `.env.local`) and mirrors `.env.example` with a fixed
+`VITE_API_BASE_URL`. Vite/Vitest auto-load it in `test` mode, so unit tests get a deterministic
+value without depending on a developer's local `.env.local` — tests mock `fetch` directly, so the
+URL is never dereferenced over the network, it only needs to satisfy `api-client.ts`'s
+required-env-var check. Personal overrides for test mode go in the git-ignored `.env.test.local`.
 
 ---
 
@@ -195,8 +210,9 @@ npm run test:watch
 
 Test files live next to the source file they test (e.g. `App.test.tsx` alongside `App.tsx`), per
 [`docs/testing-guidelines.md`](../docs/testing-guidelines.md). MSW is installed for future
-integration tests that intercept HTTP calls but isn't wired up yet — there's no API client to mock
-against until `src/services/` exists.
+integration tests that intercept HTTP calls but isn't wired up yet — `src/lib/api-client.test.ts`
+currently mocks the global `fetch` directly instead. Tests run in Vite's `test` mode, which
+auto-loads `.env.test` for a deterministic `VITE_API_BASE_URL` (see "Environment Variables" above).
 
 ---
 
@@ -235,6 +251,10 @@ always permitted; the reverse is forbidden.
 | Composites | `src/components/composites/` | Reusable combinations of primitives: `Form` ✅ implemented (issue #65); `TripCard`, `ActivityItem`, `DaySection`, `TravelStyleSelector`, `SuggestionBubble`, `CollaboratorInvite` ⏳ planned |
 | Features | `src/components/features/` | Domain-specific, data-connected blocks: `ConversationPanel`, `ItineraryView`, `SuggestionQueue` ⏳ planned |
 
+`ErrorBoundary` (`src/components/ErrorBoundary.tsx`) ✅ implemented (issue #62) sits outside this
+layering — it's a single top-level app-shell component, not a reusable primitive/composite/feature
+block, so it lives directly under `src/components/` rather than in one of the three subdirectories.
+
 Every data-dependent component must explicitly handle **Loading**, **Error**, and **Empty** states.
 
 ---
@@ -243,9 +263,9 @@ Every data-dependent component must explicitly handle **Loading**, **Error**, an
 
 | Concern | Tool | Location |
 |---------|------|----------|
-| Server state (fetching, caching, mutations) | TanStack Query v5 | `src/services/` |
-| Client-side auth session | Zustand | `src/features/auth/store.ts` |
-| URL / navigation state | React Router v7 | `src/App.tsx` |
+| Server state (fetching, caching, mutations) | TanStack Query v5 | `src/lib/query-client.ts` (config) ✅; per-resource query/mutation hooks ⏳ planned in `src/lib/` |
+| Client-side auth session | Zustand | `src/features/auth/store.ts` ⏳ planned |
+| URL / navigation state | React Router v7 | `src/routes/` (router config) ✅, mounted via `RouterProvider` in `src/App.tsx` |
 
 ---
 

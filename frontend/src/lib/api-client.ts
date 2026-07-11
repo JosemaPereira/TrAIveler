@@ -35,6 +35,12 @@ function isErrorEnvelope(value: unknown): value is ErrorEnvelope {
   )
 }
 
+/**
+ * Thrown by `apiFetch` (and the `api.*` helpers) for any non-2xx response.
+ * `code` and `message` come from the response's error envelope (see
+ * `docs/api-design-standards.md` §7); `fields` is only present for
+ * validation failures (422-style, per-field messages).
+ */
 export class APIError extends Error {
   readonly status: number
   readonly code: string
@@ -83,6 +89,17 @@ async function buildAPIError(response: Response): Promise<APIError> {
   )
 }
 
+/**
+ * Base fetch wrapper for the backend REST API. Resolves `endpoint` against
+ * `VITE_API_BASE_URL`, attaches JSON headers, a per-request `X-Request-ID`,
+ * and credentials for the session cookie.
+ *
+ * Rejects with `APIError` (never a bare `Response`/`Error`) whenever the
+ * response status is not 2xx — callers that need the machine-readable code,
+ * request ID, or per-field validation messages should catch and narrow on
+ * `APIError` (see `isAPIError`/`getErrorMessage`/`getFieldErrors` in
+ * `query-client.ts`).
+ */
 export async function apiFetch<T>(
   endpoint: string,
   options: RequestInit = {}

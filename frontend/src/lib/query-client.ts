@@ -4,6 +4,10 @@ import { APIError } from './api-client'
 
 const FIVE_MINUTES_MS = 5 * 60 * 1000
 
+// Business rule: 4xx responses are client errors (bad input, auth, not
+// found) that a retry cannot fix, so fail fast on those. Everything else
+// (5xx, network errors) is treated as potentially transient and gets one
+// retry before the query is marked as failed.
 function shouldRetryQuery(failureCount: number, error: Error): boolean {
   if (error instanceof APIError && error.status >= 400 && error.status < 500) {
     return false
