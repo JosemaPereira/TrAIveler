@@ -9,7 +9,9 @@ typed API client, accessibility helpers, and unit/integration tests.
 
 ---
 
-> **Implementation Status**: 🔄 Sprint 2 in progress (as of 2026-07-10)
+> **Implementation Status**: 🔄 Sprint 2 in progress (as of 2026-07-10) — frontend application
+> structure (Spec 005 Phase 4) is now complete; Sprint 3 continues with infrastructure modules
+> (see [`docs/roadmap.md`](../docs/roadmap.md))
 > - ✅ Sprint 1 (2026-07-07): project scaffolding — Vite + React 19 + TypeScript strict mode, Atomic
 >   Design directories, core dependencies (TanStack Query v5, Zustand, React Router v7, Lucide
 >   React), ESLint + Prettier configured, dev server functional at http://localhost:5173
@@ -30,10 +32,18 @@ typed API client, accessibility helpers, and unit/integration tests.
 >   `index.tsx`, `RootLayout`, placeholder `HomePage`)
 > - ✅ Sprint 2 (005-T047/T059/T060, issue #66): `App.tsx` now wires the real provider stack
 >   (`ErrorBoundary` > `QueryClientProvider` > `RouterProvider`), replacing the static placeholder
-> - ⏳ Next: state display primitives — `LoadingSpinner`, `ErrorMessage`, `EmptyState` (issue #64)
+> - ✅ Sprint 2 (005-T046, issue #61): `useAuthStore` Zustand store — `isAuthenticated`, `user`,
+>   `login`, `logout`, `refreshSession`, `setLoading` under `src/stores/auth-store.ts`; no
+>   persistence middleware, since the HTTP-only JWT cookie is the actual session store (state is
+>   re-derived via `refreshSession()` on reload, not rehydrated from local storage)
+> - ✅ Sprint 2 (005-T052–T054, issue #64): state display primitives — `LoadingSpinner`,
+>   `ErrorMessage`, `EmptyState` under `src/components/primitives/`, each with a token-driven CSS
+>   Module and a co-located Vitest/RTL test file
 >
-> The "Project Structure" and "Tech Stack" sections below describe the **target architecture**
-> once all Sprint 2 tasks land. Only what's marked ✅ above exists in the codebase today.
+> Spec 005 Phase 4 (frontend application structure) is now complete. The "Project Structure" and
+> "Tech Stack" sections below still contain a **Target** subsection for work planned in later
+> specs (e.g. `hooks/`, feature-scoped `routes/`, per-resource query hooks) — only what's marked
+> ✅ exists in the codebase today.
 
 ---
 
@@ -62,9 +72,9 @@ The frontend is the only client of the backend REST API. Its primary jobs are:
 | Routing | React Router v7 (`react-router` package) | ✅ wired up: `createBrowserRouter` config in `src/routes/index.tsx`, mounted via `RouterProvider` in `App.tsx` (issue #62) |
 | Server state | TanStack Query v5 | ✅ wired up: `queryClient` in `src/lib/query-client.ts`, mounted via `QueryClientProvider` in `App.tsx` (issue #60) |
 | API client | Native `fetch` wrapper | ✅ `src/lib/api-client.ts` — `apiFetch`/`api.*` helpers, `APIError` matching the `docs/api-design-standards.md` §7 error envelope (issue #60) |
-| Client state | Zustand | ✅ installed, not yet wired up |
+| Client state | Zustand | ✅ wired up: `useAuthStore` in `src/stores/auth-store.ts` (issue #61) |
 | Build tool | Vite | ✅ installed |
-| Styling | CSS Modules + CSS custom properties (design tokens) | ✅ tokens/global styles in place; CSS Modules in use by `primitives/`, `composites/`, and `ErrorBoundary` (issues #63, #65, #62) |
+| Styling | CSS Modules + CSS custom properties (design tokens) | ✅ tokens/global styles in place; CSS Modules in use by `primitives/`, `composites/`, and `ErrorBoundary` (issues #63, #64, #65, #62) |
 | Icons | Lucide React | ✅ installed, not yet used |
 | Linting/formatting | ESLint (strict) + Prettier | ✅ installed |
 | Unit/integration tests | Vitest + React Testing Library + MSW | ✅ installed; MSW still not wired up (tests mock `fetch` directly — see `api-client.test.ts`) |
@@ -84,7 +94,10 @@ frontend/
 │   │   ├── primitives/                # Token-driven, reusable UI primitives ("atoms")
 │   │   │   ├── Button.tsx / Button.module.css / Button.test.tsx
 │   │   │   ├── Input.tsx / Input.module.css / Input.test.tsx     # labeled field; wires aria-invalid/aria-describedby to a role="alert" error
-│   │   │   └── Card.tsx / Card.module.css / Card.test.tsx
+│   │   │   ├── Card.tsx / Card.module.css / Card.test.tsx
+│   │   │   ├── LoadingSpinner.tsx / .module.css / .test.tsx      # role="status"/aria-live loading indicator; visually-hidden text label
+│   │   │   ├── ErrorMessage.tsx / .module.css / .test.tsx        # role="alert" error display with an optional retry button
+│   │   │   └── EmptyState.tsx / .module.css / .test.tsx          # "nothing to show" state with optional icon and action button
 │   │   ├── composites/                # Compositions of primitives
 │   │   │   └── Form.tsx / Form.module.css / Form.test.tsx        # config-driven form built on Button + Input; owns loading/error state
 │   │   └── ErrorBoundary.tsx / .module.css / .test.tsx           # Top-level class-based error boundary (see "Component Architecture" below); not a primitive or composite — sits outside the Atomic Design layers
@@ -93,6 +106,9 @@ frontend/
 │   │   ├── RootLayout.tsx            # Shared layout; renders <Outlet /> (future: header/footer chrome)
 │   │   ├── HomePage.tsx              # Placeholder index-route page
 │   │   └── index.test.tsx
+│   ├── stores/                       # Zustand client-state stores
+│   │   ├── auth-store.ts             # useAuthStore: isAuthenticated/user/isLoading + login/logout/refreshSession/setLoading; no persistence (session cookie is the source of truth)
+│   │   └── auth-store.test.ts
 │   ├── features/                     # Feature-scoped components and logic (empty placeholder; see .gitkeep)
 │   │   └── .gitkeep
 │   ├── lib/                          # Framework/infra wiring shared across the app
@@ -120,21 +136,20 @@ frontend/
 └── package.json
 ```
 
-### Target (planned, Sprint 2+)
+### Target (planned, future specs)
 
 Where the codebase is still headed. Everything in "Current" above (`components/primitives/`,
-`components/composites/`, `components/ErrorBoundary.tsx`, `routes/`, `features/` placeholder,
-`lib/`, and the wired-up `App.tsx`) is already real — everything below is still aspirational.
+`components/composites/`, `components/ErrorBoundary.tsx`, `routes/`, `stores/auth-store.ts`,
+`features/` placeholder, `lib/`, and the wired-up `App.tsx`) is already real — everything below is
+still aspirational.
 
 ```
 frontend/
 ├── src/
 │   ├── features/                     # Feature-scoped components and logic (currently empty)
-│   │   ├── auth/
-│   │   │   └── store.ts              # Zustand auth store: user, setUser, clearUser
-│   │   └── ...
+│   │   └── ...                       # e.g. auth/, trips/, collaboration/ — added as their specs land
 │   ├── components/
-│   │   ├── primitives/               # More state-display primitives to add: LoadingSpinner, ErrorMessage, EmptyState (issue #64)
+│   │   ├── primitives/               # More primitives to add: Label, Badge, PrivacyPolicyLink
 │   │   ├── composites/               # More composites to add: TripCard, ActivityItem, DaySection, SuggestionBubble
 │   │   └── features/                 # Feature-level UI blocks (ConversationPanel, ItineraryView, SuggestionQueue)
 │   ├── routes/                       # More routes to add: register/login/dashboard/generate/trip/privacy-policy pages
@@ -247,7 +262,7 @@ always permitted; the reverse is forbidden.
 
 | Layer | Location | Description |
 |-------|----------|-------------|
-| Primitives ("atoms") | `src/components/primitives/` | Single-responsibility UI primitives: `Button`, `Input`, `Card` ✅ implemented (issue #63); `Label`, `Badge`, `PrivacyPolicyLink`, `LoadingSpinner`, `ErrorMessage`, `EmptyState` ⏳ planned (issue #64) |
+| Primitives ("atoms") | `src/components/primitives/` | Single-responsibility UI primitives: `Button`, `Input`, `Card` ✅ implemented (issue #63); `LoadingSpinner`, `ErrorMessage`, `EmptyState` ✅ implemented (issue #64); `Label`, `Badge`, `PrivacyPolicyLink` ⏳ planned |
 | Composites | `src/components/composites/` | Reusable combinations of primitives: `Form` ✅ implemented (issue #65); `TripCard`, `ActivityItem`, `DaySection`, `TravelStyleSelector`, `SuggestionBubble`, `CollaboratorInvite` ⏳ planned |
 | Features | `src/components/features/` | Domain-specific, data-connected blocks: `ConversationPanel`, `ItineraryView`, `SuggestionQueue` ⏳ planned |
 
@@ -264,7 +279,7 @@ Every data-dependent component must explicitly handle **Loading**, **Error**, an
 | Concern | Tool | Location |
 |---------|------|----------|
 | Server state (fetching, caching, mutations) | TanStack Query v5 | `src/lib/query-client.ts` (config) ✅; per-resource query/mutation hooks ⏳ planned in `src/lib/` |
-| Client-side auth session | Zustand | `src/features/auth/store.ts` ⏳ planned |
+| Client-side auth session | Zustand | `src/stores/auth-store.ts` ✅ implemented (issue #61) |
 | URL / navigation state | React Router v7 | `src/routes/` (router config) ✅, mounted via `RouterProvider` in `src/App.tsx` |
 
 ---
