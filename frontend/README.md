@@ -17,8 +17,13 @@ typed API client, accessibility helpers, and unit/integration tests.
 >   `src/styles/global.css`, imported once in `src/main.tsx`
 > - ✅ Test tooling: Vitest + React Testing Library + jest-dom + MSW installed, `npm test` runs a
 >   passing smoke test (`src/App.test.tsx`); no coverage threshold enforced yet (roadmap 002-T041)
-> - ⏳ Next: core UI primitives (issue #63), state display primitives (issue #64), app shell —
->   QueryClient/Router/ErrorBoundary (issue #66)
+> - ✅ Sprint 2 (005-T048–T051, issue #63): core UI primitives — `Button`, `Input`, `Card` under
+>   `src/components/primitives/`, each with a token-driven CSS Module and a co-located Vitest/RTL
+>   test file
+> - ✅ Sprint 2 (005-T055, issue #65): `Form` composite under `src/components/composites/`,
+>   composing `Button` + `Input` with config-driven fields and loading/error state
+> - ⏳ Next: state display primitives — `LoadingSpinner`, `ErrorMessage`, `EmptyState` (issue #64),
+>   app shell — QueryClient/Router/ErrorBoundary (issue #66)
 >
 > The "Project Structure" and "Tech Stack" sections below describe the **target architecture**
 > once all Sprint 2 tasks land. Only what's marked ✅ above exists in the codebase today.
@@ -51,7 +56,7 @@ The frontend is the only client of the backend REST API. Its primary jobs are:
 | Server state | TanStack Query v5 | ✅ installed, not yet wired up |
 | Client state | Zustand | ✅ installed, not yet wired up |
 | Build tool | Vite | ✅ installed |
-| Styling | CSS Modules + CSS custom properties (design tokens) | ✅ tokens/global styles in place; CSS Modules land with the first components (issue #63) |
+| Styling | CSS Modules + CSS custom properties (design tokens) | ✅ tokens/global styles in place; CSS Modules in use by `primitives/` and `composites/` components (issues #63, #65) |
 | Icons | Lucide React | ✅ installed, not yet used |
 | Linting/formatting | ESLint (strict) + Prettier | ✅ installed |
 | Unit/integration tests | Vitest + React Testing Library + MSW | ✅ installed; MSW not wired up yet (no API client to mock) |
@@ -67,11 +72,19 @@ The frontend is the only client of the backend REST API. Its primary jobs are:
 ```
 frontend/
 ├── src/
+│   ├── components/                   # Atomic Design component layers (see "Component Architecture" below)
+│   │   ├── primitives/                # Token-driven, reusable UI primitives ("atoms")
+│   │   │   ├── Button.tsx / Button.module.css / Button.test.tsx
+│   │   │   ├── Input.tsx / Input.module.css / Input.test.tsx     # labeled field; wires aria-invalid/aria-describedby to a role="alert" error
+│   │   │   └── Card.tsx / Card.module.css / Card.test.tsx
+│   │   └── composites/                # Compositions of primitives
+│   │       └── Form.tsx / Form.module.css / Form.test.tsx        # config-driven form built on Button + Input; owns loading/error state
 │   ├── styles/
 │   │   ├── tokens.css                # Design tokens: color, spacing, typography, radius, shadow, z-index, transitions
 │   │   └── global.css                # Imports tokens.css; CSS reset + base element styles
 │   ├── test/
-│   │   └── setup.ts                  # Vitest setup: extends expect with jest-dom matchers
+│   │   ├── setup.ts                  # Vitest setup: extends expect with jest-dom matchers, registers RTL's afterEach(cleanup)
+│   │   └── cssModule.ts              # Test helper: resolves a CSS Module class into a definite `string` for toHaveClass() assertions
 │   ├── App.tsx                       # Root component (placeholder shell, not yet wired to routing/state)
 │   ├── App.test.tsx                  # Smoke test for App
 │   ├── main.tsx                      # React entry point (StrictMode + createRoot)
@@ -87,7 +100,9 @@ frontend/
 
 ### Target (planned, Sprint 2+)
 
-Where the codebase is headed as the remaining Sprint 2 tasks land — most of this does not exist yet.
+Where the codebase is headed as the remaining Sprint 2 tasks land. `components/primitives/` and
+`components/composites/` are already real (see Current, above) — everything below is still
+aspirational.
 
 ```
 frontend/
@@ -97,8 +112,8 @@ frontend/
 │   │   │   └── store.ts              # Zustand auth store: user, setUser, clearUser
 │   │   └── ...
 │   ├── components/                   # Atomic Design component layers
-│   │   ├── atoms/                    # Smallest reusable UI elements (Button, Input, Badge, PrivacyPolicyLink)
-│   │   ├── composites/               # Composed UI units (TripCard, ActivityItem, DaySection, SuggestionBubble)
+│   │   ├── primitives/               # More state-display primitives to add: LoadingSpinner, ErrorMessage, EmptyState (issue #64)
+│   │   ├── composites/               # More composites to add: TripCard, ActivityItem, DaySection, SuggestionBubble
 │   │   └── features/                 # Feature-level UI blocks (ConversationPanel, ItineraryView, SuggestionQueue)
 │   ├── pages/                        # Route-level page components
 │   │   ├── RegisterPage.tsx          # User registration with privacy policy link
@@ -216,9 +231,9 @@ always permitted; the reverse is forbidden.
 
 | Layer | Location | Description |
 |-------|----------|-------------|
-| Atoms | `src/components/atoms/` | Single-responsibility UI primitives: `Button`, `Input`, `Label`, `Badge`, `PrivacyPolicyLink` |
-| Composites | `src/components/composites/` | Reusable combinations of atoms: `TripCard`, `ActivityItem`, `DaySection`, `TravelStyleSelector`, `SuggestionBubble`, `CollaboratorInvite` |
-| Features | `src/components/features/` | Domain-specific, data-connected blocks: `ConversationPanel`, `ItineraryView`, `SuggestionQueue` |
+| Primitives ("atoms") | `src/components/primitives/` | Single-responsibility UI primitives: `Button`, `Input`, `Card` ✅ implemented (issue #63); `Label`, `Badge`, `PrivacyPolicyLink`, `LoadingSpinner`, `ErrorMessage`, `EmptyState` ⏳ planned (issue #64) |
+| Composites | `src/components/composites/` | Reusable combinations of primitives: `Form` ✅ implemented (issue #65); `TripCard`, `ActivityItem`, `DaySection`, `TravelStyleSelector`, `SuggestionBubble`, `CollaboratorInvite` ⏳ planned |
+| Features | `src/components/features/` | Domain-specific, data-connected blocks: `ConversationPanel`, `ItineraryView`, `SuggestionQueue` ⏳ planned |
 
 Every data-dependent component must explicitly handle **Loading**, **Error**, and **Empty** states.
 
