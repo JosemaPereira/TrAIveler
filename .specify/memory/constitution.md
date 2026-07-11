@@ -1,18 +1,19 @@
 <!--
 SYNC IMPACT REPORT
 ==================
-Version change: 1.2.0 → 1.3.0
-Modified principles: V. Secure Configuration (added prompt injection and output sanitization rules)
-Added sections: Technology Stack → Infrastructure Layer (mandated cloud stack)
-Modified sections: Technology Stack (expanded with database, AI provider, infrastructure decisions)
+Version change: 1.3.0 → 1.4.0
+Modified principles: none
+Added sections: none (extended existing Technology Stack → Application Layer entry in place)
+Modified sections: Technology Stack (added swaggo/swag, swaggo/http-swagger/v2, swaggo/files as
+mandated API-documentation dependencies, promoted from spec 009-api-documentation)
 Removed sections: none
 Templates requiring updates:
   ✅ .specify/templates/plan-template.md — Constitution Check section is generic; no update required
   ✅ .specify/templates/spec-template.md — no impact; specs ownership already implicit in PM role
   ✅ .specify/templates/tasks-template.md — no new task categories required
-Follow-up TODOs: All subsequent /speckit.plan and /speckit.tasks commands will now inherit the mandated
-cloud stack and security rules automatically. Features that would violate these require explicit
-constitution amendment.
+Follow-up TODOs: All subsequent /speckit.plan and /speckit.tasks commands will now inherit the
+swaggo-based OpenAPI/Swagger toolchain automatically. Features that would replace it require
+explicit constitution amendment.
 -->
 
 # TrAIveler Constitution
@@ -127,7 +128,7 @@ advisory only.
 ## Technology Stack
 
 <!-- PROMOTED:mandated-stack START -->
-<!-- Last updated: 2026-07-03 from specs 001, 002, 003 -->
+<!-- Last updated: 2026-07-10 from specs 001, 002, 003, 009 -->
 
 ### Application Layer
 
@@ -136,6 +137,12 @@ advisory only.
 - **Frontend**: React 19 or higher with TypeScript (strict mode), Vitest, React Testing Library, MSW,
   Playwright for E2E.
 - **API**: RESTful HTTP; JSON request/response bodies.
+- **API Documentation**: OpenAPI v3 contract generated code-first from Go doc-comment annotations via
+  `github.com/swaggo/swag`, served through Swagger UI via `github.com/swaggo/http-swagger/v2` (with
+  `github.com/swaggo/files` for embedded UI assets); the generated `backend/docs/` artifact is
+  committed and its freshness enforced by a CI drift-check (see `docs/testing-guidelines.md`). This
+  complements, and does not replace, `docs/api-design-standards.md` as the human-readable source of
+  truth for conventions.
 - **Styling**: CSS Modules + CSS custom properties (no CSS-in-JS runtime or utility-class framework
   unless explicitly adopted by constitution amendment).
 - **Icons**: single icon library project-wide (Lucide React is the default).
@@ -272,4 +279,4 @@ blocking. Complexity that cannot be justified against Principle II (Simplicity) 
 For runtime development guidance refer to `docs/coding-guidelines.md`, `docs/testing-guidelines.md`,
 and `docs/ui-guidelines.md`.
 
-**Version**: 1.3.0 | **Ratified**: 2026-07-02 | **Last Amended**: 2026-07-03
+**Version**: 1.4.0 | **Ratified**: 2026-07-02 | **Last Amended**: 2026-07-10

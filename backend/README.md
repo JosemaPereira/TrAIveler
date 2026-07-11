@@ -118,6 +118,12 @@ backend/
 >
 > `pkg/` and `config/prompt-rules.yml` / `alerts.yml` / `backup-policy.yml` referenced in earlier
 > planning docs do not exist yet — `pkg/` currently holds only a `.gitkeep` placeholder.
+>
+> **Planned**: `backend/docs/` (a new generated-artifact directory holding `swag`-generated
+> `docs.go`, `swagger.json`, `swagger.yaml`) and `/swagger/*` routes (Swagger UI +
+> `GET /swagger/doc.json`) are defined in `specs/009-api-documentation/` but not yet built — see
+> [docs/architecture.md](../docs/architecture.md) and
+> [docs/api-design-standards.md](../docs/api-design-standards.md) §16.
 
 ### Target (planned, future specs)
 
