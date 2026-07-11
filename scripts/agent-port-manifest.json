@@ -1,11 +1,13 @@
 {
   "schema_version": 1,
-  "description": "Tracks sha256 content hashes of hand-ported agent/prompt pairs between GitHub Copilot (.github/agents/, .github/prompts/) and Claude Code (.claude/agents/) subagents, so scripts/check-agent-drift.py can detect when either side changed without the other being updated. Does NOT cover .claude/skills/speckit-*/ (managed by the official spec-kit CLI, use `specify integration upgrade claude` for those). Update the hashes here only after manually reconciling a detected drift — this file is not auto-generated.",
+  "description": "Tracks sha256 content hashes of hand-ported agent/prompt pairs between GitHub Copilot (.github/agents/, .github/prompts/) and Claude Code (.claude/agents/) subagents, so scripts/check-agent-drift.py can detect when either side changed without the other being updated. Does NOT cover .claude/skills/speckit-*/ (managed by the official spec-kit CLI, use `specify integration upgrade claude` for those). Update the hashes here only after manually reconciling a detected drift \u2014 this file is not auto-generated.",
   "pairs": [
     {
       "name": "code-reviewer",
       "claude_file": ".claude/agents/code-reviewer.md",
-      "copilot_files": [".github/agents/code-reviewer.agent.md"],
+      "copilot_files": [
+        ".github/agents/code-reviewer.agent.md"
+      ],
       "hashes": {
         ".claude/agents/code-reviewer.md": "43c33359970f6e900209606d0cbff0d9ddbab837b831d13a517ab10c2358671c",
         ".github/agents/code-reviewer.agent.md": "88dd046315cc3d1083323e9c79d436351190680bba2cbc4d508255e9e79dda7a"
@@ -36,11 +38,11 @@
         ".github/prompts/implement-feature.prompt.md"
       ],
       "hashes": {
-        ".claude/agents/tdd-developer.md": "bcad9e5b44bf9af7344e948a43991a4f70c5d508934778efbf3397f39132a0df",
+        ".claude/agents/tdd-developer.md": "46f2899aeac4185ca7db78f1c7a5ac2488c5fdbb421949c8bf14ce25e6127305",
         ".github/agents/tdd-developer.agent.md": "bae7abdc6f5b51835bf2b3d595605dd6468424dce330cecd09a03537bb995e75",
-        ".github/prompts/implement-feature.prompt.md": "3fabf7d38b874f28a6ba7363e41846ed93caf81910b6a78dfb0d3da70d8359e9"
+        ".github/prompts/implement-feature.prompt.md": "3fd852476c5adb2c2fe452bf10e7ca402481703f8b52f123c864ff0855b122e7"
       },
-      "last_synced": "2026-07-09"
+      "last_synced": "2026-07-10"
     },
     {
       "name": "technical-writer",
@@ -75,7 +77,9 @@
     {
       "name": "build-roadmap",
       "claude_file": ".claude/agents/build-roadmap.md",
-      "copilot_files": [".github/prompts/build-roadmap.prompt.md"],
+      "copilot_files": [
+        ".github/prompts/build-roadmap.prompt.md"
+      ],
       "hashes": {
         ".claude/agents/build-roadmap.md": "5dafa4db135739fd91194f852abfa975a0518bc71a976c160f5db549ed6ce4a3",
         ".github/prompts/build-roadmap.prompt.md": "d3817e035c13b247cd24c510cd74d8a5dcf1aed0230916b0de594310b61a0a35"
@@ -85,7 +89,9 @@
     {
       "name": "commit-and-push",
       "claude_file": ".claude/agents/commit-and-push.md",
-      "copilot_files": [".github/prompts/commit-and-push.prompt.md"],
+      "copilot_files": [
+        ".github/prompts/commit-and-push.prompt.md"
+      ],
       "hashes": {
         ".claude/agents/commit-and-push.md": "13d1381dec44290413b306eb0762063b270bfc44f17f6f36fb01d77eb9e86d55",
         ".github/prompts/commit-and-push.prompt.md": "79135fd933c2c218c6cec94d4a2074e2b74e1d2530f019e2e5b63a9a2576d33f"
@@ -95,7 +101,9 @@
     {
       "name": "open-pr",
       "claude_file": ".claude/agents/open-pr.md",
-      "copilot_files": [".github/prompts/open-pr.prompt.md"],
+      "copilot_files": [
+        ".github/prompts/open-pr.prompt.md"
+      ],
       "hashes": {
         ".claude/agents/open-pr.md": "61590c04ae6c06da5fd7d972f5353beb844f7a411f2a32fd79a63a433b3104e6",
         ".github/prompts/open-pr.prompt.md": "c36a77aa72a21db5bcdb8e9e8b9dead070629489e49a151d8fbae428ecc0ea85"
@@ -105,7 +113,9 @@
     {
       "name": "promote-fundations",
       "claude_file": ".claude/agents/promote-fundations.md",
-      "copilot_files": [".github/prompts/promote-fundations.prompt.md"],
+      "copilot_files": [
+        ".github/prompts/promote-fundations.prompt.md"
+      ],
       "hashes": {
         ".claude/agents/promote-fundations.md": "ee0726a1c69048a18f16cc5981502cb7a2b4eaa1e5500f9b419077c4662049cf",
         ".github/prompts/promote-fundations.prompt.md": "4aefeca49ef35bf394c2ae1f2a6600c5a83226c7e12d7edaacf052da2fa22b40"
@@ -115,7 +125,9 @@
     {
       "name": "sync-issues",
       "claude_file": ".claude/agents/sync-issues.md",
-      "copilot_files": [".github/prompts/sync-issues.prompt.md"],
+      "copilot_files": [
+        ".github/prompts/sync-issues.prompt.md"
+      ],
       "hashes": {
         ".claude/agents/sync-issues.md": "233d2cb1c5fadc7c6aae0748d266353032bfc7969a4392300a3b61df1fb8bf57",
         ".github/prompts/sync-issues.prompt.md": "5c954b8e8ebc2a4f43ef20fdfc15e6e7fe4727e7e6fd9f274a415931d24092cc"
