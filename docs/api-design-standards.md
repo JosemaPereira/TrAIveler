@@ -2,7 +2,7 @@
 
 <!-- PROMOTED:api-standards START -->
 <!-- Generated from specs/007-api-design-standards/spec.md and contracts/api-design-standards.md -->
-<!-- Last promoted: 2026-07-06 -->
+<!-- Last promoted: 2026-07-10 (added machine-readable contract cross-reference from spec 009) -->
 
 **Version**: 1.0.0  
 **Effective Date**: 2026-07-06  
@@ -40,6 +40,7 @@ This document establishes mandatory conventions for API design across the TrAIve
 13. [Authentication Headers](#13-authentication-headers)
 14. [Timestamps and Dates](#14-timestamps-and-dates)
 15. [Endpoint Patterns](#15-endpoint-patterns)
+16. [Machine-Readable Contract](#16-machine-readable-contract)
 
 ---
 
@@ -854,6 +855,22 @@ Content-Type: application/json
 
 ---
 
+## 16. Machine-Readable Contract
+
+This document remains the human-readable source of truth for API conventions. A derived,
+always-current **machine-readable** OpenAPI v3 contract is generated directly from Go doc-comment
+annotations on each handler (`swaggo/swag`) and served at:
+
+- **`GET /swagger/doc.json`** — the generated OpenAPI v3 document
+- **`GET /swagger/index.html`** — Swagger UI, an interactive explorer rendering the document above
+
+The generated contract is regenerated and drift-checked in CI on every backend change, so it can
+never fall out of sync with the implementation (see `docs/testing-guidelines.md` for the CI
+drift-check gate). It does not restate or replace the conventions above — see
+`specs/009-api-documentation/spec.md` for the full feature definition.
+
+---
+
 ## Compliance
 
 ### How to Validate Compliance
@@ -886,6 +903,8 @@ This document is versioned (SemVer). Breaking changes to standards require:
 - **Architecture**: `docs/architecture.md` — REST API component overview
 - **Security**: `docs/security.md` — Authentication and authorization context
 - **NFRs**: `docs/nfrs.md` — NFR-API-001, NFR-API-003, NFR-REL-003
+- **Machine-Readable Contract**: `specs/009-api-documentation/spec.md` — OpenAPI v3 generation
+  (`swaggo/swag`) and Swagger UI (`/swagger/*`)
 
 <!-- PROMOTED:api-standards END -->
 

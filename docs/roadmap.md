@@ -4,8 +4,14 @@
 > titles, and dependencies is `specs/*/tasks.md`. Priority, Status, Phase, Issue, and
 > Notes are human-owned and preserved across runs. Do not hand-edit the stable IDs.
 
-**Last reconciled**: 2026-07-06 (updated with specs 006, 007, and 008)  
-**Sprint planning**: 2026-07-06 (MVP: 10 sprints, 390 tasks assigned to Sprints 1-10; Post-MVP: 355 tasks unassigned)
+**Last reconciled**: 2026-07-10 (added spec 009 — API Documentation via OpenAPI/Swagger)  
+**Sprint planning**: 2026-07-06 (MVP: 10 sprints, 390 tasks assigned to Sprints 1-10; Post-MVP: 381 tasks unassigned, including the 26 new spec 009 tasks pending sprint assignment)  
+**Sprint 3 finalized**: 2026-07-11 — corrected a Terraform-infra miscount in the Sprint Plan narrative (Spec 005
+Phase 5 is 49 tasks, 005-T061–T109, not the previously-drafted 24), pulled the Lighthouse CI /
+accessibility-gate trio (002-T002, 002-T004, 002-T024) plus its untracked dependency 002-T022 forward
+from Sprint 9/unscheduled into Sprint 3, and assigned spec 009 (26 tasks, all P1/P2) to Sprint 4 —
+Sprint 3 was already at capacity once the Terraform count was corrected. See the Sprint 3 and Sprint 4
+entries under [Sprint Plan](#sprint-plan) for details.
 
 ## Legend
 
@@ -164,9 +170,9 @@
 | ID | Task | Group | Sprint | Priority | Status | Depends on | Parallel | Issue | Notes |
 |----|------|-------|--------|----------|--------|------------|----------|-------|-------|
 | 002-T001 | Add `github.com/microcosm-cc/bluemonday` HTML sanitisation dependency to Go module | | | P1 | Backlog | - | no | | |
-| 002-T002 | Add `@axe-core/playwright` and `@lhci/cli` as frontend dev dependencies | G-NFR-CONFIG | | P1 | Backlog | - | yes | | |
+| 002-T002 | Add `@axe-core/playwright` and `@lhci/cli` as frontend dev dependencies | G-SPRINT3-A11Y-CI | 3 | P1 | Backlog | - | yes | https://github.com/JosemaPereira/TrAIveler/issues/93 | |
 | 002-T003 | Create `backend/config/prompt-rules.yml` with 5 seed deny-list rules (instruction-override, role-switching, jailbreak-prefix, etc.) | G-NFR-CONFIG | | P1 | Backlog | - | yes | | |
-| 002-T004 | Create `lighthouserc.yml` with LHCI assertion thresholds (a11y ≥ 0.9, LCP ≤ 2500 ms, CLS ≤ 0.1, INP ≤ 200 ms) | G-NFR-CONFIG | | P1 | Backlog | - | yes | | |
+| 002-T004 | Create `lighthouserc.yml` with LHCI assertion thresholds (a11y ≥ 0.9, LCP ≤ 2500 ms, CLS ≤ 0.1, INP ≤ 200 ms) | G-SPRINT3-A11Y-CI | 3 | P1 | Backlog | - | yes | https://github.com/JosemaPereira/TrAIveler/issues/93 | |
 | 002-T005 | Create `.gitleaks.toml` secret-scanning configuration (scan all committed files, exclude test fixtures) | G-NFR-CONFIG | | P1 | Backlog | - | yes | | |
 
 #### Phase 2 — Foundational: Observability Core (NFR-OBS-001–003) → **Sprint 4**
@@ -199,9 +205,9 @@
 | 002-T019 | Implement `PrivacyPolicyLink` atom component (accessible `<a>` linking to /privacy-policy) | G-A11Y-PRIVACY-LINK | 9 | P1 | Backlog | 002-T002 | yes | | |
 | 002-T020 | Write Vitest unit test for `PrivacyPolicyLink` (correct href, accessible text present) | G-A11Y-PRIVACY-LINK | 9 | P1 | Backlog | 002-T019 | yes | | |
 | 002-T021 | Add `/privacy-policy` route to React Router; add `PrivacyPolicyLink` to registration form footer | | 9 | P1 | Backlog | 002-T017, 002-T019 | no | | |
-| 002-T022 | Create accessibility E2E helper `checkPageA11y(page)` wrapping `@axe-core/playwright` | | 9 | P1 | Backlog | 002-T002 | yes | | |
+| 002-T022 | Create accessibility E2E helper `checkPageA11y(page)` wrapping `@axe-core/playwright` | G-SPRINT3-A11Y-CI | 3 | P1 | Backlog | 002-T002 | yes | https://github.com/JosemaPereira/TrAIveler/issues/93 | |
 | 002-T023 | Add `checkPageA11y(page)` call to every existing Playwright E2E spec; tag with `@accessibility` | | 9 | P1 | Backlog | 002-T022 | no | | |
-| 002-T024 | Create `accessibility.yml` GitHub Actions workflow (axe-core Playwright run + lhci autorun; PR gate) | | 9 | P1 | Backlog | 002-T022, 002-T004 | no | | |
+| 002-T024 | Create `accessibility.yml` GitHub Actions workflow (axe-core Playwright run + lhci autorun; PR gate) | G-SPRINT3-A11Y-CI | 3 | P1 | Backlog | 002-T022, 002-T004 | no | https://github.com/JosemaPereira/TrAIveler/issues/93 | |
 
 #### Phase 5 — User Story 3: Security Reviewer Confirms Security Posture (Priority: P1) → **Sprint 9**
 
@@ -624,59 +630,59 @@
 | 005-T059 | Update frontend/src/App.tsx to include RouterProvider with routes from routes/index.tsx | G-SPRINT2-FRONTEND-APP-SHELL | 2 | P1 | Done | 005-T047, 005-T058 | no | https://github.com/JosemaPereira/TrAIveler/issues/66 | PR #81 - implemented together with T047/T060 |
 | 005-T060 | Wrap App.tsx with ErrorBoundary component | G-SPRINT2-FRONTEND-APP-SHELL | 2 | P1 | Done | 005-T057, 005-T059 | no | https://github.com/JosemaPereira/TrAIveler/issues/66 | PR #81 - implemented together with T047/T059 |
 
-#### Phase 5 — User Story 3: Infrastructure as Code Foundations (Priority: P1) 🎯 MVP → **Sprints 2-3**
+#### Phase 5 — User Story 3: Infrastructure as Code Foundations (Priority: P1) 🎯 MVP → **Sprint 3**
 
 | ID | Task | Group | Sprint | Priority | Status | Depends on | Parallel | Issue | Notes |
 |----|------|-------|--------|----------|--------|------------|----------|-------|-------|
-| 005-T061 | Create infra/modules/vpc/main.tf defining aws_vpc resource with CIDR from var.vpc_cidr, enable_dns_hostnames, enable_dns_support | G-ARCH-INFRA-VPC | | P1 | Backlog | 005-T022 | yes | | |
-| 005-T062 | Add aws_subnet.public resources in infra/modules/vpc/main.tf creating 2 public subnets across 2 AZs with cidrsubnet() and count | G-ARCH-INFRA-VPC | | P1 | Backlog | 005-T022 | yes | | |
-| 005-T063 | Add aws_subnet.private resources in infra/modules/vpc/main.tf creating 2 private subnets across 2 AZs | G-ARCH-INFRA-VPC | | P1 | Backlog | 005-T022 | yes | | |
-| 005-T064 | Add aws_internet_gateway and aws_route_table resources for public subnet routing in infra/modules/vpc/main.tf | G-ARCH-INFRA-VPC | | P1 | Backlog | 005-T022 | yes | | |
-| 005-T065 | Add conditional NAT resource (aws_instance for staging, aws_nat_gateway for production) based on var.enable_nat_gateway in infra/modules/vpc/main.tf | G-ARCH-INFRA-VPC | | P1 | Backlog | 005-T022 | yes | | |
-| 005-T066 | Create infra/modules/vpc/variables.tf defining environment, vpc_cidr, availability_zones, enable_nat_gateway variables | | | P1 | Backlog | 005-T061 | no | | |
-| 005-T067 | Create infra/modules/vpc/outputs.tf exporting vpc_id, public_subnet_ids, private_subnet_ids | | | P1 | Backlog | 005-T066 | no | | |
-| 005-T068 | Add resource tagging in infra/modules/vpc/main.tf with Environment, ManagedBy, Project tags per FR-023 | | | P1 | Backlog | 005-T061 | no | | |
-| 005-T069 | Create infra/modules/ecs/main.tf defining aws_ecs_cluster resource | G-ARCH-INFRA-ECS | | P1 | Backlog | 005-T022 | yes | | |
-| 005-T070 | Add aws_ecs_task_definition in infra/modules/ecs/main.tf with ARM64 architecture, task_cpu and task_memory from variables, container definition with ECR image URL, environment variables, CloudWatch log configuration | G-ARCH-INFRA-ECS | | P1 | Backlog | 005-T022 | yes | | |
-| 005-T071 | Add aws_ecs_service in infra/modules/ecs/main.tf with desired_count, launch_type FARGATE, network_configuration using private subnets, load_balancer attachment to ALB target group, health_check_grace_period_seconds 60 | G-ARCH-INFRA-ECS | | P1 | Backlog | 005-T022 | yes | | |
-| 005-T072 | Add aws_appautoscaling_target and aws_appautoscaling_policy in infra/modules/ecs/main.tf for CPU-based target tracking at 70% with min_tasks and max_tasks from variables | G-ARCH-INFRA-ECS | | P1 | Backlog | 005-T022 | yes | | |
-| 005-T073 | Add aws_cloudwatch_log_group in infra/modules/ecs/main.tf with retention_in_days from variable | G-ARCH-INFRA-ECS | | P1 | Backlog | 005-T022 | yes | | |
-| 005-T074 | Add aws_security_group for ECS tasks in infra/modules/ecs/main.tf allowing ingress from ALB security group on port 8080 | G-ARCH-INFRA-ECS | | P1 | Backlog | 005-T022 | yes | | |
-| 005-T075 | Create infra/modules/ecs/variables.tf defining environment, vpc_id, private_subnet_ids, task_cpu, task_memory, min_tasks, max_tasks, log_retention_days, ecr_repository_url variables | | | P1 | Backlog | 005-T069 | no | | |
-| 005-T076 | Create infra/modules/ecs/outputs.tf exporting cluster_name, service_name, task_definition_family, log_group_name | | | P1 | Backlog | 005-T075 | no | | |
-| 005-T077 | Add resource tagging in infra/modules/ecs/main.tf with Environment, ManagedBy, Project tags | | | P1 | Backlog | 005-T069 | no | | |
-| 005-T078 | Create infra/modules/rds/main.tf defining aws_db_subnet_group using private subnets | G-ARCH-INFRA-RDS | | P1 | Backlog | 005-T022 | yes | | |
-| 005-T079 | Add aws_db_instance in infra/modules/rds/main.tf with engine postgresql, engine_version 15.4, instance_class from variable, allocated_storage 20, multi_az from variable, backup_retention_period from variable, backup_window 03:00-04:00, maintenance_window sun:04:00-sun:05:00 | G-ARCH-INFRA-RDS | | P1 | Backlog | 005-T022 | yes | | |
-| 005-T080 | Add aws_security_group for RDS in infra/modules/rds/main.tf allowing ingress from ECS security group on port 5432 | G-ARCH-INFRA-RDS | | P1 | Backlog | 005-T022 | yes | | |
-| 005-T081 | Add aws_secretsmanager_secret and aws_secretsmanager_secret_version in infra/modules/rds/main.tf for database credentials (username, password generated with random_password) | G-ARCH-INFRA-RDS | | P1 | Backlog | 005-T022 | yes | | |
-| 005-T082 | Create infra/modules/rds/variables.tf defining environment, vpc_id, private_subnet_ids, instance_class, multi_az, backup_retention_days, db_name variables | | | P1 | Backlog | 005-T078 | no | | |
-| 005-T083 | Create infra/modules/rds/outputs.tf exporting db_endpoint, db_name, db_secret_arn (marked sensitive) | | | P1 | Backlog | 005-T082 | no | | |
-| 005-T084 | Add resource tagging in infra/modules/rds/main.tf with Environment, ManagedBy, Project tags | | | P1 | Backlog | 005-T078 | no | | |
-| 005-T085 | Create infra/modules/alb/main.tf defining aws_lb resource with load_balancer_type application, subnets from public_subnet_ids, security_groups | G-ARCH-INFRA-ALB | | P1 | Backlog | 005-T022 | yes | | |
-| 005-T086 | Add aws_lb_target_group in infra/modules/alb/main.tf with target_type ip, port 8080, protocol HTTP, health_check path /healthz, interval 30, timeout 5, healthy_threshold 2, unhealthy_threshold 3 | G-ARCH-INFRA-ALB | | P1 | Backlog | 005-T022 | yes | | |
-| 005-T087 | Add aws_lb_listener for HTTPS (port 443) in infra/modules/alb/main.tf with ssl_policy, certificate_arn from variable, default_action forward to target group | G-ARCH-INFRA-ALB | | P1 | Backlog | 005-T022 | yes | | |
-| 005-T088 | Add aws_lb_listener for HTTP (port 80) in infra/modules/alb/main.tf with redirect action to HTTPS | G-ARCH-INFRA-ALB | | P1 | Backlog | 005-T022 | yes | | |
-| 005-T089 | Add aws_security_group for ALB in infra/modules/alb/main.tf allowing ingress on ports 80 and 443 from 0.0.0.0/0 | G-ARCH-INFRA-ALB | | P1 | Backlog | 005-T022 | yes | | |
-| 005-T090 | Create infra/modules/alb/variables.tf defining environment, vpc_id, public_subnet_ids, certificate_arn, ecs_security_group_id variables | | | P1 | Backlog | 005-T085 | no | | |
-| 005-T091 | Create infra/modules/alb/outputs.tf exporting alb_dns_name, alb_zone_id, target_group_arn | | | P1 | Backlog | 005-T090 | no | | |
-| 005-T092 | Add resource tagging in infra/modules/alb/main.tf with Environment, ManagedBy, Project tags | | | P1 | Backlog | 005-T085 | no | | |
-| 005-T093 | Create infra/modules/cloudfront/main.tf defining aws_s3_bucket for frontend builds with private ACL | G-ARCH-INFRA-CLOUDFRONT | | P1 | Backlog | 005-T022 | yes | | |
-| 005-T094 | Add aws_cloudfront_origin_access_identity and bucket policy in infra/modules/cloudfront/main.tf granting OAI read access to S3 | G-ARCH-INFRA-CLOUDFRONT | | P1 | Backlog | 005-T022 | yes | | |
-| 005-T095 | Add aws_cloudfront_distribution in infra/modules/cloudfront/main.tf with S3 origin, default_cache_behavior (viewer_protocol_policy redirect-to-https, allowed_methods GET HEAD OPTIONS), custom_error_response for SPA routing (404 → /index.html), aliases from domain_name variable, viewer_certificate with certificate_arn | G-ARCH-INFRA-CLOUDFRONT | | P1 | Backlog | 005-T022 | yes | | |
-| 005-T096 | Create infra/modules/cloudfront/variables.tf defining environment, domain_name, certificate_arn variables | | | P1 | Backlog | 005-T093 | no | | |
-| 005-T097 | Create infra/modules/cloudfront/outputs.tf exporting s3_bucket_name, cloudfront_distribution_id, cloudfront_domain_name | | | P1 | Backlog | 005-T096 | no | | |
-| 005-T098 | Add resource tagging in infra/modules/cloudfront/main.tf with Environment, ManagedBy, Project tags | | | P1 | Backlog | 005-T093 | no | | |
-| 005-T099 | Create infra/modules/secrets/main.tf defining aws_secretsmanager_secret resources for db_credentials, ai_api_key, jwt_signing_key (secrets created empty, values populated manually post-apply) | G-ARCH-INFRA-SECRETS | | P1 | Backlog | 005-T022 | yes | | |
-| 005-T100 | Create infra/modules/secrets/variables.tf defining environment variable | | | P1 | Backlog | 005-T099 | no | | |
-| 005-T101 | Create infra/modules/secrets/outputs.tf exporting db_secret_arn, ai_api_key_secret_arn, jwt_signing_key_secret_arn (all marked sensitive) | | | P1 | Backlog | 005-T100 | no | | |
-| 005-T102 | Create infra/main.tf calling vpc, ecs, rds, alb, cloudfront, secrets modules with dependency injection via module outputs | | | P1 | Backlog | 005-T067, 005-T076, 005-T083, 005-T091, 005-T097, 005-T101 | no | | |
-| 005-T103 | Create infra/variables.tf defining all root-level variables (environment, vpc_cidr, availability_zones, enable_nat_gateway, task_cpu, task_memory, min_tasks, max_tasks, log_retention_days, instance_class, multi_az, backup_retention_days, backend_domain, frontend_domain) | | | P1 | Backlog | 005-T102 | no | | |
-| 005-T104 | Create infra/outputs.tf exporting CI/CD-relevant outputs (ecr_repository_url, ecs_cluster_name, ecs_service_name, s3_bucket_name, cloudfront_distribution_id) | | | P1 | Backlog | 005-T103 | no | | |
-| 005-T105 | Create infra/environments/staging.tfvars with cost-optimized configuration (vpc_cidr 10.0.0.0/16, enable_nat_gateway false, task_cpu 256, task_memory 512, min_tasks 1, max_tasks 2, log_retention_days 7, instance_class db.t4g.micro, multi_az false, backup_retention_days 1) | | | P1 | Backlog | 005-T103 | yes | | |
-| 005-T106 | Create infra/environments/production.tfvars with production configuration (vpc_cidr 10.1.0.0/16, enable_nat_gateway true, task_cpu 1024, task_memory 2048, min_tasks 2, max_tasks 20, log_retention_days 30, instance_class db.t4g.small, multi_az true, backup_retention_days 30) | | | P1 | Backlog | 005-T103 | yes | | |
-| 005-T107 | Update .github/workflows/infra-plan.yml implementing terraform init, terraform validate, terraform fmt -check, terraform plan for both staging and production .tfvars, and PR comment with plan output | | | P1 | Backlog | 005-T019, 005-T104 | no | | |
-| 005-T108 | Create .github/workflows/infra-apply.yml implementing terraform apply -auto-approve for staging on main merge, with output export to GitHub Secrets for backend-ci.yml and frontend-ci.yml | | | P1 | Backlog | 005-T107 | no | | |
-| 005-T109 | Configure OIDC federation in AWS IAM (manual step documented in infra/README.md) creating IAM role with trust policy for GitHub Actions and permissions for Terraform operations | | | P1 | Backlog | 005-T108 | no | | |
+| 005-T061 | Create infra/modules/vpc/main.tf defining aws_vpc resource with CIDR from var.vpc_cidr, enable_dns_hostnames, enable_dns_support | G-SPRINT3-INFRA-VPC | 3 | P1 | Backlog | 005-T022 | yes | https://github.com/JosemaPereira/TrAIveler/issues/84 | |
+| 005-T062 | Add aws_subnet.public resources in infra/modules/vpc/main.tf creating 2 public subnets across 2 AZs with cidrsubnet() and count | G-SPRINT3-INFRA-VPC | 3 | P1 | Backlog | 005-T022 | yes | https://github.com/JosemaPereira/TrAIveler/issues/84 | |
+| 005-T063 | Add aws_subnet.private resources in infra/modules/vpc/main.tf creating 2 private subnets across 2 AZs | G-SPRINT3-INFRA-VPC | 3 | P1 | Backlog | 005-T022 | yes | https://github.com/JosemaPereira/TrAIveler/issues/84 | |
+| 005-T064 | Add aws_internet_gateway and aws_route_table resources for public subnet routing in infra/modules/vpc/main.tf | G-SPRINT3-INFRA-VPC | 3 | P1 | Backlog | 005-T022 | yes | https://github.com/JosemaPereira/TrAIveler/issues/84 | |
+| 005-T065 | Add conditional NAT resource (aws_instance for staging, aws_nat_gateway for production) based on var.enable_nat_gateway in infra/modules/vpc/main.tf | G-SPRINT3-INFRA-VPC | 3 | P1 | Backlog | 005-T022 | yes | https://github.com/JosemaPereira/TrAIveler/issues/84 | |
+| 005-T066 | Create infra/modules/vpc/variables.tf defining environment, vpc_cidr, availability_zones, enable_nat_gateway variables | G-SPRINT3-INFRA-VPC | 3 | P1 | Backlog | 005-T061 | no | https://github.com/JosemaPereira/TrAIveler/issues/84 | |
+| 005-T067 | Create infra/modules/vpc/outputs.tf exporting vpc_id, public_subnet_ids, private_subnet_ids | G-SPRINT3-INFRA-VPC | 3 | P1 | Backlog | 005-T066 | no | https://github.com/JosemaPereira/TrAIveler/issues/84 | |
+| 005-T068 | Add resource tagging in infra/modules/vpc/main.tf with Environment, ManagedBy, Project tags per FR-023 | G-SPRINT3-INFRA-VPC | 3 | P1 | Backlog | 005-T061 | no | https://github.com/JosemaPereira/TrAIveler/issues/84 | |
+| 005-T069 | Create infra/modules/ecs/main.tf defining aws_ecs_cluster resource | G-SPRINT3-INFRA-ECS | 3 | P1 | Backlog | 005-T022 | yes | https://github.com/JosemaPereira/TrAIveler/issues/85 | |
+| 005-T070 | Add aws_ecs_task_definition in infra/modules/ecs/main.tf with ARM64 architecture, task_cpu and task_memory from variables, container definition with ECR image URL, environment variables, CloudWatch log configuration | G-SPRINT3-INFRA-ECS | 3 | P1 | Backlog | 005-T022 | yes | https://github.com/JosemaPereira/TrAIveler/issues/85 | |
+| 005-T071 | Add aws_ecs_service in infra/modules/ecs/main.tf with desired_count, launch_type FARGATE, network_configuration using private subnets, load_balancer attachment to ALB target group, health_check_grace_period_seconds 60 | G-SPRINT3-INFRA-ECS | 3 | P1 | Backlog | 005-T022 | yes | https://github.com/JosemaPereira/TrAIveler/issues/85 | |
+| 005-T072 | Add aws_appautoscaling_target and aws_appautoscaling_policy in infra/modules/ecs/main.tf for CPU-based target tracking at 70% with min_tasks and max_tasks from variables | G-SPRINT3-INFRA-ECS | 3 | P1 | Backlog | 005-T022 | yes | https://github.com/JosemaPereira/TrAIveler/issues/85 | |
+| 005-T073 | Add aws_cloudwatch_log_group in infra/modules/ecs/main.tf with retention_in_days from variable | G-SPRINT3-INFRA-ECS | 3 | P1 | Backlog | 005-T022 | yes | https://github.com/JosemaPereira/TrAIveler/issues/85 | |
+| 005-T074 | Add aws_security_group for ECS tasks in infra/modules/ecs/main.tf allowing ingress from ALB security group on port 8080 | G-SPRINT3-INFRA-ECS | 3 | P1 | Backlog | 005-T022 | yes | https://github.com/JosemaPereira/TrAIveler/issues/85 | |
+| 005-T075 | Create infra/modules/ecs/variables.tf defining environment, vpc_id, private_subnet_ids, task_cpu, task_memory, min_tasks, max_tasks, log_retention_days, ecr_repository_url variables | G-SPRINT3-INFRA-ECS | 3 | P1 | Backlog | 005-T069 | no | https://github.com/JosemaPereira/TrAIveler/issues/85 | |
+| 005-T076 | Create infra/modules/ecs/outputs.tf exporting cluster_name, service_name, task_definition_family, log_group_name | G-SPRINT3-INFRA-ECS | 3 | P1 | Backlog | 005-T075 | no | https://github.com/JosemaPereira/TrAIveler/issues/85 | |
+| 005-T077 | Add resource tagging in infra/modules/ecs/main.tf with Environment, ManagedBy, Project tags | G-SPRINT3-INFRA-ECS | 3 | P1 | Backlog | 005-T069 | no | https://github.com/JosemaPereira/TrAIveler/issues/85 | |
+| 005-T078 | Create infra/modules/rds/main.tf defining aws_db_subnet_group using private subnets | G-SPRINT3-INFRA-RDS | 3 | P1 | Backlog | 005-T022 | yes | https://github.com/JosemaPereira/TrAIveler/issues/86 | |
+| 005-T079 | Add aws_db_instance in infra/modules/rds/main.tf with engine postgresql, engine_version 15.4, instance_class from variable, allocated_storage 20, multi_az from variable, backup_retention_period from variable, backup_window 03:00-04:00, maintenance_window sun:04:00-sun:05:00 | G-SPRINT3-INFRA-RDS | 3 | P1 | Backlog | 005-T022 | yes | https://github.com/JosemaPereira/TrAIveler/issues/86 | |
+| 005-T080 | Add aws_security_group for RDS in infra/modules/rds/main.tf allowing ingress from ECS security group on port 5432 | G-SPRINT3-INFRA-RDS | 3 | P1 | Backlog | 005-T022 | yes | https://github.com/JosemaPereira/TrAIveler/issues/86 | |
+| 005-T081 | Add aws_secretsmanager_secret and aws_secretsmanager_secret_version in infra/modules/rds/main.tf for database credentials (username, password generated with random_password) | G-SPRINT3-INFRA-RDS | 3 | P1 | Backlog | 005-T022 | yes | https://github.com/JosemaPereira/TrAIveler/issues/86 | |
+| 005-T082 | Create infra/modules/rds/variables.tf defining environment, vpc_id, private_subnet_ids, instance_class, multi_az, backup_retention_days, db_name variables | G-SPRINT3-INFRA-RDS | 3 | P1 | Backlog | 005-T078 | no | https://github.com/JosemaPereira/TrAIveler/issues/86 | |
+| 005-T083 | Create infra/modules/rds/outputs.tf exporting db_endpoint, db_name, db_secret_arn (marked sensitive) | G-SPRINT3-INFRA-RDS | 3 | P1 | Backlog | 005-T082 | no | https://github.com/JosemaPereira/TrAIveler/issues/86 | |
+| 005-T084 | Add resource tagging in infra/modules/rds/main.tf with Environment, ManagedBy, Project tags | G-SPRINT3-INFRA-RDS | 3 | P1 | Backlog | 005-T078 | no | https://github.com/JosemaPereira/TrAIveler/issues/86 | |
+| 005-T085 | Create infra/modules/alb/main.tf defining aws_lb resource with load_balancer_type application, subnets from public_subnet_ids, security_groups | G-SPRINT3-INFRA-ALB | 3 | P1 | Backlog | 005-T022 | yes | https://github.com/JosemaPereira/TrAIveler/issues/87 | |
+| 005-T086 | Add aws_lb_target_group in infra/modules/alb/main.tf with target_type ip, port 8080, protocol HTTP, health_check path /healthz, interval 30, timeout 5, healthy_threshold 2, unhealthy_threshold 3 | G-SPRINT3-INFRA-ALB | 3 | P1 | Backlog | 005-T022 | yes | https://github.com/JosemaPereira/TrAIveler/issues/87 | |
+| 005-T087 | Add aws_lb_listener for HTTPS (port 443) in infra/modules/alb/main.tf with ssl_policy, certificate_arn from variable, default_action forward to target group | G-SPRINT3-INFRA-ALB | 3 | P1 | Backlog | 005-T022 | yes | https://github.com/JosemaPereira/TrAIveler/issues/87 | |
+| 005-T088 | Add aws_lb_listener for HTTP (port 80) in infra/modules/alb/main.tf with redirect action to HTTPS | G-SPRINT3-INFRA-ALB | 3 | P1 | Backlog | 005-T022 | yes | https://github.com/JosemaPereira/TrAIveler/issues/87 | |
+| 005-T089 | Add aws_security_group for ALB in infra/modules/alb/main.tf allowing ingress on ports 80 and 443 from 0.0.0.0/0 | G-SPRINT3-INFRA-ALB | 3 | P1 | Backlog | 005-T022 | yes | https://github.com/JosemaPereira/TrAIveler/issues/87 | |
+| 005-T090 | Create infra/modules/alb/variables.tf defining environment, vpc_id, public_subnet_ids, certificate_arn, ecs_security_group_id variables | G-SPRINT3-INFRA-ALB | 3 | P1 | Backlog | 005-T085 | no | https://github.com/JosemaPereira/TrAIveler/issues/87 | |
+| 005-T091 | Create infra/modules/alb/outputs.tf exporting alb_dns_name, alb_zone_id, target_group_arn | G-SPRINT3-INFRA-ALB | 3 | P1 | Backlog | 005-T090 | no | https://github.com/JosemaPereira/TrAIveler/issues/87 | |
+| 005-T092 | Add resource tagging in infra/modules/alb/main.tf with Environment, ManagedBy, Project tags | G-SPRINT3-INFRA-ALB | 3 | P1 | Backlog | 005-T085 | no | https://github.com/JosemaPereira/TrAIveler/issues/87 | |
+| 005-T093 | Create infra/modules/cloudfront/main.tf defining aws_s3_bucket for frontend builds with private ACL | G-SPRINT3-INFRA-CLOUDFRONT | 3 | P1 | Backlog | 005-T022 | yes | https://github.com/JosemaPereira/TrAIveler/issues/88 | |
+| 005-T094 | Add aws_cloudfront_origin_access_identity and bucket policy in infra/modules/cloudfront/main.tf granting OAI read access to S3 | G-SPRINT3-INFRA-CLOUDFRONT | 3 | P1 | Backlog | 005-T022 | yes | https://github.com/JosemaPereira/TrAIveler/issues/88 | |
+| 005-T095 | Add aws_cloudfront_distribution in infra/modules/cloudfront/main.tf with S3 origin, default_cache_behavior (viewer_protocol_policy redirect-to-https, allowed_methods GET HEAD OPTIONS), custom_error_response for SPA routing (404 → /index.html), aliases from domain_name variable, viewer_certificate with certificate_arn | G-SPRINT3-INFRA-CLOUDFRONT | 3 | P1 | Backlog | 005-T022 | yes | https://github.com/JosemaPereira/TrAIveler/issues/88 | |
+| 005-T096 | Create infra/modules/cloudfront/variables.tf defining environment, domain_name, certificate_arn variables | G-SPRINT3-INFRA-CLOUDFRONT | 3 | P1 | Backlog | 005-T093 | no | https://github.com/JosemaPereira/TrAIveler/issues/88 | |
+| 005-T097 | Create infra/modules/cloudfront/outputs.tf exporting s3_bucket_name, cloudfront_distribution_id, cloudfront_domain_name | G-SPRINT3-INFRA-CLOUDFRONT | 3 | P1 | Backlog | 005-T096 | no | https://github.com/JosemaPereira/TrAIveler/issues/88 | |
+| 005-T098 | Add resource tagging in infra/modules/cloudfront/main.tf with Environment, ManagedBy, Project tags | G-SPRINT3-INFRA-CLOUDFRONT | 3 | P1 | Backlog | 005-T093 | no | https://github.com/JosemaPereira/TrAIveler/issues/88 | |
+| 005-T099 | Create infra/modules/secrets/main.tf defining aws_secretsmanager_secret resources for db_credentials, ai_api_key, jwt_signing_key (secrets created empty, values populated manually post-apply) | G-SPRINT3-INFRA-SECRETS | 3 | P1 | Backlog | 005-T022 | yes | https://github.com/JosemaPereira/TrAIveler/issues/89 | |
+| 005-T100 | Create infra/modules/secrets/variables.tf defining environment variable | G-SPRINT3-INFRA-SECRETS | 3 | P1 | Backlog | 005-T099 | no | https://github.com/JosemaPereira/TrAIveler/issues/89 | |
+| 005-T101 | Create infra/modules/secrets/outputs.tf exporting db_secret_arn, ai_api_key_secret_arn, jwt_signing_key_secret_arn (all marked sensitive) | G-SPRINT3-INFRA-SECRETS | 3 | P1 | Backlog | 005-T100 | no | https://github.com/JosemaPereira/TrAIveler/issues/89 | |
+| 005-T102 | Create infra/main.tf calling vpc, ecs, rds, alb, cloudfront, secrets modules with dependency injection via module outputs | G-SPRINT3-INFRA-ROOT-WIRING | 3 | P1 | Backlog | 005-T067, 005-T076, 005-T083, 005-T091, 005-T097, 005-T101 | no | https://github.com/JosemaPereira/TrAIveler/issues/90 | |
+| 005-T103 | Create infra/variables.tf defining all root-level variables (environment, vpc_cidr, availability_zones, enable_nat_gateway, task_cpu, task_memory, min_tasks, max_tasks, log_retention_days, instance_class, multi_az, backup_retention_days, backend_domain, frontend_domain) | G-SPRINT3-INFRA-ROOT-WIRING | 3 | P1 | Backlog | 005-T102 | no | https://github.com/JosemaPereira/TrAIveler/issues/90 | |
+| 005-T104 | Create infra/outputs.tf exporting CI/CD-relevant outputs (ecr_repository_url, ecs_cluster_name, ecs_service_name, s3_bucket_name, cloudfront_distribution_id) | G-SPRINT3-INFRA-ROOT-WIRING | 3 | P1 | Backlog | 005-T103 | no | https://github.com/JosemaPereira/TrAIveler/issues/90 | |
+| 005-T105 | Create infra/environments/staging.tfvars with cost-optimized configuration (vpc_cidr 10.0.0.0/16, enable_nat_gateway false, task_cpu 256, task_memory 512, min_tasks 1, max_tasks 2, log_retention_days 7, instance_class db.t4g.micro, multi_az false, backup_retention_days 1) | G-SPRINT3-INFRA-ROOT-WIRING | 3 | P1 | Backlog | 005-T103 | yes | https://github.com/JosemaPereira/TrAIveler/issues/90 | |
+| 005-T106 | Create infra/environments/production.tfvars with production configuration (vpc_cidr 10.1.0.0/16, enable_nat_gateway true, task_cpu 1024, task_memory 2048, min_tasks 2, max_tasks 20, log_retention_days 30, instance_class db.t4g.small, multi_az true, backup_retention_days 30) | G-SPRINT3-INFRA-ROOT-WIRING | 3 | P1 | Backlog | 005-T103 | yes | https://github.com/JosemaPereira/TrAIveler/issues/90 | |
+| 005-T107 | Update .github/workflows/infra-plan.yml implementing terraform init, terraform validate, terraform fmt -check, terraform plan for both staging and production .tfvars, and PR comment with plan output | G-SPRINT3-INFRA-CICD | 3 | P1 | Backlog | 005-T019, 005-T104 | no | https://github.com/JosemaPereira/TrAIveler/issues/91 | |
+| 005-T108 | Create .github/workflows/infra-apply.yml implementing terraform apply -auto-approve for staging on main merge, with output export to GitHub Secrets for backend-ci.yml and frontend-ci.yml | G-SPRINT3-INFRA-CICD | 3 | P1 | Backlog | 005-T107 | no | https://github.com/JosemaPereira/TrAIveler/issues/91 | |
+| 005-T109 | Configure OIDC federation in AWS IAM (manual step documented in infra/README.md) creating IAM role with trust policy for GitHub Actions and permissions for Terraform operations | | 3 | P1 | Backlog | 005-T108 | no | https://github.com/JosemaPereira/TrAIveler/issues/92 | |
 
 #### Phase 6 — User Story 4: Integration and Error Handling Patterns (Priority: P2) → **Sprint 4**
 
@@ -1240,6 +1246,74 @@ _Checkpoint: All polish tasks complete, authentication & collaboration UX featur
 
 ---
 
+### Spec 009 — API Documentation via OpenAPI/Swagger &nbsp; `specs/009-api-documentation/tasks.md`
+
+> Cross-spec note: Publishes a machine-readable OpenAPI contract generated from annotated handler
+> code (swaggo/swag + Swagger UI). Cross-references `docs/api-design-standards.md` (spec 007) and
+> `docs/testing-guidelines.md`, and extends `.github/workflows/backend-ci.yml` with a drift-detection
+> gate. Annotates `backend/internal/example/handler.go`, this project's throwaway reference package,
+> ahead of its eventual deletion once the first real domain package ships.
+
+#### Phase 1 — Setup
+
+| ID | Task | Group | Sprint | Priority | Status | Depends on | Parallel | Issue | Notes |
+|----|------|-------|--------|----------|--------|------------|----------|-------|-------|
+| 009-T001 | Verify `specs/009-api-documentation/` structure is complete (plan.md, spec.md, research.md, data-model.md, contracts/, quickstart.md) | | 4 | P1 | Backlog | - | no | | |
+| 009-T002 | Add `github.com/swaggo/http-swagger/v2` and `github.com/swaggo/files` to `backend/go.mod`; install the `swag` CLI and document it as a dev prerequisite in `backend/README.md` | | 4 | P1 | Backlog | 009-T001 | yes | | |
+| 009-T003 | Add a `swagger` target to `backend/Makefile` wrapping `swag init -g cmd/api/docs.go -o docs` | | 4 | P1 | Backlog | 009-T001 | yes | | |
+
+#### Phase 2 — Foundational (Blocking Prerequisites)
+
+| ID | Task | Group | Sprint | Priority | Status | Depends on | Parallel | Issue | Notes |
+|----|------|-------|--------|----------|--------|------------|----------|-------|-------|
+| 009-T004 | Create `backend/cmd/api/docs.go` containing only `swag` general-API annotations (`@title`, `@version`, `@description`, `@BasePath /api/v1`, `@securityDefinitions.apikey BearerAuth`, `@in header`, `@name Authorization`) — no executable code in this file | | 4 | P1 | Backlog | 009-T002 | no | | |
+| 009-T005 | Run `make swagger` to produce the initial `backend/docs/` package (`docs.go`, `swagger.json`, `swagger.yaml`) with zero annotated endpoints yet, and commit it as the generated-artifact baseline | | 4 | P1 | Backlog | 009-T003, 009-T004 | no | | |
+| 009-T006 | Confirm `golangci-lint` skips `backend/docs/` (verify the `// Code generated by swag ... DO NOT EDIT.` header is honored); add an explicit exclude path in `backend/.golangci.yml` only if needed | | 4 | P1 | Backlog | 009-T005 | no | | |
+
+#### Phase 3 — User Story 1: Backend Developer Publishes an Always-Current Contract (Priority: P1) 🎯 MVP
+
+| ID | Task | Group | Sprint | Priority | Status | Depends on | Parallel | Issue | Notes |
+|----|------|-------|--------|----------|--------|------------|----------|-------|-------|
+| 009-T007 | Write a failing integration test in `backend/tests/integration/swagger_test.go` asserting `GET /swagger/doc.json` returns `200` with a body that parses as a valid OpenAPI v3 document | | 4 | P1 | Backlog | 009-T006 | yes | | RED phase |
+| 009-T008 | Extend the same test file to assert every `internal/example` endpoint (`POST/GET/PUT/DELETE /api/v1/examples...`) appears in the parsed document's `paths`, and `/healthz` does NOT appear | | 4 | P1 | Backlog | 009-T007 | yes | | RED phase |
+| 009-T009 | Add `swag` doc-comment annotations (`@Summary`, `@Tags`, `@Accept`, `@Produce`, `@Param`, `@Success`, `@Failure`, `@Security BearerAuth`, `@Router`) above every handler function in `backend/internal/example/handler.go`, per `contracts/api.md` | | 4 | P1 | Backlog | 009-T008 | no | | GREEN phase |
+| 009-T010 | Run `make swagger` to regenerate `backend/docs/` reflecting the new annotations; commit the regenerated artifact | | 4 | P1 | Backlog | 009-T009 | no | | |
+| 009-T011 | Mount the Swagger UI/doc routes (`/swagger/*`, backed by `httpSwagger.Handler(...)`) in `backend/cmd/api/routes.go`, inside the same route group as `/api/v1`, with a `// TODO(sprint-5): remove once JWT middleware is wired` marker | | 4 | P1 | Backlog | 009-T010 | no | | |
+| 009-T012 | Run T007/T008 and confirm both now pass (Green) | | 4 | P1 | Backlog | 009-T010, 009-T011 | no | | |
+| 009-T013 | Update `backend/README.md`'s reference-implementation note to point future domain handlers (Trip, Auth, ...) at `internal/example/handler.go` as the canonical annotation example | | 4 | P1 | Backlog | 009-T009 | yes | | |
+
+#### Phase 4 — User Story 2: API Consumer Explores and Tries the API Interactively (Priority: P1)
+
+| ID | Task | Group | Sprint | Priority | Status | Depends on | Parallel | Issue | Notes |
+|----|------|-------|--------|----------|--------|------------|----------|-------|-------|
+| 009-T014 | Add a failing integration test in `backend/tests/integration/swagger_test.go` asserting `GET /swagger/index.html` returns `200` with `Content-Type: text/html` | | 4 | P1 | Backlog | 009-T011 | yes | | RED phase |
+| 009-T015 | Verify the `httpSwagger.Handler` configuration in `backend/cmd/api/routes.go` (from T011) correctly points its `DocURL` at the `/swagger/doc.json` route so the UI loads the live-generated contract, not a stale copy | | 4 | P1 | Backlog | 009-T011, 009-T014 | no | | |
+| 009-T016 | Run T014 and confirm it passes (Green) | | 4 | P1 | Backlog | 009-T015 | no | | |
+| 009-T017 | Add a "Try the API" subsection to `backend/README.md`'s local-development instructions, linking to `specs/009-api-documentation/quickstart.md` Scenario 2 | | 4 | P1 | Backlog | 009-T011 | yes | | |
+
+#### Phase 5 — User Story 3: Technical Lead Gates Contract Drift in Review (Priority: P2)
+
+| ID | Task | Group | Sprint | Priority | Status | Depends on | Parallel | Issue | Notes |
+|----|------|-------|--------|----------|--------|------------|----------|-------|-------|
+| 009-T018 | Add a `swagger-drift` step to `.github/workflows/backend-ci.yml` running `make swagger` followed by `git diff --exit-code -- backend/docs`, gated by the existing `dorny/paths-filter` `backend` condition | | 4 | P2 | Backlog | 009-T010 | no | | |
+| 009-T019 | Add `swagger-drift` to the repository ruleset's list of required status checks (`gh api repos/.../rulesets`), following the same process used for the other Sprint 2 required checks | | 4 | P2 | Backlog | 009-T018 | no | | |
+| 009-T020 | Manually validate on a scratch branch: change an annotated handler without running `make swagger`, open a throwaway PR, confirm `swagger-drift` fails, then close/delete the scratch branch and PR | | 4 | P2 | Backlog | 009-T019 | no | | |
+| 009-T021 | Add a short note to `docs/testing-guidelines.md` documenting `swagger-drift` as a CI validation gate distinct from the three testing layers (unit/integration/E2E) | | 4 | P2 | Backlog | 009-T018 | yes | | |
+
+#### Phase 6 — Polish & Cross-Cutting Concerns
+
+| ID | Task | Group | Sprint | Priority | Status | Depends on | Parallel | Issue | Notes |
+|----|------|-------|--------|----------|--------|------------|----------|-------|-------|
+| 009-T022 | Update `backend/README.md`'s API Overview table, moving `/swagger/doc.json` and `/swagger/index.html` from "Planned" to "Built today" | | 4 | P2 | Backlog | 009-T013, 009-T017, 009-T021 | yes | | |
+| 009-T023 | Add a short cross-reference note at the top of `docs/api-design-standards.md` pointing to the new machine-readable contract (`/swagger/doc.json`) as a derived, always-current artifact | | 4 | P2 | Backlog | 009-T013, 009-T017, 009-T021 | yes | | |
+| 009-T024 | Run all five `specs/009-api-documentation/quickstart.md` validation scenarios end-to-end and record results in this file's Notes section or a short results note | | 4 | P2 | Backlog | 009-T013, 009-T017, 009-T021 | no | | |
+| 009-T025 | Validate `golangci-lint` passes with zero errors across `backend/cmd/api/docs.go`, `backend/internal/example/handler.go`'s new annotations, and (excluded) `backend/docs/` | | 4 | P2 | Backlog | 009-T013, 009-T017, 009-T021 | yes | | |
+| 009-T026 | Run `make test-coverage` and confirm the new `backend/tests/integration/swagger_test.go` tests are included and passing | | 4 | P2 | Backlog | 009-T013, 009-T017, 009-T021 | no | | |
+
+_Checkpoint: All three user stories independently functional — contract drift is now impossible to merge unnoticed_
+
+---
+
 ## Critical Path
 
 The minimum sequential chain to reach a fully functional, security-hardened, demo-able MVP:
@@ -1377,28 +1451,51 @@ The minimum sequential chain to reach a fully functional, security-hardened, dem
 
 ### ☁️ Sprint 3: Infrastructure Architecture (Weeks 5-6)
 
-> ⚠️ **Planning note (added 2026-07-10, review before finalizing Sprint 3 scope)**: `frontend-ci.yml`'s
-> accessibility job has carried a stale `TODO Sprint 2: Implement Lighthouse CI` comment since Sprint 1 —
-> corrected, but the underlying tasks (**002-T002** add `@lhci/cli`/`@axe-core/playwright` deps,
-> **002-T004** create `lighthouserc.yml`, **002-T024** create `accessibility.yml` PR-gate workflow)
-> currently sit unscheduled or in Sprint 9, with no GitHub issues yet. Decide explicitly whether to pull
-> some or all of these into Sprint 3 (accessibility CI gating is otherwise deferred a long way past when
-> frontend components — issues #63/#64/#66 — actually start needing it) or confirm Sprint 9 still stands.
-> See `.github/memory/session-notes.md` (2026-07-10) for full context.
+> ✅ **Planning note resolved (2026-07-11)**: The Lighthouse CI / accessibility-gate gap flagged on
+> 2026-07-10 (`frontend-ci.yml`'s stale `TODO Sprint 2` comment vs. the actual unscheduled/Sprint-9 tasks)
+> has been decided — **002-T002**, **002-T004**, and **002-T024** are pulled forward into this sprint,
+> along with **002-T022** (the `checkPageA11y` E2E helper, added because T024 depends on it and it was
+> not otherwise scheduled before Sprint 9 — pulling T024 forward without it would have violated
+> dependency ordering). **002-T023** (tagging all existing E2E specs with `@accessibility`) stays in
+> Sprint 9, since the gate itself (T024) can land now and become fully effective once T023 lands later.
+> See `G-SPRINT3-A11Y-CI` below.
 
 **Epic Label**: `epic:architecture-infra` (continuation)
 
-**Goal**: Complete Terraform modules for all AWS resources and CI/CD patterns.
+**Goal**: Complete Terraform modules for all AWS resources and CI/CD patterns, and pull the
+accessibility CI gate forward so it isn't sitting unenforced for 6+ sprints after frontend components
+started shipping in Sprint 2.
 
-**Scope**: Spec 005 Phase 5 Part 2 (Infrastructure completion)
+**Scope**: Spec 005 Phase 5 (Infrastructure completion) + accessibility-CI pull-forward from Spec 002
+
+> **Correction**: the previous draft of this sprint under-counted the Terraform scope as "24 tasks" —
+> Spec 005 Phase 5 is actually **49 tasks** (005-T061–T109). That correction, on its own, already puts
+> this sprint at roughly Sprint 2's completed volume (37 tasks / 14 work items), so **all of Spec 009
+> (API Documentation/OpenAPI, 26 tasks, including its own P1 MVP slice US1+US2) has been deferred to
+> Sprint 4** rather than split across both sprints — see the Sprint 4 entry below.
 
 | Work Items | Task Count | Key Deliverables |
 |------------|------------|------------------|
-| Infrastructure modules (Part 2) | 24 | Terraform modules for ECS, RDS, ALB, CloudFront, IAM, Secrets Manager |
+| G-SPRINT3-INFRA-VPC | 8 | `infra/modules/vpc/` — VPC, subnets, IGW/routes, conditional NAT, variables, outputs, tagging |
+| G-SPRINT3-INFRA-ECS | 9 | `infra/modules/ecs/` — cluster, ARM64 task def, service, autoscaling, log group, security group, variables, outputs, tagging |
+| G-SPRINT3-INFRA-RDS | 7 | `infra/modules/rds/` — subnet group, Postgres 15.4 instance, security group, Secrets Manager creds, variables, outputs, tagging |
+| G-SPRINT3-INFRA-ALB | 8 | `infra/modules/alb/` — ALB, target group, HTTPS/HTTP listeners, security group, variables, outputs, tagging |
+| G-SPRINT3-INFRA-CLOUDFRONT | 6 | `infra/modules/cloudfront/` — S3 origin bucket, OAI, distribution, variables, outputs, tagging |
+| G-SPRINT3-INFRA-SECRETS | 3 | `infra/modules/secrets/` — Secrets Manager placeholders for DB/AI-key/JWT, variables, outputs |
+| G-SPRINT3-INFRA-ROOT-WIRING | 5 | Root `main.tf` module wiring, root variables/outputs, staging + production `.tfvars` |
+| G-SPRINT3-INFRA-CICD | 2 | `infra-plan.yml` (real plan/validate/fmt) + `infra-apply.yml` (staging auto-apply) |
+| 005-T109 (standalone) | 1 | OIDC federation in AWS IAM (manual step, documented in `infra/README.md`) — depends on CICD group |
+| G-SPRINT3-A11Y-CI | 4 | `@lhci/cli`/`@axe-core/playwright` deps, `lighthouserc.yml`, `checkPageA11y` E2E helper, `accessibility.yml` PR-gate workflow |
 
-**Total**: 24 tasks  
-**Risks**: AWS account limits, Terraform state management  
-**Dependencies**: Sprint 2 complete
+**Total**: 53 tasks → **10 work items** (-81% vs. ungrouped) (9 Terraform work items covering 49 tasks + 1 accessibility-CI work item covering 4 tasks)  
+**Consolidation rationale**: each Terraform module (main.tf + variables.tf + outputs.tf + tagging) is one
+reviewable PR by nature — splitting them further would fragment a single Terraform module across
+multiple tickets for no reviewability benefit. The accessibility-CI group bundles a small, tightly-coupled
+CI/config change set (deps → config → helper → workflow) that ships together.  
+**Risks**: AWS account limits, Terraform state management, module PRs running larger than the usual
+2-4 task guideline (accepted here — see consolidation rationale above), accessibility gate landing before
+its own E2E tagging task (002-T023, Sprint 9) — the workflow will initially have little to check against  
+**Dependencies**: Sprint 2 complete (005-T022 Terraform provider config; 002-T002 for the LHCI/axe-core deps)
 
 ---
 
@@ -1406,18 +1503,26 @@ The minimum sequential chain to reach a fully functional, security-hardened, dem
 
 **Epic Label**: `epic:integration-observability`
 
-**Goal**: Unify architecture layers with error correlation, retry logic, and observability primitives.
+**Goal**: Unify architecture layers with error correlation, retry logic, and observability primitives;
+ship the OpenAPI/Swagger contract deferred from Sprint 3.
 
-**Scope**: Spec 005 Phases 6-7 + Spec 002 Phase 2
+**Scope**: Spec 005 Phases 6-7 + Spec 002 Phase 2 + Spec 009 (deferred from Sprint 3)
 
 | Work Items | Task Count | Key Deliverables |
 |------------|------------|------------------|
 | Integration patterns | 10 | Error correlation across layers, retry strategies with exponential backoff |
 | Architecture polish | 12 | Documentation, example domain, validation |
 | Observability core | 7 | RequestID → Logger → /healthz middleware chain |
+| API Documentation (Spec 009, deferred from Sprint 3) | 26 | `swaggo/swag` annotations on `internal/example` handlers, generated `backend/docs/` contract, Swagger UI at `/swagger/*`, `swagger-drift` CI gate (US3/Polish, P2) |
 
-**Total**: 29 tasks  
-**Risks**: Cross-layer integration complexity  
+**Total**: 55 tasks  
+**Risks**: Cross-layer integration complexity; **scope grew ~90% from the Spec 009 addition** — 55
+tasks is well above this team's observed velocity (23 → 37 tasks/sprint in Sprints 1-2), so this should
+be re-examined at the next Sprint 4 planning pass. The likely lever: Spec 009's own MVP slice
+(Setup+Foundational+US1+US2, 009-T001–T017, 17 tasks, P1) can ship in Sprint 4 while its CI-gate/polish
+slice (US3+Polish, 009-T018–T026, 9 tasks, P2) trails into Sprint 5 if 55 tasks proves too large for one
+2-week sprint. Spec 009 tasks are not yet consolidated into Group work items — that consolidation
+analysis is deferred to the Sprint 4 planning pass, per the mandatory consolidation-first workflow.  
 **Dependencies**: Sprint 3 complete
 
 ---
@@ -1552,6 +1657,11 @@ The minimum sequential chain to reach a fully functional, security-hardened, dem
 | **Epic labels** | 11 epics across all sprints (see each sprint header) |
 | **Team size assumption** | 2-3 full-stack developers |
 
+> **Stale as of 2026-07-11**: these aggregate figures predate the Sprint 3 Terraform-count correction
+> (24 → 49 tasks), the Sprint 3 accessibility-CI pull-forward (+4 tasks), and the Spec 009 addition to
+> Sprint 4 (+26 tasks). Recompute at the next full sprint-plan refresh rather than trusting this table
+> for exact totals in the meantime; the per-sprint entries above are the current source of truth.
+
 **GitHub Organization**:
 - **Epic tracking**: Filter by `epic:architecture-foundation`, `epic:auth-security`, etc. in GitHub Projects
 - **Issue hierarchy**: Parent issues with `- [ ] #N` tasklists auto-create sub-issue relationships
@@ -1589,7 +1699,7 @@ _None — all discovered spec folders have a `tasks.md`._
 
 ## Archived / Removed
 
-_No tasks archived on this run (first run; all tasks are ADD operations)._
+_No tasks removed from any source `tasks.md` as of the 2026-07-10 reconciliation. Nothing to archive._
 
 | ID | Task | Reason | Issue |
 |----|------|--------|-------|
@@ -1599,7 +1709,12 @@ _No tasks archived on this run (first run; all tasks are ADD operations)._
 
 ## Reconciliation Report
 
-**Run date**: 2026-07-06
+**Run date**: 2026-07-10
+
+> Note: this section reflects the full current state of the roadmap as of the run date above
+> (cumulative across all specs), not just the delta from the immediately preceding run. Earlier
+> runs' stale, partially-superseded report text (which had never been updated for the spec 008
+> reconciliation) has been consolidated into this single accurate snapshot.
 
 ### Specs Discovered
 
@@ -1611,192 +1726,87 @@ _No tasks archived on this run (first run; all tasks are ADD operations)._
 | 004 | `specs/004-security-auth-model/` | ✅ yes | Active |
 | 005 | `specs/005-system-architecture/` | ✅ yes | Active |
 | 006 | `specs/006-core-domain-model/` | ✅ yes | Active |
-| 007 | `specs/007-api-design-standards/` | ✅ yes | **NEW** |
+| 007 | `specs/007-api-design-standards/` | ✅ yes | Active |
+| 008 | `specs/008-auth-collaboration-ux/` | ✅ yes | Active |
+| 009 | `specs/009-api-documentation/` | ✅ yes | **NEW** |
+
+No spec folders were removed since the last run. No spec folders exist without a `tasks.md`.
 
 ### Change Counts
 
 | Operation | Count |
 |-----------|-------|
-| **ADD** | 70 (spec 007: all 70 tasks) |
+| **ADD** | 26 (spec 009: all 26 tasks, T001–T026) |
 | **UPDATE** | 0 |
-| **UNCHANGED** | 462 (001: 81 tasks, 002: 46 tasks, 003: 72 tasks, 004: 132 tasks, 005: 131 tasks, 006: 77 tasks) |
+| **UNCHANGED** | 815 (001: 81, 002: 46, 003: 72, 004: 132, 005: 131, 006: 77, 007: 70, 008: 206) |
 | **REMOVE** | 0 |
 | **ARCHIVED** | 0 |
-| **Structural** | Added 12 new groups for spec 007 tasks |
+| **Structural** | No new groups added — all 26 spec 009 tasks left standalone (`Group` blank) per the no-auto-grouping rule; grouping is a human/PM decision to be made later if desired |
 
-**Total tasks in roadmap**: 532 (was 462, added 70)  
-**Grouped tasks**: 370 (69.5% of total, forming 107 work items)  
-**Standalone tasks**: 162 (30.5% of total)
+**Total tasks in roadmap**: 841 (was 815, added 26)  
+**Grouped tasks**: 546 (64.9% of total, forming 184 work items across specs 001–008)  
+**Standalone tasks**: 295 (35.1% of total, including all 26 new spec 009 tasks)
 
-### New Grouping Summary (Spec 007)
+Specs 001–008 rows were diffed against their current `tasks.md` sources and found identical in
+title, phase grouping, and dependencies — **zero drift detected**. No `Group`, `Sprint`, `Priority`,
+`Status`, `Issue`, or `Notes` values were touched for any pre-existing row.
 
-| Group ID | Tasks | Description |
-|----------|-------|-------------|
-| G-API-US1-ACCESSIBILITY | 3 | Standards doc accessibility verification (007-T010–012) |
-| G-API-US1-NAMING | 2 | Resource naming & URL structure verification (007-T015–016) |
-| G-API-US1-FORMAT | 2 | Request/response format verification (007-T018–019) |
-| G-API-US2-ERROR-HANDLING | 2 | Frontend error handling examples (007-T023–024) |
-| G-API-US2-PAGINATION | 2 | Frontend pagination examples (007-T026–027) |
-| G-API-US2-FILTERING-SORTING | 2 | Frontend filtering/sorting examples (007-T029–030) |
-| G-API-US4-EXTERNAL-DOCS | 2 | External API consumer documentation (007-T042–043) |
-| G-API-US4-PATTERN-RECOGNITION | 2 | Pattern transfer documentation (007-T045–046) |
-| G-API-POLISH-TEST-HELPERS | 1 | Integration test helper functions (007-T051) |
-| G-API-POLISH-INTEGRATION-TESTS | 8 | Standards validation integration tests (007-T052–059) |
-| G-API-POLISH-LINTER | 3 | Linter research and configuration (007-T060–062) |
-| G-API-POLISH-DOCUMENTATION | 3 | Final documentation updates (007-T063–065) |
-| G-API-POLISH-VALIDATION | 3 | Final validation execution (007-T066–068) |
+### Spec 009 — New Tasks (Pure ADD)
 
-### Cross-Spec Dependencies (Spec 007)
+| Phase | Tasks | Priority (inherited from source phase header) |
+|-------|-------|-------------------------------------------------|
+| Phase 1 — Setup | 009-T001–003 (3) | P1 |
+| Phase 2 — Foundational (blocking) | 009-T004–006 (3) | P1 |
+| Phase 3 — US1 Contract regenerates automatically 🎯 MVP | 009-T007–013 (7) | P1 |
+| Phase 4 — US2 Interactive Swagger UI | 009-T014–017 (4) | P1 |
+| Phase 5 — US3 CI drift gate | 009-T018–021 (4) | P2 |
+| Phase 6 — Polish & cross-cutting | 009-T022–026 (5) | P2 |
 
-Spec 007 establishes API design conventions that all backend endpoints must follow:
+Priority was inherited from each phase's own `(Priority: Px)` header in `tasks.md` — the same
+convention used when specs 004 and 007 were first added to this roadmap — rather than defaulting
+every row to `TBD`, since that established per-spec pattern already exists. `Sprint` was left
+blank for all 26 rows (sprint assignment is intentionally deferred to the next Plan Sprints pass).
+`Status` = `Backlog`, `Issue` = empty, `Group` = empty for all 26 rows.
+
+### Cross-Spec Dependencies (Spec 009)
 
 | Type | Description |
 |------|-------------|
-| **Standards foundation** | 007-T004–009 (Phase 2 Foundational) promotes API standards doc and audits existing endpoints — BLOCKS all user story work in spec 007 |
-| **Backend endpoint compliance** | 001/004 API endpoints must follow standards defined in docs/api-design-standards.md (resource naming, error format, pagination) |
-| **Frontend API client patterns** | 001 frontend API client code will use predictable patterns documented in 007-T023–033 (error handling, pagination, filtering) |
-| **Integration test validation** | 007-T050–059 integration tests will validate 001/004 endpoints comply with standards (error format, status codes, timestamps, field naming) |
-| **PR template extension** | 007-T035–036 extends .github/pull_request_template.md with API standards compliance checklist for all backend PR reviews |
-| **Documentation reference** | 007-T063–064 links standards doc from README and coding-guidelines.md for discoverability |
+| **Builds on spec 007** | The generated contract is cross-referenced from `docs/api-design-standards.md` (009-T023), which spec 007 promoted to `docs/`. No task-level blocking dependency — purely a documentation cross-link. |
+| **Extends CI** | 009-T018 adds a `swagger-drift` step to the existing `.github/workflows/backend-ci.yml`, reusing the `dorny/paths-filter` `backend` condition already in place for other required checks (same pattern as 003-T067 extending `backend-lint.yml`). |
+| **Reuses reference package** | 009-T009 annotates `backend/internal/example/handler.go`, the same throwaway reference package used by other specs' model→repository→service→handler pattern; no new domain code introduced. |
 
-**No blocking dependencies** — spec 007 is pure documentation/standards definition that runs in parallel with feature implementation.
-
-### Human Attention Required
-
-| Item | Detail |
-|------|--------|
-| **New spec review** | Spec 007 (API Design Standards and Conventions) added with 70 tasks. Review grouping and priorities. |
-| **Priority review** | Spec 007 priorities: P1 (Phases 1-3, 22 tasks — MVP standards doc), P2 (Phases 4-5 + most of Phase 7, 32 tasks — frontend examples + code review tools + tests), P3 (Phase 6 + Phase 7 validation, 16 tasks — external consumer docs + final validation). Phase 2 is CRITICAL BLOCKER for all other spec 007 work. |
-| **Status review** | All 70 new tasks default to `Backlog`. Mark Phase 1-2 tasks `Ready` to begin standards promotion workflow. |
-| **Issue column** | All 70 new spec 007 `Issue` fields are empty. **46 grouped tasks will form 13 issues** (with checklists); **24 standalone tasks will form 24 issues**. Total NEW issues: **37 issues** when `/sync-issues` runs. |
-| **Sprint column** | All spec 007 `Sprint` fields are empty. Populate during sprint planning. Recommend: Phase 1-2 (setup + foundational promotion) in first sprint, Phases 3-5 (user stories 1-3) in sprint 2, Phases 6-7 (user story 4 + polish) in sprint 3. |
-| **Parallel execution** | 38 of 70 tasks (54%) marked parallelizable in source — can run concurrently. User Stories 1-4 can proceed in parallel after Phase 2 completes. Integration tests (Phase 7) can run parallel to US2-US4. |
-| **Documentation-only feature** | Spec 007 is pure documentation/standards definition — no code implementation. Focuses on promoting standards doc to docs/, adding PR checklist, creating external consumer guide, and writing validation integration tests. |
-| **Foundation promotion complete** | Per conversation summary, spec 007 Phase 2 foundational tasks (007-T004–006) are ALREADY COMPLETE (docs/api-design-standards.md created, copilot-instructions.md updated). Mark these 3 tasks `Done` and update Status column. |
-
-### Critical Path Changes
-
-- **API standards now available**: Spec 007 Phase 2 (Foundational, tasks 007-T004–009) has been COMPLETED per conversation summary. The authoritative API standards document (docs/api-design-standards.md) is now the project-wide reference for all endpoint design.
-- **Backend endpoint compliance**: All backend endpoints defined in specs 001 and 004 must now follow conventions in docs/api-design-standards.md (resource naming, URL structure, request/response formats, error handling, pagination, filtering, sorting, rate limiting).
-- **No blocking impact on feature work**: Spec 007 is documentation-only and runs in parallel with implementation. Backend developers reference the standards doc when designing endpoints. Code reviewers use the PR checklist (007-T035–036) to verify compliance.
-- **Integration test enforcement**: Once spec 007 Phase 7 completes (007-T050–059), automated integration tests will validate endpoint compliance, reducing manual review burden.
-- **Revised critical path** (no change to feature implementation sequence):
-  ```
-  005-T001 (architecture setup)
-    → 005-T013–023 (foundational BLOCKER)
-      → [PARALLEL]:
-         - 005-T024–041 (backend architecture)
-         - 005-T042–060 (frontend architecture)
-         - 005-T061–109 (infrastructure architecture)
-      → 005-T110–119 (integration)
-        → [Feature implementation from 001-004 begins here]
-           - Backend endpoints follow docs/api-design-standards.md conventions
-           - 007-T050–059 integration tests validate compliance
-  ```
-
-### Next Steps
-
-1. **Review spec 007 grouping**: The 13 groups bundle 46 tasks into cohesive work items following user story boundaries (US1 standards accessibility, US2 frontend examples, US4 external docs, Polish integration tests). If any grouping doesn't align with team ownership, clear the `Group` value to split into standalone items.
-2. **Mark completed tasks**: Per conversation summary, spec 007 Phase 2 foundational tasks (007-T004, 007-T005, 007-T006) are ALREADY COMPLETE. Update their `Status` column to `Done` and record completion date in `Notes`.
-3. **Sprint planning**: Populate `Sprint` column for spec 007. Recommend sprint breakdown:
-   - **Sprint 1** (DONE): Phase 1-2 (T001–T009) — setup + standards doc promotion ✅ COMPLETE
-   - **Sprint 2**: Phase 3 (T010–T022) — User Story 1 (backend developer standards access, 13 tasks)
-   - **Sprint 3**: Phase 4-5 (T023–T041) — User Story 2-3 (frontend integration + code review tooling, 19 tasks)
-   - **Sprint 4**: Phase 6-7 (T042–T070) — User Story 4 + Polish (external docs + automated tests, 29 tasks)
-4. **Documentation-first decision**: Spec 007 establishes standards that inform 001/004 endpoint design. Recommend completing 007 Phase 3 (US1, 13 tasks) BEFORE implementing backend endpoints in 001 to ensure consistency from day one.
-5. **Run `/sync-issues`**: This will create **37 new GitHub issues** for spec 007 (13 grouped + 24 standalone). Grouped issues will have checklists with member tasks. Use labels: `documentation`, `standards`, `P1`/`P2`/`P3`.
-6. **Coordinate cross-spec work**: Spec 007 standards inform 001/004 endpoint design. Ensure backend teams reference docs/api-design-standards.md when defining handler routes, error responses, and pagination logic. Frontend teams use 007-T023–033 patterns for generic API client code.
-7. **Re-run `/build-roadmap`**: When spec 007 `tasks.md` is modified, a new spec is added, or existing specs are updated — the command preserves all `Group`, `Sprint`, `Priority`, `Status`, and `Issue` fields.
-
----
-
-**Total project task count**: **532 tasks** across 7 foundation specs  
-**Grouped work items**: **107 issues** (combining 370 tasks)  
-**Standalone work items**: **162 issues**  
-**Total GitHub issues when synced**: **269 issues**
-
----
-
-_End of reconciliation report. All human-owned fields preserved. Ready for sprint planning and `/sync-issues` execution._
-| G-SEC-PROMPT-IMPL | 2 | Prompt validation implementation (004-T052–053) |
-| G-SEC-SANITIZATION-TESTS | 2 | Output sanitization tests (004-T054–055) |
-| G-SEC-SANITIZATION-IMPL | 1 | Output sanitization implementation (004-T056) |
-| G-SEC-CONCURRENCY-TESTS | 1 | Optimistic locking tests (004-T058) |
-| G-SEC-CONCURRENCY-IMPL | 3 | Optimistic locking implementation (004-T059–061) |
-| G-SEC-LOGGING-TESTS | 2 | Security logging/metrics tests (004-T063–064) |
-| G-SEC-LOGGING-IMPL | 2 | CloudWatch logging/metrics implementation (004-T065–066) |
-| G-SEC-SECRETS-TESTS | 1 | Secrets Manager tests (004-T069) |
-| G-SEC-SECRETS-IMPL | 1 | AWS Secrets Manager client (004-T070) |
-| G-SEC-FRONTEND-AUTH-TESTS | 2 | Frontend auth context tests (004-T076–077) |
-| G-SEC-FRONTEND-AUTH-IMPL | 3 | Frontend auth context implementation (004-T078–080) |
-| G-SEC-FRONTEND-ROLE-TESTS | 2 | Frontend role hook tests (004-T081–082) |
-| G-SEC-FRONTEND-ROLE-IMPL | 2 | Frontend role-based UI implementation (004-T083–084) |
-| G-SEC-FRONTEND-RENDER-TESTS | 2 | Frontend secure rendering tests (004-T087–088) |
-| G-SEC-FRONTEND-RENDER-IMPL | 2 | Frontend secure rendering implementation (004-T089–090) |
-| G-SEC-FRONTEND-ERROR-TESTS | 2 | Frontend error handling tests (004-T092–093) |
-| G-SEC-FRONTEND-ERROR-IMPL | 2 | Frontend error handling implementation (004-T094–095) |
-| G-SEC-FRONTEND-PASSWORD | 2 | Frontend password change form (004-T097–098) |
-| G-SEC-QA-OWASP | 3 | OWASP Top 10 test vectors (004-T099–101) |
-| G-SEC-QA-LLM | 2 | OWASP LLM Top 10 test vectors (004-T102–103) |
-| G-SEC-QA-E2E | 3 | Security E2E tests (004-T108–110) |
-| G-SEC-QA-QUICKSTART | 7 | Automated quickstart scenario validation (004-T111–117) |
-| G-SEC-DOCS | 3 | Security documentation (004-T118–120) |
-| G-SEC-REFACTOR | 2 | Code cleanup and refactoring (004-T121–122) |
-| G-SEC-HARDENING | 3 | Additional security hardening (004-T123–125) |
-| G-SEC-VALIDATION | 6 | Final validation tasks (004-T127–132) |
-
-### Cross-Spec Dependencies (Spec 004)
-
-| Task | Depends on | Type | Description |
-|------|------------|------|-------------|
-| 004-T070 | 003-T045 | Requires | AWS Secrets Manager client needs secrets initialized by 003 |
-| 004-T073 | 003-T059 | Extends | Security CloudWatch log group with 30-day retention policy |
-| 004-T074 | 003-T062 | Extends | Auth failure CloudWatch alarm (integrates with 003 observability) |
-| 004-T075 | 003-T062 | Extends | Prompt injection CloudWatch alarm (integrates with 003 observability) |
-| 004-T126 | 002-T036 | Extends | Adds gitleaks pre-commit hook (complements 002 CI gate) |
-| 004-T129 | 002-T035 | Validates | Confirms frontend npm audit passes (002 CI gate) |
-| 004-T130 | 002-T034 | Validates | Confirms backend govulncheck passes (002 CI gate) |
-| 004-T057 | 001-T037 | Integration | Apply sanitization in AI integration layer (app code location TBD) |
+**No blocking dependencies on unfinished work** — spec 009 is additive tooling around the existing
+`internal/example` reference handler and CI pipeline; it does not block or get blocked by specs
+001–008 feature delivery.
 
 ### Human Attention Required
 
 | Item | Detail |
 |------|--------|
-| **New spec review** | Spec 004 (Security & Authentication/Authorization Model) added with 132 tasks. Review grouping and priorities. |
-| **Priority review** | All spec 004 priorities default to P1 (Phase 3 US1), P2 (Phase 4 US2, Phase 6 Polish), P3 (Phase 5 US3). Review and override if security work should have different sprint priorities. |
-| **Status review** | All 132 new tasks default to `Backlog`. Mark tasks `Ready` or `In Progress` as security implementation begins. |
-| **Issue column** | All 132 new spec 004 `Issue` fields are empty. **90 grouped tasks will form 29 issues** (with checklists); **42 standalone tasks will form 42 issues**. Total NEW issues: **71 issues** when `/sync-issues` runs. |
-| **Sprint column** | All spec 004 `Sprint` fields are empty. Populate during sprint planning. Security work is foundational — consider prioritizing Phase 2–3 (foundational + backend US1) early. |
-| **TDD mandate** | Spec 004 follows strict RED-GREEN-REFACTOR TDD workflow. All test tasks (RED phase) MUST be completed BEFORE implementation tasks (GREEN phase). This is non-negotiable per constitution. |
-| **004 cross-spec deps** | 8 tasks integrate with specs 001, 002, 003. Coordinate: 004-T070 needs 003-T045 (Secrets Manager); 004-T073–075 extend 003 CloudWatch infrastructure; 004-T057 integrates with 001 AI layer. |
-| **Security blocking** | Spec 004 Phase 2 (foundational tasks 004-T006–014) BLOCKS all security user stories. Must complete migrations and core utilities before auth/validation implementation can begin. |
-
-### Critical Path Changes
-
-- **New parallel path**: Security foundation (004-T001 → 004-T014) runs in parallel with application development (001), NFR validation (002), and infrastructure provisioning (003).
-- **Security integration points**:
-  - 004-T070 BLOCKS 004-T071–072 (JWT key rotation): requires 003-T045 (Secrets Manager setup)
-  - 004-T073–075 BLOCKS final deployment: CloudWatch alarms required for production readiness
-  - 004-T057 integrates with 001-T037 (AI itinerary service): sanitization must be applied before DB/client return
-- **TDD critical path**: Within spec 004, test tasks (RED phase) strictly BLOCK implementation tasks (GREEN phase). Example: 004-T015–017 (JWT tests) BLOCK 004-T018–021 (JWT implementation).
-- **Auth dependency cascade**: 004-T018–021 (JWT core) BLOCKS 004-T022–025 (auth middleware) BLOCKS 004-T026–035 (auth handlers) BLOCKS all frontend auth work (004-T076–098).
+| **New spec review** | Spec 009 (API Documentation via OpenAPI/Swagger) added with 26 tasks. Review phase priorities and dependency chain before sprint planning. |
+| **Priority** | All 26 tasks have a concrete priority (P1 for Phases 1–4, P2 for Phases 5–6) inherited from the spec's own phase headers — none are `TBD`. |
+| **Sprint column** | All 26 spec 009 `Sprint` fields are empty — intentionally left for the next Plan Sprints pass (this run does not assign sprints per its instructions). Per project memory, a Swagger/OpenAPI task was previously flagged as a Sprint 3 planning gap; that gap is now closed by this spec's existence and should be resolved explicitly in the next sprint-planning run. |
+| **Group column** | All 26 rows left standalone (no `Group` value). Candidate consolidation the PM may want to consider: 009-T007/T008 (same test file), 009-T018–T021 (US3 CI-gate phase), and 009-T022–T026 (Polish phase) each look like plausible single-issue groupings — left as a recommendation only, not applied automatically. |
+| **Issue column** | All 26 new spec 009 `Issue` fields are empty. If left standalone, running the issue-creation step would open **26 new issues**; if the PM applies the candidate groupings above, it could be as few as ~13–15 issues. |
+| **Status review** | All 26 new tasks default to `Backlog`. |
+| **Parallel execution** | 13 of 26 tasks (50%) carry the `[P]` flag in source. |
 
 ### Next Steps
 
-1. **Review spec 004 grouping**: The 29 groups bundle 90 tasks into cohesive work items following TDD workflow. If any grouping doesn't align with team velocity, clear the `Group` value to split into standalone items.
-2. **Sprint planning**: Populate `Sprint` column for spec 004. Recommend: Phase 2 (foundational) in first security sprint, Phase 3 (backend US1) in sprints 2-3, Phase 4 (frontend US2) in sprint 4, Phase 5-6 (QA + Polish) in final sprint.
-3. **Coordinate cross-spec work**: 004-T070 depends on 003-T045; 004-T073–075 extend 003-T059–062; 004-T057 integrates with 001-T037. Ensure teams coordinate on these integration points.
-4. **Run `/sync-issues`**: This will create **71 new GitHub issues** for spec 004 (29 grouped + 42 standalone). Grouped issues will have checklists with member tasks. Use labels: `security`, `tdd`, `P1`/`P2`/`P3`.
-5. **Begin security implementation**: Follow the critical path: `004-T001 → 004-T006–014 (foundational) → 004-T015–075 (backend US1) → 004-T076–098 (frontend US2) → 004-T099–117 (QA US3) → 004-T118–132 (polish)`. Remember TDD mandate: RED phase (tests) MUST come before GREEN phase (implementation).
-6. **Re-run `/build-roadmap`**: When spec 004 `tasks.md` is modified or a new spec is added — the command preserves all `Group`, `Sprint`, `Priority`, `Status`, and `Issue` fields.
+1. **Review spec 009 priorities and dependency chain** above before sprint planning.
+2. **Sprint planning**: run the Plan Sprints procedure to assign a `Sprint` value to the 26 new spec 009 rows (and decide whether to close the previously-flagged Sprint 3 Swagger/OpenAPI gap with this spec).
+3. **Decide on grouping**: review the candidate groupings noted above; if adopted, set the `Group` column accordingly before creating issues.
+4. **Run the issue-creation step** for any row with an empty `Issue` field once sprint/priority/grouping decisions are finalized.
+5. **Re-run this reconciliation** whenever `specs/*/tasks.md` changes or a new spec is added — it will preserve all `Group`, `Sprint`, `Priority`, `Status`, `Issue`, and `Notes` values already set.
 
 ---
 
-**Total project task count**: **331 tasks** across 4 foundation specs  
-**Grouped work items**: **71 issues** (combining 234 tasks)  
-**Standalone work items**: **97 issues**  
-**Total GitHub issues when synced**: **168 issues**
+**Total project task count**: **841 tasks** across 9 specs (001–009)  
+**Grouped work items**: **184 issues** (combining 546 tasks, specs 001–008 only)  
+**Standalone work items**: **295 issues** (includes all 26 new spec 009 tasks)  
+**Total issues when fully synced**: **479 issues**
 
 ---
 
-_End of reconciliation report. All human-owned fields preserved. Ready for sprint planning and `/sync-issues` execution._
+_End of reconciliation report. All human-owned fields for specs 001–008 preserved unchanged. Ready for sprint planning; do not run issue creation until Sprint/Priority/Group are reviewed for spec 009._
