@@ -11,24 +11,31 @@ Feature or task input (required): ${input:feature:Required. Describe the feature
 
 ## MANDATORY Prerequisites (Memory Loading)
 
-Before implementing, load project memory to ensure continuity:
+Before implementing, load project memory to ensure continuity. `session-notes.md` and
+`patterns-discovered.md` are large, append-only logs (tens of KB) — read them targeted, not in full,
+to avoid burning most of the context window before any code is touched:
 
-1. **Load Session Notes**: `read_file(".github/memory/session-notes.md")`
-   - Understand what has been built and decided
-   - Check for related work in previous sprints
-2. **Load Patterns Discovered**: `read_file(".github/memory/patterns-discovered.md")`
-   - Apply proven implementation patterns
-   - Avoid re-discovering known solutions
-3. **Load Working Notes**: `read_file(".github/memory/scratch/working-notes.md")`
-   - Check for in-progress work
-   - Avoid conflicts with current session
-4. **Confirm Memory Load**: Output brief confirmation before proceeding
+1. **Load Working Notes in full**: `read_file(".github/memory/scratch/working-notes.md")`
+   - Small by design. Check for in-progress work and avoid conflicts with the current session.
+2. **Targeted lookup in Patterns Discovered**: `grep` for keywords from the feature/task at hand
+   (component, domain, layer, tech e.g. "Zustand", "JWT", "handler") against
+   `.github/memory/patterns-discovered.md` and read only the matching entries.
+   - Only fall back to reading the full file if the grep yields no relevant hits and the task
+     touches a foundational/cross-cutting area (auth, data model, API conventions).
+3. **Targeted lookup in Session Notes**: `grep` the same keywords against
+   `.github/memory/session-notes.md`; if nothing matches, read only the most recent
+   (non-"Compacted") sprint section rather than the whole history.
+4. **Confirm Memory Load**: State which entries/sections were used (or that none matched) before proceeding.
 
 **Why this is mandatory:**
 - Prevents duplicate implementations
 - Ensures consistency with established patterns
 - Avoids conflicts with in-progress work
 - Maintains code quality standards
+
+**Why targeted, not full-file, reads:** these two files are shared, append-only project memory that
+grows every sprint (currently ~97KB / ~77KB). Reading both in full on every subagent invocation was
+a major contributor to running this agent at >150k context.
 
 ## Implementation Instructions
 

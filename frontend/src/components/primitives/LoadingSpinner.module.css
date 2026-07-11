@@ -1,0 +1,59 @@
+/*
+ * LoadingSpinner primitive styles.
+ * All values reference design tokens from src/styles/tokens.css — no hard-coded
+ * colors, spacing, radii, or transitions.
+ */
+
+.status {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.spinner {
+  border-radius: var(--radius-full);
+  border: 2px solid var(--color-neutral-300);
+  border-top-color: var(--color-primary);
+  /* Reuses the transition-token scale (no dedicated animation-duration
+   * token exists) so rotation speed still tracks the design system's
+   * timing scale rather than an arbitrary hard-coded value. */
+  animation: spin var(--transition-slow) linear infinite;
+}
+
+.sm {
+  width: var(--space-4);
+  height: var(--space-4);
+}
+
+.md {
+  width: var(--space-6);
+  height: var(--space-6);
+}
+
+.lg {
+  width: var(--space-8);
+  height: var(--space-8);
+}
+
+/* Visually hidden but still announced by screen readers (clip-based, not
+ * display: none, which would remove it from the accessibility tree too). */
+.srOnly {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
