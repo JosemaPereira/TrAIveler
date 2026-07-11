@@ -590,15 +590,15 @@
 | 005-T030 | Create backend/internal/ai/client.go defining AIClient interface with GenerateItinerary and StreamItinerary methods | G-SPRINT2-BACKEND-AI | 2 | P1 | Done | 005-T013 | yes | https://github.com/JosemaPereira/TrAIveler/issues/55 | Closed by PR #77. Scope extended with a working OllamaClient for local dev/MVP testing (free, no API key); Anthropic-backed client deferred to 005-T112 |
 | 005-T031 | Create backend/internal/ai/validator.go implementing prompt validation stub (to be enhanced with injection detection rules later) | G-SPRINT2-BACKEND-AI | 2 | P1 | Done | 005-T013 | yes | https://github.com/JosemaPereira/TrAIveler/issues/55 | Closed by PR #77 |
 | 005-T032 | Create backend/internal/ai/sanitizer.go implementing output sanitization stub (HTML/script stripping to be enhanced later) | G-SPRINT2-BACKEND-AI | 2 | P1 | Done | 005-T013 | yes | https://github.com/JosemaPereira/TrAIveler/issues/55 | Closed by PR #77 |
-| 005-T033 | Create backend/internal/errors/handler.go implementing domain error-to-HTTP status mapping (404, 400, 401, 403, 409, 500) with structured JSON responses | G-SPRINT2-BACKEND-ERRORS | 2 | P1 | Backlog | 005-T013 | yes | https://github.com/JosemaPereira/TrAIveler/issues/56 | |
-| 005-T034 | Create backend/internal/errors/types.go defining domain error types (ErrNotFound, ErrValidation, ErrUnauthorized, ErrForbidden, ErrConflict) | G-SPRINT2-BACKEND-ERRORS | 2 | P1 | Backlog | 005-T013 | yes | https://github.com/JosemaPereira/TrAIveler/issues/56 | |
+| 005-T033 | Create backend/internal/errors/handler.go implementing domain error-to-HTTP status mapping (404, 400, 401, 403, 409, 500) with structured JSON responses | G-SPRINT2-BACKEND-ERRORS | 2 | P1 | Done | 005-T013 | yes | https://github.com/JosemaPereira/TrAIveler/issues/56 | Closed by PR #74 |
+| 005-T034 | Create backend/internal/errors/types.go defining domain error types (ErrNotFound, ErrValidation, ErrUnauthorized, ErrForbidden, ErrConflict) | G-SPRINT2-BACKEND-ERRORS | 2 | P1 | Done | 005-T013 | yes | https://github.com/JosemaPereira/TrAIveler/issues/56 | Closed by PR #74 |
 | 005-T035 | Create backend/cmd/api/main.go implementing HTTPServer with Chi router, middleware chain registration (RequestID → Logger → Recovery → CORS → BodySize), health check endpoint, and graceful shutdown | G-SPRINT2-BACKEND-HTTP-SERVER | 2 | P1 | Done | 005-T024, 005-T029 | no | https://github.com/JosemaPereira/TrAIveler/issues/57 | Closed by PR #72 |
 | 005-T036 | Integrate backend/internal/database/client.go initialization in main.go with configuration from config package and connection pool lifecycle management | G-SPRINT2-BACKEND-HTTP-SERVER | 2 | P1 | Done | 005-T035 | no | https://github.com/JosemaPereira/TrAIveler/issues/57 | Closed by PR #72 |
 | 005-T037 | Add /healthz endpoint to main.go verifying database Ping() succeeds before returning 200 OK | G-SPRINT2-BACKEND-HTTP-SERVER | 2 | P1 | Done | 005-T036 | no | https://github.com/JosemaPereira/TrAIveler/issues/57 | Closed by PR #72 |
-| 005-T038 | Create backend/internal/example/model.go with sample domain model struct demonstrating naming conventions and field tags | G-SPRINT2-BACKEND-EXAMPLE | 2 | P1 | Backlog | 005-T013 | yes | https://github.com/JosemaPereira/TrAIveler/issues/58 | MUST DELETE once first real domain (e.g. Trip) ships — reference-only, see session-notes 2026-07-10 |
-| 005-T039 | Create backend/internal/example/repository.go implementing repository interface pattern with Create, FindByID, Update, Delete, List methods using pgx connection pool | G-SPRINT2-BACKEND-EXAMPLE | 2 | P1 | Backlog | 005-T029 | yes | https://github.com/JosemaPereira/TrAIveler/issues/58 | MUST DELETE once first real domain (e.g. Trip) ships — reference-only, see session-notes 2026-07-10 |
-| 005-T040 | Create backend/internal/example/service.go implementing service interface pattern with business logic, repository dependency injection, and domain error returns | G-SPRINT2-BACKEND-EXAMPLE | 2 | P1 | Backlog | 005-T039 | yes | https://github.com/JosemaPereira/TrAIveler/issues/58 | MUST DELETE once first real domain (e.g. Trip) ships — reference-only, see session-notes 2026-07-10 |
-| 005-T041 | Create backend/internal/example/handler.go implementing HTTP handler calling service layer, using errors.HandleError for error responses, and demonstrating context value extraction (requestID, userID) | G-SPRINT2-BACKEND-EXAMPLE | 2 | P1 | Backlog | 005-T040 | no | https://github.com/JosemaPereira/TrAIveler/issues/58 | MUST DELETE once first real domain (e.g. Trip) ships — reference-only, see session-notes 2026-07-10 |
+| 005-T038 | Create backend/internal/example/model.go with sample domain model struct demonstrating naming conventions and field tags | G-SPRINT2-BACKEND-EXAMPLE | 2 | P1 | Done | 005-T013 | yes | https://github.com/JosemaPereira/TrAIveler/issues/58 | Closed by PR #78. MUST DELETE once first real domain (e.g. Trip) ships — reference-only, see session-notes 2026-07-10 |
+| 005-T039 | Create backend/internal/example/repository.go implementing repository interface pattern with Create, FindByID, Update, Delete, List methods using pgx connection pool | G-SPRINT2-BACKEND-EXAMPLE | 2 | P1 | Done | 005-T029 | yes | https://github.com/JosemaPereira/TrAIveler/issues/58 | Closed by PR #78. MUST DELETE once first real domain (e.g. Trip) ships — reference-only, see session-notes 2026-07-10 |
+| 005-T040 | Create backend/internal/example/service.go implementing service interface pattern with business logic, repository dependency injection, and domain error returns | G-SPRINT2-BACKEND-EXAMPLE | 2 | P1 | Done | 005-T039 | yes | https://github.com/JosemaPereira/TrAIveler/issues/58 | Closed by PR #78. MUST DELETE once first real domain (e.g. Trip) ships — reference-only, see session-notes 2026-07-10 |
+| 005-T041 | Create backend/internal/example/handler.go implementing HTTP handler calling service layer, using errors.HandleError for error responses, and demonstrating context value extraction (requestID, userID) | G-SPRINT2-BACKEND-EXAMPLE | 2 | P1 | Done | 005-T040 | no | https://github.com/JosemaPereira/TrAIveler/issues/58 | Closed by PR #78. MUST DELETE once first real domain (e.g. Trip) ships — reference-only, see session-notes 2026-07-10 |
 
 #### Phase 4 — User Story 2: Frontend Application Structure (Priority: P1) 🎯 MVP → **Sprint 2**
 
@@ -1348,7 +1348,7 @@ The minimum sequential chain to reach a fully functional, security-hardened, dem
 
 ---
 
-### ⚡ Sprint 2: Backend & Frontend Architecture (Weeks 3-4)
+### ⚡ Sprint 2: Backend & Frontend Architecture (Weeks 3-4) ✅ **COMPLETE**
 
 **Epic Labels**: `epic:architecture-backend`, `epic:architecture-frontend`
 
@@ -1356,21 +1356,21 @@ The minimum sequential chain to reach a fully functional, security-hardened, dem
 
 **Scope**: Spec 005 Phase 3-4 (Backend + Frontend Architecture)
 
-**Status**: ✅ **Consolidation Applied** — 37 tasks → 14 work items (-62%)
+**Status**: ✅ **Complete** (2026-07-11) — All 37 tasks done across 14 work items (10 PRs)
 
-| Track | Tasks | Work Items | Key Deliverables |
-|-------|-------|------------|------------------|
-| Backend architecture | 18 | 6 groups/standalone | Middleware chain (5), DB client, AI interfaces (3), error handling (2), HTTP server (3), example domain (4) |
-| Frontend architecture | 19 | 8 groups/standalone | Design tokens (2), API config (2), auth store, App shell (3), primitives (7), composites, infrastructure (3) |
+| Track | Tasks | Work Items | Status | Key PRs |
+|-------|-------|------------|--------|---------|
+| Backend architecture | 18 | 6 (5 groups + 1 standalone) | ✅ Done | #68, #71, #72, #74, #77, #78 |
+| Frontend architecture | 19 | 8 (6 groups + 2 standalone) | ✅ Done | #79, #80, #81, #82 |
 
-**Total**: 37 tasks → **14 work items** (6 backend + 8 frontend)
+**Consolidation Groups (delivered)**:
 
-**Consolidation Groups**:
-- Backend: G-SPRINT2-BACKEND-{MIDDLEWARE, AI, ERRORS, HTTP-SERVER, EXAMPLE} + 1 standalone (DB client)
-- Frontend: G-SPRINT2-FRONTEND-{TOKENS, API-CONFIG, APP-SHELL, PRIMITIVES-CORE, PRIMITIVES-STATE, INFRASTRUCTURE} + 2 standalone (auth-store, Form)
+- Backend: G-SPRINT2-BACKEND-MIDDLEWARE (5 tasks, issue #54, PR #71), G-SPRINT2-BACKEND-AI (3 tasks, issue #55, PR #77), G-SPRINT2-BACKEND-ERRORS (2 tasks, issue #56, PR #74), G-SPRINT2-BACKEND-HTTP-SERVER (3 tasks, issue #57, PR #72), G-SPRINT2-BACKEND-EXAMPLE (4 tasks, issue #58, PR #78) + standalone 005-T029 DB client (issue #53, PR #68)
+- Frontend: G-SPRINT2-FRONTEND-TOKENS (2 tasks, issue #59, PR #79), G-SPRINT2-FRONTEND-API-CONFIG (2 tasks, issue #60, PR #81), G-SPRINT2-FRONTEND-APP-SHELL (3 tasks, issue #66, PR #81), G-SPRINT2-FRONTEND-PRIMITIVES-CORE (4 tasks, issue #63, PR #80), G-SPRINT2-FRONTEND-PRIMITIVES-STATE (3 tasks, issue #64, PR #82), G-SPRINT2-FRONTEND-INFRASTRUCTURE (3 tasks, issue #62, PR #81) + standalone 005-T046 auth store (issue #61, PR #82), 005-T055 Form (issue #65, PR #80)
 
-**Issue Creation**: Run `/create-sprint-issues 2` to create 14 consolidated GitHub issues (not 37)
-
+**Total**: 37 tasks → **14 work items** (-62%) (all complete)  
+**PRs**: #68 (DB connection pool), #71 (Chi middleware chain), #72 (HTTP server + health check), #74 (domain errors), #77 (AI client foundation, Ollama for MVP), #78 (reference implementation pattern), #79 (design tokens + test tooling), #80 (core primitives + Form), #81 (API/query client + app shell + routing + infra), #82 (auth store + state-display primitives)  
+**Actual completion**: 2026-07-11 (PR #82, merged 2026-07-11T04:46:19Z)  
 **Dependencies**: Sprint 1 complete
 
 ---
