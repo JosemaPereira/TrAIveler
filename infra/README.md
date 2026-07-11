@@ -9,7 +9,7 @@ for the TrAIveler application infrastructure on AWS.
 
 ---
 
-> **Implementation Status**: ✅ Foundation complete (Sprint 1, 2026-07-08) — Backend configuration, version constraints, directory structure, and CI workflow established. Terraform modules for VPC, ECS, RDS, ALB, CloudFront, and Secrets pending implementation in Sprint 3.
+> **Implementation Status**: ✅ Foundation complete (Sprint 1, 2026-07-08) — Backend configuration, version constraints, directory structure, and CI workflow established. ✅ VPC module implemented (Sprint 3, 2026-07-11) — network isolation, public/private subnets, and NAT (instance/gateway) routing. Terraform modules for ECS, RDS, ALB, CloudFront, and Secrets, plus root module wiring (`infra/main.tf` calling the modules) and `.tfvars`-driven `terraform apply`, remain pending in Sprint 3.
 
 ---
 

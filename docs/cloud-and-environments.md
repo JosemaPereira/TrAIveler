@@ -20,7 +20,7 @@ graph TB
         subgraph "Staging Environment (Active MVP)"
             S_VPC[VPC: 10.0.0.0/16]
             S_RDS[RDS: db.t4g.micro<br/>Single-AZ<br/>7-day backups]
-            S_ECS[ECS Fargate<br/>0.5 vCPU / 1GB RAM<br/>Auto-scale 1-5 tasks]
+            S_ECS[ECS Fargate<br/>0.25 vCPU / 0.5GB RAM<br/>Auto-scale 1-2 tasks]
             S_ALB[ALB]
             S_NAT[NAT Instance<br/>Cost optimized]
             S_CloudWatch[CloudWatch<br/>7-day retention]
@@ -79,7 +79,7 @@ graph TB
 - **Configuration**:
   - VPC: 10.0.0.0/16 CIDR block
   - RDS: db.t4g.micro PostgreSQL 15.4, single-AZ, 7-day backups
-  - ECS Fargate: 0.5 vCPU / 1GB RAM tasks, ARM64 Graviton2, auto-scaling 1-5 tasks
+  - ECS Fargate: 0.25 vCPU / 0.5 GB RAM tasks, ARM64 Graviton2, auto-scaling 1-2 tasks
   - NAT: NAT instance (cost savings: ~$57/month vs NAT Gateway)
   - CloudWatch logs: 7-day retention
 - **Cost Budget**: $200/month
@@ -303,7 +303,7 @@ graph TB
 **Target**: $200/month
 
 **Resource Breakdown**:
-- ECS Fargate (0.5 vCPU ARM64): ~$35/month (assuming 1-2 tasks running continuously)
+- ECS Fargate (0.25 vCPU ARM64): ~$9-18/month (assuming 1-2 tasks running continuously)
 - RDS db.t4g.micro single-AZ: ~$14.46/month
 - Application Load Balancer: ~$25/month
 - NAT Instance t4g.nano: ~$8/month (vs $57/month for NAT Gateway)
