@@ -1,9 +1,17 @@
+import { QueryClientProvider } from '@tanstack/react-query'
+import { RouterProvider } from 'react-router'
+
+import { ErrorBoundary } from './components/ErrorBoundary'
+import { queryClient } from './lib/query-client'
+import { router } from './routes'
+
 function App() {
   return (
-    <div className="container">
-      <h1>TrAIveler</h1>
-      <p>AI-Powered Travel Itinerary Planner</p>
-    </div>
+    <ErrorBoundary>
+      <QueryClientProvider client={queryClient}>
+        <RouterProvider router={router} />
+      </QueryClientProvider>
+    </ErrorBoundary>
   )
 }
 
