@@ -1335,3 +1335,73 @@ grep -n "npm test\|npm run" frontend/README.md .github/workflows/frontend-ci.yml
 ### Related Files
 - `frontend/tsconfig.json`
 - `.github/memory/session-notes.md` (2026-07-10 session — "Design System Tokens + Frontend Doc/Test Tooling Audit")
+
+---
+
+### Issue-Body Snippets and Doc Diagrams Go Stale — Verify Against the Real Source of Truth
+- Resolve conflicts by authority level, not by which text you read first
+- **Discovered**: 2026-07-10 — **Tool**: Claude Code
+
+### Context
+- Any ticket (frontend or backend) whose GitHub issue body includes illustrative pseudocode, or whose file placement is also described by a narrative doc (e.g. `docs/ui-guidelines.md`'s diagrams/tables)
+
+### Problem
+- This is now a recurring failure mode across at least three sessions: an issue body's example code used token names that don't exist in the real `tokens.css` (`--color-surface`, `--space-md`, …), a different issue's pseudocode used real backend package signatures that had since changed (`errors.NotFound`, `database.Client`), and this session's issue #63/#65 placed `Card.tsx` and `Form.tsx` under `components/primitives/` and `components/composites/` respectively — while `docs/ui-guidelines.md`'s atomic-design Mermaid diagram and table list `Card` as a *Composite* living directly in `src/components/`, not a Primitive. Trusting whichever source you read first (often the issue body, since it's front-and-center) produces code that's internally consistent but wrong relative to the actual authoritative source.
+- Issue bodies are written once at ticket-creation time and never updated as the codebase evolves; narrative docs like `docs/ui-guidelines.md` can also drift out of sync with the spec that actually generated the task breakdown.
+
+### Solution
+- Rank sources by authority, don't just pick the first one found:
+  1. **The actual current code** (e.g. `tokens.css`, existing sibling components, package signatures) — always verify identifiers/paths against it before use.
+  2. **`specs/<NNN>-*/tasks.md` and its sibling `data-model.md`** — per `docs/roadmap.md`'s own legend, these spec files are "the source of truth for task existence, titles, and dependencies." When a roadmap/issue file path conflicts with a narrative doc's diagram, the spec-level task definition wins (confirmed twice: T048-T051's real path came from `specs/005-system-architecture/tasks.md`, matching `docs/roadmap.md`, both of which disagree with `docs/ui-guidelines.md`'s diagram — go with the two agreeing, more specific sources).
+  3. **Root `docs/*.md`** (ui-guidelines, coding-guidelines, etc.) — canonical for conventions and values not pinned down at the spec/task level (e.g. actual token *values*, accessibility rules).
+  4. **GitHub issue body illustrative code** — lowest authority; treat as a sketch of intent, not a literal spec. Adapt names/paths/signatures to match tiers 1-3, and say so explicitly in the PR/session notes rather than silently deviating.
+- When a narrative doc (tier 3) is found to conflict with tier 1/2, don't try to "reconcile" it by editing both — just follow the higher-authority source and note the doc is stale (fixing the stale doc is a separate, explicit task, not a silent side effect of an unrelated ticket).
+
+### Example
+```
+Issue #63/#65 code snippets:  var(--color-surface), var(--space-md)   → don't exist
+Real tokens.css:               --color-white / --color-neutral-100, --space-4  → use these
+
+docs/ui-guidelines.md diagram: Card = Composite, lives in src/components/
+specs/005-.../tasks.md T051:   Card.tsx lives in src/components/primitives/
+docs/roadmap.md 005-T051:      same primitives/ path                 → spec+roadmap agree, follow them
+```
+
+### Related Files
+- `frontend/src/styles/tokens.css`
+- `docs/ui-guidelines.md` (atomic-design diagram — stale re: Card/Form placement)
+- `specs/005-system-architecture/tasks.md`, `specs/005-system-architecture/data-model.md`
+- `docs/roadmap.md`
+- `.github/memory/session-notes.md` (2026-07-10 sessions: tokens audit, and "Core UI Primitives + Form Composite")
+
+---
+
+### Vitest Without `test.globals: true` Needs an Explicit `afterEach(cleanup)` for React Testing Library
+- Silent cross-test DOM leakage in any file with more than one test case
+- **Discovered**: 2026-07-10 — **Tool**: Claude Code
+
+### Context
+- Frontend — any Vitest + React Testing Library component test file, this project's `frontend/vitest.config.ts`
+
+### Problem
+- React Testing Library auto-registers its DOM cleanup (`cleanup()`) after each test by detecting a global test-framework hook (`afterEach`) on `globalThis`. This project's `vitest.config.ts` does **not** set `test.globals: true` (deliberately — avoids polluting the global namespace), so RTL's auto-detection silently finds nothing and never runs cleanup. This was invisible for a long time because the only pre-existing test file (`App.test.tsx`) had exactly one test — a single-test file can't leak state into a next test that doesn't exist. The bug only surfaces once a file has 2+ tests in one `describe` block: earlier renders' DOM nodes accumulate and `screen.getByRole(...)`-style queries can match stale elements from a previous test, or fail with "multiple elements found" for what looks like a single-element query.
+
+### Solution
+- Register cleanup explicitly and centrally in the shared test setup file, once, rather than per-test-file or by flipping on `test.globals`: import `afterEach` from `vitest` and `cleanup` from `@testing-library/react` in `src/test/setup.ts`, and call `afterEach(() => cleanup())`. Every test file already loads this setup file via `vitest.config.ts`'s `test.setupFiles`, so no per-file boilerplate is needed once fixed centrally.
+
+### Example
+```ts
+// frontend/src/test/setup.ts
+import '@testing-library/jest-dom/vitest'
+import { afterEach } from 'vitest'
+import { cleanup } from '@testing-library/react'
+
+afterEach(() => {
+  cleanup()
+})
+```
+
+### Related Files
+- `frontend/src/test/setup.ts`
+- `frontend/vitest.config.ts` (`test.globals` intentionally unset)
+- `.github/memory/session-notes.md` (2026-07-10 session — "Core UI Primitives + Form Composite")
