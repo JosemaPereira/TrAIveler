@@ -11,14 +11,20 @@ Phase 5 is 49 tasks, 005-T061–T109, not the previously-drafted 24), pulled the
 accessibility-gate trio (002-T002, 002-T004, 002-T024) plus its untracked dependency 002-T022 forward
 from Sprint 9/unscheduled into Sprint 3, and assigned spec 009 (26 tasks, all P1/P2) to Sprint 4 —
 Sprint 3 was already at capacity once the Terraform count was corrected. See the Sprint 3 and Sprint 4
-entries under [Sprint Plan](#sprint-plan) for details.
+entries under [Sprint Plan](#sprint-plan) for details.  
+**Sprint 3 amended**: 2026-07-11 — pulled 003-T009 (Terraform remote-state bootstrap: S3 bucket +
+DynamoDB lock table) forward from unscheduled into Sprint 3 as a standalone work item, and added it as
+an explicit dependency of 005-T107, after diagnosing a local `terraform init` 403 AccessDenied that
+traced back to this task never having been scheduled. Marked its sibling 003-T010 (backend config from
+T009) as Superseded — already shipped via 005-T022/`infra/backend.tf` in Sprint 1. See the Sprint 3
+entry under [Sprint Plan](#sprint-plan) for details.
 
 ## Legend
 
 - **Group**: shared value (e.g. `G-SETUP-1`) = tasks handled by ONE issue (checklist inside); empty = standalone (1 task = 1 issue). Human-owned — set when grouping is desired.
 - **Sprint**: sprint number (1-10 for MVP) or milestone label. Human-owned — assigned during sprint planning. See **Sprint Plan** section below for details.
 - **Priority**: P1 (critical) | P2 | P3 | TBD
-- **Status**: Backlog | Ready | In Progress | In Review | Done
+- **Status**: Backlog | Ready | In Progress | In Review | Done | Superseded (not scheduled; work already delivered by another task)
 - **Parallel**: yes = task carries `[P]` flag in source (can run concurrently with peers)
 - **Issue**: link to the tracker issue once created (empty = not yet created). Grouped tasks share the same URL.
 
@@ -275,8 +281,8 @@ entries under [Sprint Plan](#sprint-plan) for details.
 
 | ID | Task | Group | Sprint | Priority | Status | Depends on | Parallel | Issue | Notes |
 |----|------|-------|--------|----------|--------|------------|----------|-------|-------|
-| 003-T009 | Create Terraform state bootstrap script: provisions S3 bucket (`trAIveler-terraform-state`) with versioning and encryption, DynamoDB table (`trAIveler-terraform-locks`) | | | P1 | Backlog | 003-T001 | no | | |
-| 003-T010 | Create Terraform backend configuration using S3 bucket and DynamoDB table from T009 | | | P1 | Backlog | 003-T009 | no | | |
+| 003-T009 | Create Terraform state bootstrap script: provisions S3 bucket (`trAIveler-terraform-state`) with versioning and encryption, DynamoDB table (`trAIveler-terraform-locks`) | | 3 | P1 | Backlog | 003-T001 | no | https://github.com/JosemaPereira/TrAIveler/issues/96 | Pulled forward into Sprint 3 (2026-07-11) — hard blocker for 005-T107 (`terraform init` in CI has no real S3/DynamoDB backend to init against otherwise). Dependency 003-T001 is functionally already satisfied by 005-T004 (Done, Sprint 1, issue #22) which created the `infra/` tree. Bucket/table names must be lowercase (`traveler-terraform-state` / `traveler-terraform-locks`) to match the already-shipped `infra/backend.tf` (005-T022, issue #18) — AWS S3 does not allow uppercase bucket names, so the original mixed-case spec text cannot be taken literally. **AWS-cost-avoidance note (2026-07-11)**: this task is script authoring only — the script must NOT be executed (no bucket/table actually provisioned) until infra refinement is complete; no target sprint set yet for lifting this. |
+| 003-T010 | Create Terraform backend configuration using S3 bucket and DynamoDB table from T009 | | | P1 | Superseded | 003-T009 | no | | Superseded by 005-T022 (Done, Sprint 1, issue #18, PR #49) — `infra/backend.tf` already implements this exact S3+DynamoDB backend configuration. Not scheduled; keep as historical record only. |
 | 003-T011 | Create AWS provider configuration with default tags (Project, Environment, ManagedBy, CostCenter); region: us-east-1 | G-INFRA-TF-CONFIG | | P1 | Backlog | 003-T001 | yes | | |
 | 003-T012 | Create GitHub Actions OIDC trust policy JSON templates for staging and production environments | G-INFRA-TF-CONFIG | | P1 | Backlog | 003-T001 | yes | | |
 | 003-T013 | Create IAM OIDC identity provider Terraform module: configures GitHub OIDC provider in AWS, creates IAM roles for staging and production | | | P1 | Backlog | 003-T012 | no | | |
@@ -680,8 +686,8 @@ entries under [Sprint Plan](#sprint-plan) for details.
 | 005-T104 | Create infra/outputs.tf exporting CI/CD-relevant outputs (ecr_repository_url, ecs_cluster_name, ecs_service_name, s3_bucket_name, cloudfront_distribution_id) | G-SPRINT3-INFRA-ROOT-WIRING | 3 | P1 | Backlog | 005-T103 | no | https://github.com/JosemaPereira/TrAIveler/issues/90 | |
 | 005-T105 | Create infra/environments/staging.tfvars with cost-optimized configuration (vpc_cidr 10.0.0.0/16, enable_nat_gateway false, task_cpu 256, task_memory 512, min_tasks 1, max_tasks 2, log_retention_days 7, instance_class db.t4g.micro, multi_az false, backup_retention_days 1) | G-SPRINT3-INFRA-ROOT-WIRING | 3 | P1 | Backlog | 005-T103 | yes | https://github.com/JosemaPereira/TrAIveler/issues/90 | |
 | 005-T106 | Create infra/environments/production.tfvars with production configuration (vpc_cidr 10.1.0.0/16, enable_nat_gateway true, task_cpu 1024, task_memory 2048, min_tasks 2, max_tasks 20, log_retention_days 30, instance_class db.t4g.small, multi_az true, backup_retention_days 30) | G-SPRINT3-INFRA-ROOT-WIRING | 3 | P1 | Backlog | 005-T103 | yes | https://github.com/JosemaPereira/TrAIveler/issues/90 | |
-| 005-T107 | Update .github/workflows/infra-plan.yml implementing terraform init, terraform validate, terraform fmt -check, terraform plan for both staging and production .tfvars, and PR comment with plan output | G-SPRINT3-INFRA-CICD | 3 | P1 | Backlog | 005-T019, 005-T104 | no | https://github.com/JosemaPereira/TrAIveler/issues/91 | |
-| 005-T108 | Create .github/workflows/infra-apply.yml implementing terraform apply -auto-approve for staging on main merge, with output export to GitHub Secrets for backend-ci.yml and frontend-ci.yml | G-SPRINT3-INFRA-CICD | 3 | P1 | Backlog | 005-T107 | no | https://github.com/JosemaPereira/TrAIveler/issues/91 | |
+| 005-T107 | Update .github/workflows/infra-plan.yml implementing terraform init, terraform validate, terraform fmt -check, terraform plan for both staging and production .tfvars, and PR comment with plan output | G-SPRINT3-INFRA-CICD | 3 | P1 | Backlog | 003-T009, 005-T019, 005-T104 | no | https://github.com/JosemaPereira/TrAIveler/issues/91 | Added 003-T009 as explicit dependency (2026-07-11) — `terraform init` needs the real S3/DynamoDB backend to exist first. |
+| 005-T108 | Create .github/workflows/infra-apply.yml implementing terraform apply -auto-approve for staging on main merge, with output export to GitHub Secrets for backend-ci.yml and frontend-ci.yml | G-SPRINT3-INFRA-CICD | 3 | P1 | Backlog | 005-T107 | no | https://github.com/JosemaPereira/TrAIveler/issues/91 | **AWS-cost-avoidance note (2026-07-11)**: the workflow file may be authored in Sprint 3, but must not actually run for real against AWS (no live `terraform apply` on merge to `main`) until infra refinement is complete — no target sprint set yet for lifting this; keep the trigger inert/gated or the workflow unmerged to `main` until then. |
 | 005-T109 | Configure OIDC federation in AWS IAM (manual step documented in infra/README.md) creating IAM role with trust policy for GitHub Actions and permissions for Terraform operations | | 3 | P1 | Backlog | 005-T108 | no | https://github.com/JosemaPereira/TrAIveler/issues/92 | |
 
 #### Phase 6 — User Story 4: Integration and Error Handling Patterns (Priority: P2) → **Sprint 4**
@@ -1459,14 +1465,40 @@ The minimum sequential chain to reach a fully functional, security-hardened, dem
 > dependency ordering). **002-T023** (tagging all existing E2E specs with `@accessibility`) stays in
 > Sprint 9, since the gate itself (T024) can land now and become fully effective once T023 lands later.
 > See `G-SPRINT3-A11Y-CI` below.
+>
+> ✅ **Planning note resolved (2026-07-11)**: a second gap surfaced while diagnosing a local
+> `terraform init` 403 AccessDenied against the `traveler-terraform-state` S3 backend —
+> **003-T009** (the Terraform remote-state bootstrap script that actually provisions the S3 bucket
+> and DynamoDB lock table `infra/backend.tf` already points to) had never been scheduled to any
+> sprint. `005-T022` (Sprint 1, Done, issue #18) only wrote the backend *configuration*; the
+> underlying AWS resources were left as an undocumented manual step, so `terraform init` cannot
+> succeed anywhere — locally or in CI — until they exist. **003-T009** is pulled forward into this
+> sprint and added as an explicit dependency of **005-T107** (the task that turns `infra-plan.yml`
+> into a real `terraform init`/`plan` pipeline), so the bucket/table are guaranteed to exist before
+> CI attempts to initialize against them. Its sibling **003-T010** ("create backend configuration
+> from T009") is **superseded** — `005-T022`/`infra/backend.tf` already shipped that exact backend
+> configuration in Sprint 1 — and stays unscheduled. See the standalone `003-T009` row in the work
+> items table below.
+>
+> **AWS-cost-avoidance constraint (2026-07-11)**: nothing in this sprint may actually provision or
+> touch real AWS resources until the Terraform infra has been fully refined (no target sprint set yet
+> for lifting this). Concretely: **003-T009** ships as script code only — the bootstrap script is
+> authored but not executed, so `traveler-terraform-state`/`traveler-terraform-locks` are not actually
+> created this sprint. **005-T107**'s `terraform init`/`plan` therefore also cannot run for real in CI
+> against that backend yet. **005-T108** (`infra-apply.yml`) may be authored but must not be allowed to
+> trigger a live `terraform apply` on merge to `main`. **005-T109** (OIDC federation) is likewise
+> deferred in practice, even once its issue is filed. Doc/roadmap edits and issue creation are exempt
+> from this constraint (no AWS cost); only actual resource-creation/apply commands are blocked.
 
 **Epic Label**: `epic:architecture-infra` (continuation)
 
-**Goal**: Complete Terraform modules for all AWS resources and CI/CD patterns, and pull the
+**Goal**: Complete Terraform modules for all AWS resources and CI/CD patterns, pull the
 accessibility CI gate forward so it isn't sitting unenforced for 6+ sprints after frontend components
-started shipping in Sprint 2.
+started shipping in Sprint 2, and pull the Terraform remote-state bootstrap script forward so
+`terraform init` in CI has a real backend to initialize against.
 
 **Scope**: Spec 005 Phase 5 (Infrastructure completion) + accessibility-CI pull-forward from Spec 002
++ Terraform state bootstrap pull-forward from Spec 003 (003-T009)
 
 > **Correction**: the previous draft of this sprint under-counted the Terraform scope as "24 tasks" —
 > Spec 005 Phase 5 is actually **49 tasks** (005-T061–T109). That correction, on its own, already puts
@@ -1483,19 +1515,30 @@ started shipping in Sprint 2.
 | G-SPRINT3-INFRA-CLOUDFRONT | 6 | `infra/modules/cloudfront/` — S3 origin bucket, OAI, distribution, variables, outputs, tagging |
 | G-SPRINT3-INFRA-SECRETS | 3 | `infra/modules/secrets/` — Secrets Manager placeholders for DB/AI-key/JWT, variables, outputs |
 | G-SPRINT3-INFRA-ROOT-WIRING | 5 | Root `main.tf` module wiring, root variables/outputs, staging + production `.tfvars` |
-| G-SPRINT3-INFRA-CICD | 2 | `infra-plan.yml` (real plan/validate/fmt) + `infra-apply.yml` (staging auto-apply) |
-| 005-T109 (standalone) | 1 | OIDC federation in AWS IAM (manual step, documented in `infra/README.md`) — depends on CICD group |
+| 003-T009 (standalone) | 1 | `infra/terraform/scripts/bootstrap-state.sh` — authors the script that will provision the `traveler-terraform-state` S3 bucket + `traveler-terraform-locks` DynamoDB table that `infra/backend.tf` (Sprint 1) already points to; hard blocker for `terraform init` in G-SPRINT3-INFRA-CICD. **Script authored only — not executed** (AWS-cost-avoidance constraint, 2026-07-11; no target sprint yet for lifting it) |
+| G-SPRINT3-INFRA-CICD | 2 | `infra-plan.yml` (real plan/validate/fmt) + `infra-apply.yml` (staging auto-apply — **workflow authored only; not expected to trigger for real against AWS yet**, same AWS-cost-avoidance constraint) |
+| 005-T109 (standalone) | 1 | OIDC federation in AWS IAM (manual step, documented in `infra/README.md`) — depends on CICD group; also gated by the same AWS-cost-avoidance constraint (no live AWS provisioning yet) |
 | G-SPRINT3-A11Y-CI | 4 | `@lhci/cli`/`@axe-core/playwright` deps, `lighthouserc.yml`, `checkPageA11y` E2E helper, `accessibility.yml` PR-gate workflow |
 
-**Total**: 53 tasks → **10 work items** (-81% vs. ungrouped) (9 Terraform work items covering 49 tasks + 1 accessibility-CI work item covering 4 tasks)  
+**Total**: 54 tasks → **11 work items** (-80% vs. ungrouped) (9 Terraform work items covering 49 tasks + 1 standalone Terraform state bootstrap task + 1 accessibility-CI work item covering 4 tasks)  
 **Consolidation rationale**: each Terraform module (main.tf + variables.tf + outputs.tf + tagging) is one
 reviewable PR by nature — splitting them further would fragment a single Terraform module across
 multiple tickets for no reviewability benefit. The accessibility-CI group bundles a small, tightly-coupled
-CI/config change set (deps → config → helper → workflow) that ships together.  
+CI/config change set (deps → config → helper → workflow) that ships together. **003-T009** is kept
+standalone rather than folded into `G-SPRINT3-INFRA-CICD` — it is both a critical blocker (needs
+individual visibility per the consolidation checklist) and cross-spec (003 vs. 005), so it does not
+meet the "same spec" consolidation criterion even though it shares the Terraform/AWS tech stack.  
 **Risks**: AWS account limits, Terraform state management, module PRs running larger than the usual
 2-4 task guideline (accepted here — see consolidation rationale above), accessibility gate landing before
-its own E2E tagging task (002-T023, Sprint 9) — the workflow will initially have little to check against  
-**Dependencies**: Sprint 2 complete (005-T022 Terraform provider config; 002-T002 for the LHCI/axe-core deps)
+its own E2E tagging task (002-T023, Sprint 9) — the workflow will initially have little to check against;
+003-T009's bootstrap script provisions the Terraform backend itself, so it must run via plain AWS
+CLI/scripting (not Terraform) before any `terraform init` can succeed — a chicken-and-egg constraint
+inherent to remote-state bootstrapping, not a defect (currently moot in practice — see AWS-cost-avoidance
+constraint above: the script is not being executed this sprint); the AWS-cost-avoidance constraint itself
+means 003-T009/005-T107/005-T108/005-T109 land as authored-but-unexecuted code this sprint, so `terraform
+init`/`plan`/`apply` validation against a real backend is deferred to whenever that constraint lifts  
+**Dependencies**: Sprint 2 complete (005-T022 Terraform provider config; 002-T002 for the LHCI/axe-core deps);
+003-T001/005-T004 (infra/ directory structure, Done Sprint 1) for 003-T009
 
 ---
 
