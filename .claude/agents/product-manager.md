@@ -66,9 +66,8 @@ Beyond product planning, you execute and track delivery with PM discipline:
 - **Sprint reports** — generate sprint summaries: goal, committed work, completed work, velocity, blockers, risks, decisions
 - **Status updates** — create concise status for stakeholders: RAG (red/amber/green) health, key accomplishments, upcoming milestones, escalations needed
 - **Retrospective facilitation** — synthesize sprint retrospectives: what went well, what didn't, action items for improvement
-- **Memory consolidation** — at sprint closure, consolidate session-notes.md to prevent memory bloat:
-  - Compact old foundation/planning sessions into summary sections
-  - Keep recent implementation sessions (current + previous sprint) in full detail
+- **Memory consolidation** — at EVERY sprint closure, consolidate session-notes.md to prevent memory bloat:
+  - Compact that sprint's own just-finished "(Detailed)" implementation section into a "(Compacted)" summary section immediately (do not defer to a later sprint's closure) — same Key Outcomes / Key Decisions format as existing compacted sections
   - Preserve all key outcomes, decisions, and patterns
   - Move backup to .github/memory/scratch/
   - Target: maintain ~200-300 lines for session-notes.md for fast agent loading

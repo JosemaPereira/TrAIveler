@@ -9,9 +9,11 @@ typed API client, accessibility helpers, and unit/integration tests.
 
 ---
 
-> **Implementation Status**: 🔄 Sprint 2 in progress (as of 2026-07-10) — frontend application
-> structure (Spec 005 Phase 4) is now complete; Sprint 3 continues with infrastructure modules
-> (see [`docs/roadmap.md`](../docs/roadmap.md))
+> **Implementation Status**: ✅ Sprint 2 complete (closed 2026-07-11) — frontend application
+> structure (Spec 005 Phase 4) shipped in full, across issues #59–#66 (PRs #79–#82). Sprint 3
+> (Weeks 5–6) covers Terraform infrastructure modules, not further frontend work — the next
+> frontend-specific work (auth pages, trip dashboard, feature components) lands in later sprints
+> per [`docs/roadmap.md`](../docs/roadmap.md).
 > - ✅ Sprint 1 (2026-07-07): project scaffolding — Vite + React 19 + TypeScript strict mode, Atomic
 >   Design directories, core dependencies (TanStack Query v5, Zustand, React Router v7, Lucide
 >   React), ESLint + Prettier configured, dev server functional at http://localhost:5173

@@ -15,7 +15,8 @@ This document defines the standardized approach for mock generation across the T
     └── <interface>_mock.go   # Generated mock (build tag: test)
 ```
 
-### Examples
+### Examples (as actually built)
+
 ```
 internal/database/
 ├── client.go                 # Client interface
@@ -23,15 +24,20 @@ internal/database/
     └── client_mock.go        # MockClient (generated)
 
 internal/ai/
-├── provider.go               # Provider interface
+├── client.go                 # AIClient interface
 └── mocks/
-    └── provider_mock.go      # MockProvider (generated)
+    └── ai_client_mock.go     # MockAIClient (generated)
 
-internal/subscription/
-├── service.go                # Service interface
+internal/example/              # Reference pattern (throwaway — see backend/README.md)
+├── repository.go             # Repository interface
+├── service.go                 # Service interface
 └── mocks/
+    ├── repository_mock.go    # MockRepository (generated)
     └── service_mock.go       # MockService (generated)
 ```
+
+Future domain packages (e.g. `internal/trip/`, `internal/subscription/` — not yet built, see
+`backend/README.md`'s Project Structure) are expected to follow the same pattern once they exist.
 
 ## Configuration
 
@@ -128,7 +134,10 @@ func TestService_WithMock(t *testing.T) {
 ## Examples
 
 ### Complete Example
-See: [client_mock_example_test.go](../backend/internal/database/client_mock_example_test.go)
+See: [service_test.go](../backend/internal/example/service_test.go) — mocks `Repository` via
+`examplemocks.NewMockRepository(t)` with the `EXPECT()` fluent API, covering both the happy path
+and `DomainError` propagation (`internal/example` is the canonical reference implementation, see
+`backend/README.md`'s Project Structure).
 
 ### Generated Mock
 See: [client_mock.go](../backend/internal/database/mocks/client_mock.go)
@@ -142,6 +151,6 @@ See: [client_mock.go](../backend/internal/database/mocks/client_mock.go)
 
 ---
 
-**Last Updated:** 2026-07-09  
+**Last Updated:** 2026-07-11  
 **Status:** Active Standard  
 **Applies To:** All new interfaces requiring mocks

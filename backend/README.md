@@ -9,13 +9,20 @@ repositories, AI integration, observability middleware, and security primitives.
 
 ---
 
-> **Implementation Status**: Configuration, linting, environment templates, the PostgreSQL client
-> (`internal/database/`), observability/security middleware (`internal/middleware/`), the HTTP
-> server entry point (`cmd/api/`, issue #57), and the AI client foundation (`internal/ai/`, issue
-> #55 — `AIClient` interface, prompt-validator/output-sanitizer stubs, and a working `OllamaClient`
-> for local dev/MVP testing) are complete and unit-tested (Sprint 2). The Chi router exposes
-> `GET /healthz`. Domain routes (trips, auth, itinerary, ...) and the Anthropic-backed `AIClient`
-> implementation are not yet built.
+> **Implementation Status**: ✅ Sprint 2 complete (closed 2026-07-11) — Configuration, linting,
+> environment templates, the PostgreSQL client (`internal/database/`, issue #53),
+> observability/security middleware (`internal/middleware/`, issue #54), domain error handling
+> (`internal/errors/`, issue #56), the HTTP server entry point (`cmd/api/`, issue #57), the AI
+> client foundation (`internal/ai/`, issue #55 — `AIClient` interface, prompt-validator/output-
+> sanitizer stubs, and a working `OllamaClient` for local dev/MVP testing), and the
+> model→repository→service→handler reference pattern (`internal/example/`, issue #58) are complete
+> and unit-tested. The Chi router exposes `GET /healthz` and, via the reference pattern, a demo
+> `/api/v1/examples` CRUD resource. **No real domain package exists yet**: `internal/{auth, trip,
+> itinerary, conversation, suggestion, subscription}` and `pkg/{health, middleware, response}`
+> shown below under "Target" are still unbuilt, and the Anthropic-backed `AIClient` implementation
+> is not yet written. `internal/example/` itself is throwaway reference code — it must be deleted
+> once the first real domain package ships (tracked in `.github/memory/patterns-discovered.md`),
+> not a permanent feature.
 
 ---
 
@@ -56,39 +63,18 @@ The backend exposes a RESTful JSON API consumed by the frontend SPA. Its primary
 
 ## Project Structure
 
+### Current
+
+Everything below is real, built, and unit-tested as of Sprint 2's close (2026-07-11):
+
 ```
 backend/
 ├── cmd/
 │   └── api/
 │       ├── main.go                   # Process entry point: config → DB client → HTTP server → graceful shutdown
-│       ├── server.go                 # HTTPServer: builds the Chi router, middleware chain, and /healthz handler
-│       └── routes.go                 # registerRoutes(): single place new endpoints are wired up
+│       ├── server.go                 # HTTPServer: builds the Chi router, middleware chain, /healthz handler, and the internal/example wiring
+│       └── routes.go                 # registerRoutes(): single place new endpoints are wired up (currently /healthz + /api/v1/examples)
 ├── internal/                         # Domain packages — not importable outside this module
-│   ├── auth/
-│   │   ├── handler.go                # HTTP handlers: POST /register /login /logout, GET /me, DELETE /users/me
-│   │   ├── service.go                # Auth business logic: Register (bcrypt), Login (JWT), Me
-│   │   ├── repository.go             # User DB operations: Create, FindByEmail, FindByID, UpdateSubscription
-│   │   └── user_deletion_test.go     # Integration test: right-to-deletion (NFR-PRIV-001)
-│   ├── trip/
-│   │   ├── handler.go                # Trip + collaborator HTTP handlers (GET/POST/PUT/DELETE /trips)
-│   │   ├── service.go                # Trip service: CRUD, plan-limit enforcement for collaborators
-│   │   └── repository.go             # Trip, Destination, Day, Activity, Collaborator DB operations
-│   ├── itinerary/
-│   │   ├── handler.go                # POST /trips/:id/generate — prompt validation + AI dispatch
-│   │   └── service.go                # Build Claude prompt, stream response, parse tool-use, persist
-│   ├── conversation/
-│   │   ├── handler.go                # POST/GET /trips/:id/conversation — SSE streaming
-│   │   └── service.go                # Multi-turn session management, anchor-place detection
-│   ├── suggestion/
-│   │   ├── handler.go                # GET/POST /trips/:id/suggestions, PATCH .../approve|reject
-│   │   └── service.go                # Submit, Approve (applies to itinerary), Reject (preserves history)
-│   ├── subscription/
-│   │   ├── handler.go                # GET /plans, POST /checkout /confirm, GET /current
-│   │   ├── service.go                # Plan management, checkout via payment provider
-│   │   ├── repository.go             # Plan and Subscription DB operations
-│   │   └── payment/
-│   │       ├── provider.go           # PaymentProvider interface (swappable for real provider post-MVP)
-│   │       └── stub.go               # StubProvider: always succeeds, logs [STUB] to stdout
 │   ├── middleware/
 │   │   ├── request_id.go             # Generates/propagates X-Request-ID correlation ID (NFR-OBS-003)
 │   │   ├── logger.go                 # Structured HTTP log middleware using log/slog (NFR-OBS-001)
@@ -107,23 +93,80 @@ backend/
 │   │   ├── ollama_client.go          # OllamaClient: real AIClient impl for local dev/MVP (see docs/local-ai-setup.md)
 │   │   └── mocks/
 │   │       └── ai_client_mock.go     # Generated AIClient mock (vektra/mockery)
-│   └── database/
-│       └── client.go                 # pgxpool connection pooling, fail-fast retry, DI-friendly interface
-├── pkg/                              # Packages safe to import from outside internal/
+│   ├── database/
+│   │   └── client.go                 # pgxpool connection pooling, fail-fast retry, DI-friendly interface
+│   └── example/                      # Canonical model→repository→service→handler reference pattern (issue #58)
+│       ├── model.go                  # Example entity + validation
+│       ├── repository.go             # PostgresRepository: CRUD + optimistic-locking (version column)
+│       ├── service.go                # Business logic layer, calls repository
+│       ├── handler.go                # HTTP handlers mounted at /api/v1/examples (If-Match optimistic-locking header)
+│       └── mocks/                    # Generated repository/service mocks (vektra/mockery)
+├── config/
+│   ├── config.go                     # Env var loading with fail-fast validation on missing required vars
+│   └── config_test.go
+└── migrations/
+    └── 20260710120000_create_examples_table.sql  # Goose timestamp-versioned migration for the examples table
+```
+
+> **`internal/example/` is throwaway reference code, not a permanent feature.** It exists solely to
+> demonstrate the model→repository→service→handler layering, optimistic locking, and pagination
+> conventions new domain packages should follow — it must be deleted once the first real domain
+> package (e.g. Trip) ships. Its migration is deliberately timestamp-versioned
+> (`20260710120000_...`) rather than sequentially numbered, because the sequential `001`–`016`
+> range is reserved for the real foundational domain tables cataloged in
+> [`docs/data-model.md`](../docs/data-model.md).
+>
+> `pkg/` and `config/prompt-rules.yml` / `alerts.yml` / `backup-policy.yml` referenced in earlier
+> planning docs do not exist yet — `pkg/` currently holds only a `.gitkeep` placeholder.
+
+### Target (planned, future specs)
+
+Not yet built. Listed here so contributors know where new domain code is expected to land, per the
+architecture in [`docs/architecture.md`](../docs/architecture.md) and the API contract in
+[`specs/001-product-vision-scope/contracts/api.md`](../specs/001-product-vision-scope/contracts/api.md):
+
+```
+backend/
+├── internal/
+│   ├── auth/
+│   │   ├── handler.go                # HTTP handlers: POST /register /login /logout, GET /me, DELETE /users/me
+│   │   ├── service.go                # Auth business logic: Register (bcrypt), Login (JWT), Me
+│   │   ├── repository.go             # User DB operations: Create, FindByEmail, FindByID, UpdateSubscription
+│   │   └── user_deletion_test.go     # Integration test: right-to-deletion (NFR-PRIV-001)
+│   ├── trip/
+│   │   ├── handler.go                # Trip + collaborator HTTP handlers (GET/POST/PUT/DELETE /trips)
+│   │   ├── service.go                # Trip service: CRUD, plan-limit enforcement for collaborators
+│   │   └── repository.go             # Trip, Destination, Day, Activity, Collaborator DB operations
+│   ├── itinerary/
+│   │   ├── handler.go                # POST /trips/:id/generate — prompt validation + AI dispatch
+│   │   └── service.go                # Build Claude prompt, stream response, parse tool-use, persist
+│   ├── conversation/
+│   │   ├── handler.go                # POST/GET /trips/:id/conversation — SSE streaming
+│   │   └── service.go                # Multi-turn session management, anchor-place detection
+│   ├── suggestion/
+│   │   ├── handler.go                # GET/POST /trips/:id/suggestions, PATCH .../approve|reject
+│   │   └── service.go                # Submit, Approve (applies to itinerary), Reject (preserves history)
+│   └── subscription/
+│       ├── handler.go                # GET /plans, POST /checkout /confirm, GET /current
+│       ├── service.go                # Plan management, checkout via payment provider
+│       ├── repository.go             # Plan and Subscription DB operations
+│       └── payment/
+│           ├── provider.go           # PaymentProvider interface (swappable for real provider post-MVP)
+│           └── stub.go               # StubProvider: always succeeds, logs [STUB] to stdout
+├── pkg/                              # Packages safe to import from outside internal/ (currently empty)
 │   ├── health/
-│   │   └── handler.go                # GET /healthz — HealthCheckResponse (NFR-OBS-002)
+│   │   └── handler.go                # GET /healthz — HealthCheckResponse (NFR-OBS-002); today this lives inline in cmd/api/server.go instead
 │   ├── middleware/
 │   │   ├── auth.go                   # JWT cookie validation; attaches User to request context
 │   │   └── role.go                   # RequireRole("admin"|"partner") guard factory
 │   └── response/
 │       └── response.go               # JSON Success() and Error() response helpers
 ├── config/
-│   ├── config.go                     # Env var loading with fail-fast validation on missing required vars
 │   ├── prompt-rules.yml              # Versioned deny-list patterns for the PromptValidator
 │   ├── alerts.yml                    # Error-rate alerting rule definitions (NFR-OBS-004)
 │   └── backup-policy.yml             # RPO ≤ 24 h backup schedule and restore instructions
 └── migrations/
-    └── 001_*.sql … 008_*.sql         # Goose SQL migration files (sequential, never edited after merge)
+    └── 001_*.sql … 016_*.sql         # Sequential Goose migrations for the real domain tables (docs/data-model.md)
 ```
 
 ---
@@ -228,9 +271,9 @@ go mod download                 # install dependencies
 go fmt ./... && goimports -w .  # format (run before committing)
 golangci-lint run ./...         # lint — must pass with zero errors before merge
 
-go test ./... -race -count=1                          # unit + integration tests
-go test -tags=test -v ./... -short                     # unit tests only (no Docker required)
-go test ./internal/... -coverprofile=coverage.out       # coverage (target: ≥80% for internal/)
+make test                       # unit tests only (no Docker required) — go test -tags=test -v ./... -short
+make test-all                   # ALL tests, including testcontainers — requires Colima/Docker running
+make test-coverage              # coverage report (CI configuration) — target: ≥80% for internal/
 go tool cover -func=coverage.out
 
 gosec -severity high -confidence medium ./...   # SAST scan — zero HIGH findings required
@@ -240,9 +283,11 @@ gitleaks detect --source . --verbose            # secret scanning
 make mocks                      # regenerate mocks (vektra/mockery) into */mocks subdirectories
 ```
 
-Testcontainers-based integration tests (`make test-all`, `make test-integration`) additionally
-require a running container runtime and `DATABASE_URL`; see `Makefile` (`make help` for the full
-target list).
+Most test files carry a `//go:build test` constraint, so plain `go test ./...` (no `-tags=test`)
+silently compiles and runs only the untagged subset — always pass `-tags=test`, or use the `make`
+targets above, which already do. `make test-integration` is a deprecated alias that now just prints
+a pointer to `make test-all` and exits nonzero — testcontainers-based integration tests were folded
+into `test-all` to avoid duplicate coverage. See `Makefile` (`make help` for the full target list).
 
 ---
 
@@ -259,8 +304,8 @@ Variables](#environment-variables)); connections are recycled after 1h (`MaxConn
 idle (`MaxConnIdleTime`).
 
 Mocks are generated with `vektra/mockery` (`make mocks`) into `<package>/mocks/`. See
-[Mock Standards](../docs/mock-standards.md) and `internal/database/client_mock_example_test.go`
-for usage examples.
+[Mock Standards](../docs/mock-standards.md) and `internal/example/service_test.go` for a complete
+usage example (`examplemocks.NewMockRepository(t)` with the fluent `EXPECT()` API).
 
 ### Middleware (`internal/middleware/`)
 
@@ -313,9 +358,12 @@ future domain/business handler (trips, suggestions, auth, ...) to use. The two c
 implementation because `internal/errors` already imports `middleware` (for
 `RequestIDFromContext`); a reverse import would create an import cycle.
 
-Not yet wired into any handler — no existing endpoint calls `errors.HandleError()` (`/healthz` uses
-its own local `writeJSON`, unrelated). Issue #58, next in the sprint and currently blocked on this
-one, is what will first import and use this package from a real handler.
+Wired into a real handler as of issue #58 (`internal/example/`, the reference pattern described in
+[Project Structure](#project-structure)): its `handler.go` calls `errors.HandleError()` on every
+error path, and `service.go`/`repository.go` construct `Conflict`/`NotFound` `DomainError`s for
+duplicate emails, missing rows, and optimistic-locking version mismatches. `/healthz` still uses its
+own local `writeJSON` in `cmd/api/server.go`, unrelated to this package — it predates `internal/errors`
+and has no domain-error case to report.
 
 ### AI client foundation (`internal/ai/`)
 
@@ -367,7 +415,20 @@ checks the database, that one does not.
 
 ## API Overview
 
-All endpoints are prefixed `/api/v1`. Authentication uses an HTTP-only cookie (`auth_token`).
+All versioned endpoints are prefixed `/api/v1`. Authentication uses an HTTP-only cookie (`auth_token`).
+
+### Built today
+
+| Group | Endpoints | Auth |
+|-------|-----------|------|
+| Health | `GET /healthz` | None |
+| Examples (reference pattern, throwaway — see [Project Structure](#project-structure)) | `GET/POST /api/v1/examples`, `GET/PUT/DELETE /api/v1/examples/:id` | None (no auth wired into this demo resource) |
+
+### Planned (not yet built)
+
+The domain routes below are the target API contract — none of them exist in the codebase yet (no
+`auth`/`trip`/`itinerary`/`conversation`/`suggestion`/`subscription` package has been created, see
+[Project Structure](#project-structure)'s "Target" tree):
 
 | Group | Endpoints | Auth |
 |-------|-----------|------|
@@ -378,7 +439,6 @@ All endpoints are prefixed `/api/v1`. Authentication uses an HTTP-only cookie (`
 | Conversation | `POST/GET /trips/:id/conversation` | Required |
 | Collaborators | `POST/DELETE /trips/:id/collaborators/:user_id` | Required (admin) |
 | Suggestions | `GET/POST /trips/:id/suggestions`, `PATCH .../approve`, `PATCH .../reject` | Required |
-| Health | `GET /healthz` | None |
 
 Full request/response schemas: [`specs/001-product-vision-scope/contracts/api.md`](../specs/001-product-vision-scope/contracts/api.md) and [`specs/002-nfr-system-constraints/contracts/api.md`](../specs/002-nfr-system-constraints/contracts/api.md).
 
@@ -387,9 +447,12 @@ Full request/response schemas: [`specs/001-product-vision-scope/contracts/api.md
 ## Docker
 
 Multi-stage `Dockerfile`, optimized for AWS ECS Fargate (Graviton2/`linux/arm64`): a `golang:1.26-alpine`
-builder compiles a static (`CGO_ENABLED=0`, stripped) binary, copied into a non-root
-`alpine:3.19` runtime image. A `HEALTHCHECK` polls `GET /healthz` (30s interval, 10s timeout, 30s
-start period, 3 retries) — ECS uses the same signal to replace unhealthy containers.
+builder stage — pinned to `--platform=$BUILDPLATFORM` so it always compiles natively rather than
+under QEMU emulation, then cross-compiles the target arch via `GOOS`/`GOARCH` — produces a static
+(`CGO_ENABLED=0`, stripped) binary, copied into a non-root `alpine:3.23` runtime image (bumped from
+3.19, which had fallen out of its security-support window). A `HEALTHCHECK` polls `GET /healthz`
+(30s interval, 10s timeout, 30s start period, 3 retries) — ECS uses the same signal to replace
+unhealthy containers.
 
 This image mirrors the ECS deployment target, where `AI_PROVIDER=anthropic` is expected — pass it
 explicitly, since `AI_PROVIDER` otherwise defaults to `ollama` (see [Environment
@@ -408,11 +471,14 @@ docker run -p 8080:8080 \
 
 ## Continuous Integration
 
-Workflow: [`.github/workflows/backend-ci.yml`](../.github/workflows/backend-ci.yml) — runs on every
-PR and push to `main` touching `backend/**`.
+Workflow: [`.github/workflows/backend-ci.yml`](../.github/workflows/backend-ci.yml) — the `pull_request`
+trigger runs unconditionally on every PR (deliberately not `paths:`-filtered, so the required status
+check never gets stuck at "Expected"), but its `lint`/`test`/`build` jobs are skipped via an `if:`
+gate unless the PR actually touches `backend/**`; the `push` trigger to `main` is `paths:`-filtered
+to `backend/**` directly.
 
 1. **Lint** — `golangci-lint` (errcheck, govet, staticcheck, revive, gosec); must pass with zero errors.
-2. **Test** — `go test ./... -race -coverprofile=coverage.out` against a PostgreSQL 15.4 service container (target: ≥80% coverage for `internal/`).
+2. **Test** — `make test-coverage` (`go test -tags=test -short -race -coverprofile=coverage.out`) against a `postgres:15.4-alpine` service container — pinned to match the RDS `engine_version` planned for staging/production, not a stale version (target: ≥80% coverage for `internal/`).
 3. **Build** — multi-stage Docker image for `linux/arm64`, tagged with the git SHA and uploaded as an artifact (not yet pushed to ECR — planned for Sprint 3).
 
 ---

@@ -23,12 +23,12 @@
         ".github/prompts/plan-sprints.prompt.md"
       ],
       "hashes": {
-        ".claude/agents/product-manager.md": "b9d1ca2d5952371db5f6fec8a221c6440c41058bc6e4f16f91ea6066f284af48",
-        ".github/agents/product-manager.agent.md": "67e5a32fa4ed17b7469c6db49851ba5af1e6656fef97b84a28e4bf1c95ef0f70",
+        ".claude/agents/product-manager.md": "06d886b591027086b659652dd8910aa8e88e163c98cb5938092bae1b2c3dda5e",
+        ".github/agents/product-manager.agent.md": "2aaebfe269352945997709d10fddfdb49d44a2da3a6b3d98e033b223ab7dc35f",
         ".github/prompts/create-sprint-issues.prompt.md": "076748ec8cd1bb43e19f6dd2b7259a071d593eac19ce7103fdaae15572879d96",
         ".github/prompts/plan-sprints.prompt.md": "51eb559e8ff8d4d4006263e8a89821f3771175d59fe0c5ec0f3bb5916ac68399"
       },
-      "last_synced": "2026-07-09"
+      "last_synced": "2026-07-10"
     },
     {
       "name": "tdd-developer",
