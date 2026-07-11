@@ -57,6 +57,9 @@ export function Form({
 
   async function handleSubmit(event: SyntheticEvent<HTMLFormElement>) {
     event.preventDefault()
+    // Capture currentTarget synchronously: React nulls it out (matching
+    // native DOM behavior) once this handler returns, so it would be stale
+    // by the time the `await onSubmit(...)` below resolves.
     const form = event.currentTarget
 
     setFormError(null)
