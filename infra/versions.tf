@@ -25,6 +25,14 @@ terraform {
       # Constraint prevents major version upgrades that could break existing configurations
       version = "~> 5.0"
     }
+
+    random = {
+      source = "hashicorp/random"
+
+      # Used by the RDS module to generate the database master password
+      # (random_password), so a real secret value is never hardcoded.
+      version = "~> 3.0"
+    }
   }
 }
 

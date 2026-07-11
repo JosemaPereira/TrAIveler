@@ -9,7 +9,7 @@ for the TrAIveler application infrastructure on AWS.
 
 ---
 
-> **Implementation Status**: ✅ Foundation complete (Sprint 1, 2026-07-08) — Backend configuration, version constraints, directory structure, and CI workflow established. ✅ VPC module implemented (Sprint 3, 2026-07-11) — network isolation, public/private subnets, and NAT (instance/gateway) routing. Terraform modules for ECS, RDS, ALB, CloudFront, and Secrets, plus root module wiring (`infra/main.tf` calling the modules) and `.tfvars`-driven `terraform apply`, remain pending in Sprint 3.
+> **Implementation Status**: ✅ Foundation complete (Sprint 1, 2026-07-08) — Backend configuration, version constraints, directory structure, and CI workflow established. ✅ VPC module implemented (Sprint 3, 2026-07-11) — network isolation, public/private subnets, and NAT (instance/gateway) routing. ✅ RDS module implemented (Sprint 3, 2026-07-11) — PostgreSQL 15.4 instance on private subnets, ECS-only security group, and Secrets Manager–backed credentials. Terraform modules for ECS, ALB, CloudFront, and Secrets, plus root module wiring (`infra/main.tf` calling the modules) and `.tfvars`-driven `terraform apply`, remain pending in Sprint 3.
 
 ---
 
@@ -61,7 +61,7 @@ infra/
 │   │   ├── variables.tf
 │   │   └── outputs.tf
 │   ├── rds/
-│   │   ├── main.tf                   # RDS instance, subnet group, security group
+│   │   ├── main.tf                   # RDS instance, subnet group, security group, Secrets Manager DB credentials
 │   │   ├── variables.tf
 │   │   └── outputs.tf
 │   ├── alb/
@@ -73,7 +73,8 @@ infra/
 │   │   ├── variables.tf
 │   │   └── outputs.tf
 │   └── secrets/
-│       ├── main.tf                   # Secrets Manager secrets for DB, AI API key, JWT keys
+│       ├── main.tf                   # Secrets Manager secrets for AI API key and JWT signing keys
+│       │                             # (DB credentials are created directly by the rds module)
 │       ├── variables.tf
 │       └── outputs.tf
 ├── environments/
