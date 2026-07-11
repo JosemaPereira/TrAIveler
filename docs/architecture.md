@@ -288,3 +288,26 @@ implementation, selected via the `AI_PROVIDER` environment variable (default `ol
 
 See **[docs/local-ai-setup.md](local-ai-setup.md)** for installation, model selection, and
 `docker-compose` wiring.
+
+## Planned Addendum: Generated API Documentation (Swagger/OpenAPI)
+
+This section is an addendum outside the promoted architecture above — it does not change any
+component boundary, it only documents a new generated-artifact surface. Defined in
+`specs/009-api-documentation/` (spec/plan/research complete; implementation not yet built as of this
+writing).
+
+The backend will gain a machine-readable OpenAPI v3 contract, generated code-first from Go
+doc-comment annotations via `swaggo/swag`, and served through Swagger UI via
+`swaggo/http-swagger/v2`:
+
+- **`backend/docs/`** — new generated-artifact directory (`docs.go`, `swagger.json`,
+  `swagger.yaml`), committed to the repository like other generated artifacts in this codebase
+  (e.g. `*mocks` packages per `docs/mock-standards.md`), and drift-checked in CI (see
+  `docs/testing-guidelines.md`).
+- **`/swagger/*` routes** (`GET /swagger/doc.json`, `GET /swagger/index.html`) — mounted inside the
+  same Chi route group as `/api/v1`, so Swagger UI automatically inherits whatever authentication
+  middleware Sprint 5 adds to that group. No bespoke auth is invented ahead of that; until Sprint 5
+  lands, these routes have no auth, matching every other route today.
+
+This complements, and does not replace, `docs/api-design-standards.md` §16 (the human-readable
+conventions source of truth).
