@@ -1468,3 +1468,36 @@ Real convention (unit test, mocks fetch directly): frontend/src/lib/api-client.t
 - `docs/testing-guidelines.md`
 - `frontend/src/lib/api-client.test.ts`, `frontend/src/lib/query-client.test.ts`
 - `.github/memory/session-notes.md` (2026-07-10 session — "App Shell Infrastructure")
+
+---
+
+### Targeted (Grep-First) Memory Loading Instead of Full-File Reads in Subagent Prompts
+- **Discovered**: 2026-07-10 — **Tool**: Claude Code
+
+### Context
+- Any subagent (or top-level workflow) instruction that mandates loading this repo's shared memory (`.github/memory/session-notes.md`, `.github/memory/patterns-discovered.md`) before doing work — currently `.claude/agents/tdd-developer.md` and its Copilot mirror `.github/prompts/implement-feature.prompt.md`.
+
+### Problem
+- Both memory files are deliberately append-only and grow every sprint (currently ~97KB/~77KB — session-notes.md alone is >450 lines). A "MANDATORY: read_file(...) both files in full before implementing" instruction was consuming most of a subagent's context budget before it touched any code, and got worse every sprint since the files only grow. This is a self-inflicted version of the same problem these files exist to prevent (losing continuity) — except here continuity was being purchased at the cost of the context needed to actually use it.
+
+### Solution
+- Replace "read the whole file" with a two-tier approach: always read the small, non-growing `scratch/working-notes.md` in full (it's gitignored scratch state, kept deliberately small), then `grep` the two large files for keywords derived from the current feature/task (component name, domain, tech e.g. "Zustand", "JWT", "handler") and read only the matching entries/sections. Only fall back to a full read of one of the large files if the grep yields nothing **and** the task touches a foundational/cross-cutting area (auth, data model, API conventions) where silently missing an entry is costly. State which entries were used (or that none matched) instead of a generic "memory loaded" confirmation, so the gap is visible if the grep missed something relevant.
+- When porting this kind of instruction-file change, remember it's hand-ported content covered by `scripts/agent-port-manifest.json` (see the drift-detection pattern above) — apply the same edit to both `.claude/agents/<name>.md` and its Copilot `.github/prompts/<name>.prompt.md` mirror in the same pass, then refresh the manifest hashes, rather than letting the two drift.
+
+### Example
+```
+Before: "1. read_file('.github/memory/session-notes.md')  2. read_file('.github/memory/patterns-discovered.md')"
+        → both files loaded in full, every invocation, regardless of task relevance.
+
+After:  "1. read_file('.github/memory/scratch/working-notes.md') (small, always read in full)
+         2. grep '<task keywords>' .github/memory/patterns-discovered.md → read only matching entries
+         3. grep '<task keywords>' .github/memory/session-notes.md → read only matching entries,
+            or just the latest non-'Compacted' sprint section if nothing matches"
+```
+
+### Related Files
+- `.claude/agents/tdd-developer.md`
+- `.github/prompts/implement-feature.prompt.md`
+- `scripts/agent-port-manifest.json`
+- `scripts/check-agent-drift.py`
+- `.github/memory/session-notes.md` (2026-07-10 session — "Auth Store + State Display Primitives")
