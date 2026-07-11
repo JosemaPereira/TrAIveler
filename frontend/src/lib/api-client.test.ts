@@ -53,7 +53,9 @@ describe('unit: apiFetch', () => {
   })
 
   it('sends Content-Type: application/json on every request', async () => {
-    vi.mocked(fetch).mockResolvedValue(jsonResponse({}, { status: 200, ok: true }))
+    vi.mocked(fetch).mockResolvedValue(
+      jsonResponse({}, { status: 200, ok: true })
+    )
 
     await apiFetch('/trips')
 
@@ -63,7 +65,9 @@ describe('unit: apiFetch', () => {
   })
 
   it('generates and sends a client X-Request-ID header on every request', async () => {
-    vi.mocked(fetch).mockResolvedValue(jsonResponse({}, { status: 200, ok: true }))
+    vi.mocked(fetch).mockResolvedValue(
+      jsonResponse({}, { status: 200, ok: true })
+    )
 
     await apiFetch('/trips')
 
@@ -73,7 +77,9 @@ describe('unit: apiFetch', () => {
   })
 
   it('always sets credentials to include', async () => {
-    vi.mocked(fetch).mockResolvedValue(jsonResponse({}, { status: 200, ok: true }))
+    vi.mocked(fetch).mockResolvedValue(
+      jsonResponse({}, { status: 200, ok: true })
+    )
 
     await apiFetch('/trips')
 
@@ -84,13 +90,20 @@ describe('unit: apiFetch', () => {
   it('throws a clear error instead of silently defaulting when VITE_API_BASE_URL is unset', async () => {
     vi.stubEnv('VITE_API_BASE_URL', undefined)
 
-    await expect(apiFetch('/trips')).rejects.toThrow('VITE_API_BASE_URL is not set')
+    await expect(apiFetch('/trips')).rejects.toThrow(
+      'VITE_API_BASE_URL is not set'
+    )
     expect(fetch).not.toHaveBeenCalled()
   })
 
   it('uses VITE_API_BASE_URL when it is set', async () => {
-    vi.stubEnv('VITE_API_BASE_URL', 'https://api-staging.traveler.example.com/api/v1')
-    vi.mocked(fetch).mockResolvedValue(jsonResponse({}, { status: 200, ok: true }))
+    vi.stubEnv(
+      'VITE_API_BASE_URL',
+      'https://api-staging.traveler.example.com/api/v1'
+    )
+    vi.mocked(fetch).mockResolvedValue(
+      jsonResponse({}, { status: 200, ok: true })
+    )
 
     await apiFetch('/trips')
 
@@ -105,16 +118,22 @@ describe('unit: apiFetch', () => {
         error: 'validation_failed',
         message: 'One or more fields failed validation',
         request_id: 'req_abc123xyz',
-        fields: [{ field: 'email', error: 'Email address is already registered' }],
+        fields: [
+          { field: 'email', error: 'Email address is already registered' },
+        ],
       }
-      vi.mocked(fetch).mockResolvedValue(jsonResponse(envelope, { status, ok: false }))
+      vi.mocked(fetch).mockResolvedValue(
+        jsonResponse(envelope, { status, ok: false })
+      )
 
       await expect(apiFetch('/trips')).rejects.toMatchObject({
         status,
         code: 'validation_failed',
         message: 'One or more fields failed validation',
         requestId: 'req_abc123xyz',
-        fields: [{ field: 'email', error: 'Email address is already registered' }],
+        fields: [
+          { field: 'email', error: 'Email address is already registered' },
+        ],
       })
     }
   )
@@ -125,7 +144,9 @@ describe('unit: apiFetch', () => {
       message: 'Trip not found',
       request_id: 'req_xyz789',
     }
-    vi.mocked(fetch).mockResolvedValue(jsonResponse(envelope, { status: 404, ok: false }))
+    vi.mocked(fetch).mockResolvedValue(
+      jsonResponse(envelope, { status: 404, ok: false })
+    )
 
     await expect(apiFetch('/trips/missing')).rejects.toBeInstanceOf(APIError)
   })
@@ -136,16 +157,22 @@ describe('unit: apiFetch', () => {
       message: 'Missing or invalid auth token',
       request_id: 'req_auth001',
     }
-    vi.mocked(fetch).mockResolvedValue(jsonResponse(envelope, { status: 401, ok: false }))
+    vi.mocked(fetch).mockResolvedValue(
+      jsonResponse(envelope, { status: 401, ok: false })
+    )
 
-    await expect(apiFetch('/trips')).rejects.toMatchObject({ fields: undefined })
+    await expect(apiFetch('/trips')).rejects.toMatchObject({
+      fields: undefined,
+    })
   })
 })
 
 describe('unit: api method helpers', () => {
   beforeEach(() => {
     vi.stubGlobal('fetch', vi.fn())
-    vi.spyOn(crypto, 'randomUUID').mockReturnValue('22222222-2222-2222-2222-222222222222')
+    vi.spyOn(crypto, 'randomUUID').mockReturnValue(
+      '22222222-2222-2222-2222-222222222222'
+    )
   })
 
   afterEach(() => {
@@ -154,7 +181,9 @@ describe('unit: api method helpers', () => {
   })
 
   it('sends a GET request', async () => {
-    vi.mocked(fetch).mockResolvedValue(jsonResponse({ ok: true }, { status: 200, ok: true }))
+    vi.mocked(fetch).mockResolvedValue(
+      jsonResponse({ ok: true }, { status: 200, ok: true })
+    )
 
     await api.get('/trips')
 
@@ -163,7 +192,9 @@ describe('unit: api method helpers', () => {
   })
 
   it('sends a POST request with a JSON-serialized body', async () => {
-    vi.mocked(fetch).mockResolvedValue(jsonResponse({ ok: true }, { status: 201, ok: true }))
+    vi.mocked(fetch).mockResolvedValue(
+      jsonResponse({ ok: true }, { status: 201, ok: true })
+    )
 
     await api.post('/trips', { name: 'Tokyo' })
 
@@ -173,7 +204,9 @@ describe('unit: api method helpers', () => {
   })
 
   it('sends a PUT request with a JSON-serialized body', async () => {
-    vi.mocked(fetch).mockResolvedValue(jsonResponse({ ok: true }, { status: 200, ok: true }))
+    vi.mocked(fetch).mockResolvedValue(
+      jsonResponse({ ok: true }, { status: 200, ok: true })
+    )
 
     await api.put('/trips/trip_1', { name: 'Tokyo Updated' })
 
@@ -183,7 +216,9 @@ describe('unit: api method helpers', () => {
   })
 
   it('sends a PATCH request with a JSON-serialized body', async () => {
-    vi.mocked(fetch).mockResolvedValue(jsonResponse({ ok: true }, { status: 200, ok: true }))
+    vi.mocked(fetch).mockResolvedValue(
+      jsonResponse({ ok: true }, { status: 200, ok: true })
+    )
 
     await api.patch('/trips/trip_1', { name: 'Tokyo Patched' })
 
@@ -193,7 +228,9 @@ describe('unit: api method helpers', () => {
   })
 
   it('sends a DELETE request', async () => {
-    vi.mocked(fetch).mockResolvedValue(jsonResponse({}, { status: 204, ok: true }))
+    vi.mocked(fetch).mockResolvedValue(
+      jsonResponse({}, { status: 204, ok: true })
+    )
 
     await api.delete('/trips/trip_1')
 

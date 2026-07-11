@@ -1,7 +1,12 @@
 import { describe, expect, it } from 'vitest'
 
 import { APIError } from './api-client'
-import { getErrorMessage, getFieldErrors, isAPIError, queryClient } from './query-client'
+import {
+  getErrorMessage,
+  getFieldErrors,
+  isAPIError,
+  queryClient,
+} from './query-client'
 
 describe('unit: queryClient configuration', () => {
   it('sets staleTime to 5 minutes', () => {
@@ -78,7 +83,12 @@ describe('unit: isAPIError', () => {
 
 describe('unit: getErrorMessage', () => {
   it('returns the message of an APIError', () => {
-    const error = new APIError(422, 'validation_failed', 'Field is invalid', 'req_1')
+    const error = new APIError(
+      422,
+      'validation_failed',
+      'Field is invalid',
+      'req_1'
+    )
 
     expect(getErrorMessage(error)).toBe('Field is invalid')
   })
@@ -95,10 +105,16 @@ describe('unit: getErrorMessage', () => {
 
 describe('unit: getFieldErrors', () => {
   it('maps an APIError fields array into a field-to-error record', () => {
-    const error = new APIError(422, 'validation_failed', 'Invalid fields', 'req_1', [
-      { field: 'email', error: 'Email address is already registered' },
-      { field: 'start_date', error: 'Start date must be in the future' },
-    ])
+    const error = new APIError(
+      422,
+      'validation_failed',
+      'Invalid fields',
+      'req_1',
+      [
+        { field: 'email', error: 'Email address is already registered' },
+        { field: 'start_date', error: 'Start date must be in the future' },
+      ]
+    )
 
     expect(getFieldErrors(error)).toEqual({
       email: 'Email address is already registered',

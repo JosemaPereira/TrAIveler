@@ -142,14 +142,23 @@ export const api = {
   get: <T>(endpoint: string, options?: RequestInit): Promise<T> =>
     apiFetch<T>(endpoint, { ...options, method: 'GET' }),
 
-  post: <T>(endpoint: string, body?: unknown, options?: RequestInit): Promise<T> =>
-    withBody<T>(endpoint, 'POST', body, options),
+  post: <T>(
+    endpoint: string,
+    body?: unknown,
+    options?: RequestInit
+  ): Promise<T> => withBody<T>(endpoint, 'POST', body, options),
 
-  put: <T>(endpoint: string, body?: unknown, options?: RequestInit): Promise<T> =>
-    withBody<T>(endpoint, 'PUT', body, options),
+  put: <T>(
+    endpoint: string,
+    body?: unknown,
+    options?: RequestInit
+  ): Promise<T> => withBody<T>(endpoint, 'PUT', body, options),
 
-  patch: <T>(endpoint: string, body?: unknown, options?: RequestInit): Promise<T> =>
-    withBody<T>(endpoint, 'PATCH', body, options),
+  patch: <T>(
+    endpoint: string,
+    body?: unknown,
+    options?: RequestInit
+  ): Promise<T> => withBody<T>(endpoint, 'PATCH', body, options),
 
   delete: <T>(endpoint: string, options?: RequestInit): Promise<T> =>
     apiFetch<T>(endpoint, { ...options, method: 'DELETE' }),
