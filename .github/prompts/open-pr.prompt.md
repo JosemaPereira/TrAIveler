@@ -51,3 +51,24 @@ The PR body MUST follow the structure defined in `.github/PULL_REQUEST_TEMPLATE.
 - Proper Markdown formatting (headers with ##, bullet lists, checkboxes)
 - English language throughout
 - Stable IDs and Spec references when available from commits or roadmap
+- Every issue/PR cross-reference (Dependencies, Next Steps, etc.) written as a bare `#N` **inside a
+  Markdown list item**, per Issue/PR Reference Formatting below — never as a paragraph line
+
+## Issue/PR Reference Formatting
+
+GitHub auto-expands a bare `#N` issue/PR reference into a rich card (icon + full title + number)
+only when that reference sits inside a Markdown list item (a `-`/`*`/numbered line). The exact same
+`#N` syntax left in plain paragraph text renders as a short link with just the number — same repo,
+same reference, different rendering, purely based on list-vs-paragraph placement.
+
+So: **every** issue/PR reference in the PR body — `Depends on`, `Blocks`, `Related` in the
+Dependencies section, `Next Steps`, anywhere else — MUST be written as a bare `#N` (never a
+hand-typed title next to it, never a manually-built Markdown link) placed inside a list item, so
+GitHub does the title expansion itself. `.github/PULL_REQUEST_TEMPLATE.md`'s `## Dependencies`
+section is already formatted this way (each of Depends on/Blocks/Related as its own bullet) —
+preserve that list structure, don't collapse it back into bold-label paragraph lines.
+
+**Exception — the `Closes #<issue>` line.** Leave it exactly as `Closes #90` on its own line,
+matching the template. Whether or not it also happens to render as an expanded card is irrelevant —
+what matters is that the literal `Closes #<number>` text stays intact and unambiguous, since that's
+what GitHub's issue-closing-keyword parser matches on merge.
