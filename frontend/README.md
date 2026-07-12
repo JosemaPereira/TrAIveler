@@ -357,7 +357,7 @@ Two workflows cover the frontend: `frontend-ci.yml` (lint/test/build, every PR) 
 
 **Triggers**: Pull requests (any); manual workflow dispatch. Job itself gates on `frontend/**`, `e2e/**`, or `lighthouserc.yml` changing, via the same always-running/`dorny/paths-filter` pattern as `frontend-ci.yml`.
 
-**Job**: builds and serves the production bundle, then runs (1) `playwright test --grep @accessibility` from `e2e/` and (2) `lhci autorun --config=lighthouserc.yml` from `frontend/`, asserting the thresholds in root [`lighthouserc.yml`](../lighthouserc.yml) (accessibility ≥ 0.9, LCP ≤ 2500 ms, CLS ≤ 0.1, INP ≤ 200 ms).
+**Job**: builds and serves the production bundle, then runs (1) `playwright test --grep @accessibility` from `e2e/` and (2) `lhci autorun --config=lighthouserc.yml` from `frontend/`, asserting the thresholds in root [`lighthouserc.yml`](../lighthouserc.yml): accessibility ≥ 0.9, LCP ≤ 2500 ms, CLS ≤ 0.1, and Total Blocking Time ≤ 200 ms as the lab-mode proxy for INP — Lighthouse's `interaction-to-next-paint` audit only supports `timespan` mode with a real recorded interaction, so it can't produce a value in this workflow's standard single-navigation run (see the comment in `lighthouserc.yml` for detail).
 
 > ⚠️ **Known temporary gap**: no `e2e/*.spec.ts` file is tagged `@accessibility` yet — that wiring is
 > task 002-T023 (Sprint 9). Until then, the Playwright step runs with `--pass-with-no-tests` so it

@@ -187,5 +187,22 @@ has no first-hand record of.
     `frontend/`-scoped dependency (002-T002) is separate and intentional per the spec, since the
     helper function itself lives in the `frontend/` package while the specs that will eventually
     call it live in the separate `e2e/` package (no npm workspaces link the two).
+  - Committed (`87b685f`), pushed, and PR #103 opened. CI then surfaced a real bug: the
+    `interaction-to-next-paint` assertion in `lighthouserc.yml` failed every run
+    (`auditRan` pseudo-assertion, `found: 0`) — not a config typo. Confirmed by reading the actual
+    Lighthouse source (`lighthouse/core/audits/metrics/interaction-to-next-paint.js`): that audit
+    only supports `timespan` mode with a real recorded interaction and returns `notApplicable` for a
+    standard single-navigation `lhci autorun` (what `accessibility.yml` runs), so it can *never*
+    produce a value here regardless of actual performance. Fixed by asserting `total-blocking-time`
+    instead — Google's documented lab-mode proxy for input responsiveness when real INP can't be
+    measured, sharing the same 200 ms "good" threshold, so the NFR-PERF-003 number didn't change,
+    only the audit id. Verified the fix for real (not just reasoning about it): built the frontend,
+    served it with `vite preview --port 5173`, and ran `npx lhci autorun --config=../lighthouserc.yml`
+    locally — all assertions now pass. `docs/nfrs.md` (inside a `PROMOTED:...` block) was deliberately
+    left untouched — the target-level requirement is still accurate, only the CI implementation
+    detail changed. New `patterns-discovered.md` entry captures this for future Lighthouse CI work.
+    Also gitignored `frontend/.lighthouseci/` (LHCI's local run-artifact directory), never previously
+    added since this was the first real `lhci autorun` in the repo.
 - **Outcomes**: All 4 in-scope tasks complete; 123/123 frontend Vitest tests pass; lint/type-check/
-  build clean; workflow YAML validated. Committed and pushed via `commit-and-push`; not yet a PR.
+  build clean; `lhci autorun` verified passing locally after the INP→TBT fix. PR #103 open against
+  `main`, not yet merged.

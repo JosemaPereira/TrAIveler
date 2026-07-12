@@ -1277,3 +1277,53 @@ as documented above.
 - `docs/architecture.md`, `docs/cloud-and-environments.md` (edit only on genuine target-design drift)
 - `docs/README.md` (new doc-index menu added this same session, categorizing all of `docs/` — includes
   a note pointing at this same tiering so future readers don't have to rediscover it)
+
+---
+
+### Lighthouse CI Can't Assert Real INP in a Standard `lhci autorun` — Use Total Blocking Time
+- **Discovered**: 2026-07-12 — **Tool**: Claude Code
+
+### Context
+- Frontend — `lighthouserc.yml` / `.github/workflows/accessibility.yml` (issue #93,
+  `G-SPRINT3-A11Y-CI`), any future Lighthouse CI config asserting Core Web Vitals
+
+### Problem
+- `docs/nfrs.md` (NFR-PERF-003) targets INP ≤ 200 ms, and the original assertion used Lighthouse's
+  `interaction-to-next-paint` audit id directly (`maxNumericValue: 200`) — this passed local review
+  and `terraform`-style config validation, but failed on every real `lhci autorun` in CI with
+  `interaction-to-next-paint failure for auditRan assertion: expected >=1, found 0, all values: 0, 0, 0`.
+  Reading the actual Lighthouse source
+  (`lighthouse/core/audits/metrics/interaction-to-next-paint.js`) confirmed why: that audit declares
+  `supportedModes: ['timespan']` and returns `{score: null, notApplicable: true}` whenever there's no
+  recorded real interaction event in the trace — which is always true for a standard single-URL
+  navigation `lhci autorun` with no simulated click/input. It isn't a config mistake; the audit
+  structurally cannot produce a numeric value in that collection mode, so the `auditRan`
+  pseudo-assertion LHCI adds automatically will always fail it.
+
+### Solution
+- Assert `total-blocking-time` instead. Per Google's own guidance
+  (https://web.dev/articles/tbt), TBT is the recommended lab-mode proxy for input responsiveness when
+  real INP can't be measured (no timespan/user-flow trace) — and its "good" threshold happens to be the
+  same 200 ms as the INP target, so the NFR's numeric threshold didn't need to change, only the audit
+  id being asserted. Before trusting any Lighthouse/LHCI audit id in an assertion, check whether it
+  actually runs under the collection mode you're using (`supportedModes` in the audit's own source,
+  or just run `lhci autorun` locally and read the real output) rather than assuming the id from a spec
+  or issue body will produce a value — same "verify platform behavior instead of assuming it" lesson
+  already established for GitHub required-status-check semantics and Docker cross-compile, now
+  extended to Lighthouse CI.
+
+### Example
+```yaml
+# Wrong — always fails under a standard single-navigation lhci autorun:
+'interaction-to-next-paint': ['error', { maxNumericValue: 200 }]
+
+# Right — real lab-mode proxy, same threshold:
+'total-blocking-time': ['error', { maxNumericValue: 200 }]
+```
+
+### Related Files
+- `lighthouserc.yml` (repo root — full explanatory comment left in place above the assertion)
+- `frontend/README.md` (Continuous Integration section notes the substitution)
+- `docs/nfrs.md` (NFR-PERF-003 — left untouched, inside a `PROMOTED:...` block; the target-level INP
+  ≤ 200 ms requirement is still accurate, only the CI *implementation detail* of how it's validated
+  changed, so no edit was needed there per the "target-architecture docs" tier above)
