@@ -49,11 +49,13 @@
 
 ## Dependencies
 
-<!-- List any dependencies on other PRs or issues -->
+<!-- List any dependencies on other PRs or issues. Each reference below is written as a bare #N
+     inside its own bullet (not a bold-label paragraph line) so GitHub auto-expands it into a
+     full title+status card — this only happens for #N references inside a list item. -->
 
-**Depends on**: <!-- e.g., #123 (must merge first) -->  
-**Blocks**: <!-- e.g., #125, #126 (waiting on this) -->  
-**Related**: <!-- e.g., #127 (similar work) -->
+- **Depends on**: <!-- e.g., #123 (must merge first) -->
+- **Blocks**: <!-- e.g., #125, #126 (waiting on this) -->
+- **Related**: <!-- e.g., #127 (similar work) -->
 
 ## Related Specifications
 
