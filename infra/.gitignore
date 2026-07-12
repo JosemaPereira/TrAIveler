@@ -17,10 +17,14 @@
 crash.log
 crash.*.log
 
-# Exclude all .tfvars files (may contain secrets)
-# Exception: *.tfvars.example files should be committed as templates
+# Exclude .tfvars files by default (a developer's local terraform.tfvars may
+# hold real values). Exception: the checked-in per-environment configs under
+# environments/ hold no secrets (sizing, CIDRs, placeholder ARNs pending real
+# provisioning — see infra/environments/*.tfvars's own header comments) and
+# are required inputs for `terraform plan -var-file=...` in CI/local use.
 *.tfvars
 *.tfvars.json
+!environments/*.tfvars
 
 # Ignore override files (local development customizations)
 override.tf
