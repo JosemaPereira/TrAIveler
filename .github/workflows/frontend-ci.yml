@@ -1,17 +1,18 @@
-# Frontend CI Workflow - Lint, Test, Build, and Accessibility
+# Frontend CI Workflow - Lint, Test, and Build
 #
 # This workflow runs on pull requests and pushes that modify frontend code.
-# It validates code quality, runs tests, builds production bundle, and checks accessibility.
+# It validates code quality, runs tests, and builds the production bundle.
+# Accessibility auditing (Lighthouse CI + axe-core/Playwright) is a separate
+# required check — see .github/workflows/accessibility.yml.
 #
 # Workflow steps:
 # 1. Lint - Run ESLint and Prettier to enforce code style
 # 2. Test - Execute Vitest unit and component tests
 # 3. Build - Build production bundle with Vite
-# 4. Accessibility - Run Lighthouse CI audit (WCAG 2.1 AA)
-# 5. Deploy (main only) - Sync to S3 and invalidate CloudFront (placeholder for Sprint 10)
+# 4. Deploy (main only) - Sync to S3 and invalidate CloudFront (placeholder for Sprint 10)
 #
 # Status: SKELETON - Jobs defined, deployment placeholder for future sprints
-# Sprint 1 deliverable: lint, test, build, and accessibility jobs functional
+# Sprint 1 deliverable: lint, test, and build jobs functional
 
 name: Frontend CI
 
@@ -158,61 +159,9 @@ jobs:
           path: frontend/dist
           retention-days: 7
 
-  accessibility:
-    name: Accessibility Audit
-    runs-on: ubuntu-latest
-    needs: [changes, build]
-    if: github.event_name == 'workflow_dispatch' || needs.changes.outputs.frontend == 'true'
-
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-      
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-          cache: 'npm'
-          cache-dependency-path: frontend/package-lock.json
-      
-      - name: Download build artifact
-        uses: actions/download-artifact@v4
-        with:
-          name: frontend-dist
-          path: frontend/dist
-      
-      - name: Install dependencies
-        working-directory: frontend
-        run: npm ci
-      
-      - name: Install Playwright browsers
-        working-directory: frontend
-        run: npx playwright install chromium
-      
-      # TODO: Implement Lighthouse CI with @lhci/cli. Not scheduled for Sprint 2 — the
-      # underlying roadmap tasks (002-T002, 002-T004, 002-T024) currently sit unscheduled
-      # or in Sprint 9 (docs/roadmap.md), not Sprint 2. Re-check at Sprint 3 planning
-      # whether to pull this forward (see .github/memory/session-notes.md, 2026-07-10).
-      # For now, run a basic Playwright accessibility check as placeholder
-      # 
-      # - name: Run Lighthouse CI
-      #   working-directory: frontend
-      #   run: |
-      #     npx lhci autorun \
-      #       --collect.staticDistDir=./dist \
-      #       --assert.preset=lighthouse:recommended \
-      #       --assert.assertions.accessibility=error
-      
-      - name: Placeholder accessibility check
-        working-directory: frontend
-        run: |
-          echo "✓ Accessibility audit placeholder"
-          echo "  Full Lighthouse CI is not yet scheduled (see docs/roadmap.md 002-T002/T004/T024):"
-          echo "  - WCAG 2.1 AA compliance checks"
-          echo "  - Axe-core integration via @axe-core/playwright"
-          echo "  - Performance, SEO, and best practices audits"
-          echo ""
-          echo "  Current status: Build artifact available for manual testing"
+  # Accessibility auditing (Lighthouse CI + axe-core/Playwright) now lives in its own
+  # dedicated workflow: .github/workflows/accessibility.yml (issue #93, 002-T002/T004/
+  # T022/T024). This avoids a duplicate/confusing second "Accessibility" check here.
 
   # TODO Sprint 10: S3 + CloudFront Deployment Job
   # Uncomment and configure when AWS infrastructure is provisioned
@@ -220,7 +169,9 @@ jobs:
   # deploy:
   #   name: Deploy to S3 + CloudFront
   #   runs-on: ubuntu-latest
-  #   needs: [build, accessibility]
+  #   needs: [build]
+  #   # Accessibility is now a separate required check (accessibility.yml);
+  #   # branch protection can require it independently of this `needs` list.
   #   if: github.ref == 'refs/heads/main' && github.event_name == 'push'
   #   
   #   steps:

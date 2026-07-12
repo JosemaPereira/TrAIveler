@@ -1,0 +1,10 @@
+{
+  // Type-checking project for files outside `src/` (currently: tests/helpers/,
+  // used by frontend/tests/helpers/a11y.ts per specs/002-nfr-system-constraints
+  // /tasks.md T022). Kept separate from tsconfig.json so the production build
+  // (`tsc && vite build`, which only type-checks `src/`) is unaffected — this
+  // project exists solely so ESLint's typed linting (eslint.config.js) can
+  // parse and type-check files under `tests/`.
+  "extends": "./tsconfig.json",
+  "include": ["tests"]
+}

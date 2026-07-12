@@ -150,3 +150,72 @@ has no first-hand record of.
   resources created; root module wiring in `infra/main.tf` remains a separate, later ticket, issue
   #90). `docs/README.md` now exists as the canonical documentation index. Branch has 2 commits,
   pushed, ready for PR via the `open-pr` subagent.
+
+### Session: Accessibility CI Gate (Lighthouse + axe-core)
+- **Date**: 2026-07-12
+- **Tool**: Claude Code
+- **What was accomplished**: Implemented `G-SPRINT3-A11Y-CI` (issue #93, stable IDs 002-T002/T004/
+  T022/T024) via the `tdd-developer` subagent, on branch
+  `feature/93-g-sprint3-a11y-ci-accessibility-ci-gate-lighthouse-axe-core` — following
+  `specs/002-nfr-system-constraints/tasks.md` as the authoritative file-path source over the
+  paraphrased issue body (e.g. `lighthouserc.yml` at repo root, not `frontend/lighthouserc.yml`;
+  the helper at `frontend/tests/helpers/a11y.ts`, not under `e2e/`). Added `@axe-core/playwright` +
+  `@lhci/cli` to `frontend/package.json`; root `lighthouserc.yml` with thresholds matching
+  `docs/nfrs.md` NFR-PERF-003/NFR-A11Y-004 exactly (accessibility ≥ 0.9, LCP ≤ 2500 ms, CLS ≤ 0.1,
+  INP ≤ 200 ms); `checkPageA11y(page)` helper wrapping `AxeBuilder`, TDD'd with a mocked-AxeBuilder
+  Vitest suite (throws with a violation, resolves cleanly without one); a new dedicated
+  `.github/workflows/accessibility.yml` (builds+serves the frontend, runs
+  `playwright test --grep @accessibility` from `e2e/`, then `lhci autorun` from `frontend/`),
+  replacing the old placeholder `accessibility` job and TODO in `frontend-ci.yml`. A supporting
+  `frontend/tsconfig.tests.json` was added so ESLint's typed linting can parse `frontend/tests/`
+  (not covered by `tsconfig.json`'s `include: ["src"]`), registered in `eslint.config.js`.
+  User then asked for the Playwright step to *skip* rather than fail given 002-T023 (tagging
+  `e2e/*.spec.ts` with `@accessibility`) hadn't landed yet — added `--pass-with-no-tests` (a real,
+  verified Playwright 1.61 CLI flag) to that step. Followed with a documentation/comment audit
+  (`docs/roadmap.md`'s Sprint 3 planning-note block, `frontend/README.md`'s Tech Stack/Project
+  Structure/Accessibility/CI sections, all updated from "planned" to reflect the real implemented
+  state) so the temporary bridge and its required follow-up aren't silently forgotten.
+- **Key findings and decisions**:
+  - Confirmed via `npx playwright test --help` that `--pass-with-no-tests` is real (not
+    recalled/assumed) before using it — makes the step exit 0 instead of exit 1 "No tests found."
+  - `accessibility.yml` is deliberately **not** a required branch-protection check yet, precisely
+    because it can't fail on missing a11y coverage until 002-T023 lands — recorded as an explicit
+    follow-up in `docs/roadmap.md`, `frontend/README.md`, and this tool's own cross-session memory
+    (`sprint3-lighthouse-ci-gap` — same thread as the original Sprint-2-era planning-gap memory,
+    now updated to track this new, more specific follow-up instead of a fresh one).
+  - `e2e/package.json` already had `@axe-core/playwright` (Sprint 1, issue #24) — the new
+    `frontend/`-scoped dependency (002-T002) is separate and intentional per the spec, since the
+    helper function itself lives in the `frontend/` package while the specs that will eventually
+    call it live in the separate `e2e/` package (no npm workspaces link the two).
+  - Committed (`87b685f`), pushed, and PR #103 opened. CI then surfaced a real bug: the
+    `interaction-to-next-paint` assertion in `lighthouserc.yml` failed every run
+    (`auditRan` pseudo-assertion, `found: 0`) — not a config typo. Confirmed by reading the actual
+    Lighthouse source (`lighthouse/core/audits/metrics/interaction-to-next-paint.js`): that audit
+    only supports `timespan` mode with a real recorded interaction and returns `notApplicable` for a
+    standard single-navigation `lhci autorun` (what `accessibility.yml` runs), so it can *never*
+    produce a value here regardless of actual performance. Fixed by asserting `total-blocking-time`
+    instead — Google's documented lab-mode proxy for input responsiveness when real INP can't be
+    measured, sharing the same 200 ms "good" threshold, so the NFR-PERF-003 number didn't change,
+    only the audit id. Verified the fix for real (not just reasoning about it): built the frontend,
+    served it with `vite preview --port 5173`, and ran `npx lhci autorun --config=../lighthouserc.yml`
+    locally — all assertions now pass. `docs/nfrs.md` (inside a `PROMOTED:...` block) was deliberately
+    left untouched — the target-level requirement is still accurate, only the CI implementation
+    detail changed. New `patterns-discovered.md` entry captures this for future Lighthouse CI work.
+    Also gitignored `frontend/.lighthouseci/` (LHCI's local run-artifact directory), never previously
+    added since this was the first real `lhci autorun` in the repo.
+  - After that push, the user reported PR #103's required "Accessibility Audit" check stuck at
+    "Expected — Waiting for status to be reported" forever, with every other check reporting fine.
+    Root cause (confirmed via `gh api repos/.../rulesets/18752818`, the "Protect main" ruleset,
+    created 2026-07-09 during Sprint 1 CI setup — before this issue existed): its
+    `required_status_checks` list has an exact-string entry `"Accessibility Audit"`, pre-provisioned
+    for this future workflow, matching the naming convention of every sibling required check ("Lint
+    Backend Code", "Run Frontend Tests", etc. — all short, no parenthetical detail). The
+    `accessibility.yml` job's `name:` was `Accessibility Audit (Lighthouse + axe-core)` — a string
+    mismatch, not the already-solved "no `paths:` filter" stuck-check bug — so GitHub waited forever
+    for a check name that would never be reported. Fixed by renaming the job to exactly
+    `Accessibility Audit`; verified via `gh pr checks 103` that the real job (still doing the same
+    work) now reports under that name, and cross-checked all 10 ruleset required-check contexts each
+    have an exact `name:` match somewhere in `.github/workflows/*.yml`.
+- **Outcomes**: All 4 in-scope tasks complete; 123/123 frontend Vitest tests pass; lint/type-check/
+  build clean; `lhci autorun` verified passing locally after the INP→TBT fix; required-check name
+  mismatch fixed and verified against the live ruleset. PR #103 open against `main`, not yet merged.
