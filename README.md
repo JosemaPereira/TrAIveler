@@ -121,7 +121,7 @@ The API will be available at `http://localhost:8080` and the frontend at `http:/
 
 ## Want to Know More?
 
-This repository contains the full specification and implementation plan. If you're interested in the technical details, architecture decisions, or want to contribute, explore the `docs/` and `specs/` directories.
+This repository contains the full specification and implementation plan. If you're interested in the technical details, architecture decisions, or want to contribute, explore the `docs/` and `specs/` directories. See **[docs/README.md](docs/README.md)** for the full documentation index.
 
 **Project planning & process:**
 - [Project Roadmap](docs/roadmap.md) — 539 tasks organized into clear phases with sprint planning
