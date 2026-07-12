@@ -105,10 +105,10 @@
         ".github/prompts/open-pr.prompt.md"
       ],
       "hashes": {
-        ".claude/agents/open-pr.md": "61590c04ae6c06da5fd7d972f5353beb844f7a411f2a32fd79a63a433b3104e6",
-        ".github/prompts/open-pr.prompt.md": "c36a77aa72a21db5bcdb8e9e8b9dead070629489e49a151d8fbae428ecc0ea85"
+        ".claude/agents/open-pr.md": "5e4f3a92492e8d75ec3bc0039797aa35831e9ede9f1d74327627046ecb32c86f",
+        ".github/prompts/open-pr.prompt.md": "d0a61fafe191cb48e49d07feda03b9559bcf10cff8290ced32c7e51386363ae4"
       },
-      "last_synced": "2026-07-09"
+      "last_synced": "2026-07-12"
     },
     {
       "name": "promote-fundations",
