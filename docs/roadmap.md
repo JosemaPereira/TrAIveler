@@ -1466,6 +1466,14 @@ The minimum sequential chain to reach a fully functional, security-hardened, dem
 > Sprint 9, since the gate itself (T024) can land now and become fully effective once T023 lands later.
 > See `G-SPRINT3-A11Y-CI` below.
 >
+> ⚠️ **Follow-up required when 002-T023 lands (Sprint 9) — do not let this slip**:
+> `.github/workflows/accessibility.yml`'s Playwright step runs `playwright test --grep @accessibility
+> --pass-with-no-tests` (issue #93) as a deliberate bridge — no E2E spec is tagged `@accessibility` yet,
+> so the step passes trivially instead of failing on "no tests found." Once T023 tags real specs with
+> `@accessibility`, revisit this workflow: confirm the step is actually exercising them, and only then
+> consider promoting `accessibility.yml` to a required branch-protection check — it is **not** required
+> yet, precisely because it can't fail on missing coverage today.
+>
 > ✅ **Planning note resolved (2026-07-11)**: a second gap surfaced while diagnosing a local
 > `terraform init` 403 AccessDenied against the `traveler-terraform-state` S3 backend —
 > **003-T009** (the Terraform remote-state bootstrap script that actually provisions the S3 bucket

@@ -150,3 +150,42 @@ has no first-hand record of.
   resources created; root module wiring in `infra/main.tf` remains a separate, later ticket, issue
   #90). `docs/README.md` now exists as the canonical documentation index. Branch has 2 commits,
   pushed, ready for PR via the `open-pr` subagent.
+
+### Session: Accessibility CI Gate (Lighthouse + axe-core)
+- **Date**: 2026-07-12
+- **Tool**: Claude Code
+- **What was accomplished**: Implemented `G-SPRINT3-A11Y-CI` (issue #93, stable IDs 002-T002/T004/
+  T022/T024) via the `tdd-developer` subagent, on branch
+  `feature/93-g-sprint3-a11y-ci-accessibility-ci-gate-lighthouse-axe-core` — following
+  `specs/002-nfr-system-constraints/tasks.md` as the authoritative file-path source over the
+  paraphrased issue body (e.g. `lighthouserc.yml` at repo root, not `frontend/lighthouserc.yml`;
+  the helper at `frontend/tests/helpers/a11y.ts`, not under `e2e/`). Added `@axe-core/playwright` +
+  `@lhci/cli` to `frontend/package.json`; root `lighthouserc.yml` with thresholds matching
+  `docs/nfrs.md` NFR-PERF-003/NFR-A11Y-004 exactly (accessibility ≥ 0.9, LCP ≤ 2500 ms, CLS ≤ 0.1,
+  INP ≤ 200 ms); `checkPageA11y(page)` helper wrapping `AxeBuilder`, TDD'd with a mocked-AxeBuilder
+  Vitest suite (throws with a violation, resolves cleanly without one); a new dedicated
+  `.github/workflows/accessibility.yml` (builds+serves the frontend, runs
+  `playwright test --grep @accessibility` from `e2e/`, then `lhci autorun` from `frontend/`),
+  replacing the old placeholder `accessibility` job and TODO in `frontend-ci.yml`. A supporting
+  `frontend/tsconfig.tests.json` was added so ESLint's typed linting can parse `frontend/tests/`
+  (not covered by `tsconfig.json`'s `include: ["src"]`), registered in `eslint.config.js`.
+  User then asked for the Playwright step to *skip* rather than fail given 002-T023 (tagging
+  `e2e/*.spec.ts` with `@accessibility`) hadn't landed yet — added `--pass-with-no-tests` (a real,
+  verified Playwright 1.61 CLI flag) to that step. Followed with a documentation/comment audit
+  (`docs/roadmap.md`'s Sprint 3 planning-note block, `frontend/README.md`'s Tech Stack/Project
+  Structure/Accessibility/CI sections, all updated from "planned" to reflect the real implemented
+  state) so the temporary bridge and its required follow-up aren't silently forgotten.
+- **Key findings and decisions**:
+  - Confirmed via `npx playwright test --help` that `--pass-with-no-tests` is real (not
+    recalled/assumed) before using it — makes the step exit 0 instead of exit 1 "No tests found."
+  - `accessibility.yml` is deliberately **not** a required branch-protection check yet, precisely
+    because it can't fail on missing a11y coverage until 002-T023 lands — recorded as an explicit
+    follow-up in `docs/roadmap.md`, `frontend/README.md`, and this tool's own cross-session memory
+    (`sprint3-lighthouse-ci-gap` — same thread as the original Sprint-2-era planning-gap memory,
+    now updated to track this new, more specific follow-up instead of a fresh one).
+  - `e2e/package.json` already had `@axe-core/playwright` (Sprint 1, issue #24) — the new
+    `frontend/`-scoped dependency (002-T002) is separate and intentional per the spec, since the
+    helper function itself lives in the `frontend/` package while the specs that will eventually
+    call it live in the separate `e2e/` package (no npm workspaces link the two).
+- **Outcomes**: All 4 in-scope tasks complete; 123/123 frontend Vitest tests pass; lint/type-check/
+  build clean; workflow YAML validated. Committed and pushed via `commit-and-push`; not yet a PR.
