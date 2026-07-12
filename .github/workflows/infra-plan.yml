@@ -5,12 +5,25 @@
 # for review before infrastructure changes are applied.
 #
 # Workflow steps:
-# 1. Validate - Check HCL syntax and configuration validity
+# 1. Validate - Check HCL syntax and configuration validity (real, no AWS
+#    credentials needed: `terraform init -backend=false` skips the remote
+#    S3/DynamoDB backend entirely, so this runs unconditionally)
 # 2. Format Check - Ensure consistent code formatting
-# 3. Plan - Generate execution plan for staging environment
+# 3. Plan - Generate execution plans for staging and production, posted as
+#    a PR comment (needs the real S3/DynamoDB remote-state backend, issue
+#    #96/003-T009, and real AWS credentials via OIDC, issue #92/005-T109 —
+#    neither exists yet, so the AWS-touching steps are gated behind the
+#    `AWS_ROLE_ARN` repository secret and are a no-op until both are
+#    provisioned; see "AWS-cost-avoidance constraint" in docs/roadmap.md)
 #
-# Status: SKELETON - Jobs defined without full implementation
-# Sprint 1 deliverable: workflow structure with placeholders
+# Status: 005-T107 (issue #91) — validate/format-check are fully real;
+# plan is real but gated inert pending AWS credentials + remote-state
+# backend. Do not rename the `validate`/`format-check`/`plan` job `name:`
+# fields — they are the exact strings pinned as required status checks in
+# this repo's branch-protection ruleset
+# (.github/memory/patterns-discovered.md, "New Workflow's Required Status
+# Check Stuck at 'Expected' — Verify the Job `name:` Against the Live
+# Ruleset").
 
 name: Infrastructure Plan
 
@@ -62,27 +75,24 @@ jobs:
         uses: hashicorp/setup-terraform@v3
         with:
           terraform_version: "~> 1.5"
-      
-      # TODO Sprint 3: Add AWS credentials via OIDC
-      # - name: Configure AWS credentials
-      #   uses: aws-actions/configure-aws-credentials@v4
-      #   with:
-      #     role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
-      #     aws-region: us-east-1
-      
-      - name: Terraform Init
+
+      - name: Terraform Init (local only, no remote backend)
+        # -backend=false skips configuring the S3/DynamoDB backend declared
+        # in infra/backend.tf entirely, so this needs zero AWS credentials
+        # and zero real AWS resources — safe to run unconditionally.
         run: |
           cd infra
-          # TODO Sprint 3: Uncomment when S3 backend resources exist
-          # terraform init -backend=false
-          echo "Terraform init placeholder - backend not yet provisioned"
-      
+          terraform init -backend=false
+
       - name: Terraform Validate
+        # Validates the root module and, transitively, every module it
+        # calls (vpc, alb, ecs, rds, cloudfront, secrets) — one command
+        # covers the whole module tree, since `terraform validate` follows
+        # module blocks. Does not require -var-file: validate only checks
+        # HCL syntax and internal consistency, not variable values.
         run: |
           cd infra
-          # TODO Sprint 3: Uncomment when modules have valid syntax
-          # terraform validate
-          echo "Terraform validate placeholder - modules not yet implemented"
+          terraform validate
 
   format-check:
     name: Check Terraform Formatting
@@ -112,52 +122,97 @@ jobs:
     needs: [changes, validate, format-check]
     if: github.event_name == 'workflow_dispatch' || needs.changes.outputs.infra == 'true'
 
+    # id-token: write is required by aws-actions/configure-aws-credentials
+    # for OIDC federation (005-T109); pull-requests: write is required to
+    # post the plan-output PR comment.
+    permissions:
+      contents: read
+      id-token: write
+      pull-requests: write
+
+    # Secrets cannot be referenced directly in step `if:` conditions (the
+    # `secrets` context is not available there — only in `env:`/`with:`/
+    # `run:`), so mirror the secret into a job-level env var here and gate
+    # every AWS-touching step below on `env.AWS_ROLE_ARN != ''` instead.
+    # Until issue #92 (005-T109, OIDC role) and issue #96 (003-T009, S3/
+    # DynamoDB backend) are provisioned for real, this secret does not
+    # exist, every gated step below is skipped (not failed), and this
+    # required check still reports success — same "skipped job/step counts
+    # as a passing required check" mechanism as
+    # `.github/memory/patterns-discovered.md`'s "Required Status Checks
+    # Must Always Run" pattern, applied at the step level here since only
+    # part of this job needs to be inert.
+    env:
+      AWS_ROLE_ARN: ${{ secrets.AWS_ROLE_ARN }}
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-      
+
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3
         with:
           terraform_version: "~> 1.5"
-      
-      # TODO Sprint 3: Add AWS credentials via OIDC
-      # - name: Configure AWS credentials
-      #   uses: aws-actions/configure-aws-credentials@v4
-      #   with:
-      #     role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
-      #     aws-region: us-east-1
-      
+
+      - name: Configure AWS credentials
+        if: env.AWS_ROLE_ARN != ''
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          aws-region: us-east-1
+
       - name: Terraform Init
+        if: env.AWS_ROLE_ARN != ''
+        working-directory: infra
+        run: terraform init
+
+      - name: Terraform Plan (Staging)
+        if: env.AWS_ROLE_ARN != ''
+        working-directory: infra
+        run: terraform plan -var-file=environments/staging.tfvars -out=tfplan-staging -no-color | tee plan-staging.txt
+
+      - name: Terraform Plan (Production)
+        if: env.AWS_ROLE_ARN != ''
+        working-directory: infra
+        run: terraform plan -var-file=environments/production.tfvars -out=tfplan-production -no-color | tee plan-production.txt
+
+      - name: No-op notice (AWS credentials not yet provisioned)
+        if: env.AWS_ROLE_ARN == ''
         run: |
-          cd infra
-          # TODO Sprint 3: Uncomment when S3 backend resources exist
-          # terraform init
-          echo "Terraform init placeholder - backend not yet provisioned"
-      
-      - name: Terraform Plan
-        run: |
-          cd infra
-          # TODO Sprint 3: Uncomment when modules are implemented
-          # terraform plan -var-file=environments/staging.tfvars -out=tfplan
-          echo "Terraform plan placeholder - modules not yet implemented"
-      
-      # TODO Sprint 3: Add plan output as PR comment
-      # - name: Comment Plan on PR
-      #   uses: actions/github-script@v7
-      #   with:
-      #     script: |
-      #       const output = `#### Terraform Plan
-      #       <details><summary>Show Plan</summary>
-      #       
-      #       \`\`\`
-      #       ${process.env.PLAN_OUTPUT}
-      #       \`\`\`
-      #       
-      #       </details>`;
-      #       github.rest.issues.createComment({
-      #         issue_number: context.issue.number,
-      #         owner: context.repo.owner,
-      #         repo: context.repo.repo,
-      #         body: output
-      #       });
+          echo "AWS_ROLE_ARN secret is not set — skipping real terraform init/plan."
+          echo "This is expected until issue #92 (005-T109, OIDC role) and issue #96"
+          echo "(003-T009, S3/DynamoDB remote-state backend) are provisioned for real."
+          echo "See infra/README.md's 'OIDC Authentication' section and this repo's"
+          echo "AWS-cost-avoidance constraint in docs/roadmap.md."
+
+      - name: Comment Plan on PR
+        if: env.AWS_ROLE_ARN != '' && github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const staging = fs.readFileSync('infra/plan-staging.txt', 'utf8');
+            const production = fs.readFileSync('infra/plan-production.txt', 'utf8');
+            const output = `#### Terraform Plan
+
+            <details><summary>Staging</summary>
+
+            \`\`\`
+            ${staging}
+            \`\`\`
+
+            </details>
+
+            <details><summary>Production</summary>
+
+            \`\`\`
+            ${production}
+            \`\`\`
+
+            </details>`;
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: output
+            });

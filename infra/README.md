@@ -9,7 +9,27 @@ for the TrAIveler application infrastructure on AWS.
 
 ---
 
-> **Implementation Status**: ✅ Foundation complete (Sprint 1, 2026-07-08) — Backend configuration, version constraints, directory structure, and CI workflow established. ✅ VPC module implemented (Sprint 3, 2026-07-11) — network isolation, public/private subnets, and NAT (instance/gateway) routing. ✅ RDS module implemented (Sprint 3, 2026-07-11) — PostgreSQL 15.4 instance on private subnets, ECS-only security group, and Secrets Manager–backed credentials. ✅ ALB module implemented (Sprint 3, 2026-07-11) — public-facing Application Load Balancer with HTTPS termination, HTTP→HTTPS redirect, and a `/healthz`-checked target group for ECS. ✅ CloudFront module implemented (Sprint 3, 2026-07-12) — private S3 origin bucket accessible only via a CloudFront Origin Access Identity, and a CloudFront distribution with HTTPS-only viewer traffic and a 404→`/index.html` rewrite for SPA client-side routing. ✅ Secrets module implemented (Sprint 3, 2026-07-12) — empty `ai_api_key` and `jwt_signing_key` Secrets Manager placeholders, populated manually post-apply (DB credentials remain owned by the RDS module). ✅ Remote-state bootstrap script implemented (Sprint 3, 2026-07-12) — `infra/scripts/bootstrap-state.sh` idempotently provisions the `traveler-terraform-state` S3 bucket and `traveler-terraform-locks` DynamoDB table; authored and test-verified only (mocked `aws` CLI), not executed against a real AWS account, per this repo's AWS-cost-avoidance policy. ✅ ECS module implemented (Sprint 3, 2026-07-12) — ARM64 (Graviton2) Fargate cluster, task definition, and service attached to the ALB target group, CPU-based target-tracking autoscaling, a dedicated CloudWatch log group, and an ALB-only security group on port 8080. ✅ Root module wiring implemented (Sprint 3, 2026-07-12) — `infra/main.tf` calls all six modules with dependency injection via module outputs (`vpc` → `alb` → `ecs` → `rds`, `cloudfront`/`secrets` independent), `infra/variables.tf`/`infra/outputs.tf` define the root interface, and `infra/environments/{staging,production}.tfvars` hold the environment-specific `.tfvars`; `terraform validate` passes for both environments. `terraform plan`/`apply` remain pending until the S3/DynamoDB remote-state resources actually exist (see `003-T009`) and real ECR/ACM resources replace the placeholder values in the `.tfvars` files.
+> **Implementation Status** (module detail: [Project Structure](#project-structure); CI/CD detail:
+> [CI/CD Integration](#cicd-integration)):
+>
+> - ✅ Foundation — backend config, version constraints, directory structure, CI workflow (Sprint 1, 2026-07-08)
+> - ✅ VPC module (Sprint 3, 2026-07-11)
+> - ✅ RDS module (Sprint 3, 2026-07-11)
+> - ✅ ALB module (Sprint 3, 2026-07-11)
+> - ✅ CloudFront module (Sprint 3, 2026-07-12)
+> - ✅ Secrets module (Sprint 3, 2026-07-12) — see [Secrets Population](#secrets-population)
+> - ✅ Remote-state bootstrap script (Sprint 3, 2026-07-12) — authored and test-verified only, not
+>   run against a real AWS account (AWS-cost-avoidance policy; see [AWS Account Setup](#aws-account-setup-one-time))
+> - ✅ ECS module (Sprint 3, 2026-07-12)
+> - ✅ Root module wiring (Sprint 3, 2026-07-12) — `terraform validate` passes for both
+>   environments; `plan`/`apply` still pending the remote-state backend (`003-T009`) and real
+>   ECR/ACM values in the `.tfvars` files
+> - ✅ Infra CI/CD workflows (Sprint 3, 2026-07-12) — `infra-plan.yml` + `infra-apply.yml`
+>   implemented; every AWS-touching step is gated behind `AWS_ROLE_ARN` (not yet set), so both are
+>   safe no-ops for now — see [CI/CD Integration](#cicd-integration)
+> - 🔲 OIDC IAM role (Sprint 3, 2026-07-12) — documented and reproducible, deliberately not
+>   provisioned yet (one-time manual AWS step, AWS-cost-avoidance policy) — see
+>   [OIDC Authentication](#oidc-authentication)
 
 ---
 
@@ -57,7 +77,9 @@ infra/
 │   │   ├── variables.tf
 │   │   └── outputs.tf
 │   ├── ecs/
-│   │   ├── main.tf                   # ECS cluster, task definition, service, auto-scaling
+│   │   ├── main.tf                   # ECS cluster (ARM64/Graviton2), task definition, service,
+│   │   │                             # CPU-based target-tracking autoscaling, CloudWatch log group,
+│   │   │                             # ALB-only security group on port 8080
 │   │   ├── variables.tf
 │   │   └── outputs.tf
 │   ├── rds/
@@ -65,11 +87,12 @@ infra/
 │   │   ├── variables.tf
 │   │   └── outputs.tf
 │   ├── alb/
-│   │   ├── main.tf                   # ALB, target group, listeners, SSL
+│   │   ├── main.tf                   # ALB, /healthz-checked target group, HTTP→HTTPS redirect, SSL
 │   │   ├── variables.tf
 │   │   └── outputs.tf
 │   ├── cloudfront/
-│   │   ├── main.tf                   # CloudFront distribution, S3 bucket, OAI
+│   │   ├── main.tf                   # CloudFront distribution (HTTPS-only viewer traffic, 404→
+│   │   │                             # /index.html SPA rewrite), S3 origin bucket private except via OAI
 │   │   ├── variables.tf
 │   │   └── outputs.tf
 │   └── secrets/
@@ -83,7 +106,8 @@ infra/
 ├── scripts/
 │   ├── bootstrap-state.sh            # Idempotent remote-state (S3 + DynamoDB) bootstrap
 │   └── bootstrap-state.test.sh       # Mocked-aws test suite for bootstrap-state.sh
-├── main.tf                           # Root module calling reusable modules
+├── main.tf                           # Root module: wires all 6 modules via outputs
+│                                     # (vpc → alb → ecs → rds; cloudfront, secrets independent)
 ├── variables.tf                      # Input variables (environment, sizing, domains, ECR/ACM references)
 ├── outputs.tf                        # Output values for CI/CD (ECR URL, ECS cluster & service, S3 bucket, CloudFront ID)
 ├── backend.tf                        # S3 + DynamoDB remote state configuration
@@ -210,8 +234,8 @@ terraform plan -var-file=environments/production.tfvars
 
 ### Apply Changes
 
-**Staging** (target design: automated in CI on main branch merge — not yet wired; see
-[CI/CD Integration](#cicd-integration) below for current status):
+**Staging** (also automated by `infra-apply.yml` on merge to `main`, AWS-gated — see
+[CI/CD Integration](#cicd-integration) below):
 
 ```bash
 terraform apply -var-file=environments/staging.tfvars
@@ -264,38 +288,187 @@ aws secretsmanager put-secret-value \
 
 ## CI/CD Integration
 
+> **AWS_ROLE_ARN gating** (stated once here; referenced, not repeated, elsewhere in this file):
+> every AWS-touching step in `infra-plan.yml`'s `plan` job and in `infra-apply.yml` checks
+> `env.AWS_ROLE_ARN != ''`, mirrored from the `AWS_ROLE_ARN` repository secret that
+> [OIDC Authentication](#oidc-authentication) step 4 creates. Until that secret is set for real —
+> and the S3/DynamoDB remote-state backend (`003-T009`) exists — both workflows still run their
+> non-AWS steps (validate, format-check, plan/apply authoring) but are safe no-ops on anything that
+> would actually touch AWS. This is the repo's AWS-cost-avoidance policy in practice.
+
 ### GitHub Actions Workflows
 
 Infrastructure changes are (or will be) deployed via GitHub Actions:
 
-- **`.github/workflows/infra-plan.yml`** — exists and runs `terraform validate`/`fmt -check` on
-  every pull request. Its `terraform plan` step is currently a placeholder — the root module
-  (`infra/main.tf`, `G-SPRINT3-INFRA-ROOT-WIRING`, issue #90) now exists and `terraform validate`
-  passes, but wiring a real `plan` with a PR-comment summary, plus giving the workflow real AWS
-  credentials, is tracked separately as `005-T107` (issue #91, Backlog) — it also needs the real
-  S3/DynamoDB backend to exist first (`003-T009`).
-- **`.github/workflows/infra-apply.yml`** — **not created yet.** Planned as `005-T108`
-  (issue #91, Backlog) to run `terraform apply -auto-approve` for staging on `main` merge. Per this
-  repo's AWS-cost-avoidance policy, it must stay inert (or unmerged) even once authored, until infra
-  is mature enough to allow real `apply` runs against AWS — see `docs/roadmap.md`'s note on
-  `005-T108`.
+- **`.github/workflows/infra-plan.yml`** (`005-T107`, issue #91) — the `validate` and
+  `format-check` jobs are fully real and run unconditionally on every pull request:
+  `terraform init -backend=false` + `terraform validate` (needs no AWS credentials — it never
+  touches the remote backend) and `terraform fmt -check -recursive`. The `plan` job runs real
+  `terraform init` + `terraform plan -var-file=environments/{staging,production}.tfvars` and posts
+  both plans as a PR comment (AWS-gated — see the note above). Job names
+  (`Validate Terraform Configuration`, `Check Terraform Formatting`, `Terraform Plan (Staging)`) are
+  pinned as required status checks in the branch-protection ruleset and must not be renamed.
+- **`.github/workflows/infra-apply.yml`** (`005-T108`, issue #91) — triggers only on `push` to
+  `main` touching `infra/**` (never on `pull_request` — this workflow is not a required PR status
+  check, so path-filtering its trigger is safe). Runs `terraform apply -auto-approve
+  -var-file=environments/staging.tfvars` for staging only — production is never auto-applied by this
+  workflow, per the "Production" section above and the constitution's Environment Strategy — then
+  exports `terraform output` values (`ecr_repository_url`, `ecs_cluster_name`, `ecs_service_name`,
+  `s3_bucket_name`, `cloudfront_distribution_id`) to GitHub repository secrets via `gh secret set`
+  for `backend-ci.yml`/`frontend-ci.yml` to consume in later sprints (AWS-gated — see the note above).
 
 ### OIDC Authentication
 
-GitHub Actions authenticates to AWS using OIDC federation (no long-lived access keys):
+GitHub Actions authenticates to AWS using OIDC federation (no long-lived access keys).
 
-1. Create an IAM OIDC provider for GitHub in AWS Console
-2. Create an IAM role with trust policy allowing GitHub Actions to assume it
-3. Store the role ARN in GitHub repository secrets as `AWS_ROLE_ARN`
+**Status (`005-T109`, issue #92): documented, one-time manual AWS IAM step, deliberately NOT
+Terraform-managed** — provisioning the OIDC provider/role via Terraform would create a
+chicken-and-egg bootstrap problem (Terraform needs AWS credentials to create the very credentials
+it would then use). None of the `aws iam` commands below have been run against a real AWS account
+(AWS-cost-avoidance policy) — they are authored here so the step is reproducible whenever the user
+decides to lift that constraint (same posture as `infra/scripts/bootstrap-state.sh`,
+issue #96/`003-T009`: authored and documented, not executed). Step 4 below produces the
+`AWS_ROLE_ARN` secret that both workflows key off via `aws-actions/configure-aws-credentials@v4` —
+see the [gating note](#cicd-integration) at the top of CI/CD Integration.
 
-See [Cloud Strategy](../docs/cloud-and-environments.md) for detailed OIDC setup instructions.
+#### 1. Create the IAM OIDC identity provider
+
+Trusts GitHub's OIDC token issuer. One provider per AWS account, shared by every repository:
+
+```bash
+aws iam create-open-id-connect-provider \
+  --url https://token.actions.githubusercontent.com \
+  --client-id-list sts.amazonaws.com \
+  --thumbprint-list 6938fd4d98bab03faadb97b34396831e3780aea1
+```
+
+(The thumbprint above is GitHub's current OIDC root CA thumbprint. AWS's `configure-aws-credentials`
+GitHub Action ecosystem generally recommends re-verifying it at setup time — AWS's own OIDC provider
+support can also validate GitHub's certificate chain automatically, making an explicit thumbprint
+unnecessary on recent AWS provider versions, but it's included here since it's still accepted and
+explicit.)
+
+#### 2. Create the IAM role with a repo-scoped trust policy
+
+Scope the trust policy's `Condition` to this repository specifically — never a wildcard covering
+every GitHub Actions run in the account. Narrowing to `main` (rather than `repo:...:*`) is preferred
+since only `infra-apply.yml` (push-to-`main`-only) and PR-sourced `infra-plan.yml` runs need to
+assume this role:
+
+```json
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Principal": {
+        "Federated": "arn:aws:iam::<ACCOUNT_ID>:oidc-provider/token.actions.githubusercontent.com"
+      },
+      "Action": "sts:AssumeRoleWithWebIdentity",
+      "Condition": {
+        "StringEquals": {
+          "token.actions.githubusercontent.com:aud": "sts.amazonaws.com"
+        },
+        "StringLike": {
+          "token.actions.githubusercontent.com:sub": [
+            "repo:JosemaPereira/TrAIveler:ref:refs/heads/main",
+            "repo:JosemaPereira/TrAIveler:pull_request"
+          ]
+        }
+      }
+    }
+  ]
+}
+```
+
+```bash
+aws iam create-role \
+  --role-name traveler-github-actions-terraform \
+  --assume-role-policy-document file://trust-policy.json \
+  --description "OIDC role assumed by GitHub Actions (infra-plan.yml, infra-apply.yml) to run Terraform against AWS"
+```
+
+#### 3. Attach least-privilege permissions
+
+Attach permissions scoped to the resource types Terraform actually manages in this repo — VPC, ECS,
+RDS, ALB, CloudFront, Secrets Manager, S3, and DynamoDB (the last two for the remote-state backend
+itself) — never `AdministratorAccess`. A reasonable starting sketch (review and tighten before real
+use — this is deliberately broad-strokes, not a final least-privilege audit):
+
+```json
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "TerraformManagedResources",
+      "Effect": "Allow",
+      "Action": [
+        "ec2:*",
+        "ecs:*",
+        "rds:*",
+        "elasticloadbalancing:*",
+        "cloudfront:*",
+        "secretsmanager:*",
+        "logs:*",
+        "application-autoscaling:*",
+        "iam:GetRole",
+        "iam:PassRole",
+        "iam:CreateServiceLinkedRole"
+      ],
+      "Resource": "*"
+    },
+    {
+      "Sid": "TerraformRemoteState",
+      "Effect": "Allow",
+      "Action": [
+        "s3:GetObject",
+        "s3:PutObject",
+        "s3:ListBucket",
+        "dynamodb:GetItem",
+        "dynamodb:PutItem",
+        "dynamodb:DeleteItem"
+      ],
+      "Resource": [
+        "arn:aws:s3:::traveler-terraform-state",
+        "arn:aws:s3:::traveler-terraform-state/*",
+        "arn:aws:dynamodb:us-east-1:<ACCOUNT_ID>:table/traveler-terraform-locks"
+      ]
+    }
+  ]
+}
+```
+
+```bash
+aws iam put-role-policy \
+  --role-name traveler-github-actions-terraform \
+  --policy-name terraform-managed-resources \
+  --policy-document file://terraform-permissions.json
+```
+
+#### 4. Store the role ARN as a GitHub repository secret
+
+```bash
+gh secret set AWS_ROLE_ARN --body "arn:aws:iam::<ACCOUNT_ID>:role/traveler-github-actions-terraform"
+```
+
+This is exactly the secret `infra-plan.yml`'s `plan` job and `infra-apply.yml`'s `apply` job check
+for (`env.AWS_ROLE_ARN != ''`) before running any AWS-touching step.
+
+#### 5. This is a one-time manual step, intentionally not performed in this session
+
+None of the `aws iam` commands above have been executed against a real AWS account, per the
+AWS-cost-avoidance policy noted throughout this file (`docs/roadmap.md`, `005-T108`'s row). Steps
+1-4 are written to be reproducible whenever the user lifts that constraint, and double as the
+reference for recreating the role if it's ever lost or needs rotating.
+
+See [Cloud Strategy](../docs/cloud-and-environments.md) for the higher-level OIDC federation
+decision record.
 
 ### Terraform Outputs for CI/CD
 
 `infra/outputs.tf` now exists (`005-T104` under `G-SPRINT3-INFRA-ROOT-WIRING`, issue #90) and
-`terraform validate` passes against it — but it has never been run against real infrastructure
-(no `terraform apply` has happened; see the AWS-cost-avoidance note above), so there is no live
-state to query `terraform output` against yet.
+`terraform validate` passes against it — but it has never been run against real infrastructure (no
+`terraform apply` has happened yet), so there is no live state to query `terraform output` against.
 
 Once infrastructure is applied, Terraform will export values needed by backend and frontend CI/CD:
 
@@ -311,8 +484,10 @@ terraform output -json > outputs.json
 # - cloudfront_distribution_id (for cache invalidation)
 ```
 
-Once built, these outputs would be automatically exported to GitHub Secrets by the (not-yet-created)
-`infra-apply.yml` workflow — see [GitHub Actions Workflows](#github-actions-workflows) above.
+`.github/workflows/infra-apply.yml` (`005-T108`) now exists and its "Export Terraform outputs to
+GitHub Secrets" step runs exactly this `terraform output -raw <name>` + `gh secret set` sequence for
+each value above (AWS-gated — see the [gating note](#cicd-integration) at the top of CI/CD
+Integration).
 
 ---
 
