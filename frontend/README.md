@@ -11,9 +11,15 @@ typed API client, accessibility helpers, and unit/integration tests.
 
 > **Implementation Status**: ✅ Sprint 2 complete (closed 2026-07-11) — frontend application
 > structure (Spec 005 Phase 4) shipped in full, across issues #59–#66 (PRs #79–#82). Sprint 3
-> (Weeks 5–6) covers Terraform infrastructure modules, not further frontend work — the next
-> frontend-specific work (auth pages, trip dashboard, feature components) lands in later sprints
-> per [`docs/roadmap.md`](../docs/roadmap.md).
+> (Weeks 5–6) is mainly Terraform infrastructure modules, but also pulled the accessibility CI gate
+> forward (issue #93, `G-SPRINT3-A11Y-CI`, tasks 002-T002/T004/T022/T024 — see "Accessibility" and
+> "Continuous Integration" below). The next feature-scoped frontend work (auth pages, trip
+> dashboard, feature components) lands in later sprints per [`docs/roadmap.md`](../docs/roadmap.md).
+> - ✅ Sprint 3 (issue #93): accessibility CI gate — `@axe-core/playwright` + `@lhci/cli` dev
+>   dependencies, root `lighthouserc.yml`, `checkPageA11y(page)` helper (`frontend/tests/helpers/a11y.ts`),
+>   dedicated `.github/workflows/accessibility.yml`. Not yet exercising real pages — no E2E spec is
+>   tagged `@accessibility` (002-T023, Sprint 9); the workflow bridges the gap with
+>   `--pass-with-no-tests` in the meantime.
 > - ✅ Sprint 1 (2026-07-07): project scaffolding — Vite + React 19 + TypeScript strict mode, Atomic
 >   Design directories, core dependencies (TanStack Query v5, Zustand, React Router v7, Lucide
 >   React), ESLint + Prettier configured, dev server functional at http://localhost:5173
@@ -80,8 +86,8 @@ The frontend is the only client of the backend REST API. Its primary jobs are:
 | Icons | Lucide React | ✅ installed, not yet used |
 | Linting/formatting | ESLint (strict) + Prettier | ✅ installed |
 | Unit/integration tests | Vitest + React Testing Library + MSW | ✅ installed; MSW still not wired up (tests mock `fetch` directly — see `api-client.test.ts`) |
-| E2E + accessibility tests | Playwright + `@axe-core/playwright` | ⏳ planned, not yet installed |
-| Performance auditing | `@lhci/cli` (Lighthouse CI) | ⏳ planned, not yet installed |
+| E2E + accessibility tests | Playwright (`e2e/`) + `@axe-core/playwright` | ✅ `@axe-core/playwright` installed in both `e2e/` (Sprint 1, issue #24) and `frontend/` (issue #93); `checkPageA11y(page)` helper in `frontend/tests/helpers/a11y.ts` — not yet called from any `e2e/*.spec.ts` (that wiring is 002-T023, Sprint 9) |
+| Performance auditing | `@lhci/cli` (Lighthouse CI) | ✅ installed as a `frontend/` dev dependency (issue #93); config at root [`lighthouserc.yml`](../lighthouserc.yml) |
 
 ---
 
@@ -128,10 +134,14 @@ frontend/
 │   ├── App.test.tsx
 │   ├── main.tsx                      # React entry point (StrictMode + createRoot)
 │   └── vite-env.d.ts                 # ImportMetaEnv typing for VITE_* variables
+├── tests/
+│   └── helpers/
+│       └── a11y.ts / a11y.test.ts    # checkPageA11y(page): wraps @axe-core/playwright, throws on any WCAG 2.1 AA violation (issue #93); not yet called from e2e/*.spec.ts (002-T023, Sprint 9)
 ├── index.html
 ├── vite.config.ts
 ├── vitest.config.ts                  # jsdom environment, coverage via v8 (no enforced threshold yet)
 ├── tsconfig.json / tsconfig.node.json  # TypeScript strict mode
+├── tsconfig.tests.json                # Extends tsconfig.json; includes tests/ so ESLint's typed linting can parse it (src/ build is unaffected)
 ├── eslint.config.js                  # Flat ESLint config
 ├── .prettierrc.json
 ├── .env.test                          # Committed, deterministic VITE_API_BASE_URL for Vitest (see "Environment Variables")
@@ -142,8 +152,8 @@ frontend/
 
 Where the codebase is still headed. Everything in "Current" above (`components/primitives/`,
 `components/composites/`, `components/ErrorBoundary.tsx`, `routes/`, `stores/auth-store.ts`,
-`features/` placeholder, `lib/`, and the wired-up `App.tsx`) is already real — everything below is
-still aspirational.
+`features/` placeholder, `lib/`, `tests/helpers/a11y.ts`, and the wired-up `App.tsx`) is already
+real — everything below is still aspirational.
 
 ```
 frontend/
@@ -157,9 +167,6 @@ frontend/
 │   ├── routes/                       # More routes to add: register/login/dashboard/generate/trip/privacy-policy pages
 │   ├── lib/                          # More TanStack Query hooks to add on top of api-client.ts: useTrips, useTrip, useSendMessage, etc.
 │   └── hooks/                        # Shared custom React hooks (prefix: use)
-├── tests/
-│   └── helpers/
-│       └── a11y.ts                   # checkPageA11y(page): wraps @axe-core/playwright for E2E specs
 └── public/
 ```
 
@@ -303,8 +310,8 @@ will be flagged by code review.
 - All interactive elements must be keyboard-operable with a visible focus indicator.
 - All images must have meaningful `alt` attributes. All form fields must have associated labels.
 - Touch targets must be ≥ 44 × 44 px on mobile.
-- Automated scanning via `@axe-core/playwright` runs in every E2E test tagged `@accessibility`.
-- Lighthouse CI asserts accessibility score ≥ 90 and Core Web Vitals thresholds on every PR.
+- Automated scanning via `@axe-core/playwright` (`checkPageA11y(page)`, `frontend/tests/helpers/a11y.ts`) is designed to run in every E2E test tagged `@accessibility` — no spec is tagged yet (002-T023, Sprint 9), so the CI gate below is not yet exercising real pages.
+- Lighthouse CI asserts accessibility score ≥ 90 and Core Web Vitals thresholds on every PR via [`.github/workflows/accessibility.yml`](../.github/workflows/accessibility.yml) — see "Continuous Integration" below for its current bridge state.
 
 See [`specs/002-nfr-system-constraints/spec.md`](../specs/002-nfr-system-constraints/spec.md)
 (NFR-A11Y section) for full accessibility targets.
@@ -323,7 +330,8 @@ See [`specs/002-nfr-system-constraints/spec.md`](../specs/002-nfr-system-constra
 
 ## Continuous Integration
 
-The frontend CI pipeline runs automatically on every pull request and push to main that modifies frontend code.
+Two workflows cover the frontend: `frontend-ci.yml` (lint/test/build, every PR) and the dedicated
+`accessibility.yml` (WCAG 2.1 AA + Core Web Vitals gate, issue #93).
 
 **Workflow**: [`.github/workflows/frontend-ci.yml`](../.github/workflows/frontend-ci.yml)
 
@@ -340,11 +348,22 @@ The frontend CI pipeline runs automatically on every pull request and push to ma
 
 3. **Build** — Builds production bundle with Vite, reports bundle size, and uploads `dist/` artifact. Validates that the production build completes successfully without errors.
 
-4. **Accessibility** — Placeholder job for Lighthouse CI accessibility audit (WCAG 2.1 AA). Full implementation with `@lhci/cli` and `@axe-core/playwright` is not yet scheduled — see `docs/roadmap.md` tasks 002-T002/T004/T024 (currently unscheduled/Sprint 9, not Sprint 2).
-
 **Future Enhancements** (TODO comments in workflow):
-- **Not yet scheduled**: Full Lighthouse CI with WCAG 2.1 AA compliance checks, performance audits, and Core Web Vitals thresholds — pending roadmap 002-T002/T004/T024 (re-check at Sprint 3 planning)
 - **Sprint 10**: S3 + CloudFront deployment job with cache invalidation
+
+---
+
+**Workflow**: [`.github/workflows/accessibility.yml`](../.github/workflows/accessibility.yml) (issue #93, `docs/roadmap.md` tasks 002-T002/T004/T022/T024)
+
+**Triggers**: Pull requests (any); manual workflow dispatch. Job itself gates on `frontend/**`, `e2e/**`, or `lighthouserc.yml` changing, via the same always-running/`dorny/paths-filter` pattern as `frontend-ci.yml`.
+
+**Job**: builds and serves the production bundle, then runs (1) `playwright test --grep @accessibility` from `e2e/` and (2) `lhci autorun --config=lighthouserc.yml` from `frontend/`, asserting the thresholds in root [`lighthouserc.yml`](../lighthouserc.yml): accessibility ≥ 0.9, LCP ≤ 2500 ms, CLS ≤ 0.1, and Total Blocking Time ≤ 200 ms as the lab-mode proxy for INP — Lighthouse's `interaction-to-next-paint` audit only supports `timespan` mode with a real recorded interaction, so it can't produce a value in this workflow's standard single-navigation run (see the comment in `lighthouserc.yml` for detail).
+
+> ⚠️ **Known temporary gap**: no `e2e/*.spec.ts` file is tagged `@accessibility` yet — that wiring is
+> task 002-T023 (Sprint 9). Until then, the Playwright step runs with `--pass-with-no-tests` so it
+> passes trivially instead of failing on "no tests found." This workflow is **not** a required
+> branch-protection check yet for that reason — see `docs/roadmap.md`'s Sprint 3 planning note for the
+> full follow-up (drop/reassess the flag, consider making it required) once T023 lands.
 
 **Local Equivalent**:
 

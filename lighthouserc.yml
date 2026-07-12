@@ -1,0 +1,38 @@
+# Lighthouse CI configuration for the accessibility CI gate.
+#
+# Thresholds mirror docs/nfrs.md (NFR-PERF-003, NFR-A11Y-004):
+#   - Accessibility category score >= 0.9 (Lighthouse score >= 90)
+#   - Largest Contentful Paint (LCP)  <= 2500 ms
+#   - Cumulative Layout Shift (CLS)   <= 0.1
+#   - Interaction to Next Paint (INP) <= 200 ms — see Total Blocking Time note below
+#
+# The frontend server is built and served by the calling workflow
+# (.github/workflows/accessibility.yml) before this config is used, so no
+# `startServerCommand` is configured here — `collect.url` points at the
+# already-running preview server. Port 5173 matches the frontend dev server
+# port (frontend/vite.config.ts) and e2e/playwright.config.ts's baseURL, so
+# `vite preview` is started with `--port 5173` in CI to keep all three in sync.
+#
+# NOTE on INP: Lighthouse's `interaction-to-next-paint` audit only supports
+# `timespan` mode against a trace with a *real recorded interaction*
+# (lighthouse/core/audits/metrics/interaction-to-next-paint.js) — it returns
+# `notApplicable` for a standard single-navigation `lhci autorun` like this
+# one (no simulated click/input), which makes the assertion fail with
+# "found: 0" every run regardless of actual performance. Per Google's own
+# guidance (https://web.dev/articles/tbt), Total Blocking Time is the
+# recommended lab-mode proxy for input responsiveness when real INP can't be
+# measured — it shares the same "good" threshold (<= 200 ms), which is why
+# the number below matches docs/nfrs.md's INP target unchanged.
+ci:
+  collect:
+    url:
+      - 'http://localhost:5173/'
+    numberOfRuns: 3
+  assert:
+    assertions:
+      'categories:accessibility': ['error', { minScore: 0.9 }]
+      'largest-contentful-paint': ['error', { maxNumericValue: 2500 }]
+      'cumulative-layout-shift': ['error', { maxNumericValue: 0.1 }]
+      'total-blocking-time': ['error', { maxNumericValue: 200 }]
+  upload:
+    target: temporary-public-storage

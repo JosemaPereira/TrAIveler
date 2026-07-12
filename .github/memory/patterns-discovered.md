@@ -1277,3 +1277,98 @@ as documented above.
 - `docs/architecture.md`, `docs/cloud-and-environments.md` (edit only on genuine target-design drift)
 - `docs/README.md` (new doc-index menu added this same session, categorizing all of `docs/` — includes
   a note pointing at this same tiering so future readers don't have to rediscover it)
+
+---
+
+### Lighthouse CI Can't Assert Real INP in a Standard `lhci autorun` — Use Total Blocking Time
+- **Discovered**: 2026-07-12 — **Tool**: Claude Code
+
+### Context
+- Frontend — `lighthouserc.yml` / `.github/workflows/accessibility.yml` (issue #93,
+  `G-SPRINT3-A11Y-CI`), any future Lighthouse CI config asserting Core Web Vitals
+
+### Problem
+- `docs/nfrs.md` (NFR-PERF-003) targets INP ≤ 200 ms, and the original assertion used Lighthouse's
+  `interaction-to-next-paint` audit id directly (`maxNumericValue: 200`) — this passed local review
+  and `terraform`-style config validation, but failed on every real `lhci autorun` in CI with
+  `interaction-to-next-paint failure for auditRan assertion: expected >=1, found 0, all values: 0, 0, 0`.
+  Reading the actual Lighthouse source
+  (`lighthouse/core/audits/metrics/interaction-to-next-paint.js`) confirmed why: that audit declares
+  `supportedModes: ['timespan']` and returns `{score: null, notApplicable: true}` whenever there's no
+  recorded real interaction event in the trace — which is always true for a standard single-URL
+  navigation `lhci autorun` with no simulated click/input. It isn't a config mistake; the audit
+  structurally cannot produce a numeric value in that collection mode, so the `auditRan`
+  pseudo-assertion LHCI adds automatically will always fail it.
+
+### Solution
+- Assert `total-blocking-time` instead. Per Google's own guidance
+  (https://web.dev/articles/tbt), TBT is the recommended lab-mode proxy for input responsiveness when
+  real INP can't be measured (no timespan/user-flow trace) — and its "good" threshold happens to be the
+  same 200 ms as the INP target, so the NFR's numeric threshold didn't need to change, only the audit
+  id being asserted. Before trusting any Lighthouse/LHCI audit id in an assertion, check whether it
+  actually runs under the collection mode you're using (`supportedModes` in the audit's own source,
+  or just run `lhci autorun` locally and read the real output) rather than assuming the id from a spec
+  or issue body will produce a value — same "verify platform behavior instead of assuming it" lesson
+  already established for GitHub required-status-check semantics and Docker cross-compile, now
+  extended to Lighthouse CI.
+
+### Example
+```yaml
+# Wrong — always fails under a standard single-navigation lhci autorun:
+'interaction-to-next-paint': ['error', { maxNumericValue: 200 }]
+
+# Right — real lab-mode proxy, same threshold:
+'total-blocking-time': ['error', { maxNumericValue: 200 }]
+```
+
+### Related Files
+- `lighthouserc.yml` (repo root — full explanatory comment left in place above the assertion)
+- `frontend/README.md` (Continuous Integration section notes the substitution)
+- `docs/nfrs.md` (NFR-PERF-003 — left untouched, inside a `PROMOTED:...` block; the target-level INP
+  ≤ 200 ms requirement is still accurate, only the CI *implementation detail* of how it's validated
+  changed, so no edit was needed there per the "target-architecture docs" tier above)
+
+---
+
+### New Workflow's Required Status Check Stuck at "Expected" — Verify the Job `name:` Against the Live Ruleset
+- **Discovered**: 2026-07-12 — **Tool**: Claude Code
+
+### Context
+- Any new GitHub Actions workflow file whose job is meant to satisfy an existing branch-protection
+  required status check (this repo: the "Protect main" ruleset, `gh api
+  repos/<owner>/<repo>/rulesets/<id>`) — found while adding `.github/workflows/accessibility.yml`
+  (issue #93)
+
+### Problem
+- PR #103's "Accessibility Audit" required check sat at "Expected — Waiting for status to be
+  reported" indefinitely, while every other check on the PR reported normally. This looks identical
+  to this repo's already-documented "stuck at Expected" bug (a required check whose workflow never
+  triggers because of a `paths:` filter) — but `accessibility.yml` already used the correct
+  always-triggering / `dorny/paths-filter`-gated-job pattern, so that wasn't it. The real cause:
+  branch-protection `required_status_checks` match on the exact job **name** string (the check
+  "context"), not the workflow file name or job id. This repo's ruleset had `"Accessibility Audit"`
+  pre-provisioned (added during Sprint 1 CI setup, before this workflow existed) matching the short,
+  no-parenthetical naming convention of every sibling required check ("Lint Backend Code", "Run
+  Frontend Tests", etc.). The actual job was named `Accessibility Audit (Lighthouse + axe-core)` — a
+  string mismatch invisible in code review (the workflow YAML alone looks completely correct), only
+  surfacing once a real PR waited on it forever.
+
+### Solution
+- When a new workflow is meant to back an *existing* required status check, don't just write
+  well-formed YAML and assume it'll match — pull the live ruleset and diff job names against it
+  before trusting a PR to actually gate correctly:
+  ```
+  gh api repos/<owner>/<repo>/rulesets/<id> --jq \
+    '.rules[] | select(.type=="required_status_checks") | .parameters.required_status_checks[].context'
+  ```
+  Then grep every `.github/workflows/*.yml` for a `name:` (job-level, not the top-level workflow
+  `name:`) that matches each context string exactly. Fix the job's `name:` to match the
+  pre-provisioned context — not the ruleset — since the ruleset reflects the repo's existing, already
+  load-bearing convention, and editing branch protection is the higher-blast-radius, shared-state
+  change of the two options.
+
+### Related Files
+- `.github/workflows/accessibility.yml` (job renamed from `Accessibility Audit (Lighthouse + axe-core)`
+  to `Accessibility Audit`)
+- `.github/workflows/backend-ci.yml`, `frontend-ci.yml`, `infra-plan.yml` (the other workflows whose
+  job names were cross-checked against the same ruleset and confirmed already matching)
