@@ -101,3 +101,52 @@ Historical summaries of completed development sessions. Committed to git as a re
   - **Operationally consequential GitHub/Docker platform behavior must be verified against current docs or by actually running it, not recalled from training data** — both the required-status-check semantics and the QEMU/cross-compile fix were confirmed empirically (WebSearch against current GitHub docs; a real local `docker buildx` run) after an initial wrong assumption in the ruleset session.
   - Scope-extension/scope-limiting decisions on a ticket (e.g. Ollama-as-real-client vs. doc-only stub) should go through explicit `AskUserQuestion` confirmation rather than being inferred, given multi-file/hard-to-reverse blast radius.
   - **Known open items carried past Sprint 2 close** (see `scratch/working-notes.md` and `patterns-discovered.md` for full detail): `postgres:15.4-alpine` version-staleness decision still pending; `internal/example/` deletion still pending (blocked on the first real domain package); a pre-existing escape-sequence text corruption (literal `\n`/`—`) in `patterns-discovered.md`'s "Suggest-Then-Approve Collaboration Workflow" entry was found and fixed in a concurrent edit during this same session (`patterns-discovered.md` was also simplified/deduplicated in that pass — see that file's own top note).
+
+---
+
+## Sprint 3 Implementation (Detailed)
+
+**Note**: This is the first Sprint 3 entry in this file, even though Sprint 3 infra work already
+landed before it (VPC module PR #95, RDS module PR #98, ALB module PR #99) — those sessions'
+summaries were never appended here; their outcomes are only reconstructable from git/PR history and
+`docs/roadmap.md`. Flagging the gap rather than silently backfilling entries for sessions this tool
+has no first-hand record of.
+
+### Session: CloudFront/S3 Frontend Delivery Module + Infra Docs Audit
+- **Date**: 2026-07-12
+- **Tool**: Claude Code
+- **What was accomplished**: Implemented `G-SPRINT3-INFRA-CLOUDFRONT` (issue #88, stable IDs
+  005-T093–T098) via the `tdd-developer` subagent — `infra/modules/cloudfront/` Terraform module:
+  private S3 origin bucket (public access fully blocked), a CloudFront Origin Access Identity with a
+  bucket policy scoping `s3:GetObject` to that OAI only, and a CloudFront distribution (HTTPS-only via
+  `redirect-to-https`, GET/HEAD/OPTIONS, `custom_error_response` rewriting 404→`/index.html` as HTTP
+  200 for SPA client-side routing, `price_class` variable defaulting to `PriceClass_100`
+  staging/`PriceClass_200` production). Verified via `terraform validate` and
+  `terraform fmt -check -recursive` (both independently re-run and confirmed, not just trusted from
+  the subagent's report) — no `terraform apply`/AWS calls made. Branch renamed mid-session to match
+  this repo's issue-number branch convention:
+  `feature/88-g-sprint3-infra-cloudfront-cloudfront-s3-frontend-delivery-module`.
+  User then requested a docs-audit pass (module-only PRs hadn't been checked against `/docs` for
+  drift before): fixed real staleness in `infra/README.md`'s "CI/CD Integration" section (it
+  presented `.github/workflows/infra-apply.yml` as if it existed and ran automated staging applies —
+  it doesn't, `005-T108` is still Backlog; `infra-plan.yml`'s own `terraform plan` step is also still
+  a placeholder pending root module wiring, `005-T107`, Backlog, both under
+  `G-SPRINT3-INFRA-ROOT-WIRING`/issue #90). Added `docs/README.md`, a categorized index of every file
+  under `docs/`, linked from the root `README.md`. Two separate commits made per explicit user
+  request (code vs. docs), both pushed: `23cd2ad` (module) and `5c89c9c` (docs).
+- **Key findings and decisions**:
+  - Confirmed via `git log -p` on `docs/architecture.md`/`docs/cloud-and-environments.md` that their
+    S3/CloudFront content predates and was untouched by every module implementation so far
+    (VPC/RDS/ALB/CloudFront) — these `PROMOTED:...`-marked docs describe target architecture at a
+    high level and don't need a per-module edit unless something becomes factually wrong, which
+    nothing was here. Formalized as a new `patterns-discovered.md` entry ("What 'Keep docs/ Updated'
+    Actually Means for an Infra Module PR") establishing the two-tier rule: implementation-status
+    trackers (`infra/README.md`, `docs/roadmap.md`) update every infra PR; target-architecture docs
+    inside `PROMOTED:...` blocks only get touched on genuine factual drift.
+  - Roadmap rows `005-T093`–`T098` intentionally left as `Backlog` in this session — this repo's
+    established pattern (confirmed against the already-merged VPC/RDS/ALB rows) is that roadmap
+    status flips to `Done` with a PR reference only *after* merge, not while a PR is open.
+- **Outcomes**: `infra/modules/cloudfront/` complete and Terraform-validated (module-only; no AWS
+  resources created; root module wiring in `infra/main.tf` remains a separate, later ticket, issue
+  #90). `docs/README.md` now exists as the canonical documentation index. Branch has 2 commits,
+  pushed, ready for PR via the `open-pr` subagent.
