@@ -1231,3 +1231,49 @@ as documented above.
 - `docker-compose.yml`, `.github/workflows/backend-ci.yml` (`postgres:15.4-alpine` — deliberate pin,
   still unresolved as of Sprint 2 close: user hasn't decided whether to check its current CVE status)
 - `docs/architecture.md`, `docs/cloud-and-environments.md`, `docs/data-model.md`
+
+---
+
+### What "Keep docs/ Updated" Actually Means for an Infra Module PR
+- **Discovered**: 2026-07-12 — **Tool**: Claude Code
+
+### Context
+- Any Terraform module PR under `infra/modules/` (established while building the CloudFront/S3
+  module, issue #88, after the VPC/RDS/ALB modules had already shipped without anyone checking
+  whether `docs/architecture.md`/`docs/cloud-and-environments.md` needed a matching update)
+
+### Problem
+- The user's standing instruction is "every time we touch infra, make sure `/docs` is up to date" —
+  but naively that reads as "edit `docs/architecture.md` and `docs/cloud-and-environments.md` every
+  time a module ships," which is wrong and would fight the `PROMOTED:...` marker workflow (see the
+  "Append Local-Dev-Only Doc Overrides..." pattern above). `git log -p` on both files confirmed their
+  CloudFront/S3 content (e.g. the `alb-sg → ecs-sg → rds-sg` line, the S3+CloudFront bullets) has been
+  untouched since the original 2026-07-03 foundation promotion — it was never edited when VPC, RDS, or
+  ALB were actually built either, and it didn't need to be: those docs describe agreed target
+  architecture at a high level, which the built modules already matched.
+
+### Solution
+- Split "infra docs" into two tiers and treat them differently on every infra PR:
+  1. **Implementation-status trackers — update every time, no exceptions**: `infra/README.md`'s
+     Implementation Status line/Project Structure tree, and `docs/roadmap.md`'s task rows (rows flip
+     Backlog → Done with a PR reference, but only **after** merge — matches the RDS/ALB precedent, see
+     `docs/roadmap.md` lines around `005-T078`/`005-T085`).
+  2. **Target-architecture docs (`architecture.md`, `cloud-and-environments.md`, inside their
+     `PROMOTED:...` blocks) — only touch if something is factually *wrong*, not just "not yet built."**
+     Before editing, grep the file for the relevant resource/decision and check `git log -p` on it: if
+     the content is generic/high-level and still accurate to the target design, leave it. If it's
+     actively misleading (e.g. a README section describing a workflow file as if it exists when it
+     doesn't), that's real drift — fix it, but outside a `PROMOTED` block or via the
+     `/promote-foundations` workflow if it's genuinely inside one.
+- Applied concretely in this session: `infra/README.md`'s "CI/CD Integration" section was rewritten
+  because it described `.github/workflows/infra-apply.yml` as if it existed and ran automated staging
+  applies — it doesn't exist yet (`005-T108`, Backlog), and `infra-plan.yml`'s own `plan` step is still
+  a placeholder pending root module wiring (`005-T107`, Backlog, blocked on `G-SPRINT3-INFRA-ROOT-WIRING`
+  / issue #90). `architecture.md`/`cloud-and-environments.md` needed no edits — verified via `git log -p`
+  that their S3/CloudFront content predates and was unaffected by every module implementation so far.
+
+### Related Files
+- `infra/README.md`, `docs/roadmap.md` (update every infra PR)
+- `docs/architecture.md`, `docs/cloud-and-environments.md` (edit only on genuine target-design drift)
+- `docs/README.md` (new doc-index menu added this same session, categorizing all of `docs/` — includes
+  a note pointing at this same tiering so future readers don't have to rediscover it)

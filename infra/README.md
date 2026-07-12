@@ -9,7 +9,7 @@ for the TrAIveler application infrastructure on AWS.
 
 ---
 
-> **Implementation Status**: ✅ Foundation complete (Sprint 1, 2026-07-08) — Backend configuration, version constraints, directory structure, and CI workflow established. ✅ VPC module implemented (Sprint 3, 2026-07-11) — network isolation, public/private subnets, and NAT (instance/gateway) routing. ✅ RDS module implemented (Sprint 3, 2026-07-11) — PostgreSQL 15.4 instance on private subnets, ECS-only security group, and Secrets Manager–backed credentials. ✅ ALB module implemented (Sprint 3, 2026-07-11) — public-facing Application Load Balancer with HTTPS termination, HTTP→HTTPS redirect, and a `/healthz`-checked target group for ECS. Terraform modules for ECS, CloudFront, and Secrets, plus root module wiring (`infra/main.tf` calling the modules) and `.tfvars`-driven `terraform apply`, remain pending in Sprint 3.
+> **Implementation Status**: ✅ Foundation complete (Sprint 1, 2026-07-08) — Backend configuration, version constraints, directory structure, and CI workflow established. ✅ VPC module implemented (Sprint 3, 2026-07-11) — network isolation, public/private subnets, and NAT (instance/gateway) routing. ✅ RDS module implemented (Sprint 3, 2026-07-11) — PostgreSQL 15.4 instance on private subnets, ECS-only security group, and Secrets Manager–backed credentials. ✅ ALB module implemented (Sprint 3, 2026-07-11) — public-facing Application Load Balancer with HTTPS termination, HTTP→HTTPS redirect, and a `/healthz`-checked target group for ECS. ✅ CloudFront module implemented (Sprint 3, 2026-07-12) — private S3 origin bucket accessible only via a CloudFront Origin Access Identity, and a CloudFront distribution with HTTPS-only viewer traffic and a 404→`/index.html` rewrite for SPA client-side routing. Terraform modules for ECS and Secrets, plus root module wiring (`infra/main.tf` calling the modules) and `.tfvars`-driven `terraform apply`, remain pending in Sprint 3.
 
 ---
 
@@ -187,7 +187,8 @@ terraform plan -var-file=environments/production.tfvars
 
 ### Apply Changes
 
-**Staging** (automated in CI on main branch merge):
+**Staging** (target design: automated in CI on main branch merge — not yet wired; see
+[CI/CD Integration](#cicd-integration) below for current status):
 
 ```bash
 terraform apply -var-file=environments/staging.tfvars
@@ -242,10 +243,18 @@ aws secretsmanager put-secret-value \
 
 ### GitHub Actions Workflows
 
-Infrastructure changes are deployed via GitHub Actions:
+Infrastructure changes are (or will be) deployed via GitHub Actions:
 
-- **`.github/workflows/infra-plan.yml`** — Runs `terraform plan` on pull requests
-- **`.github/workflows/infra-apply.yml`** — Applies changes to staging on main branch merge
+- **`.github/workflows/infra-plan.yml`** — exists and runs `terraform validate`/`fmt -check` on
+  every pull request. Its `terraform plan` step is currently a placeholder (modules exist, but the
+  root module that calls them — `infra/main.tf` — doesn't yet: see `G-SPRINT3-INFRA-ROOT-WIRING`,
+  issue #90). Wiring a real `plan` with a PR-comment summary is tracked as `005-T107`
+  (issue #91, Backlog).
+- **`.github/workflows/infra-apply.yml`** — **not created yet.** Planned as `005-T108`
+  (issue #91, Backlog) to run `terraform apply -auto-approve` for staging on `main` merge. Per this
+  repo's AWS-cost-avoidance policy, it must stay inert (or unmerged) even once authored, until infra
+  is mature enough to allow real `apply` runs against AWS — see `docs/roadmap.md`'s note on
+  `005-T108`.
 
 ### OIDC Authentication
 
@@ -259,7 +268,12 @@ See [Cloud Strategy](../docs/cloud-and-environments.md) for detailed OIDC setup 
 
 ### Terraform Outputs for CI/CD
 
-After applying infrastructure, Terraform exports values needed by backend and frontend CI/CD:
+**Not usable yet** — this describes the planned interface once root module wiring lands
+(`infra/outputs.tf`, tracked as `005-T104` under `G-SPRINT3-INFRA-ROOT-WIRING`, issue #90). Today
+only `infra/backend.tf` and `infra/versions.tf` exist at the root; there is no root `outputs.tf` to
+run this against.
+
+After applying infrastructure, Terraform will export values needed by backend and frontend CI/CD:
 
 ```bash
 # Export outputs for use in deployment workflows
@@ -273,7 +287,8 @@ terraform output -json > outputs.json
 # - cloudfront_distribution_id (for cache invalidation)
 ```
 
-These outputs are automatically exported to GitHub Secrets by the `infra-apply.yml` workflow.
+Once built, these outputs would be automatically exported to GitHub Secrets by the (not-yet-created)
+`infra-apply.yml` workflow — see [GitHub Actions Workflows](#github-actions-workflows) above.
 
 ---
 
