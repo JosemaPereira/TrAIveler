@@ -9,7 +9,7 @@ for the TrAIveler application infrastructure on AWS.
 
 ---
 
-> **Implementation Status**: ✅ Foundation complete (Sprint 1, 2026-07-08) — Backend configuration, version constraints, directory structure, and CI workflow established. ✅ VPC module implemented (Sprint 3, 2026-07-11) — network isolation, public/private subnets, and NAT (instance/gateway) routing. ✅ RDS module implemented (Sprint 3, 2026-07-11) — PostgreSQL 15.4 instance on private subnets, ECS-only security group, and Secrets Manager–backed credentials. ✅ ALB module implemented (Sprint 3, 2026-07-11) — public-facing Application Load Balancer with HTTPS termination, HTTP→HTTPS redirect, and a `/healthz`-checked target group for ECS. ✅ CloudFront module implemented (Sprint 3, 2026-07-12) — private S3 origin bucket accessible only via a CloudFront Origin Access Identity, and a CloudFront distribution with HTTPS-only viewer traffic and a 404→`/index.html` rewrite for SPA client-side routing. ✅ Secrets module implemented (Sprint 3, 2026-07-12) — empty `ai_api_key` and `jwt_signing_key` Secrets Manager placeholders, populated manually post-apply (DB credentials remain owned by the RDS module). Terraform modules for ECS, plus root module wiring (`infra/main.tf` calling the modules) and `.tfvars`-driven `terraform apply`, remain pending in Sprint 3.
+> **Implementation Status**: ✅ Foundation complete (Sprint 1, 2026-07-08) — Backend configuration, version constraints, directory structure, and CI workflow established. ✅ VPC module implemented (Sprint 3, 2026-07-11) — network isolation, public/private subnets, and NAT (instance/gateway) routing. ✅ RDS module implemented (Sprint 3, 2026-07-11) — PostgreSQL 15.4 instance on private subnets, ECS-only security group, and Secrets Manager–backed credentials. ✅ ALB module implemented (Sprint 3, 2026-07-11) — public-facing Application Load Balancer with HTTPS termination, HTTP→HTTPS redirect, and a `/healthz`-checked target group for ECS. ✅ CloudFront module implemented (Sprint 3, 2026-07-12) — private S3 origin bucket accessible only via a CloudFront Origin Access Identity, and a CloudFront distribution with HTTPS-only viewer traffic and a 404→`/index.html` rewrite for SPA client-side routing. ✅ Secrets module implemented (Sprint 3, 2026-07-12) — empty `ai_api_key` and `jwt_signing_key` Secrets Manager placeholders, populated manually post-apply (DB credentials remain owned by the RDS module). ✅ Remote-state bootstrap script implemented (Sprint 3, 2026-07-12) — `infra/scripts/bootstrap-state.sh` idempotently provisions the `traveler-terraform-state` S3 bucket and `traveler-terraform-locks` DynamoDB table; authored and test-verified only (mocked `aws` CLI), not executed against a real AWS account, per this repo's AWS-cost-avoidance policy. Terraform modules for ECS, plus root module wiring (`infra/main.tf` calling the modules) and `.tfvars`-driven `terraform apply`, remain pending in Sprint 3.
 
 ---
 
@@ -80,6 +80,9 @@ infra/
 ├── environments/
 │   ├── staging.tfvars                # Staging-specific configuration (cost-optimized)
 │   └── production.tfvars             # Production configuration (high-availability)
+├── scripts/
+│   ├── bootstrap-state.sh            # Idempotent remote-state (S3 + DynamoDB) bootstrap
+│   └── bootstrap-state.test.sh       # Mocked-aws test suite for bootstrap-state.sh
 ├── main.tf                           # Root module calling reusable modules
 ├── variables.tf                      # Input variables
 ├── outputs.tf                        # Output values for CI/CD (ECR URL, ECS cluster, S3 bucket, CloudFront ID)
@@ -99,7 +102,27 @@ infra/
 
 ### AWS Account Setup (One-Time)
 
-Before running Terraform for the first time, create the remote state resources manually:
+Before running Terraform for the first time, create the remote state resources
+(`traveler-terraform-state` S3 bucket and `traveler-terraform-locks` DynamoDB table) that
+`infra/backend.tf` expects to already exist. The recommended path is the bootstrap script:
+
+```bash
+./infra/scripts/bootstrap-state.sh
+```
+
+It idempotently provisions both resources — safe to re-run, since each one is guarded by an
+existence check (`aws s3api head-bucket` / `aws dynamodb describe-table`) and skipped if already
+present:
+
+- S3 bucket `traveler-terraform-state` (`us-east-1`) — versioning enabled, AES-256 server-side
+  encryption, all four block-public-access settings on.
+- DynamoDB table `traveler-terraform-locks` — partition key `LockID` (String), `PAY_PER_REQUEST`
+  billing mode.
+
+Its test suite (`infra/scripts/bootstrap-state.test.sh`) exercises both branches — resources
+already present vs. missing — against a mocked `aws` CLI, without ever touching a real AWS account.
+
+**Manual fallback** (raw AWS CLI commands, if you prefer not to run the script):
 
 ```bash
 # 1. Create S3 bucket for Terraform state
