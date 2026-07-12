@@ -1,0 +1,123 @@
+# Infrastructure Apply Workflow - Staging Auto-Apply on Merge to main
+#
+# This workflow runs `terraform apply -auto-approve` for the staging
+# environment whenever infra/** changes land on `main`, then exports the
+# resulting Terraform outputs (ECR repository URL, ECS cluster/service
+# names, S3 bucket, CloudFront distribution ID) to GitHub repository
+# secrets so backend-ci.yml/frontend-ci.yml can consume them in later
+# sprints (005-T108, issue #91).
+#
+# Production is deliberately never applied by this workflow — production
+# stays IaC-defined but dormant until the alpha release, per
+# infra/README.md's "Environment Configurations" section and the
+# constitution's Environment Strategy. Applying production is a manual,
+# explicit `terraform apply -var-file=environments/production.tfvars` step.
+#
+# Trigger: `push` to `main` only — never `pull_request`. This is NOT a
+# required PR status check (unlike infra-plan.yml's validate/format-check/
+# plan jobs), so path-filtering the trigger itself is safe here: the
+# "required check stuck at Expected forever" trap
+# (.github/memory/patterns-discovered.md, "Required Status Checks Must
+# Always Run") only applies to checks a branch-protection ruleset expects
+# to see reported on every PR. This workflow correctly never running on a
+# merge that doesn't touch infra/** is the desired behavior, not a bug.
+#
+# AWS-cost-avoidance gate: exactly like infra-plan.yml's `plan` job, every
+# AWS-touching step below is gated behind the `AWS_ROLE_ARN` repository
+# secret (mirrored into a job-level `env:` var, since the `secrets` context
+# is not available in step `if:` conditions). That secret does not exist
+# yet — issue #92 (005-T109, OIDC IAM role) and issue #96 (003-T009, S3/
+# DynamoDB remote-state backend) are both authored-but-not-provisioned, per
+# this repo's AWS-cost-avoidance policy (docs/roadmap.md, 005-T108's row).
+# Even after this workflow is merged to `main`, it cannot trigger a live
+# `terraform apply` until the user provisions both for real and sets the
+# secret. Until then every run is a documented no-op.
+#
+# Status: 005-T108 (issue #91) — authored, gated inert.
+
+name: Infrastructure Apply
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'infra/**'
+  workflow_dispatch:
+
+# Never cancel an in-flight apply; queue subsequent runs instead so two
+# applies never race against the same Terraform state.
+concurrency:
+  group: infra-apply-main
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  apply:
+    name: Terraform Apply (Staging)
+    runs-on: ubuntu-latest
+
+    env:
+      AWS_ROLE_ARN: ${{ secrets.AWS_ROLE_ARN }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: "~> 1.5"
+
+      - name: Configure AWS credentials
+        if: env.AWS_ROLE_ARN != ''
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          aws-region: us-east-1
+
+      - name: Terraform Init
+        if: env.AWS_ROLE_ARN != ''
+        working-directory: infra
+        run: terraform init
+
+      - name: Terraform Apply (Staging)
+        if: env.AWS_ROLE_ARN != ''
+        working-directory: infra
+        run: terraform apply -auto-approve -var-file=environments/staging.tfvars
+
+      - name: Export Terraform outputs to GitHub Secrets
+        if: env.AWS_ROLE_ARN != ''
+        working-directory: infra
+        env:
+          # NOTE: the default GITHUB_TOKEN cannot manage repository secrets —
+          # GitHub's REST API for Actions secrets requires a token with
+          # repo-admin "Secrets: write" permission, which GITHUB_TOKEN does
+          # not have. If this step ever runs for real and `gh secret set`
+          # fails with a 403, replace GH_TOKEN below with a PAT stored in a
+          # dedicated secret (e.g. secrets.REPO_ADMIN_TOKEN) that has that
+          # permission — this is a known limitation, not an oversight.
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          ECR_REPOSITORY_URL=$(terraform output -raw ecr_repository_url)
+          ECS_CLUSTER_NAME=$(terraform output -raw ecs_cluster_name)
+          ECS_SERVICE_NAME=$(terraform output -raw ecs_service_name)
+          S3_BUCKET_NAME=$(terraform output -raw s3_bucket_name)
+          CLOUDFRONT_DISTRIBUTION_ID=$(terraform output -raw cloudfront_distribution_id)
+
+          gh secret set ECR_REPOSITORY_URL --body "$ECR_REPOSITORY_URL"
+          gh secret set ECS_CLUSTER_NAME --body "$ECS_CLUSTER_NAME"
+          gh secret set ECS_SERVICE_NAME --body "$ECS_SERVICE_NAME"
+          gh secret set S3_BUCKET_NAME --body "$S3_BUCKET_NAME"
+          gh secret set CLOUDFRONT_DISTRIBUTION_ID --body "$CLOUDFRONT_DISTRIBUTION_ID"
+
+      - name: No-op notice (AWS credentials not yet provisioned)
+        if: env.AWS_ROLE_ARN == ''
+        run: |
+          echo "AWS_ROLE_ARN secret is not set — skipping real terraform apply."
+          echo "This is expected until issue #92 (005-T109, OIDC role) and issue #96"
+          echo "(003-T009, S3/DynamoDB remote-state backend) are provisioned for real."
+          echo "See infra/README.md's 'OIDC Authentication' section and this repo's"
+          echo "AWS-cost-avoidance constraint in docs/roadmap.md."
