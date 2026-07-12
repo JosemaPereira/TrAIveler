@@ -203,6 +203,19 @@ has no first-hand record of.
     detail changed. New `patterns-discovered.md` entry captures this for future Lighthouse CI work.
     Also gitignored `frontend/.lighthouseci/` (LHCI's local run-artifact directory), never previously
     added since this was the first real `lhci autorun` in the repo.
+  - After that push, the user reported PR #103's required "Accessibility Audit" check stuck at
+    "Expected — Waiting for status to be reported" forever, with every other check reporting fine.
+    Root cause (confirmed via `gh api repos/.../rulesets/18752818`, the "Protect main" ruleset,
+    created 2026-07-09 during Sprint 1 CI setup — before this issue existed): its
+    `required_status_checks` list has an exact-string entry `"Accessibility Audit"`, pre-provisioned
+    for this future workflow, matching the naming convention of every sibling required check ("Lint
+    Backend Code", "Run Frontend Tests", etc. — all short, no parenthetical detail). The
+    `accessibility.yml` job's `name:` was `Accessibility Audit (Lighthouse + axe-core)` — a string
+    mismatch, not the already-solved "no `paths:` filter" stuck-check bug — so GitHub waited forever
+    for a check name that would never be reported. Fixed by renaming the job to exactly
+    `Accessibility Audit`; verified via `gh pr checks 103` that the real job (still doing the same
+    work) now reports under that name, and cross-checked all 10 ruleset required-check contexts each
+    have an exact `name:` match somewhere in `.github/workflows/*.yml`.
 - **Outcomes**: All 4 in-scope tasks complete; 123/123 frontend Vitest tests pass; lint/type-check/
-  build clean; `lhci autorun` verified passing locally after the INP→TBT fix. PR #103 open against
-  `main`, not yet merged.
+  build clean; `lhci autorun` verified passing locally after the INP→TBT fix; required-check name
+  mismatch fixed and verified against the live ruleset. PR #103 open against `main`, not yet merged.

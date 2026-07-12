@@ -1327,3 +1327,48 @@ as documented above.
 - `docs/nfrs.md` (NFR-PERF-003 — left untouched, inside a `PROMOTED:...` block; the target-level INP
   ≤ 200 ms requirement is still accurate, only the CI *implementation detail* of how it's validated
   changed, so no edit was needed there per the "target-architecture docs" tier above)
+
+---
+
+### New Workflow's Required Status Check Stuck at "Expected" — Verify the Job `name:` Against the Live Ruleset
+- **Discovered**: 2026-07-12 — **Tool**: Claude Code
+
+### Context
+- Any new GitHub Actions workflow file whose job is meant to satisfy an existing branch-protection
+  required status check (this repo: the "Protect main" ruleset, `gh api
+  repos/<owner>/<repo>/rulesets/<id>`) — found while adding `.github/workflows/accessibility.yml`
+  (issue #93)
+
+### Problem
+- PR #103's "Accessibility Audit" required check sat at "Expected — Waiting for status to be
+  reported" indefinitely, while every other check on the PR reported normally. This looks identical
+  to this repo's already-documented "stuck at Expected" bug (a required check whose workflow never
+  triggers because of a `paths:` filter) — but `accessibility.yml` already used the correct
+  always-triggering / `dorny/paths-filter`-gated-job pattern, so that wasn't it. The real cause:
+  branch-protection `required_status_checks` match on the exact job **name** string (the check
+  "context"), not the workflow file name or job id. This repo's ruleset had `"Accessibility Audit"`
+  pre-provisioned (added during Sprint 1 CI setup, before this workflow existed) matching the short,
+  no-parenthetical naming convention of every sibling required check ("Lint Backend Code", "Run
+  Frontend Tests", etc.). The actual job was named `Accessibility Audit (Lighthouse + axe-core)` — a
+  string mismatch invisible in code review (the workflow YAML alone looks completely correct), only
+  surfacing once a real PR waited on it forever.
+
+### Solution
+- When a new workflow is meant to back an *existing* required status check, don't just write
+  well-formed YAML and assume it'll match — pull the live ruleset and diff job names against it
+  before trusting a PR to actually gate correctly:
+  ```
+  gh api repos/<owner>/<repo>/rulesets/<id> --jq \
+    '.rules[] | select(.type=="required_status_checks") | .parameters.required_status_checks[].context'
+  ```
+  Then grep every `.github/workflows/*.yml` for a `name:` (job-level, not the top-level workflow
+  `name:`) that matches each context string exactly. Fix the job's `name:` to match the
+  pre-provisioned context — not the ruleset — since the ruleset reflects the repo's existing, already
+  load-bearing convention, and editing branch protection is the higher-blast-radius, shared-state
+  change of the two options.
+
+### Related Files
+- `.github/workflows/accessibility.yml` (job renamed from `Accessibility Audit (Lighthouse + axe-core)`
+  to `Accessibility Audit`)
+- `.github/workflows/backend-ci.yml`, `frontend-ci.yml`, `infra-plan.yml` (the other workflows whose
+  job names were cross-checked against the same ruleset and confirmed already matching)
