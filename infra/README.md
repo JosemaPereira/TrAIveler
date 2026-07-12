@@ -9,7 +9,7 @@ for the TrAIveler application infrastructure on AWS.
 
 ---
 
-> **Implementation Status**: ✅ Foundation complete (Sprint 1, 2026-07-08) — Backend configuration, version constraints, directory structure, and CI workflow established. ✅ VPC module implemented (Sprint 3, 2026-07-11) — network isolation, public/private subnets, and NAT (instance/gateway) routing. ✅ RDS module implemented (Sprint 3, 2026-07-11) — PostgreSQL 15.4 instance on private subnets, ECS-only security group, and Secrets Manager–backed credentials. ✅ ALB module implemented (Sprint 3, 2026-07-11) — public-facing Application Load Balancer with HTTPS termination, HTTP→HTTPS redirect, and a `/healthz`-checked target group for ECS. ✅ CloudFront module implemented (Sprint 3, 2026-07-12) — private S3 origin bucket accessible only via a CloudFront Origin Access Identity, and a CloudFront distribution with HTTPS-only viewer traffic and a 404→`/index.html` rewrite for SPA client-side routing. ✅ Secrets module implemented (Sprint 3, 2026-07-12) — empty `ai_api_key` and `jwt_signing_key` Secrets Manager placeholders, populated manually post-apply (DB credentials remain owned by the RDS module). ✅ Remote-state bootstrap script implemented (Sprint 3, 2026-07-12) — `infra/scripts/bootstrap-state.sh` idempotently provisions the `traveler-terraform-state` S3 bucket and `traveler-terraform-locks` DynamoDB table; authored and test-verified only (mocked `aws` CLI), not executed against a real AWS account, per this repo's AWS-cost-avoidance policy. ✅ ECS module implemented (Sprint 3, 2026-07-12) — ARM64 (Graviton2) Fargate cluster, task definition, and service attached to the ALB target group, CPU-based target-tracking autoscaling, a dedicated CloudWatch log group, and an ALB-only security group on port 8080. Root module wiring (`infra/main.tf` calling the modules) and `.tfvars`-driven `terraform apply` remain pending in Sprint 3.
+> **Implementation Status**: ✅ Foundation complete (Sprint 1, 2026-07-08) — Backend configuration, version constraints, directory structure, and CI workflow established. ✅ VPC module implemented (Sprint 3, 2026-07-11) — network isolation, public/private subnets, and NAT (instance/gateway) routing. ✅ RDS module implemented (Sprint 3, 2026-07-11) — PostgreSQL 15.4 instance on private subnets, ECS-only security group, and Secrets Manager–backed credentials. ✅ ALB module implemented (Sprint 3, 2026-07-11) — public-facing Application Load Balancer with HTTPS termination, HTTP→HTTPS redirect, and a `/healthz`-checked target group for ECS. ✅ CloudFront module implemented (Sprint 3, 2026-07-12) — private S3 origin bucket accessible only via a CloudFront Origin Access Identity, and a CloudFront distribution with HTTPS-only viewer traffic and a 404→`/index.html` rewrite for SPA client-side routing. ✅ Secrets module implemented (Sprint 3, 2026-07-12) — empty `ai_api_key` and `jwt_signing_key` Secrets Manager placeholders, populated manually post-apply (DB credentials remain owned by the RDS module). ✅ Remote-state bootstrap script implemented (Sprint 3, 2026-07-12) — `infra/scripts/bootstrap-state.sh` idempotently provisions the `traveler-terraform-state` S3 bucket and `traveler-terraform-locks` DynamoDB table; authored and test-verified only (mocked `aws` CLI), not executed against a real AWS account, per this repo's AWS-cost-avoidance policy. ✅ ECS module implemented (Sprint 3, 2026-07-12) — ARM64 (Graviton2) Fargate cluster, task definition, and service attached to the ALB target group, CPU-based target-tracking autoscaling, a dedicated CloudWatch log group, and an ALB-only security group on port 8080. ✅ Root module wiring implemented (Sprint 3, 2026-07-12) — `infra/main.tf` calls all six modules with dependency injection via module outputs (`vpc` → `alb` → `ecs` → `rds`, `cloudfront`/`secrets` independent), `infra/variables.tf`/`infra/outputs.tf` define the root interface, and `infra/environments/{staging,production}.tfvars` hold the environment-specific `.tfvars`; `terraform validate` passes for both environments. `terraform plan`/`apply` remain pending until the S3/DynamoDB remote-state resources actually exist (see `003-T009`) and real ECR/ACM resources replace the placeholder values in the `.tfvars` files.
 
 ---
 
@@ -84,8 +84,8 @@ infra/
 │   ├── bootstrap-state.sh            # Idempotent remote-state (S3 + DynamoDB) bootstrap
 │   └── bootstrap-state.test.sh       # Mocked-aws test suite for bootstrap-state.sh
 ├── main.tf                           # Root module calling reusable modules
-├── variables.tf                      # Input variables
-├── outputs.tf                        # Output values for CI/CD (ECR URL, ECS cluster, S3 bucket, CloudFront ID)
+├── variables.tf                      # Input variables (environment, sizing, domains, ECR/ACM references)
+├── outputs.tf                        # Output values for CI/CD (ECR URL, ECS cluster & service, S3 bucket, CloudFront ID)
 ├── backend.tf                        # S3 + DynamoDB remote state configuration
 └── versions.tf                       # Terraform and provider version constraints
 ```
@@ -269,10 +269,11 @@ aws secretsmanager put-secret-value \
 Infrastructure changes are (or will be) deployed via GitHub Actions:
 
 - **`.github/workflows/infra-plan.yml`** — exists and runs `terraform validate`/`fmt -check` on
-  every pull request. Its `terraform plan` step is currently a placeholder (modules exist, but the
-  root module that calls them — `infra/main.tf` — doesn't yet: see `G-SPRINT3-INFRA-ROOT-WIRING`,
-  issue #90). Wiring a real `plan` with a PR-comment summary is tracked as `005-T107`
-  (issue #91, Backlog).
+  every pull request. Its `terraform plan` step is currently a placeholder — the root module
+  (`infra/main.tf`, `G-SPRINT3-INFRA-ROOT-WIRING`, issue #90) now exists and `terraform validate`
+  passes, but wiring a real `plan` with a PR-comment summary, plus giving the workflow real AWS
+  credentials, is tracked separately as `005-T107` (issue #91, Backlog) — it also needs the real
+  S3/DynamoDB backend to exist first (`003-T009`).
 - **`.github/workflows/infra-apply.yml`** — **not created yet.** Planned as `005-T108`
   (issue #91, Backlog) to run `terraform apply -auto-approve` for staging on `main` merge. Per this
   repo's AWS-cost-avoidance policy, it must stay inert (or unmerged) even once authored, until infra
@@ -291,12 +292,12 @@ See [Cloud Strategy](../docs/cloud-and-environments.md) for detailed OIDC setup 
 
 ### Terraform Outputs for CI/CD
 
-**Not usable yet** — this describes the planned interface once root module wiring lands
-(`infra/outputs.tf`, tracked as `005-T104` under `G-SPRINT3-INFRA-ROOT-WIRING`, issue #90). Today
-only `infra/backend.tf` and `infra/versions.tf` exist at the root; there is no root `outputs.tf` to
-run this against.
+`infra/outputs.tf` now exists (`005-T104` under `G-SPRINT3-INFRA-ROOT-WIRING`, issue #90) and
+`terraform validate` passes against it — but it has never been run against real infrastructure
+(no `terraform apply` has happened; see the AWS-cost-avoidance note above), so there is no live
+state to query `terraform output` against yet.
 
-After applying infrastructure, Terraform will export values needed by backend and frontend CI/CD:
+Once infrastructure is applied, Terraform will export values needed by backend and frontend CI/CD:
 
 ```bash
 # Export outputs for use in deployment workflows
