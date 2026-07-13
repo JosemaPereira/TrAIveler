@@ -122,3 +122,39 @@ Historical summaries of completed development sessions. Committed to git as a re
   - AWS-cost-avoidance constraint held all sprint (nothing executed against real AWS) and **remains in force** — no real `terraform apply`/`aws` resource creation until the user says infra is ready.
   - Open follow-up: 002-T023 (tag E2E specs `@accessibility`, Sprint 9) still needed before `accessibility.yml` can become a required check (`sprint3-lighthouse-ci-gap` memory).
   - Carried from Sprint 2, still open: `postgres:15.4-alpine` staleness watch; `internal/example/` deletion (blocked on first real domain package).
+
+---
+
+## Sprint 4 Implementation (Detailed)
+
+### Session: G-OBS-LOGGER — Logger Middleware Structured Log Fields
+- **Date**: 2026-07-13
+- **Tool**: Claude Code
+- **Outcome**: Issue #109 (002-T008/T009), PR #125 merged. `backend/internal/middleware/logger.go` extended
+  with `service`/`msg`/`user_id` fields on top of the Sprint 2 baseline (005-T025, PR #71), reconciling
+  it with spec 002's `StructuredLogEntry` contract. `logger_test.go` extended to cover the new fields.
+- **Note**: this entry was written retroactively during the next ticket's session (G-OBS-HEALTHZ, below) —
+  `docs/roadmap.md` rows 002-T008/T009 were left at `Backlog` after PR #125 merged instead of being
+  flipped to `Done` immediately. Going forward, flip roadmap status + append this log entry as part of
+  the same PR that closes the ticket, not deferred to a later session — see the `commit-and-push`/
+  `open-pr` workflow note below.
+
+### Session: G-OBS-HEALTHZ — Healthz Handler Reconciled to HealthCheckResponse Schema
+- **Date**: 2026-07-13
+- **Tool**: Claude Code
+- **Outcome**: Issue #110 (002-T010/T011). `backend/cmd/api/server.go`'s `/healthz` handler reconciled
+  from its Sprint 2 schema (`status: "healthy"/"unhealthy"`, `database`, `error`, 503 on ping failure)
+  to spec 002's `HealthCheckResponse` (`status: "ok"/"degraded"`, `version`, `uptime_seconds`, always
+  `200 OK` per the spec's validation rule — DB ping failure now maps to `status:"degraded"` plus a
+  `logger.Warn` instead of a non-2xx response). `version` is a new single-source-of-truth package var
+  in `main`, also replacing a hardcoded literal in `main.go`'s startup log. `server_test.go`'s three
+  healthz tests updated to the new contract; all other tests in the file unaffected.
+- **Key decision**: the "always 200, only the body signals degraded" behavior is a deliberate reversal
+  of typical REST health-check convention (503-on-unhealthy) — driven entirely by the literal text of
+  `specs/002-nfr-system-constraints/data-model.md`'s `HealthCheckResponse` validation rules, not a
+  judgment call. See `patterns-discovered.md` for the generalized lesson.
+- **Workflow note**: this session closed out the `docs/roadmap.md` staleness gap left by the previous
+  G-OBS-LOGGER session (see above) as part of its own commit sequence, per an explicit user instruction
+  to update session-notes/memory/roadmap per ticket rather than batching at sprint close — the pattern
+  from Sprint 1-3 was to reconcile the roadmap only at sprint-closure sessions, which is why #109/#125
+  slipped for one ticket-cycle. Sprint 4 tickets should each self-close their own roadmap row instead.
