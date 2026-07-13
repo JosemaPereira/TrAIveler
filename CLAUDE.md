@@ -92,6 +92,24 @@ Read the following files before generating code, tests, or UI for this project:
 - Incremental, small, and testable changes
 - Validation before commit: tests pass, no lint errors
 
+## API Documentation Enforcement (MANDATORY)
+
+Whenever a backend endpoint is added, **or an existing endpoint's request/response shape or
+behavior changes**:
+
+- Add/update its `swag` doc-comment annotations per `specs/009-api-documentation/contracts/api.md`'s
+  shape (mirrors `internal/example/handler.go`, the canonical reference implementation — see
+  `backend/README.md`).
+- Regenerate `backend/docs/` via `make swagger` and commit the regenerated artifact alongside the
+  code change (it's a generated file — never hand-edit it).
+- Delegate to the `technical-writer` subagent to review the annotation change as part of the same
+  piece of work — a new or changed endpoint is not done until `technical-writer` has confirmed the
+  annotations are complete/accurate and the regenerated docs are committed.
+
+This is a manual-but-mandatory step until the deferred `swagger-drift` CI gate (Sprint 5, spec 009
+US3) lands and enforces it automatically — do not treat "CI will catch it later" as a reason to
+skip this now.
+
 ## Git Workflow
 
 - **Commit messages**: Follow `.github/COMMIT_GUIDELINES.md` (Conventional Commits, imperative

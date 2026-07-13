@@ -56,7 +56,7 @@
 
 > Write these first; they MUST fail (no route, no annotations yet) before implementation
 
-- [ ] T007 [P] [US1] Write a failing integration test in `backend/tests/integration/swagger_test.go` asserting `GET /swagger/doc.json` returns `200` with a body that parses as a valid OpenAPI v3 document
+- [ ] T007 [P] [US1] Write a failing integration test in `backend/tests/integration/swagger_test.go` asserting `GET /swagger/doc.json` returns `200` with a body that parses as a valid Swagger 2.0 (OpenAPI 2.0) document
 - [ ] T008 [P] [US1] Extend the same test file to assert every `internal/example` endpoint (`POST/GET/PUT/DELETE /api/v1/examples...`) appears in the parsed document's `paths`, and `/healthz` does NOT appear
 
 ### Implementation for User Story 1

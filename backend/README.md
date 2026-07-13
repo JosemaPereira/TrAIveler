@@ -116,14 +116,29 @@ backend/
 > range is reserved for the real foundational domain tables cataloged in
 > [`docs/data-model.md`](../docs/data-model.md).
 >
+> **`internal/example/handler.go` is also the canonical example for `swag` doc-comment
+> annotations.** Every handler function in that file carries a `swag` doc block (`@Summary`,
+> `@Description`, `@Tags`, `@Accept`/`@Produce`, `@Param`, `@Success`, `@Failure`, `@Security
+> BearerAuth`, `@Router`) directly above its function definition, matching the shape defined in
+> [`specs/009-api-documentation/contracts/api.md`](../specs/009-api-documentation/contracts/api.md).
+> When adding a real domain handler (Trip, Auth, ...), copy this file's annotation pattern rather
+> than inventing a new one: reference request/response types with `{object} <TypeName>` (unexported
+> types in the same package resolve fine — see `example.createRequest`/`example.listResponse` in
+> the generated `backend/docs/swagger.json`), reference the shared error envelope as
+> `errors.ErrorResponse` (its exported name in `internal/errors/handler.go`, added specifically so
+> `swag` annotations elsewhere in the codebase can resolve it — always use the target package's
+> real name, e.g. `errors`, not a local import alias like `domainerrors`), and run `make swagger`
+> to regenerate `backend/docs/` after any annotation change. A handler with no annotations is
+> silently excluded from the generated contract (e.g. `/healthz`) — this is intentional, not a bug.
+>
 > `pkg/` and `config/prompt-rules.yml` / `alerts.yml` / `backup-policy.yml` referenced in earlier
 > planning docs do not exist yet — `pkg/` currently holds only a `.gitkeep` placeholder.
 >
-> **Planned**: `backend/docs/` (a new generated-artifact directory holding `swag`-generated
-> `docs.go`, `swagger.json`, `swagger.yaml`) and `/swagger/*` routes (Swagger UI +
-> `GET /swagger/doc.json`) are defined in `specs/009-api-documentation/` but not yet built — see
-> [docs/architecture.md](../docs/architecture.md) and
-> [docs/api-design-standards.md](../docs/api-design-standards.md) §16.
+> **`/swagger/*` routes are mounted** (issue #115): `GET /swagger/index.html` (interactive Swagger
+> UI) and `GET /swagger/doc.json` (the generated Swagger 2.0 contract) are live, unauthenticated
+> endpoints serving the `backend/docs/` artifact above — see [Try the
+> API](#try-the-api-interactive-swagger-ui) below, [docs/architecture.md](../docs/architecture.md),
+> and [docs/api-design-standards.md](../docs/api-design-standards.md) §16.
 
 ### Target (planned, future specs)
 
@@ -189,6 +204,8 @@ backend/
 | `govulncheck` | latest | `govulncheck -version` | |
 | `gitleaks` | ≥ 8 | `gitleaks version` | |
 | Ollama | Latest | `ollama --version` | Only needed for the **Local Go** setup path below — `docker-compose` starts it automatically. See [docs/local-ai-setup.md](../docs/local-ai-setup.md) |
+| `swag` | ≥ 1.16 | `swag --version` | Only needed to regenerate the OpenAPI/Swagger contract (`make swagger`). Install with `go install github.com/swaggo/swag/cmd/swag@latest`. See [specs/009-api-documentation/](../specs/009-api-documentation/) |
+| `goose` | v3.27.2 | `goose --version` | Only needed for the **Local Go** setup path below (`make run` or a manual migration). Install with `go install github.com/pressly/goose/v3/cmd/goose@v3.27.2` |
 
 ```bash
 brew install colima
@@ -268,6 +285,32 @@ go run ./cmd/api
 # HTTP server listening on :8080 (or $HTTP_PORT); Ctrl+C (SIGINT) drains in-flight requests
 ```
 
+Or, once `.env` exists and Postgres is reachable, run the last two steps (migrate + start) in one
+command with `make run` (from `backend/`) — it only skips Dockerizing the Go process itself, it
+still expects Postgres to already be running per the step above.
+
+### Try the API (interactive Swagger UI)
+
+With the backend running (either setup path above), open the interactive Swagger UI in a browser:
+
+```bash
+open http://localhost:8080/swagger/index.html
+```
+
+The page renders every `swag`-annotated endpoint (currently the `internal/example` reference
+resource — see [Project Structure](#project-structure)) and lets you send real requests against
+your locally running server via "Try it out" — the page loads its contract from the live
+`GET /swagger/doc.json` route, not a static or hand-edited copy, so it always reflects whatever
+`make swagger` last generated from the annotated handlers.
+
+For a step-by-step walkthrough (expand a tag, execute a real `POST /api/v1/examples` request, and
+confirm the response matches what `curl` would return), see [Scenario 2 of
+`specs/009-api-documentation/quickstart.md`](../specs/009-api-documentation/quickstart.md#scenario-2--interactive-ui-real-request).
+
+`/swagger/*` is intentionally unauthenticated for now (see the note in [Project
+Structure](#project-structure) above) — this will change once Sprint 5's JWT middleware is wired
+into the shared route group in `cmd/api/routes.go`.
+
 ---
 
 ## Development Commands
@@ -287,6 +330,7 @@ govulncheck ./...                               # dependency vulnerability audit
 gitleaks detect --source . --verbose            # secret scanning
 
 make mocks                      # regenerate mocks (vektra/mockery) into */mocks subdirectories
+make swagger                    # regenerate OpenAPI/Swagger docs (swaggo/swag) into backend/docs/
 ```
 
 Most test files carry a `//go:build test` constraint, so plain `go test ./...` (no `-tags=test`)

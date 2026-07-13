@@ -9,14 +9,17 @@ import (
 	"github.com/JosemaPereira/TrAIveler/backend/internal/middleware"
 )
 
-// errorResponse is the wire shape of the standard error envelope
+// ErrorResponse is the wire shape of the standard error envelope
 // (docs/api-design-standards.md §7). It is wire-compatible with, but
 // distinct from, middleware's package-private errorEnvelope: this exported
 // version additionally carries "fields" (validation errors) and "details".
 // The two types can't be unified because this package already imports
 // middleware (for RequestIDFromContext below) — middleware importing back
-// would create an import cycle.
-type errorResponse struct {
+// would create an import cycle. Exported (rather than the package-private
+// name used elsewhere in this file) so swag doc annotations across the
+// codebase can reference it directly, e.g. `@Failure 404 {object}
+// errors.ErrorResponse` in internal/example/handler.go.
+type ErrorResponse struct {
 	Error     string            `json:"error"`
 	Message   string            `json:"message"`
 	RequestID string            `json:"request_id"`
@@ -49,7 +52,7 @@ func writeErrorResponse(w http.ResponseWriter, r *http.Request, domainErr *Domai
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(statusForCode(domainErr.Code))
-	if err := json.NewEncoder(w).Encode(errorResponse{
+	if err := json.NewEncoder(w).Encode(ErrorResponse{
 		Error:     domainErr.Code,
 		Message:   domainErr.Message,
 		RequestID: requestID,
