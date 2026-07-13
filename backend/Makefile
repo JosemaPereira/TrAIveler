@@ -1,4 +1,4 @@
-.PHONY: help test test-unit test-integration test-coverage mocks lint fmt vet clean
+.PHONY: help test test-unit test-integration test-coverage mocks lint fmt vet clean swagger
 
 # Default target
 help:
@@ -7,6 +7,7 @@ help:
 	@echo "  make test-all          - Run ALL tests including testcontainers (requires Colima)"
 	@echo "  make test-coverage     - Run tests with coverage report (CI configuration)"
 	@echo "  make mocks             - Generate mocks using mockery"
+	@echo "  make swagger           - Regenerate OpenAPI/Swagger docs from swag annotations"
 	@echo "  make lint              - Run golangci-lint"
 	@echo "  make fmt               - Format code with gofmt"
 	@echo "  make vet               - Run go vet"
@@ -51,6 +52,17 @@ mocks:
 		echo "✅ Mocks generated successfully"; \
 	else \
 		echo "❌ mockery not found. Install with: go install github.com/vektra/mockery/v2@latest"; \
+		exit 1; \
+	fi
+
+# Regenerate the OpenAPI/Swagger contract from swag doc-comment annotations
+# See specs/009-api-documentation/ for the design behind this target.
+swagger:
+	@if command -v swag >/dev/null 2>&1; then \
+		swag init -g cmd/api/docs.go -o docs && \
+		echo "✅ Swagger docs regenerated in backend/docs/"; \
+	else \
+		echo "❌ swag not found. Install with: go install github.com/swaggo/swag/cmd/swag@latest"; \
 		exit 1; \
 	fi
 

@@ -189,6 +189,7 @@ backend/
 | `govulncheck` | latest | `govulncheck -version` | |
 | `gitleaks` | ≥ 8 | `gitleaks version` | |
 | Ollama | Latest | `ollama --version` | Only needed for the **Local Go** setup path below — `docker-compose` starts it automatically. See [docs/local-ai-setup.md](../docs/local-ai-setup.md) |
+| `swag` | ≥ 1.16 | `swag --version` | Only needed to regenerate the OpenAPI/Swagger contract (`make swagger`). Install with `go install github.com/swaggo/swag/cmd/swag@latest`. See [specs/009-api-documentation/](../specs/009-api-documentation/) |
 
 ```bash
 brew install colima
@@ -287,6 +288,7 @@ govulncheck ./...                               # dependency vulnerability audit
 gitleaks detect --source . --verbose            # secret scanning
 
 make mocks                      # regenerate mocks (vektra/mockery) into */mocks subdirectories
+make swagger                    # regenerate OpenAPI/Swagger docs (swaggo/swag) into backend/docs/
 ```
 
 Most test files carry a `//go:build test` constraint, so plain `go test ./...` (no `-tags=test`)
