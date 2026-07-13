@@ -5,7 +5,8 @@
 > Notes are human-owned and preserved across runs. Do not hand-edit the stable IDs.
 
 **Last reconciled**: 2026-07-10 (added spec 009 — API Documentation via OpenAPI/Swagger)  
-**Current status**: 841 tasks across 9 specs; MVP = 427 tasks across Sprints 1-10. Sprints 1-3 complete
+**Current status**: 841 tasks across 9 specs; MVP = 424 tasks across Sprints 1-10 (recomputed
+2026-07-12 at Sprint 4 planning — see Sprint Summary Statistics). Sprints 1-3 complete
 (114 tasks shipped). See [Sprint Plan](#sprint-plan) for per-sprint detail and
 `.github/memory/session-notes.md` for the narrative history of past sprint-closure decisions.
 
@@ -175,13 +176,13 @@
 
 | ID | Task | Group | Sprint | Priority | Status | Depends on | Parallel | Issue | Notes |
 |----|------|-------|--------|----------|--------|------------|----------|-------|-------|
-| 002-T006 | Implement `RequestID` Chi middleware (generate UUID v4 if absent; propagate; set X-Request-ID on response) | G-OBS-REQUESTID | 4 | P1 | Backlog | - | no | | |
-| 002-T007 | Write unit tests for `RequestID` middleware (generates UUID, propagates existing, sets response header) | G-OBS-REQUESTID | 4 | P1 | Backlog | 002-T006 | no | | |
-| 002-T008 | Implement `Logger` Chi middleware using `log/slog` JSON handler (emit StructuredLogEntry per request) | G-OBS-LOGGER | 4 | P1 | Backlog | - | yes | | |
-| 002-T009 | Write unit tests for `Logger` middleware (all fields present, duration_ms ≥ 0, user_id absent on unauth) | G-OBS-LOGGER | 4 | P1 | Backlog | 002-T008 | no | | |
-| 002-T010 | Implement `GET /healthz` handler returning HealthCheckResponse JSON (status, version, uptime_seconds) | G-OBS-HEALTHZ | 4 | P1 | Backlog | - | yes | | |
-| 002-T011 | Write unit tests for `/healthz` handler (200 OK, schema valid, status is "ok", uptime ≥ 0) | G-OBS-HEALTHZ | 4 | P1 | Backlog | 002-T010 | no | | |
-| 002-T012 | Register `/healthz` and wire `RequestID` → `Logger` middleware chain globally in Chi router | | 4 | P1 | Backlog | 002-T006, 002-T008, 002-T010, 001-T023 | no | | |
+| 002-T006 | Implement `RequestID` Chi middleware (generate UUID v4 if absent; propagate; set X-Request-ID on response) | | | P1 | Superseded | - | no | | Superseded by 005-T024 (Done, Sprint 2, issue #54, PR #71) — `backend/internal/middleware/request_id.go` already implements identical UUID-v4-if-absent + context + X-Request-ID behavior. Not scheduled; keep as historical record only. |
+| 002-T007 | Write unit tests for `RequestID` middleware (generates UUID, propagates existing, sets response header) | | | P1 | Superseded | 002-T006 | no | | Superseded — `backend/internal/middleware/request_id_test.go` (delivered with 005-T024, PR #71) already covers all three cases. Not scheduled; keep as historical record only. |
+| 002-T008 | Implement `Logger` Chi middleware using `log/slog` JSON handler (emit StructuredLogEntry per request) | G-OBS-LOGGER | 4 | P1 | Backlog | - | yes | https://github.com/JosemaPereira/TrAIveler/issues/109 | Not superseded — 005-T025 (Done, Sprint 2, PR #71) only logs method/path/status/duration_ms/request_id; StructuredLogEntry also requires `service`, `msg`, and conditional `user_id`. Scope is extending the existing `logger.go`, not creating a new middleware. Also touches the same file as 005-T111 (Sprint 4, 5xx stack-trace logging) — sequence the two PRs. |
+| 002-T009 | Write unit tests for `Logger` middleware (all fields present, duration_ms ≥ 0, user_id absent on unauth) | G-OBS-LOGGER | 4 | P1 | Backlog | 002-T008 | no | https://github.com/JosemaPereira/TrAIveler/issues/109 | Extend existing `logger_test.go` (delivered with 005-T025) to cover the `service`/`msg`/`user_id` fields added by 002-T008; don't duplicate the existing status→level assertions. |
+| 002-T010 | Implement `GET /healthz` handler returning HealthCheckResponse JSON (status, version, uptime_seconds) | G-OBS-HEALTHZ | 4 | P1 | Backlog | - | yes | https://github.com/JosemaPereira/TrAIveler/issues/110 | Not superseded — 005-T037 (Done, Sprint 2, PR #72) implemented `/healthz` with a different schema (`status: "healthy"/"unhealthy"`, `database`, `error`). This reconciles it with spec 002's contract (`status: "ok"/"degraded"`, `version`, `uptime_seconds`) on the existing handler in `backend/cmd/api/server.go` — additive fields plus a status-value change, not a rewrite. |
+| 002-T011 | Write unit tests for `/healthz` handler (200 OK, schema valid, status is "ok", uptime ≥ 0) | G-OBS-HEALTHZ | 4 | P1 | Backlog | 002-T010 | no | https://github.com/JosemaPereira/TrAIveler/issues/110 | Extend existing `server_test.go` healthz cases (delivered with 005-T037) for the reconciled schema from 002-T010. |
+| 002-T012 | Register `/healthz` and wire `RequestID` → `Logger` middleware chain globally in Chi router | | | P1 | Superseded | 002-T006, 002-T008, 002-T010, 001-T023 | no | | Superseded by 005-T035/005-T037 (Done, Sprint 2, PR #72) — `backend/cmd/api/main.go` already registers `/healthz` and wires `RequestID → Logger → Recovery → CORS → BodySize` globally. Not scheduled; keep as historical record only. Note: this task's own listed dependency, 001-T023, was found during Sprint 4 planning to independently duplicate the same router/middleware bootstrap (still unscheduled, Spec 001) — flagged for a future Spec 001 reconciliation pass, not actioned here. |
 
 #### Phase 3 — User Story 1: Engineering Team Verifies Performance Under Load (Priority: P1) 🎯 → **Sprint 9**
 
@@ -684,33 +685,33 @@
 
 | ID | Task | Group | Sprint | Priority | Status | Depends on | Parallel | Issue | Notes |
 |----|------|-------|--------|----------|--------|------------|----------|-------|-------|
-| 005-T110 | Enhance backend/internal/errors/handler.go to extract correlation ID from context and include in all error responses | G-ARCH-INTEGRATION-BACKEND | | P2 | Backlog | 005-T033 | yes | | |
-| 005-T111 | Update backend/internal/middleware/logger.go to log all 5xx errors with stack trace and correlation ID for observability | G-ARCH-INTEGRATION-BACKEND | | P2 | Backlog | 005-T025 | yes | | |
-| 005-T112 | Create backend/internal/ai/anthropic.go implementing Anthropic SDK wrapper with exponential backoff retry (max 3 attempts), timeout configuration (60s non-streaming), and 429/503 error handling | G-ARCH-INTEGRATION-BACKEND | | P2 | Backlog | 005-T030 | yes | | |
-| 005-T113 | Update backend/internal/ai/client.go to use anthropic.go implementation and return service unavailable errors with Retry-After header on AI provider outages | | | P2 | Backlog | 005-T112 | no | | |
-| 005-T114 | Enhance frontend/src/lib/api-client.ts to include X-Request-ID in all requests using crypto.randomUUID() and extract requestId from error responses | G-ARCH-INTEGRATION-FRONTEND | | P2 | Backlog | 005-T044 | yes | | |
-| 005-T115 | Create frontend/src/hooks/useErrorHandler.ts custom hook handling common error scenarios (401 → redirect to login, 403 → show permission error, 404 → show not found, 500/503 → show retry) | G-ARCH-INTEGRATION-FRONTEND | | P2 | Backlog | 005-T044 | yes | | |
-| 005-T116 | Update frontend/src/components/primitives/ErrorMessage.tsx to display correlation ID when available in error responses | | | P2 | Backlog | 005-T053, 005-T115 | no | | |
-| 005-T117 | Create integration test scenario in backend/tests/integration/health_test.go verifying health check returns 200 OK with correlation ID header | G-ARCH-INTEGRATION-TESTS | | P2 | Backlog | 005-T037 | yes | | |
-| 005-T118 | Create integration test scenario in backend/tests/integration/error_test.go verifying database timeout returns 500 with correlation ID and structured error response | G-ARCH-INTEGRATION-TESTS | | P2 | Backlog | 005-T033 | yes | | |
-| 005-T119 | Document error handling patterns in backend/README.md and frontend/README.md with examples of domain error creation, error wrapping, and client error handling | | | P2 | Backlog | 005-T010, 005-T011, 005-T116 | no | | |
+| 005-T110 | Enhance backend/internal/errors/handler.go to extract correlation ID from context and include in all error responses | G-ARCH-INTEGRATION-BACKEND | 4 | P2 | Backlog | 005-T033 | yes | https://github.com/JosemaPereira/TrAIveler/issues/117 | |
+| 005-T111 | Update backend/internal/middleware/logger.go to log all 5xx errors with stack trace and correlation ID for observability | G-ARCH-INTEGRATION-BACKEND | 4 | P2 | Backlog | 005-T025 | yes | https://github.com/JosemaPereira/TrAIveler/issues/117 | Touches the same file as 002-T008 (StructuredLogEntry field extension) — sequence the two PRs, don't parallelize blindly. |
+| 005-T112 | Create backend/internal/ai/anthropic.go implementing Anthropic SDK wrapper with exponential backoff retry (max 3 attempts), timeout configuration (60s non-streaming), and 429/503 error handling | G-ARCH-INTEGRATION-BACKEND | 4 | P2 | Backlog | 005-T030 | yes | https://github.com/JosemaPereira/TrAIveler/issues/117 | |
+| 005-T113 | Update backend/internal/ai/client.go to use anthropic.go implementation and return service unavailable errors with Retry-After header on AI provider outages | G-ARCH-INTEGRATION-BACKEND | 4 | P2 | Backlog | 005-T112 | no | https://github.com/JosemaPereira/TrAIveler/issues/117 | Folded into G-ARCH-INTEGRATION-BACKEND at Sprint 4 planning (2026-07-12) — direct sequential extension of 005-T112, same file/area. |
+| 005-T114 | Enhance frontend/src/lib/api-client.ts to include X-Request-ID in all requests using crypto.randomUUID() and extract requestId from error responses | G-ARCH-INTEGRATION-FRONTEND | 4 | P2 | Backlog | 005-T044 | yes | https://github.com/JosemaPereira/TrAIveler/issues/118 | |
+| 005-T115 | Create frontend/src/hooks/useErrorHandler.ts custom hook handling common error scenarios (401 → redirect to login, 403 → show permission error, 404 → show not found, 500/503 → show retry) | G-ARCH-INTEGRATION-FRONTEND | 4 | P2 | Backlog | 005-T044 | yes | https://github.com/JosemaPereira/TrAIveler/issues/118 | |
+| 005-T116 | Update frontend/src/components/primitives/ErrorMessage.tsx to display correlation ID when available in error responses | G-ARCH-INTEGRATION-FRONTEND | 4 | P2 | Backlog | 005-T053, 005-T115 | no | https://github.com/JosemaPereira/TrAIveler/issues/118 | Folded into G-ARCH-INTEGRATION-FRONTEND at Sprint 4 planning (2026-07-12) — direct sequential extension of 005-T115, same file/area. |
+| 005-T117 | Create integration test scenario in backend/tests/integration/health_test.go verifying health check returns 200 OK with correlation ID header | G-ARCH-INTEGRATION-TESTS | 4 | P2 | Backlog | 005-T037 | yes | https://github.com/JosemaPereira/TrAIveler/issues/119 | |
+| 005-T118 | Create integration test scenario in backend/tests/integration/error_test.go verifying database timeout returns 500 with correlation ID and structured error response | G-ARCH-INTEGRATION-TESTS | 4 | P2 | Backlog | 005-T033 | yes | https://github.com/JosemaPereira/TrAIveler/issues/119 | |
+| 005-T119 | Document error handling patterns in backend/README.md and frontend/README.md with examples of domain error creation, error wrapping, and client error handling | | 4 | P2 | Backlog | 005-T010, 005-T011, 005-T116 | no | https://github.com/JosemaPereira/TrAIveler/issues/120 | Kept standalone — spans both backend/ and frontend/ READMEs (mixed tech-stack docs), excluded from grouping per consolidation policy. |
 
 #### Phase 7 — Polish & Cross-Cutting Concerns (Priority: P2-P3) → **Sprint 4**
 
 | ID | Task | Group | Sprint | Priority | Status | Depends on | Parallel | Issue | Notes |
 |----|------|-------|--------|----------|--------|------------|----------|-------|-------|
-| 005-T120 | Update docs/architecture.md with final backend/frontend/infrastructure architecture diagrams and component descriptions from specs/005-system-architecture/ | G-ARCH-POLISH-DOCS | | P2 | Backlog | 005-T109 | yes | | |
-| 005-T121 | Update docs/coding-guidelines.md with Go import order (stdlib → external → internal), TypeScript import order (react → external → @/ → relative), and file naming conventions | G-ARCH-POLISH-DOCS | | P2 | Backlog | 005-T109 | yes | | |
-| 005-T122 | Update docs/testing-guidelines.md with backend testing patterns (service mocks, repository integration tests), frontend testing patterns (React Testing Library, MSW, axe-core) | G-ARCH-POLISH-DOCS | | P2 | Backlog | 005-T109 | yes | | |
-| 005-T123 | Update project root README.md with architecture overview, getting started instructions (Docker Compose local dev), and links to backend/frontend/infra READMEs | G-ARCH-POLISH-DOCS | | P2 | Backlog | 005-T109 | yes | | |
-| 005-T124 | Run all quickstart validation scenarios from specs/005-system-architecture/quickstart.md (Scenario 1: Backend skeleton, Scenario 2: Frontend scaffold, Scenario 3: Infrastructure plan, Scenario 4: E2E integration, Scenario 5: Accessibility) and document results | G-ARCH-POLISH-VALIDATION | | P3 | Backlog | 005-T060, 005-T109 | no | | |
-| 005-T125 | Validate golangci-lint passes with zero errors on backend code | G-ARCH-POLISH-VALIDATION | | P3 | Backlog | 005-T020, 005-T041 | yes | | |
-| 005-T126 | Validate ESLint and Prettier pass with zero errors on frontend code | G-ARCH-POLISH-VALIDATION | | P3 | Backlog | 005-T021, 005-T060 | yes | | |
-| 005-T127 | Validate terraform fmt check passes on all infra files | G-ARCH-POLISH-VALIDATION | | P3 | Backlog | 005-T109 | yes | | |
-| 005-T128 | Run backend unit tests and verify ≥ 80% coverage on example domain service and repository | G-ARCH-POLISH-VALIDATION | | P3 | Backlog | 005-T041 | yes | | |
-| 005-T129 | Run frontend component tests and verify primitives (Button, Input, Card) render correctly with design tokens | G-ARCH-POLISH-VALIDATION | | P3 | Backlog | 005-T060 | yes | | |
-| 005-T130 | Run axe-core accessibility audit on frontend and verify zero WCAG 2.1 AA violations | G-ARCH-POLISH-VALIDATION | | P3 | Backlog | 005-T060 | yes | | |
-| 005-T131 | Update specs/005-system-architecture/tasks.md marking all tasks complete and adding completion notes | | | P3 | Backlog | 005-T124 | no | | |
+| 005-T120 | Update docs/architecture.md with final backend/frontend/infrastructure architecture diagrams and component descriptions from specs/005-system-architecture/ | G-ARCH-POLISH-DOCS | 4 | P2 | Backlog | 005-T109 | yes | https://github.com/JosemaPereira/TrAIveler/issues/121 | |
+| 005-T121 | Update docs/coding-guidelines.md with Go import order (stdlib → external → internal), TypeScript import order (react → external → @/ → relative), and file naming conventions | G-ARCH-POLISH-DOCS | 4 | P2 | Backlog | 005-T109 | yes | https://github.com/JosemaPereira/TrAIveler/issues/121 | |
+| 005-T122 | Update docs/testing-guidelines.md with backend testing patterns (service mocks, repository integration tests), frontend testing patterns (React Testing Library, MSW, axe-core) | G-ARCH-POLISH-DOCS | 4 | P2 | Backlog | 005-T109 | yes | https://github.com/JosemaPereira/TrAIveler/issues/121 | |
+| 005-T123 | Update project root README.md with architecture overview, getting started instructions (Docker Compose local dev), and links to backend/frontend/infra READMEs | G-ARCH-POLISH-DOCS | 4 | P2 | Backlog | 005-T109 | yes | https://github.com/JosemaPereira/TrAIveler/issues/121 | |
+| 005-T124 | Run all quickstart validation scenarios from specs/005-system-architecture/quickstart.md (Scenario 1: Backend skeleton, Scenario 2: Frontend scaffold, Scenario 3: Infrastructure plan, Scenario 4: E2E integration, Scenario 5: Accessibility) and document results | G-ARCH-POLISH-VALIDATION | 4 | P3 | Backlog | 005-T060, 005-T109 | no | https://github.com/JosemaPereira/TrAIveler/issues/122 | |
+| 005-T125 | Validate golangci-lint passes with zero errors on backend code | G-ARCH-POLISH-VALIDATION | 4 | P3 | Backlog | 005-T020, 005-T041 | yes | https://github.com/JosemaPereira/TrAIveler/issues/122 | |
+| 005-T126 | Validate ESLint and Prettier pass with zero errors on frontend code | G-ARCH-POLISH-VALIDATION | 4 | P3 | Backlog | 005-T021, 005-T060 | yes | https://github.com/JosemaPereira/TrAIveler/issues/122 | |
+| 005-T127 | Validate terraform fmt check passes on all infra files | G-ARCH-POLISH-VALIDATION | 4 | P3 | Backlog | 005-T109 | yes | https://github.com/JosemaPereira/TrAIveler/issues/122 | |
+| 005-T128 | Run backend unit tests and verify ≥ 80% coverage on example domain service and repository | G-ARCH-POLISH-VALIDATION | 4 | P3 | Backlog | 005-T041 | yes | https://github.com/JosemaPereira/TrAIveler/issues/122 | |
+| 005-T129 | Run frontend component tests and verify primitives (Button, Input, Card) render correctly with design tokens | G-ARCH-POLISH-VALIDATION | 4 | P3 | Backlog | 005-T060 | yes | https://github.com/JosemaPereira/TrAIveler/issues/122 | |
+| 005-T130 | Run axe-core accessibility audit on frontend and verify zero WCAG 2.1 AA violations | G-ARCH-POLISH-VALIDATION | 4 | P3 | Backlog | 005-T060 | yes | https://github.com/JosemaPereira/TrAIveler/issues/122 | |
+| 005-T131 | Update specs/005-system-architecture/tasks.md marking all tasks complete and adding completion notes | | 4 | P3 | Backlog | 005-T124 | no | https://github.com/JosemaPereira/TrAIveler/issues/123 | |
 
 ---
 
@@ -1254,57 +1255,57 @@ _Checkpoint: All polish tasks complete, authentication & collaboration UX featur
 
 | ID | Task | Group | Sprint | Priority | Status | Depends on | Parallel | Issue | Notes |
 |----|------|-------|--------|----------|--------|------------|----------|-------|-------|
-| 009-T001 | Verify `specs/009-api-documentation/` structure is complete (plan.md, spec.md, research.md, data-model.md, contracts/, quickstart.md) | | 4 | P1 | Backlog | - | no | | |
-| 009-T002 | Add `github.com/swaggo/http-swagger/v2` and `github.com/swaggo/files` to `backend/go.mod`; install the `swag` CLI and document it as a dev prerequisite in `backend/README.md` | | 4 | P1 | Backlog | 009-T001 | yes | | |
-| 009-T003 | Add a `swagger` target to `backend/Makefile` wrapping `swag init -g cmd/api/docs.go -o docs` | | 4 | P1 | Backlog | 009-T001 | yes | | |
+| 009-T001 | Verify `specs/009-api-documentation/` structure is complete (plan.md, spec.md, research.md, data-model.md, contracts/, quickstart.md) | G-SPEC009-SETUP | 4 | P1 | Backlog | - | no | https://github.com/JosemaPereira/TrAIveler/issues/111 | |
+| 009-T002 | Add `github.com/swaggo/http-swagger/v2` and `github.com/swaggo/files` to `backend/go.mod`; install the `swag` CLI and document it as a dev prerequisite in `backend/README.md` | G-SPEC009-SETUP | 4 | P1 | Backlog | 009-T001 | yes | https://github.com/JosemaPereira/TrAIveler/issues/111 | |
+| 009-T003 | Add a `swagger` target to `backend/Makefile` wrapping `swag init -g cmd/api/docs.go -o docs` | G-SPEC009-SETUP | 4 | P1 | Backlog | 009-T001 | yes | https://github.com/JosemaPereira/TrAIveler/issues/111 | |
 
 #### Phase 2 — Foundational (Blocking Prerequisites)
 
 | ID | Task | Group | Sprint | Priority | Status | Depends on | Parallel | Issue | Notes |
 |----|------|-------|--------|----------|--------|------------|----------|-------|-------|
-| 009-T004 | Create `backend/cmd/api/docs.go` containing only `swag` general-API annotations (`@title`, `@version`, `@description`, `@BasePath /api/v1`, `@securityDefinitions.apikey BearerAuth`, `@in header`, `@name Authorization`) — no executable code in this file | | 4 | P1 | Backlog | 009-T002 | no | | |
-| 009-T005 | Run `make swagger` to produce the initial `backend/docs/` package (`docs.go`, `swagger.json`, `swagger.yaml`) with zero annotated endpoints yet, and commit it as the generated-artifact baseline | | 4 | P1 | Backlog | 009-T003, 009-T004 | no | | |
-| 009-T006 | Confirm `golangci-lint` skips `backend/docs/` (verify the `// Code generated by swag ... DO NOT EDIT.` header is honored); add an explicit exclude path in `backend/.golangci.yml` only if needed | | 4 | P1 | Backlog | 009-T005 | no | | |
+| 009-T004 | Create `backend/cmd/api/docs.go` containing only `swag` general-API annotations (`@title`, `@version`, `@description`, `@BasePath /api/v1`, `@securityDefinitions.apikey BearerAuth`, `@in header`, `@name Authorization`) — no executable code in this file | G-SPEC009-FOUNDATIONAL | 4 | P1 | Backlog | 009-T002 | no | https://github.com/JosemaPereira/TrAIveler/issues/112 | |
+| 009-T005 | Run `make swagger` to produce the initial `backend/docs/` package (`docs.go`, `swagger.json`, `swagger.yaml`) with zero annotated endpoints yet, and commit it as the generated-artifact baseline | G-SPEC009-FOUNDATIONAL | 4 | P1 | Backlog | 009-T003, 009-T004 | no | https://github.com/JosemaPereira/TrAIveler/issues/112 | |
+| 009-T006 | Confirm `golangci-lint` skips `backend/docs/` (verify the `// Code generated by swag ... DO NOT EDIT.` header is honored); add an explicit exclude path in `backend/.golangci.yml` only if needed | G-SPEC009-FOUNDATIONAL | 4 | P1 | Backlog | 009-T005 | no | https://github.com/JosemaPereira/TrAIveler/issues/112 | |
 
 #### Phase 3 — User Story 1: Backend Developer Publishes an Always-Current Contract (Priority: P1) 🎯 MVP
 
 | ID | Task | Group | Sprint | Priority | Status | Depends on | Parallel | Issue | Notes |
 |----|------|-------|--------|----------|--------|------------|----------|-------|-------|
-| 009-T007 | Write a failing integration test in `backend/tests/integration/swagger_test.go` asserting `GET /swagger/doc.json` returns `200` with a body that parses as a valid OpenAPI v3 document | | 4 | P1 | Backlog | 009-T006 | yes | | RED phase |
-| 009-T008 | Extend the same test file to assert every `internal/example` endpoint (`POST/GET/PUT/DELETE /api/v1/examples...`) appears in the parsed document's `paths`, and `/healthz` does NOT appear | | 4 | P1 | Backlog | 009-T007 | yes | | RED phase |
-| 009-T009 | Add `swag` doc-comment annotations (`@Summary`, `@Tags`, `@Accept`, `@Produce`, `@Param`, `@Success`, `@Failure`, `@Security BearerAuth`, `@Router`) above every handler function in `backend/internal/example/handler.go`, per `contracts/api.md` | | 4 | P1 | Backlog | 009-T008 | no | | GREEN phase |
-| 009-T010 | Run `make swagger` to regenerate `backend/docs/` reflecting the new annotations; commit the regenerated artifact | | 4 | P1 | Backlog | 009-T009 | no | | |
-| 009-T011 | Mount the Swagger UI/doc routes (`/swagger/*`, backed by `httpSwagger.Handler(...)`) in `backend/cmd/api/routes.go`, inside the same route group as `/api/v1`, with a `// TODO(sprint-5): remove once JWT middleware is wired` marker | | 4 | P1 | Backlog | 009-T010 | no | | |
-| 009-T012 | Run T007/T008 and confirm both now pass (Green) | | 4 | P1 | Backlog | 009-T010, 009-T011 | no | | |
-| 009-T013 | Update `backend/README.md`'s reference-implementation note to point future domain handlers (Trip, Auth, ...) at `internal/example/handler.go` as the canonical annotation example | | 4 | P1 | Backlog | 009-T009 | yes | | |
+| 009-T007 | Write a failing integration test in `backend/tests/integration/swagger_test.go` asserting `GET /swagger/doc.json` returns `200` with a body that parses as a valid OpenAPI v3 document | G-SPEC009-CONTRACT-TESTS | 4 | P1 | Backlog | 009-T006 | yes | https://github.com/JosemaPereira/TrAIveler/issues/113 | RED phase |
+| 009-T008 | Extend the same test file to assert every `internal/example` endpoint (`POST/GET/PUT/DELETE /api/v1/examples...`) appears in the parsed document's `paths`, and `/healthz` does NOT appear | G-SPEC009-CONTRACT-TESTS | 4 | P1 | Backlog | 009-T007 | yes | https://github.com/JosemaPereira/TrAIveler/issues/113 | RED phase; grouped with 009-T007 — both edit the same test file |
+| 009-T009 | Add `swag` doc-comment annotations (`@Summary`, `@Tags`, `@Accept`, `@Produce`, `@Param`, `@Success`, `@Failure`, `@Security BearerAuth`, `@Router`) above every handler function in `backend/internal/example/handler.go`, per `contracts/api.md` | G-SPEC009-ANNOTATIONS | 4 | P1 | Backlog | 009-T008 | no | https://github.com/JosemaPereira/TrAIveler/issues/114 | GREEN phase; largest single diff in Sprint 4 — most likely task to slip |
+| 009-T010 | Run `make swagger` to regenerate `backend/docs/` reflecting the new annotations; commit the regenerated artifact | G-SPEC009-ANNOTATIONS | 4 | P1 | Backlog | 009-T009 | no | https://github.com/JosemaPereira/TrAIveler/issues/114 | |
+| 009-T011 | Mount the Swagger UI/doc routes (`/swagger/*`, backed by `httpSwagger.Handler(...)`) in `backend/cmd/api/routes.go`, inside the same route group as `/api/v1`, with a `// TODO(sprint-5): remove once JWT middleware is wired` marker | G-SPEC009-SWAGGER-UI | 4 | P1 | Backlog | 009-T010 | no | https://github.com/JosemaPereira/TrAIveler/issues/115 | |
+| 009-T012 | Run T007/T008 and confirm both now pass (Green) | G-SPEC009-SWAGGER-UI | 4 | P1 | Backlog | 009-T010, 009-T011 | no | https://github.com/JosemaPereira/TrAIveler/issues/115 | |
+| 009-T013 | Update `backend/README.md`'s reference-implementation note to point future domain handlers (Trip, Auth, ...) at `internal/example/handler.go` as the canonical annotation example | G-SPEC009-ANNOTATIONS | 4 | P1 | Backlog | 009-T009 | yes | https://github.com/JosemaPereira/TrAIveler/issues/114 | |
 
 #### Phase 4 — User Story 2: API Consumer Explores and Tries the API Interactively (Priority: P1)
 
 | ID | Task | Group | Sprint | Priority | Status | Depends on | Parallel | Issue | Notes |
 |----|------|-------|--------|----------|--------|------------|----------|-------|-------|
-| 009-T014 | Add a failing integration test in `backend/tests/integration/swagger_test.go` asserting `GET /swagger/index.html` returns `200` with `Content-Type: text/html` | | 4 | P1 | Backlog | 009-T011 | yes | | RED phase |
-| 009-T015 | Verify the `httpSwagger.Handler` configuration in `backend/cmd/api/routes.go` (from T011) correctly points its `DocURL` at the `/swagger/doc.json` route so the UI loads the live-generated contract, not a stale copy | | 4 | P1 | Backlog | 009-T011, 009-T014 | no | | |
-| 009-T016 | Run T014 and confirm it passes (Green) | | 4 | P1 | Backlog | 009-T015 | no | | |
-| 009-T017 | Add a "Try the API" subsection to `backend/README.md`'s local-development instructions, linking to `specs/009-api-documentation/quickstart.md` Scenario 2 | | 4 | P1 | Backlog | 009-T011 | yes | | |
+| 009-T014 | Add a failing integration test in `backend/tests/integration/swagger_test.go` asserting `GET /swagger/index.html` returns `200` with `Content-Type: text/html` | G-SPEC009-INTERACTIVE | 4 | P1 | Backlog | 009-T011 | yes | https://github.com/JosemaPereira/TrAIveler/issues/116 | RED phase |
+| 009-T015 | Verify the `httpSwagger.Handler` configuration in `backend/cmd/api/routes.go` (from T011) correctly points its `DocURL` at the `/swagger/doc.json` route so the UI loads the live-generated contract, not a stale copy | G-SPEC009-INTERACTIVE | 4 | P1 | Backlog | 009-T011, 009-T014 | no | https://github.com/JosemaPereira/TrAIveler/issues/116 | |
+| 009-T016 | Run T014 and confirm it passes (Green) | G-SPEC009-INTERACTIVE | 4 | P1 | Backlog | 009-T015 | no | https://github.com/JosemaPereira/TrAIveler/issues/116 | |
+| 009-T017 | Add a "Try the API" subsection to `backend/README.md`'s local-development instructions, linking to `specs/009-api-documentation/quickstart.md` Scenario 2 | G-SPEC009-INTERACTIVE | 4 | P1 | Backlog | 009-T011 | yes | https://github.com/JosemaPereira/TrAIveler/issues/116 | |
 
 #### Phase 5 — User Story 3: Technical Lead Gates Contract Drift in Review (Priority: P2)
 
 | ID | Task | Group | Sprint | Priority | Status | Depends on | Parallel | Issue | Notes |
 |----|------|-------|--------|----------|--------|------------|----------|-------|-------|
-| 009-T018 | Add a `swagger-drift` step to `.github/workflows/backend-ci.yml` running `make swagger` followed by `git diff --exit-code -- backend/docs`, gated by the existing `dorny/paths-filter` `backend` condition | | 4 | P2 | Backlog | 009-T010 | no | | |
-| 009-T019 | Add `swagger-drift` to the repository ruleset's list of required status checks (`gh api repos/.../rulesets`), following the same process used for the other Sprint 2 required checks | | 4 | P2 | Backlog | 009-T018 | no | | |
-| 009-T020 | Manually validate on a scratch branch: change an annotated handler without running `make swagger`, open a throwaway PR, confirm `swagger-drift` fails, then close/delete the scratch branch and PR | | 4 | P2 | Backlog | 009-T019 | no | | |
-| 009-T021 | Add a short note to `docs/testing-guidelines.md` documenting `swagger-drift` as a CI validation gate distinct from the three testing layers (unit/integration/E2E) | | 4 | P2 | Backlog | 009-T018 | yes | | |
+| 009-T018 | Add a `swagger-drift` step to `.github/workflows/backend-ci.yml` running `make swagger` followed by `git diff --exit-code -- backend/docs`, gated by the existing `dorny/paths-filter` `backend` condition | G-SPEC009-CI-GATE | 5 | P2 | Backlog | 009-T010 | no | | Deferred from Sprint 4 to Sprint 5 at Sprint 4 planning (2026-07-12) — see Sprint 4/5 Sprint Plan entries |
+| 009-T019 | Add `swagger-drift` to the repository ruleset's list of required status checks (`gh api repos/.../rulesets`), following the same process used for the other Sprint 2 required checks | G-SPEC009-CI-GATE | 5 | P2 | Backlog | 009-T018 | no | | Deferred from Sprint 4 to Sprint 5 |
+| 009-T020 | Manually validate on a scratch branch: change an annotated handler without running `make swagger`, open a throwaway PR, confirm `swagger-drift` fails, then close/delete the scratch branch and PR | G-SPEC009-CI-GATE | 5 | P2 | Backlog | 009-T019 | no | | Deferred from Sprint 4 to Sprint 5 |
+| 009-T021 | Add a short note to `docs/testing-guidelines.md` documenting `swagger-drift` as a CI validation gate distinct from the three testing layers (unit/integration/E2E) | G-SPEC009-CI-GATE | 5 | P2 | Backlog | 009-T018 | yes | | Deferred from Sprint 4 to Sprint 5 |
 
 #### Phase 6 — Polish & Cross-Cutting Concerns
 
 | ID | Task | Group | Sprint | Priority | Status | Depends on | Parallel | Issue | Notes |
 |----|------|-------|--------|----------|--------|------------|----------|-------|-------|
-| 009-T022 | Update `backend/README.md`'s API Overview table, moving `/swagger/doc.json` and `/swagger/index.html` from "Planned" to "Built today" | | 4 | P2 | Backlog | 009-T013, 009-T017, 009-T021 | yes | | |
-| 009-T023 | Add a short cross-reference note at the top of `docs/api-design-standards.md` pointing to the new machine-readable contract (`/swagger/doc.json`) as a derived, always-current artifact | | 4 | P2 | Backlog | 009-T013, 009-T017, 009-T021 | yes | | |
-| 009-T024 | Run all five `specs/009-api-documentation/quickstart.md` validation scenarios end-to-end and record results in this file's Notes section or a short results note | | 4 | P2 | Backlog | 009-T013, 009-T017, 009-T021 | no | | |
-| 009-T025 | Validate `golangci-lint` passes with zero errors across `backend/cmd/api/docs.go`, `backend/internal/example/handler.go`'s new annotations, and (excluded) `backend/docs/` | | 4 | P2 | Backlog | 009-T013, 009-T017, 009-T021 | yes | | |
-| 009-T026 | Run `make test-coverage` and confirm the new `backend/tests/integration/swagger_test.go` tests are included and passing | | 4 | P2 | Backlog | 009-T013, 009-T017, 009-T021 | no | | |
+| 009-T022 | Update `backend/README.md`'s API Overview table, moving `/swagger/doc.json` and `/swagger/index.html` from "Planned" to "Built today" | G-SPEC009-POLISH | 5 | P2 | Backlog | 009-T013, 009-T017, 009-T021 | yes | | Deferred from Sprint 4 to Sprint 5 — depends on 009-T021 (G-SPEC009-CI-GATE) |
+| 009-T023 | Add a short cross-reference note at the top of `docs/api-design-standards.md` pointing to the new machine-readable contract (`/swagger/doc.json`) as a derived, always-current artifact | G-SPEC009-POLISH | 5 | P2 | Backlog | 009-T013, 009-T017, 009-T021 | yes | | Deferred from Sprint 4 to Sprint 5 |
+| 009-T024 | Run all five `specs/009-api-documentation/quickstart.md` validation scenarios end-to-end and record results in this file's Notes section or a short results note | G-SPEC009-POLISH | 5 | P2 | Backlog | 009-T013, 009-T017, 009-T021 | no | | Deferred from Sprint 4 to Sprint 5 |
+| 009-T025 | Validate `golangci-lint` passes with zero errors across `backend/cmd/api/docs.go`, `backend/internal/example/handler.go`'s new annotations, and (excluded) `backend/docs/` | G-SPEC009-POLISH | 5 | P2 | Backlog | 009-T013, 009-T017, 009-T021 | yes | | Deferred from Sprint 4 to Sprint 5 |
+| 009-T026 | Run `make test-coverage` and confirm the new `backend/tests/integration/swagger_test.go` tests are included and passing | G-SPEC009-POLISH | 5 | P2 | Backlog | 009-T013, 009-T017, 009-T021 | no | | Deferred from Sprint 4 to Sprint 5 |
 
 _Checkpoint: All three user stories independently functional — contract drift is now impossible to merge unnoticed_
 
@@ -1490,67 +1491,140 @@ deps); 003-T001/005-T004 (infra/ directory structure, Done Sprint 1) for 003-T00
 
 ### 🔗 Sprint 4: Integration & Observability (Weeks 7-8)
 
-> ⚠️ **Carried forward from Sprint 3 closure (2026-07-12) — review before planning this sprint**:
+> **Sprint 3 carry-forward items — reviewed at this planning pass (2026-07-12)**:
 >
 > - **AWS-cost-avoidance constraint still in force**: no real `terraform apply` or AWS resource
 >   creation is authorized yet (no target sprint set for lifting this) — irrelevant to this sprint's
 >   own scope (no infra tasks), but applies to any Sprint 4+ work that touches `infra/`.
 > - **`internal/example/` deletion is not yet triggered**: per the standing rule, delete it in the
 >   same PR as the first real domain package (currently Sprint 8, Trip). Not actionable this sprint —
->   Spec 009 (OpenAPI/Swagger, in this sprint's scope) actually still annotates `internal/example`
->   handlers, so keep it until Sprint 8.
-> - **`postgres:15.4-alpine` CVE staleness watch**: still unresolved, no target sprint. It's a
->   deliberate pin (RDS `engine_version` match) — flag to the user for a coordinated Terraform+docs
->   update if it ever needs bumping, don't patch it silently.
+>   Spec 009 (OpenAPI/Swagger, in this sprint's scope) still annotates `internal/example` handlers,
+>   so keep it until Sprint 8.
+> - **`postgres:15.4-alpine` CVE staleness watch**: still unresolved, no target sprint. Deliberate
+>   pin (RDS `engine_version` match) — flag to the user for a coordinated Terraform+docs update if it
+>   ever needs bumping, don't patch it silently.
 > - **002-T023 follow-up (Sprint 9, not this sprint)**: tag existing E2E specs `@accessibility` —
 >   required before `.github/workflows/accessibility.yml` can become a required branch-protection
->   check. Just a "don't let it slip" reminder; no action needed until Sprint 9.
+>   check. Still a "don't let it slip" reminder; no action needed until Sprint 9.
+> - **RESOLVED — Spec 009 sizing risk**: split at this planning pass (Setup+Foundational+US1+US2 in
+>   Sprint 4, US3+Polish in Sprint 5). See Scope/table below and the Sprint 5 entry.
+> - **NEW — discovered during this pass**: Spec 002 Phase 2 ("Observability core", 7 tasks) turned
+>   out to be 3/7 redundant with Sprint 2 deliverables. 002-T006 (RequestID middleware), 002-T007
+>   (its unit tests), and 002-T012 (wire RequestID→Logger chain + register `/healthz`) are
+>   functionally satisfied by 005-T024/005-T025/005-T035/005-T037 (Done, Sprint 2, PR #71/#72) —
+>   marked **Superseded**, not scheduled. The remaining 4 (002-T008/009/010/011) are genuine gaps:
+>   the existing `Logger` middleware is missing `service`/`msg`/`user_id` fields required by
+>   `StructuredLogEntry`, and the existing `/healthz` handler uses a different response schema than
+>   `HealthCheckResponse` (`status: "healthy"/"unhealthy"` vs `"ok"/"degraded"`, no `version` or
+>   `uptime_seconds`) — both need extending, not recreating. See row-level Notes in the Spec 002
+>   table above. Also surfaced: 001-T023 ("Scaffold Chi router... apply CORS, request-ID, and logging
+>   middleware") independently duplicates this same bootstrap and is still unscheduled — flagged for
+>   a future Spec 001 reconciliation pass, not actioned here.
 
 **Epic Label**: `epic:integration-observability`
 
-**Goal**: Unify architecture layers with error correlation, retry logic, and observability primitives;
-ship the OpenAPI/Swagger contract deferred from Sprint 3.
+**Goal**: Unify architecture layers with error correlation and retry logic, close the real
+observability gaps left after Sprint 2 (structured log fields, `/healthz` schema), and ship the
+OpenAPI/Swagger MVP contract deferred from Sprint 3.
 
-**Scope**: Spec 005 Phases 6-7 + Spec 002 Phase 2 + Spec 009 (deferred from Sprint 3)
+**Scope**: Spec 005 Phases 6-7 + Spec 002 Phase 2 (4 of 7 tasks actionable — 3 superseded by Sprint 2) +
+Spec 009 Setup+Foundational+US1+US2 (009-T001–T017; US3+Polish, 009-T018–T026, deferred to Sprint 5)
 
-| Work Items | Task Count | Key Deliverables |
-|------------|------------|------------------|
-| Integration patterns | 10 | Error correlation across layers, retry strategies with exponential backoff |
-| Architecture polish | 12 | Documentation, example domain, validation |
-| Observability core | 7 | RequestID → Logger → /healthz middleware chain |
-| API Documentation (Spec 009, deferred from Sprint 3) | 26 | `swaggo/swag` annotations on `internal/example` handlers, generated `backend/docs/` contract, Swagger UI at `/swagger/*`, `swagger-drift` CI gate (US3/Polish, P2) |
+**Consolidation (mandatory analysis performed at this planning pass)**:
 
-**Total**: 55 tasks  
-**Risks**: Cross-layer integration complexity; **scope grew ~90% from the Spec 009 addition** — 55
-tasks is well above this team's observed velocity (23 → 37 tasks/sprint in Sprints 1-2), so this should
-be re-examined at the next Sprint 4 planning pass. The likely lever: Spec 009's own MVP slice
-(Setup+Foundational+US1+US2, 009-T001–T017, 17 tasks, P1) can ship in Sprint 4 while its CI-gate/polish
-slice (US3+Polish, 009-T018–T026, 9 tasks, P2) trails into Sprint 5 if 55 tasks proves too large for one
-2-week sprint. Spec 009 tasks are not yet consolidated into Group work items (`Group` column is still
-empty for all 26 rows) — that consolidation analysis is deferred to the Sprint 4 planning pass, per the
-mandatory consolidation-first workflow. Candidate groupings identified during the spec 009 reconciliation,
-for the PM to confirm/adjust at that planning pass: 009-T007/T008 (share one test file), 009-T018–T021
-(US3 CI-gate phase), and 009-T022–T026 (Polish phase).  
-**Dependencies**: Sprint 3 complete
+- **Spec 005 Phase 6** (Integration patterns): folded the 2 previously-standalone tasks into their
+  natural groups — G-ARCH-INTEGRATION-BACKEND now includes 005-T113 (direct sequential extension of
+  005-T112), G-ARCH-INTEGRATION-FRONTEND now includes 005-T116 (direct sequential extension of
+  005-T115). 005-T119 stays standalone — it spans both `backend/` and `frontend/` READMEs, a
+  mixed-tech-stack task excluded from grouping by policy. Result: 10 tasks → 4 work items (was 6).
+- **Spec 005 Phase 7** (Architecture polish): pre-existing grouping confirmed as-is —
+  G-ARCH-POLISH-DOCS (4 tasks) + G-ARCH-POLISH-VALIDATION (7 near-zero-LOC validation-run tasks, safe
+  as one PR despite exceeding the 2-4 optimal size) + 005-T131 standalone. 12 tasks → 3 work items.
+- **Spec 002 Phase 2** (Observability core): G-OBS-LOGGER (002-T008/009) + G-OBS-HEALTHZ
+  (002-T010/011). 4 actionable tasks → 2 work items (3 more tasks superseded, see callout above).
+- **Spec 009 MVP slice** (009-T001–T017): newly grouped this pass — G-SPEC009-SETUP (T001-T003,
+  tooling/dependency setup), G-SPEC009-FOUNDATIONAL (T004-T006, generated-docs bootstrap),
+  G-SPEC009-CONTRACT-TESTS (T007-T008, share one test file — confirmed per the Sprint 3
+  carry-forward candidate), G-SPEC009-ANNOTATIONS (T009/T010/T013 — annotate, regenerate, update
+  README pointer, one GREEN-phase change), G-SPEC009-SWAGGER-UI (T011-T012), and
+  G-SPEC009-INTERACTIVE (T014-T017, US2 phase). 17 tasks → 6 work items (-65%).
+
+**Issue creation order**: The table below is sorted in strict dependency order (verified against the
+"Dependencies & Execution Order" sections of `specs/005-system-architecture/tasks.md`,
+`specs/002-nfr-system-constraints/tasks.md`, and `specs/009-api-documentation/tasks.md`, not just the
+per-task `Depends on` columns — see the `Depends On` column below for the specific rationale per
+item). When these work items are turned into GitHub issues, create them **top-to-bottom** so that
+every "Blocked by #N" cross-reference points at an issue that already exists — no forward references.
+Where two items have no dependency relationship, they're ordered by priority (P1 before P2 before P3),
+then by spec number, then by ascending task ID, so the order is deterministic.
+
+All 15 work items were created as GitHub issues on 2026-07-13, strictly in the Order below, so every
+"Depends On" reference below already points at a real, existing issue (no forward references).
+
+| Order | Work Items | Task Count | Key Deliverables | Issue | Depends On |
+|-------|------------|------------|-------------------|-------|------------|
+| 1 | G-OBS-LOGGER | 2 | Logger middleware extended with `service`/`msg`/`user_id` StructuredLogEntry fields + tests | [#109](https://github.com/JosemaPereira/TrAIveler/issues/109) | — (only Sprint 2 Done work: 005-T025) |
+| 2 | G-OBS-HEALTHZ | 2 | `/healthz` reconciled to HealthCheckResponse schema (`status`/`version`/`uptime_seconds`) + tests | [#110](https://github.com/JosemaPereira/TrAIveler/issues/110) | — (only Sprint 2 Done work: 005-T037; independent of #109 — spec 002's own parallel-streams diagram runs Logger and Health as separate tracks) |
+| 3 | G-SPEC009-SETUP | 3 | swaggo/swag + swag CLI dependency, `swagger` Makefile target | [#111](https://github.com/JosemaPereira/TrAIveler/issues/111) | — (Phase 1 Setup, no dependencies) |
+| 4 | G-SPEC009-FOUNDATIONAL | 3 | `cmd/api/docs.go` annotation skeleton, zero-endpoint generated baseline, lint exclusion confirmed | [#112](https://github.com/JosemaPereira/TrAIveler/issues/112) | [#111](https://github.com/JosemaPereira/TrAIveler/issues/111) — spec 009: "Foundational depends on Setup — BLOCKS all user stories"; needs SETUP's swaggo deps + swag CLI installed first |
+| 5 | G-SPEC009-CONTRACT-TESTS | 2 | RED-phase integration tests for the `/swagger/doc.json` contract | [#113](https://github.com/JosemaPereira/TrAIveler/issues/113) | [#112](https://github.com/JosemaPereira/TrAIveler/issues/112) — 009-T007 depends on 009-T006 (lint-exclusion confirmed on the generated baseline) |
+| 6 | G-SPEC009-ANNOTATIONS | 3 | `swag` annotations on all `internal/example` handlers, regenerated docs, README pointer updated | [#114](https://github.com/JosemaPereira/TrAIveler/issues/114) | [#113](https://github.com/JosemaPereira/TrAIveler/issues/113) — GREEN phase; 009-T009 depends on 009-T008 (RED tests must exist and fail first) |
+| 7 | G-SPEC009-SWAGGER-UI | 2 | Swagger UI mounted at `/swagger/*`, RED-phase contract tests confirmed GREEN | [#115](https://github.com/JosemaPereira/TrAIveler/issues/115) | [#114](https://github.com/JosemaPereira/TrAIveler/issues/114) — 009-T011 depends on 009-T010 (mounts routes serving the docs #114 regenerated) |
+| 8 | G-SPEC009-INTERACTIVE | 4 | `/swagger/index.html` served, DocURL wired to the live contract, "Try the API" README section | [#116](https://github.com/JosemaPereira/TrAIveler/issues/116) | [#115](https://github.com/JosemaPereira/TrAIveler/issues/115) — spec 009: "US2 depends on Foundational AND on US1's route mount (T011)" |
+| 9 | G-ARCH-INTEGRATION-BACKEND | 4 | Correlation ID in error responses, 5xx stack-trace logging, Anthropic SDK client + retry/backoff, AI client Retry-After wiring | [#117](https://github.com/JosemaPereira/TrAIveler/issues/117) | — (only Sprint 2 Done work: 005-T033/T025/T030) |
+| 10 | G-ARCH-INTEGRATION-FRONTEND | 3 | X-Request-ID on all frontend requests, useErrorHandler hook, correlation ID surfaced in ErrorMessage | [#118](https://github.com/JosemaPereira/TrAIveler/issues/118) | — (only Sprint 2 Done work: 005-T044/T053; independent of #117 — spec 005: "Backend enhancements... sequential within backend" / "Frontend enhancements... sequential within frontend" are two separate tracks) |
+| 11 | G-ARCH-INTEGRATION-TESTS | 2 | Integration tests: healthz correlation ID header, DB-timeout error response | [#119](https://github.com/JosemaPereira/TrAIveler/issues/119) | [#117](https://github.com/JosemaPereira/TrAIveler/issues/117), [#118](https://github.com/JosemaPereira/TrAIveler/issues/118) — spec 005: "Integration tests (T117-T119) depend on backend/frontend enhancements" |
+| 12 | 005-T119 (standalone) | 1 | Error-handling patterns documented in backend/ + frontend/ READMEs | [#120](https://github.com/JosemaPereira/TrAIveler/issues/120) | [#117](https://github.com/JosemaPereira/TrAIveler/issues/117), [#118](https://github.com/JosemaPereira/TrAIveler/issues/118) — same spec 005 grouping as #119 (T117-T119 documented together); it documents both layers' patterns |
+| 13 | G-ARCH-POLISH-DOCS | 4 | architecture.md, coding-guidelines.md, testing-guidelines.md, root README updated for spec 005 | [#121](https://github.com/JosemaPereira/TrAIveler/issues/121) | [#117](https://github.com/JosemaPereira/TrAIveler/issues/117), [#118](https://github.com/JosemaPereira/TrAIveler/issues/118), [#119](https://github.com/JosemaPereira/TrAIveler/issues/119), [#120](https://github.com/JosemaPereira/TrAIveler/issues/120) — spec 005: "Polish (Phase 7): Depends on all user stories complete", i.e. all of US4/T110-T119 |
+| 14 | G-ARCH-POLISH-VALIDATION | 7 | Quickstart scenarios, lint/test/coverage/axe-core validation runs across spec 005 | [#122](https://github.com/JosemaPereira/TrAIveler/issues/122) | [#117](https://github.com/JosemaPereira/TrAIveler/issues/117), [#118](https://github.com/JosemaPereira/TrAIveler/issues/118), [#119](https://github.com/JosemaPereira/TrAIveler/issues/119), [#120](https://github.com/JosemaPereira/TrAIveler/issues/120) — same phase-dependency rule as #121 |
+| 15 | 005-T131 (standalone) | 1 | specs/005-system-architecture/tasks.md marked complete | [#123](https://github.com/JosemaPereira/TrAIveler/issues/123) | [#122](https://github.com/JosemaPereira/TrAIveler/issues/122) — 005-T131 depends on 005-T124 (G-ARCH-POLISH-VALIDATION) directly |
+
+**Total**: 43 tasks → **15 work items** (-65%)  
+**Risks**: Cross-layer integration complexity (backend error-correlation + frontend hook touch many
+files); `005-T111` (order #9) and `002-T008` (order #1) both edit
+`backend/internal/middleware/logger.go` this sprint — sequence the two PRs (not a dependency for
+issue-creation purposes, just a merge-conflict caution); G-SPEC009-ANNOTATIONS (order #6) is the
+largest single diff in this sprint and the one most likely to slip, and it sits mid-chain on the Spec
+009 critical path (orders #3 through #8), so a slip there delays orders #7 and #8 directly. Overall
+size (43 tasks) is ~16% above Sprint 2's actual throughput (37) and well below Sprint 3's (54, an
+infra-module outlier) — judged achievable given the -65% consolidation and the mostly-additive (not
+net-new) nature of this sprint's work, but should still be watched at the Sprint 4 health check.  
+**Dependencies**: Sprint 3 complete (005-T109 for Phase 7 polish tasks; 005-T033/T025/T030/T044 from
+Sprint 2 for Phase 6 integration tasks; 005-T024/T025/T035/T037 from Sprint 2 for the Spec 002
+Observability tasks that build on them)
 
 ---
 
 ### 🔐 Sprint 5: Authentication & Security Foundation (Weeks 9-10)
 
+> **Carried forward from Sprint 4 planning (2026-07-12)**: Spec 009's US3+Polish slice
+> (009-T018–T026, 9 tasks, P2 — CI-gate + doc/validation polish) was split out of Sprint 4 for sizing
+> reasons (see Sprint 4 entry above) and lands here as G-SPEC009-CI-GATE (4 tasks) and
+> G-SPEC009-POLISH (5 tasks). It has no dependency on this sprint's auth/security work and can run
+> fully in parallel. This pushes Sprint 5 to 73 tasks, itself above observed velocity — flagged for
+> reassessment (e.g. re-splitting Security foundations/Auth infrastructure, or trailing the Spec 009
+> slice further into Sprint 6) at Sprint 5's own planning pass; not resolved here, since Sprint 4 was
+> this pass's scope.
+
 **Epic Label**: `epic:auth-security`
 
 **Goal**: Implement secure authentication, JWT handling, and security middleware.
 
-**Scope**: Spec 004 Phase 2 + Spec 008 Phase 2
+**Scope**: Spec 004 Phase 2 + Spec 008 Phase 2 + Spec 009 US3+Polish (deferred from Sprint 4)
 
 | Work Items | Task Count | Key Deliverables |
 |------------|------------|------------------|
 | Security foundations | 36 | JWT RS256 multi-key rotation, refresh tokens, RBAC middleware, security event logging |
 | Auth infrastructure | 28 | bcrypt password hashing (cost 12), rate limiting, validation, Chi router middleware chain |
+| G-SPEC009-CI-GATE (deferred from Sprint 4) | 4 | `swagger-drift` CI gate wired into `backend-ci.yml` + required-status-check, manually validated |
+| G-SPEC009-POLISH (deferred from Sprint 4) | 5 | Spec 009 README/docs cross-references, quickstart validation, lint/coverage checks |
 
-**Total**: 64 tasks  
-**Risks**: JWT multi-key rotation complexity, rate limiter tuning  
-**Dependencies**: Sprint 4 complete
+**Total**: 73 tasks  
+**Risks**: JWT multi-key rotation complexity, rate limiter tuning; 73 tasks is well above this team's
+observed velocity (23→37→54 across Sprints 1-3) — flagged for reassessment at Sprint 5's own planning
+pass  
+**Dependencies**: Sprint 4 complete (Spec 009 slice depends on 009-T010/T018-adjacent work delivered
+in Sprint 4; the auth/security work has no Spec 009 dependency)
 
 ---
 
@@ -1658,15 +1732,18 @@ for the PM to confirm/adjust at that planning pass: 009-T007/T008 (share one tes
 | Metric | Value |
 |--------|-------|
 | **MVP sprints** | 10 sprints (20 weeks) |
-| **Total MVP tasks** | 427 tasks (51% of 841 total project tasks) |
-| **Planned average velocity** | 42.7 tasks/sprint (427 ÷ 10, all sprints) |
+| **Total MVP tasks** | 424 tasks (50% of 841 total project tasks) |
+| **Planned average velocity** | 42.4 tasks/sprint (424 ÷ 10, all sprints) |
 | **Actual velocity (Sprints 1-3, closed)** | 38 tasks/sprint (23, 37, 54) |
 | **Epic labels** | 11 epics across all sprints (see each sprint header) |
 | **Team size assumption** | 2-3 full-stack developers |
 
-_Recomputed 2026-07-12 from the per-sprint entries above (the source of truth); supersedes the earlier
-390-task/39-per-sprint figures, which predated the Sprint 3 Terraform-count correction and Spec 009's
-addition to Sprint 4._
+_Recomputed 2026-07-12 (Sprint 4 planning pass) from the per-sprint entries above (the source of
+truth); supersedes the 427-task/42.7-per-sprint figures set at Sprint 3 closure. Net -3 tasks:
+002-T006/T007/T012 marked Superseded (functionally delivered by Sprint 2's
+005-T024/T025/T035/T037) and removed from any sprint's committed count. Spec 009's 9-task
+US3+Polish slice moved from Sprint 4 to Sprint 5 with no net change to the MVP total (still
+scheduled, just in a different sprint)._
 
 **GitHub Organization**:
 - **Epic tracking**: Filter by `epic:architecture-foundation`, `epic:auth-security`, etc. in GitHub Projects
