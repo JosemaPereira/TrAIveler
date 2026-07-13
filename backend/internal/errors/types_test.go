@@ -60,6 +60,15 @@ func TestConflict_SetsCode(t *testing.T) {
 	assert.Equal(t, "version mismatch", err.Message)
 }
 
+func TestServiceUnavailable_SetsCodeMessageAndRetryAfterDetail(t *testing.T) {
+	err := domainerrors.ServiceUnavailable(30)
+
+	assert.Equal(t, "service_unavailable", err.Code)
+	assert.NotEmpty(t, err.Message)
+	require.NotNil(t, err.Details)
+	assert.Equal(t, 30, err.Details["retry_after_seconds"])
+}
+
 func TestDomainError_Error_ReturnsCodeAndMessage(t *testing.T) {
 	err := domainerrors.NotFound("trip", "trip-123")
 

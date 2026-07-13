@@ -5,13 +5,17 @@ package ai_test
 import (
 	"context"
 	"encoding/json"
+	stderrors "errors"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	"github.com/JosemaPereira/TrAIveler/backend/config"
 	"github.com/JosemaPereira/TrAIveler/backend/internal/ai"
 	mocks "github.com/JosemaPereira/TrAIveler/backend/internal/ai/mocks"
+	domainerrors "github.com/JosemaPereira/TrAIveler/backend/internal/errors"
 )
 
 // TestItineraryResponse_JSONRoundTrip_PreservesFields exercises the JSON
@@ -92,4 +96,78 @@ func TestAIClient_MockContract_GenerateAndStreamItinerary(t *testing.T) {
 
 	require.Len(t, collected, 1)
 	assert.Equal(t, "Day 1: ", collected[0].Content)
+}
+
+func TestNewAIClient_OllamaProvider_ReturnsOllamaBackedClient(t *testing.T) {
+	cfg := config.AIConfig{
+		Provider:   "ollama",
+		Timeout:    5 * time.Second,
+		MaxRetries: 3,
+		Ollama:     config.OllamaConfig{Host: "http://localhost:11434", Model: "gemma3:4b"},
+	}
+
+	client, err := ai.NewAIClient(cfg)
+
+	require.NoError(t, err)
+	require.NotNil(t, client)
+	assert.IsType(t, &ai.OllamaClient{}, client)
+}
+
+func TestNewAIClient_AnthropicProvider_ReturnsAnthropicBackedClient(t *testing.T) {
+	cfg := config.AIConfig{
+		Provider:   "anthropic",
+		Timeout:    5 * time.Second,
+		MaxRetries: 3,
+		Anthropic:  config.AnthropicConfig{APIKey: "test-key", Model: "claude-3-5-sonnet-20241022"},
+	}
+
+	client, err := ai.NewAIClient(cfg)
+
+	require.NoError(t, err)
+	require.NotNil(t, client)
+	assert.IsType(t, &ai.AnthropicClient{}, client)
+}
+
+func TestNewAIClient_UnknownProvider_ReturnsError(t *testing.T) {
+	cfg := config.AIConfig{Provider: "unknown-provider"}
+
+	client, err := ai.NewAIClient(cfg)
+
+	require.Error(t, err)
+	assert.Nil(t, client)
+	assert.Contains(t, err.Error(), "unknown-provider")
+}
+
+func TestTranslateError_ProviderUnavailableError_ReturnsServiceUnavailableDomainError(t *testing.T) {
+	original := &ai.ProviderUnavailableError{RetryAfter: 45 * time.Second, Err: stderrors.New("boom")}
+
+	translated := ai.TranslateError(original)
+
+	var domainErr *domainerrors.DomainError
+	require.ErrorAs(t, translated, &domainErr)
+	assert.Equal(t, "service_unavailable", domainErr.Code)
+	assert.Equal(t, 45, domainErr.Details["retry_after_seconds"])
+}
+
+func TestTranslateError_ProviderUnavailableErrorWithoutRetryAfter_UsesDefault(t *testing.T) {
+	original := &ai.ProviderUnavailableError{Err: stderrors.New("boom")}
+
+	translated := ai.TranslateError(original)
+
+	var domainErr *domainerrors.DomainError
+	require.ErrorAs(t, translated, &domainErr)
+	assert.Equal(t, "service_unavailable", domainErr.Code)
+	assert.Greater(t, domainErr.Details["retry_after_seconds"], 0)
+}
+
+func TestTranslateError_OtherError_ReturnsUnchanged(t *testing.T) {
+	original := stderrors.New("some other failure")
+
+	translated := ai.TranslateError(original)
+
+	assert.Same(t, original, translated)
+}
+
+func TestTranslateError_NilError_ReturnsNil(t *testing.T) {
+	assert.NoError(t, ai.TranslateError(nil))
 }
