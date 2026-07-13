@@ -92,3 +92,17 @@ func Conflict(message string) *DomainError {
 		Message: message,
 	}
 }
+
+// ServiceUnavailable builds a "service_unavailable" domain error for a
+// transient downstream failure the caller should retry later — e.g. an
+// AIClient exhausting its retries against a rate-limited/overloaded
+// provider (ai.ErrProviderUnavailable, docs/roadmap.md 005-T113).
+// retryAfterSeconds is carried in Details so writeErrorResponse (handler.go)
+// can echo it back as the response's Retry-After header.
+func ServiceUnavailable(retryAfterSeconds int) *DomainError {
+	return &DomainError{
+		Code:    "service_unavailable",
+		Message: "The service is temporarily unavailable; please retry later",
+		Details: map[string]any{"retry_after_seconds": retryAfterSeconds},
+	}
+}

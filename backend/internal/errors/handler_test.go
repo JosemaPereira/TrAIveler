@@ -62,6 +62,7 @@ func TestHandleError_DomainErrorCodes_MapToExpectedStatus(t *testing.T) {
 		{"unauthorized", domainerrors.Unauthorized("no token"), http.StatusUnauthorized, "authentication_required"},
 		{"forbidden", domainerrors.Forbidden("not allowed"), http.StatusForbidden, "forbidden"},
 		{"conflict", domainerrors.Conflict("version mismatch"), http.StatusConflict, "conflict"},
+		{"service unavailable", domainerrors.ServiceUnavailable(30), http.StatusServiceUnavailable, "service_unavailable"},
 		{"unmapped plain error falls back to internal_error", stderrors.New("boom"), http.StatusInternalServerError, "internal_error"},
 	}
 
@@ -197,6 +198,37 @@ func TestHandleError_RequestIDAbsentFromContext_UsesEmptyString(t *testing.T) {
 	var body map[string]any
 	require.NoError(t, json.Unmarshal(rec.Body.Bytes(), &body))
 	assert.Equal(t, "", body["request_id"])
+}
+
+func TestHandleError_ServiceUnavailable_SetsRetryAfterHeaderAndDetails(t *testing.T) {
+	withCapturedDefaultLogger(t)
+
+	rec := httptest.NewRecorder()
+	req := requestWithID(http.MethodPost, "/ai/itineraries", "")
+
+	domainerrors.HandleError(rec, req, domainerrors.ServiceUnavailable(30))
+
+	assert.Equal(t, http.StatusServiceUnavailable, rec.Code)
+	assert.Equal(t, "30", rec.Header().Get("Retry-After"))
+
+	var body map[string]any
+	require.NoError(t, json.Unmarshal(rec.Body.Bytes(), &body))
+	assert.Equal(t, "service_unavailable", body["error"])
+
+	details, ok := body["details"].(map[string]any)
+	require.True(t, ok, "expected details object in response body")
+	assert.EqualValues(t, 30, details["retry_after_seconds"])
+}
+
+func TestHandleError_NonServiceUnavailableError_OmitsRetryAfterHeader(t *testing.T) {
+	withCapturedDefaultLogger(t)
+
+	rec := httptest.NewRecorder()
+	req := requestWithID(http.MethodGet, "/trips/trip-123", "")
+
+	domainerrors.HandleError(rec, req, domainerrors.NotFound("trip", "trip-123"))
+
+	assert.Equal(t, "", rec.Header().Get("Retry-After"))
 }
 
 func TestHandleError_ResponseBody_IncludesMessageField(t *testing.T) {

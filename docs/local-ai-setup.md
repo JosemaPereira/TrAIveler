@@ -10,10 +10,9 @@ substitution only; it does not change the product's staging/production architect
 "Local Development Note" addenda in `docs/architecture.md` and `docs/cloud-and-environments.md`).
 
 `backend/internal/ai/` implements the `AIClient` interface against both backends:
-`OllamaClient` (`ollama_client.go`, real implementation, used here) and a future
-`Anthropic`-backed implementation (`docs/roadmap.md` task `005-T112`, staging/production). Which
-one the backend uses is controlled by the `AI_PROVIDER` environment variable — see
-`backend/config/config.go`.
+`OllamaClient` (`ollama_client.go`, used here) and `AnthropicClient` (`anthropic.go`,
+staging/production). `NewAIClient` (`client.go`) is the factory that picks between them based on
+the `AI_PROVIDER` environment variable — see `backend/config/config.go`.
 
 ## Prerequisites
 
@@ -129,8 +128,10 @@ setup actually works end-to-end today, either:
 
 Set `AI_PROVIDER=anthropic` and provide `ANTHROPIC_API_KEY` (see
 [console.anthropic.com/settings/keys](https://console.anthropic.com/settings/keys)) and, optionally,
-`ANTHROPIC_MODEL`. `config.Load()` will then require the key and the (not-yet-implemented)
-Anthropic-backed `AIClient` will be used once `005-T112` lands.
+`ANTHROPIC_MODEL`. `config.Load()` will then require the key, and `NewAIClient` (`client.go`) will
+route requests through `AnthropicClient` (`anthropic.go`) instead of `OllamaClient` — see
+`backend/README.md`'s "AI client foundation" section for how retries/timeouts and provider-outage
+handling (`Retry-After`) work for that path.
 
 ## Troubleshooting
 
