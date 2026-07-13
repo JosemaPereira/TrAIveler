@@ -134,10 +134,11 @@ backend/
 > `pkg/` and `config/prompt-rules.yml` / `alerts.yml` / `backup-policy.yml` referenced in earlier
 > planning docs do not exist yet — `pkg/` currently holds only a `.gitkeep` placeholder.
 >
-> **Planned**: `/swagger/*` routes (Swagger UI + `GET /swagger/doc.json`) serving the
-> `backend/docs/` artifact below are defined in `specs/009-api-documentation/` but not yet mounted
-> — see [docs/architecture.md](../docs/architecture.md) and
-> [docs/api-design-standards.md](../docs/api-design-standards.md) §16.
+> **`/swagger/*` routes are mounted** (issue #115): `GET /swagger/index.html` (interactive Swagger
+> UI) and `GET /swagger/doc.json` (the generated Swagger 2.0 contract) are live, unauthenticated
+> endpoints serving the `backend/docs/` artifact above — see [Try the
+> API](#try-the-api-interactive-swagger-ui) below, [docs/architecture.md](../docs/architecture.md),
+> and [docs/api-design-standards.md](../docs/api-design-standards.md) §16.
 
 ### Target (planned, future specs)
 
@@ -282,6 +283,28 @@ goose -dir migrations postgres "$DATABASE_URL" up
 go run ./cmd/api
 # HTTP server listening on :8080 (or $HTTP_PORT); Ctrl+C (SIGINT) drains in-flight requests
 ```
+
+### Try the API (interactive Swagger UI)
+
+With the backend running (either setup path above), open the interactive Swagger UI in a browser:
+
+```bash
+open http://localhost:8080/swagger/index.html
+```
+
+The page renders every `swag`-annotated endpoint (currently the `internal/example` reference
+resource — see [Project Structure](#project-structure)) and lets you send real requests against
+your locally running server via "Try it out" — the page loads its contract from the live
+`GET /swagger/doc.json` route, not a static or hand-edited copy, so it always reflects whatever
+`make swagger` last generated from the annotated handlers.
+
+For a step-by-step walkthrough (expand a tag, execute a real `POST /api/v1/examples` request, and
+confirm the response matches what `curl` would return), see [Scenario 2 of
+`specs/009-api-documentation/quickstart.md`](../specs/009-api-documentation/quickstart.md#scenario-2--interactive-ui-real-request).
+
+`/swagger/*` is intentionally unauthenticated for now (see the note in [Project
+Structure](#project-structure) above) — this will change once Sprint 5's JWT middleware is wired
+into the shared route group in `cmd/api/routes.go`.
 
 ---
 

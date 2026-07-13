@@ -11,11 +11,14 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
 	"net"
 	"net/http"
+	"net/url"
 	"os"
 	"os/exec"
 	"path/filepath"
+	"regexp"
 	"strings"
 	"syscall"
 	"testing"
@@ -27,6 +30,14 @@ import (
 	"github.com/testcontainers/testcontainers-go/modules/postgres"
 	"github.com/testcontainers/testcontainers-go/wait"
 )
+
+// swaggerUIBundleURLPattern extracts the value httpSwagger.Handler's index.html
+// template renders into SwaggerUIBundle's `url: "..."` config field (see
+// github.com/swaggo/http-swagger/v2's indexTempl). It intentionally requires
+// the `url:` key immediately followed by a quoted value so it does not
+// accidentally match the template's separate `validatorUrl: null,` field,
+// which is unquoted.
+var swaggerUIBundleURLPattern = regexp.MustCompile(`url:\s*"([^"]+)"`)
 
 // startPostgresContainer starts a disposable PostgreSQL testcontainer and
 // returns its connection string. Mirrors
@@ -267,4 +278,73 @@ func TestSwaggerDocJSON_Paths_ContainsExampleEndpointsAndExcludesHealthz(t *test
 		"/healthz is intentionally undocumented (no swag annotations) and must never appear in paths")
 	assert.NotContains(t, doc.Paths, "/api/v1/healthz",
 		"/healthz must not appear in paths under any prefix either")
+}
+
+// TestSwaggerIndexHTML_RouteMounted_DocURLResolvesToLiveDocJSON is
+// 009-T014 (RED)/009-T016 (GREEN) and 009-T015. It asserts GET
+// /swagger/index.html returns 200 with an HTML content type — and, the
+// substantive check 009-T015 asks for, that the rendered page's
+// SwaggerUIBundle is genuinely wired to the *live* /swagger/doc.json route
+// mounted in cmd/api/routes.go, not a stale or hand-edited copy.
+//
+// httpSwagger.Handler() (github.com/swaggo/http-swagger/v2) defaults
+// Config.URL to the relative string "doc.json" when routes.go mounts it
+// with no explicit httpSwagger.URL(...) override. Because index.html is
+// itself served from /swagger/, a browser resolves that relative "doc.json"
+// against the current page location to /swagger/doc.json — the same
+// r.Get("/swagger/*", httpSwagger.Handler()) route, already covered by
+// TestSwaggerDocJSON_RouteMounted_ReturnsValidSwagger2Document above, that
+// serves the generated contract. This test proves that resolution actually
+// happens (rather than trusting the manual verification from #115) by
+// extracting the real `url: "..."` value the server rendered, resolving it
+// relative to the request URL exactly as a browser would, and then fetching
+// that resolved URL to confirm it lands on a genuine, live Swagger 2.0
+// document — not merely asserting the literal template string.
+func TestSwaggerIndexHTML_RouteMounted_DocURLResolvesToLiveDocJSON(t *testing.T) {
+	baseURL := setupSwaggerTestServer(t)
+
+	indexURL := baseURL + "/swagger/index.html"
+	resp, err := http.Get(indexURL)
+	require.NoError(t, err, "GET /swagger/index.html must succeed at the transport level")
+	defer resp.Body.Close()
+
+	require.Equal(t, http.StatusOK, resp.StatusCode,
+		"expected /swagger/index.html to be mounted and return 200")
+	assert.Contains(t, resp.Header.Get("Content-Type"), "text/html",
+		"expected /swagger/index.html to be served with an HTML content type")
+
+	body, err := io.ReadAll(resp.Body)
+	require.NoError(t, err, "must be able to read the /swagger/index.html response body")
+
+	matches := swaggerUIBundleURLPattern.FindSubmatch(body)
+	require.Len(t, matches, 2,
+		"expected to find SwaggerUIBundle's `url: \"...\"` config rendered in the /swagger/index.html body")
+	docURL := string(matches[1])
+
+	// Resolve docURL relative to the page it was served from, exactly as a
+	// browser's SwaggerUIBundle would, instead of assuming it is already an
+	// absolute path.
+	parsedIndexURL, err := url.Parse(indexURL)
+	require.NoError(t, err, "index URL %q must itself be a valid URL", indexURL)
+	resolvedDocURL, err := parsedIndexURL.Parse(docURL)
+	require.NoError(t, err, "DocURL %q must resolve as a valid URL relative to %s", docURL, indexURL)
+
+	require.Equal(t, baseURL+"/swagger/doc.json", resolvedDocURL.String(),
+		"the Swagger UI page's configured DocURL must resolve to the live /swagger/doc.json route "+
+			"mounted in cmd/api/routes.go, not a stale or hardcoded copy")
+
+	// Actually fetch the resolved URL rather than trusting the string match:
+	// confirm it serves a genuine, live Swagger 2.0 document.
+	docResp, err := http.Get(resolvedDocURL.String())
+	require.NoError(t, err, "GET %s (the UI's resolved DocURL) must succeed", resolvedDocURL.String())
+	defer docResp.Body.Close()
+	require.Equal(t, http.StatusOK, docResp.StatusCode,
+		"the DocURL the Swagger UI actually loads must itself return 200")
+
+	var doc map[string]any
+	require.NoError(t, json.NewDecoder(docResp.Body).Decode(&doc),
+		"the DocURL the Swagger UI actually loads must return valid JSON")
+	assert.Equal(t, "2.0", doc["swagger"],
+		"the DocURL the Swagger UI actually loads must serve a valid Swagger 2.0 document, "+
+			"proving it is the live-generated contract and not a stale copy")
 }
