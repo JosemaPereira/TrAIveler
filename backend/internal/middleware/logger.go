@@ -3,6 +3,7 @@ package middleware
 import (
 	"log/slog"
 	"net/http"
+	"runtime/debug"
 
 	"github.com/felixge/httpsnoop"
 )
@@ -15,6 +16,9 @@ const serviceName = "traiveler-api"
 // request via the given slog.Logger, including service, method, path,
 // status, duration, the request ID propagated by RequestID, and — when the
 // request is authenticated — the user ID propagated via UserIDFromContext.
+// A 5xx response also gets a "stack" field (same shape Recovery uses for
+// panics), so operator-actionable failures are traceable even when the
+// handler returned an error instead of panicking.
 func Logger(logger *slog.Logger) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -35,6 +39,17 @@ func Logger(logger *slog.Logger) func(http.Handler) http.Handler {
 			// when a value is actually present in the context.
 			if userID, ok := UserIDFromContext(r.Context()); ok {
 				attrs = append(attrs, slog.String("user_id", userID))
+			}
+
+			// A handler that returns a 5xx without panicking (e.g. an
+			// unmapped error going through errors.HandleError ->
+			// internal_error -> 500) never reaches Recovery's panic-only
+			// stack capture, so it would otherwise be logged with no stack
+			// trace at all. Capture one here too, in the same field shape
+			// Recovery already uses, whenever the response itself signals a
+			// server-side failure.
+			if metrics.Code >= http.StatusInternalServerError {
+				attrs = append(attrs, slog.String("stack", string(debug.Stack())))
 			}
 
 			logger.LogAttrs(r.Context(), levelForStatus(metrics.Code), "HTTP request", attrs...)
