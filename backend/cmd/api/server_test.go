@@ -47,7 +47,7 @@ func testLogger() *slog.Logger {
 	return slog.New(slog.NewJSONHandler(io.Discard, nil))
 }
 
-func TestHTTPServer_Healthz_DatabasePingSucceeds_Returns200HealthyBody(t *testing.T) {
+func TestHTTPServer_Healthz_DatabasePingSucceeds_Returns200OkBody(t *testing.T) {
 	mockDB := dbmocks.NewMockClient(t)
 	mockDB.EXPECT().Ping(mock.Anything).Return(nil)
 
@@ -61,14 +61,14 @@ func TestHTTPServer_Healthz_DatabasePingSucceeds_Returns200HealthyBody(t *testin
 	assert.Equal(t, http.StatusOK, rec.Code)
 	assert.Equal(t, "application/json", rec.Header().Get("Content-Type"))
 
-	var body healthzResponse
+	var body HealthCheckResponse
 	require.NoError(t, json.Unmarshal(rec.Body.Bytes(), &body))
-	assert.Equal(t, "healthy", body.Status)
-	assert.Equal(t, "connected", body.Database)
-	assert.Empty(t, body.Error)
+	assert.Equal(t, "ok", body.Status)
+	assert.NotEmpty(t, body.Version)
+	assert.GreaterOrEqual(t, body.UptimeSeconds, float64(0))
 }
 
-func TestHTTPServer_Healthz_DatabasePingFails_Returns503UnhealthyBodyWithError(t *testing.T) {
+func TestHTTPServer_Healthz_DatabasePingFails_Returns200DegradedBody(t *testing.T) {
 	mockDB := dbmocks.NewMockClient(t)
 	mockDB.EXPECT().Ping(mock.Anything).Return(errors.New("connection refused"))
 
@@ -79,17 +79,17 @@ func TestHTTPServer_Healthz_DatabasePingFails_Returns503UnhealthyBodyWithError(t
 
 	srv.Router().ServeHTTP(rec, req)
 
-	assert.Equal(t, http.StatusServiceUnavailable, rec.Code)
+	assert.Equal(t, http.StatusOK, rec.Code, "HTTP status must stay 200 even when a dependency is degraded")
 	assert.Equal(t, "application/json", rec.Header().Get("Content-Type"))
 
-	var body healthzResponse
+	var body HealthCheckResponse
 	require.NoError(t, json.Unmarshal(rec.Body.Bytes(), &body))
-	assert.Equal(t, "unhealthy", body.Status)
-	assert.Equal(t, "disconnected", body.Database)
-	assert.Equal(t, "connection refused", body.Error)
+	assert.Equal(t, "degraded", body.Status)
+	assert.NotEmpty(t, body.Version)
+	assert.GreaterOrEqual(t, body.UptimeSeconds, float64(0))
 }
 
-func TestHTTPServer_Healthz_DatabasePingExceedsTwoSecondTimeout_Returns503Promptly(t *testing.T) {
+func TestHTTPServer_Healthz_DatabasePingExceedsTwoSecondTimeout_Returns200DegradedPromptly(t *testing.T) {
 	mockDB := dbmocks.NewMockClient(t)
 	mockDB.EXPECT().Ping(mock.Anything).RunAndReturn(func(ctx context.Context) error {
 		<-ctx.Done()
@@ -105,8 +105,12 @@ func TestHTTPServer_Healthz_DatabasePingExceedsTwoSecondTimeout_Returns503Prompt
 	srv.Router().ServeHTTP(rec, req)
 	elapsed := time.Since(start)
 
-	assert.Equal(t, http.StatusServiceUnavailable, rec.Code)
+	assert.Equal(t, http.StatusOK, rec.Code, "HTTP status must stay 200 even when the ping times out")
 	assert.Less(t, elapsed, 3*time.Second, "handler must bound the ping to ~2s, not hang indefinitely")
+
+	var body HealthCheckResponse
+	require.NoError(t, json.Unmarshal(rec.Body.Bytes(), &body))
+	assert.Equal(t, "degraded", body.Status)
 }
 
 func TestHTTPServer_MiddlewareChain_SetsRequestIDHeaderOnResponse(t *testing.T) {

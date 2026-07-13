@@ -438,3 +438,23 @@ dropped — only prose and illustrative code were trimmed. Supersedes the 2026-0
   Before trusting any LHCI audit id, check its `supportedModes` or just run `lhci autorun` locally and
   read real output.
 - **Related**: `lighthouserc.yml`, `frontend/README.md`
+
+---
+
+### A Spec's Data-Model Validation Rule Can Override Normal REST Convention — Read It Literally
+- **Discovered**: 2026-07-13 — **Tool**: Claude Code
+- **Context**: Reconciling `backend/cmd/api/server.go`'s `/healthz` handler with spec 002's
+  `HealthCheckResponse` (issue #110, 002-T010/T011).
+- **Problem**: The typical REST health-check convention is 503 on an unhealthy dependency; the
+  existing handler followed that convention. But `specs/002-nfr-system-constraints/data-model.md`'s
+  `HealthCheckResponse` validation rules explicitly state the HTTP status is *always* `200 OK`, even
+  when the body's `status` field is `"degraded"` — because load balancers key routing off the HTTP
+  code, and a transient DB blip shouldn't trigger ECS/ALB to cycle the task. Assuming "unhealthy → 5xx"
+  from convention alone would have shipped a spec violation that also looked correct to a casual
+  reviewer.
+- **Solution**: When a spec's data-model doc states an explicit validation rule for an
+  entity/response, treat it as literal and higher-authority than general REST/HTTP convention — grep
+  the entity's own "Validation rules" bullets before assuming standard behavior. Here it meant moving
+  the failure signal out of the HTTP status entirely and into a body field, with a `logger.Warn` added
+  so the failure isn't silently lost to operators now that the HTTP status can't carry it.
+- **Related**: `backend/cmd/api/server.go`, `specs/002-nfr-system-constraints/data-model.md`
