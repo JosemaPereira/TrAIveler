@@ -86,7 +86,19 @@ func (h *Handler) RegisterRoutes(r chi.Router) {
 	})
 }
 
-// handleCreate implements POST /examples.
+// handleCreate godoc
+// @Summary     Create a new example
+// @Description Creates an example resource for demonstration purposes
+// @Tags        examples
+// @Accept      json
+// @Produce     json
+// @Param       body body createRequest true "Example payload"
+// @Success     201 {object} Example
+// @Failure     400 {object} invalidRequestEnvelope
+// @Failure     409 {object} errors.ErrorResponse
+// @Failure     422 {object} errors.ErrorResponse
+// @Security    BearerAuth
+// @Router      /examples [post]
 func (h *Handler) handleCreate(w http.ResponseWriter, r *http.Request) {
 	var req createRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
@@ -104,7 +116,16 @@ func (h *Handler) handleCreate(w http.ResponseWriter, r *http.Request) {
 	respondJSON(w, http.StatusCreated, ex)
 }
 
-// handleGet implements GET /examples/{id}.
+// handleGet godoc
+// @Summary     Get an example by ID
+// @Description Retrieves a single example resource by its ID
+// @Tags        examples
+// @Produce     json
+// @Param       id path string true "Example ID"
+// @Success     200 {object} Example
+// @Failure     404 {object} errors.ErrorResponse
+// @Security    BearerAuth
+// @Router      /examples/{id} [get]
 func (h *Handler) handleGet(w http.ResponseWriter, r *http.Request) {
 	id := chi.URLParam(r, "id")
 
@@ -117,10 +138,25 @@ func (h *Handler) handleGet(w http.ResponseWriter, r *http.Request) {
 	respondJSON(w, http.StatusOK, ex)
 }
 
-// handleUpdate implements PUT /examples/{id}. The caller-known version is
-// carried on the If-Match header rather than the request body, matching
-// the concurrency-control convention documented for versioned entities in
-// docs/data-model.md (Trip/Activity's "Concurrency Control" sections).
+// handleUpdate godoc
+// @Summary     Update an example
+// @Description Fully replaces an example resource (PUT semantics); the caller-known version is
+// @Description carried on the If-Match header rather than the request body, matching the
+// @Description concurrency-control convention documented for versioned entities in docs/data-model.md
+// @Description (Trip/Activity's "Concurrency Control" sections).
+// @Tags        examples
+// @Accept      json
+// @Produce     json
+// @Param       id path string true "Example ID"
+// @Param       If-Match header string true "Expected current version, for optimistic-locking concurrency control"
+// @Param       body body updateRequest true "Example payload"
+// @Success     200 {object} Example
+// @Failure     400 {object} invalidRequestEnvelope
+// @Failure     404 {object} errors.ErrorResponse
+// @Failure     409 {object} errors.ErrorResponse
+// @Failure     422 {object} errors.ErrorResponse
+// @Security    BearerAuth
+// @Router      /examples/{id} [put]
 func (h *Handler) handleUpdate(w http.ResponseWriter, r *http.Request) {
 	id := chi.URLParam(r, "id")
 
@@ -145,8 +181,16 @@ func (h *Handler) handleUpdate(w http.ResponseWriter, r *http.Request) {
 	respondJSON(w, http.StatusOK, ex)
 }
 
-// handleDelete implements DELETE /examples/{id}, responding 204 with no
-// body on success per docs/api-design-standards.md §8.
+// handleDelete godoc
+// @Summary     Delete an example
+// @Description Deletes an example resource by its ID, responding 204 with no body on success
+// @Description per docs/api-design-standards.md §8
+// @Tags        examples
+// @Param       id path string true "Example ID"
+// @Success     204 "No Content"
+// @Failure     404 {object} errors.ErrorResponse
+// @Security    BearerAuth
+// @Router      /examples/{id} [delete]
 func (h *Handler) handleDelete(w http.ResponseWriter, r *http.Request) {
 	id := chi.URLParam(r, "id")
 
@@ -158,11 +202,20 @@ func (h *Handler) handleDelete(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNoContent)
 }
 
-// handleList implements GET /examples, validating page/per_page query
-// params up front (400 on malformed or out-of-range values, per
-// docs/api-design-standards.md §9) rather than silently clamping them —
-// silent clamping is left to normalizePagination as a defensive fallback
-// for non-HTTP callers.
+// handleList godoc
+// @Summary     List examples
+// @Description Returns a paginated list of example resources, optionally filtered by status.
+// @Description Validates page/per_page query params up front (400 on malformed or out-of-range
+// @Description values, per docs/api-design-standards.md §9) rather than silently clamping them.
+// @Tags        examples
+// @Produce     json
+// @Param       status query string false "Filter by status" Enums(active, inactive)
+// @Param       page query int false "Page number" default(1)
+// @Param       per_page query int false "Items per page" default(20)
+// @Success     200 {object} listResponse
+// @Failure     400 {object} invalidRequestEnvelope
+// @Security    BearerAuth
+// @Router      /examples [get]
 func (h *Handler) handleList(w http.ResponseWriter, r *http.Request) {
 	page, err := parsePositiveIntParam(r, "page", defaultPage)
 	if err != nil {

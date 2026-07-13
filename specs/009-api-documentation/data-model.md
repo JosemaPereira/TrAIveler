@@ -13,8 +13,8 @@ annotations.
 | `info.title` / `info.version` | string | Sourced from `@title`/`@version` annotations in `backend/cmd/api/docs.go` |
 | `basePath` | string | `/api/v1`, matching `docs/api-design-standards.md` versioning convention |
 | `paths` | map | One entry per annotated handler; path, method, parameters, request body schema, response schemas per status code |
-| `components.schemas` | map | Derived from Go request/response struct field tags (`json:"..."`, validation tags) |
-| `components.securitySchemes.BearerAuth` | object | `type: apiKey`, `in: header`, `name: Authorization` — declared once in `docs.go`, referenced per-endpoint via `@Security BearerAuth` |
+| `definitions` | map | Derived from Go request/response struct field tags (`json:"..."`, validation tags) — Swagger 2.0's flat schema-registry field (OpenAPI v3's `components.schemas` does not apply here) |
+| `securityDefinitions.BearerAuth` | object | `type: apiKey`, `in: header`, `name: Authorization` — declared once in `docs.go`, referenced per-endpoint via `@Security BearerAuth` (Swagger 2.0's top-level `securityDefinitions`, not v3's `components.securitySchemes`) |
 
 **Generation rule**: A handler function appears in `paths` if and only if it carries `swag`
 annotations (`@Summary`, `@Router`, etc.). This is the sole exclusion mechanism (see
