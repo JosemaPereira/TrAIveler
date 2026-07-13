@@ -1,0 +1,18 @@
+{
+    "swagger": "2.0",
+    "info": {
+        "description": "Machine-readable OpenAPI contract for the TrAIveler backend API, generated from Go doc-comment annotations colocated with each handler (see specs/009-api-documentation/).",
+        "title": "TrAIveler API",
+        "contact": {},
+        "version": "1.0"
+    },
+    "basePath": "/api/v1",
+    "paths": {},
+    "securityDefinitions": {
+        "BearerAuth": {
+            "type": "apiKey",
+            "name": "Authorization",
+            "in": "header"
+        }
+    }
+}
