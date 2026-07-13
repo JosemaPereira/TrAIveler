@@ -158,3 +158,50 @@ Historical summaries of completed development sessions. Committed to git as a re
   to update session-notes/memory/roadmap per ticket rather than batching at sprint close — the pattern
   from Sprint 1-3 was to reconcile the roadmap only at sprint-closure sessions, which is why #109/#125
   slipped for one ticket-cycle. Sprint 4 tickets should each self-close their own roadmap row instead.
+
+### Session: G-ARCH-INTEGRATION-BACKEND — Correlation ID, 5xx Stack Trace, Anthropic Client, Retry-After
+- **Date**: 2026-07-13
+- **Tool**: Claude Code
+- **Outcome**: Issue #117 (005-T110–T113), on branch
+  `feature/117-g-arch-integration-backend-backend-integration-patterns-correlation-id-retrybackoff-anthropic-client`
+  (branched off `main` post-#127 merge). 005-T110 (correlation ID in error responses) was already
+  fully satisfied by PR #74 — verified via existing tests, no code touched. New work: (1) 005-T111 —
+  `middleware/logger.go`'s `Logger` now logs a `runtime/debug.Stack()` field for any 5xx response, not
+  just panics (`Recovery` already covered those); (2) 005-T112 — new `internal/ai/anthropic.go`,
+  `AnthropicClient` implementing `AIClient` on `github.com/anthropics/anthropic-sdk-go` (new direct
+  dependency, v1.57.0), 60s timeout, retry/backoff delegated to the SDK's own
+  `option.WithMaxRetries`/`option.WithRequestTimeout` rather than a hand-rolled loop (see
+  `patterns-discovered.md`, "Prefer an Official SDK's Built-In Retry Over Hand-Rolling One"); a
+  429/503 surviving every retry becomes `*ai.ProviderUnavailableError`; (3) 005-T113 —
+  `internal/ai/client.go` gained `NewAIClient(cfg config.AIConfig) (AIClient, error)`, a
+  provider-agnostic factory switching on `cfg.Provider`, and `TranslateError`, which turns a
+  provider-unavailable failure into a `"service_unavailable"` `*errors.DomainError` (new
+  `errors.ServiceUnavailable` constructor) carrying a `Retry-After` HTTP header
+  (`internal/errors/handler.go`'s `writeErrorResponse`).
+- **Key decision**: the user explicitly required, while scoping this issue, that `NewAIClient` NOT be
+  built as if Anthropic were the primary/default option with Ollama as a dev-only workaround — both
+  provider branches are equally first-class in the switch, matching the existing `AI_PROVIDER`-driven
+  split from issue #55 (`sprint2-ai-client-ollama-mvp` in Claude's personal memory has the full
+  history). No HTTP route wires `NewAIClient` in yet (`cmd/api/main.go` untouched) — that's deliberately
+  out of scope for this issue; a future handler ticket will consume the factory.
+- **Mockery question, answered**: user asked whether the new tests warranted (re)generating mockery
+  mocks. Confirmed empirically (`make mocks` produces a byte-identical `ai_client_mock.go`, zero diff)
+  that no regeneration was needed — the `AIClient` interface itself didn't change. `anthropic.go`
+  (the implementation *under test*) is faked at the HTTP layer (`option.WithBaseURL`/`httptest`,
+  mirroring `ollama_client_test.go`'s existing pattern) rather than mocked, since you don't mock the
+  thing you're testing; `NewAIClient`/`TranslateError` are pure logic needing no mock at all. Reaffirms
+  the Sprint 2 "mock any interface a test needs to fake across its own package's dependency boundary"
+  rule rather than adding a new one.
+- **Documentation pass** (technical-writer, same session): fixed three genuinely stale spots exposed by
+  this change — `backend/README.md`'s `DomainError` constructor count/status table (missing
+  `ServiceUnavailable`/503), `middleware/logger.go`'s `Logger` doc comment (didn't mention the new
+  stack-trace field), and `docs/local-ai-setup.md` (two spots still called `AnthropicClient`/
+  `NewAIClient` "future"/"not yet implemented"). Everything else checked was already accurate — see
+  the technical-writer's file-by-file confirmation in-session; flagged one genuine pre-existing,
+  out-of-scope drift for later: `specs/005-system-architecture/data-model.md`'s `AIClient` interface
+  snippet still shows the old `GenerateItinerary(ctx, prompt string)`/`ItineraryChunk` shape instead of
+  the real `ItineraryRequest`/`StreamChunk` — predates #117, not caused by it.
+- **Workflow note**: `docs/roadmap.md`'s 005-T110–T113 rows are deliberately left at `Backlog` in this
+  commit — per the G-OBS-HEALTHZ session's established convention, the Backlog→Done flip (with
+  "Closed by PR #NN") happens once the PR exists/merges, not at commit time on the feature branch.
+  Whoever runs `open-pr`/closes this ticket next should flip those four rows.

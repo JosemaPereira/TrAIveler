@@ -5,6 +5,7 @@ import (
 	"errors"
 	"log/slog"
 	"net/http"
+	"strconv"
 
 	"github.com/JosemaPereira/TrAIveler/backend/internal/middleware"
 )
@@ -47,10 +48,20 @@ func HandleError(w http.ResponseWriter, r *http.Request, err error) {
 }
 
 // writeErrorResponse encodes domainErr as the standard JSON error envelope.
+// A "service_unavailable" domainErr (see ServiceUnavailable in types.go)
+// additionally gets a Retry-After response header, echoing the
+// "retry_after_seconds" value already present in its Details — e.g. the AI
+// client factory's provider-unavailable translation (client.go,
+// docs/roadmap.md 005-T113) surfacing an exhausted-retries failure this way.
 func writeErrorResponse(w http.ResponseWriter, r *http.Request, domainErr *DomainError) {
 	requestID, _ := middleware.RequestIDFromContext(r.Context())
 
 	w.Header().Set("Content-Type", "application/json")
+	if domainErr.Code == "service_unavailable" {
+		if retryAfterSeconds, ok := domainErr.Details["retry_after_seconds"].(int); ok {
+			w.Header().Set("Retry-After", strconv.Itoa(retryAfterSeconds))
+		}
+	}
 	w.WriteHeader(statusForCode(domainErr.Code))
 	if err := json.NewEncoder(w).Encode(ErrorResponse{
 		Error:     domainErr.Code,
@@ -78,6 +89,8 @@ func statusForCode(code string) int {
 		return http.StatusForbidden
 	case "conflict":
 		return http.StatusConflict
+	case "service_unavailable":
+		return http.StatusServiceUnavailable
 	default:
 		return http.StatusInternalServerError
 	}

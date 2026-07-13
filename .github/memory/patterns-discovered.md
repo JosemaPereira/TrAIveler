@@ -458,3 +458,22 @@ dropped — only prose and illustrative code were trimmed. Supersedes the 2026-0
   the failure signal out of the HTTP status entirely and into a body field, with a `logger.Warn` added
   so the failure isn't silently lost to operators now that the HTTP status can't carry it.
 - **Related**: `backend/cmd/api/server.go`, `specs/002-nfr-system-constraints/data-model.md`
+
+---
+
+### Prefer an Official SDK's Built-In Retry Over Hand-Rolling One
+- **Discovered**: 2026-07-13 — **Tool**: Claude Code
+- **Context**: Wrapping any well-maintained official client SDK (e.g. `github.com/anthropics/
+  anthropic-sdk-go`) in this codebase's own client-wrapper pattern (issue #117, `internal/ai/anthropic.go`).
+- **Problem**: The existing precedent in this codebase, `OllamaClient` (`ollama_client.go`), hand-rolls
+  its own linear-backoff retry loop — reasonable there since it talks to Ollama's bare HTTP API with
+  no SDK. Copying that same hand-rolled loop for `AnthropicClient` would have meant reimplementing
+  (and re-testing) exponential backoff and Retry-After-aware retry logic the official SDK already
+  ships and maintains.
+- **Solution**: Before hand-rolling retry/backoff/timeout around any newly-added official SDK, check
+  whether the SDK exposes idiomatic construction-time options for it first (here,
+  `option.WithMaxRetries`/`option.WithRequestTimeout` on `anthropic.NewClient`, confirmed by reading
+  the SDK's own `internal/requestconfig` source — it already does exponential backoff and honors a
+  response's `Retry-After` header). Only hand-roll when wrapping a bare HTTP API with no SDK (still
+  correct for `OllamaClient`) or when the SDK's built-in behavior doesn't match the required contract.
+- **Related**: `backend/internal/ai/anthropic.go`, `backend/internal/ai/ollama_client.go`

@@ -19,8 +19,9 @@ const retryBackoffUnit = 50 * time.Millisecond
 // OllamaClient implements AIClient against a local Ollama server's native
 // /api/chat HTTP endpoint (not the Anthropic SDK). It is the concrete
 // backend used for local development and MVP testing, per product decision;
-// the Anthropic-backed implementation for staging/production lands
-// separately (docs/roadmap.md 005-T112).
+// AnthropicClient (anthropic.go) is the equivalent implementation used in
+// staging/production — see NewAIClient in client.go for how a caller picks
+// between the two via config.AIConfig.Provider.
 type OllamaClient struct {
 	httpClient *http.Client
 	host       string

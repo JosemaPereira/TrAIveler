@@ -141,3 +141,53 @@ func TestLogger_NoUserIDInContext_OmitsUserIDField(t *testing.T) {
 	_, ok := entry["user_id"]
 	assert.False(t, ok, "user_id key must be entirely absent for unauthenticated requests")
 }
+
+func TestLogger_ResponseStatus5xx_IncludesStackField(t *testing.T) {
+	var buf bytes.Buffer
+	logger := newTestLogger(&buf)
+
+	next := http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.WriteHeader(http.StatusInternalServerError)
+	})
+
+	req := httptest.NewRequest(http.MethodGet, "/trips", nil)
+	rec := httptest.NewRecorder()
+
+	Logger(logger)(next).ServeHTTP(rec, req)
+
+	entry := decodeLastLogLine(t, &buf)
+	require.Contains(t, entry, "stack")
+	stack, ok := entry["stack"].(string)
+	require.True(t, ok)
+	assert.NotEmpty(t, stack)
+}
+
+func TestLogger_ResponseStatusBelow5xx_OmitsStackField(t *testing.T) {
+	tests := []struct {
+		name       string
+		statusCode int
+	}{
+		{name: "2xx omits stack", statusCode: http.StatusOK},
+		{name: "4xx omits stack", statusCode: http.StatusNotFound},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			var buf bytes.Buffer
+			logger := newTestLogger(&buf)
+
+			next := http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+				w.WriteHeader(tt.statusCode)
+			})
+
+			req := httptest.NewRequest(http.MethodGet, "/trips", nil)
+			rec := httptest.NewRecorder()
+
+			Logger(logger)(next).ServeHTTP(rec, req)
+
+			entry := decodeLastLogLine(t, &buf)
+			_, ok := entry["stack"]
+			assert.False(t, ok, "stack key must be absent for non-5xx responses")
+		})
+	}
+}
