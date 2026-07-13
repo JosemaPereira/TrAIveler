@@ -18,6 +18,12 @@ import (
 // healthzTimeout bounds the database ping issued by /healthz.
 const healthzTimeout = 2 * time.Second
 
+// version is the semantic version of the running binary. It is the single
+// source of truth for both the startup log (main.go) and the /healthz
+// response, so it can later be overridden at build time via
+// `-ldflags "-X main.version=..."` without touching call sites.
+var version = "0.1.0"
+
 // HTTPServer wires the Chi router, database client, configuration, and
 // structured logger together and exposes the API's operational HTTP
 // endpoints. Domain routes are registered the same way in routes.go.
@@ -27,6 +33,7 @@ type HTTPServer struct {
 	cfg            *config.Config
 	logger         *slog.Logger
 	exampleHandler *example.Handler
+	startTime      time.Time
 }
 
 // NewHTTPServer builds an HTTPServer with the standard middleware chain
@@ -59,6 +66,7 @@ func NewHTTPServer(db database.Client, cfg *config.Config, logger *slog.Logger) 
 		cfg:            cfg,
 		logger:         logger,
 		exampleHandler: exampleHandler,
+		startTime:      time.Now(),
 	}
 
 	s.registerRoutes()
@@ -72,33 +80,35 @@ func (s *HTTPServer) Router() http.Handler {
 	return s.router
 }
 
-// healthzResponse is the JSON body returned by GET /healthz.
-type healthzResponse struct {
-	Status   string `json:"status"`
-	Database string `json:"database"`
-	Error    string `json:"error,omitempty"`
+// HealthCheckResponse is the JSON body returned by GET /healthz, matching
+// spec 002's HealthCheckResponse contract (see
+// specs/002-nfr-system-constraints/data-model.md).
+type HealthCheckResponse struct {
+	Status        string  `json:"status"`
+	Version       string  `json:"version"`
+	UptimeSeconds float64 `json:"uptime_seconds"`
 }
 
 // handleHealthz reports service health by pinging the database with a
-// bounded timeout: 200 + {"status":"healthy","database":"connected"} when
-// the ping succeeds, 503 + {"status":"unhealthy","database":"disconnected",
-// "error":"<message>"} when it fails or times out.
+// bounded timeout. Per spec 002's validation rules, the HTTP status code is
+// always 200 OK — load balancers use the HTTP code for routing, so a failed
+// or timed-out ping is only signaled via status:"degraded" in the body, not
+// via a non-2xx HTTP status. The ping failure is still logged so it isn't a
+// silent failure mode for operators.
 func (s *HTTPServer) handleHealthz(w http.ResponseWriter, r *http.Request) {
 	ctx, cancel := context.WithTimeout(r.Context(), healthzTimeout)
 	defer cancel()
 
+	status := "ok"
 	if err := s.db.Ping(ctx); err != nil {
-		writeJSON(w, http.StatusServiceUnavailable, healthzResponse{
-			Status:   "unhealthy",
-			Database: "disconnected",
-			Error:    err.Error(),
-		})
-		return
+		s.logger.Warn("healthz database ping failed", "error", err)
+		status = "degraded"
 	}
 
-	writeJSON(w, http.StatusOK, healthzResponse{
-		Status:   "healthy",
-		Database: "connected",
+	writeJSON(w, http.StatusOK, HealthCheckResponse{
+		Status:        status,
+		Version:       version,
+		UptimeSeconds: time.Since(s.startTime).Seconds(),
 	})
 }
 

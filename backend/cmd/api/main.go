@@ -31,7 +31,7 @@ func main() {
 	slog.SetDefault(logger)
 
 	slog.Info("starting TrAIveler backend API",
-		"version", "0.1.0",
+		"version", version,
 		"environment", getEnv("GO_ENV", "development"),
 	)
 
