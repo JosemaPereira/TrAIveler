@@ -2,7 +2,7 @@
 
 Historical summaries of completed development sessions. Committed to git as a record.
 
-**Note**: Older sessions (specs 001-007, sprint infrastructure setup) are compacted to save tokens. Policy: each sprint's implementation sessions are compacted into a `(Compacted)` summary immediately at that sprint's own closure — the same pass that updates the sprint-closure documentation. At any given time, only the sprint currently in progress (not yet closed) has a `(Detailed)` section; the moment it closes, it gets compacted, no rolling window. Sprint 1 and Sprint 2 (both closed) were compacted together on 2026-07-11 to bring the file in line with this policy after it changed; Sprint 3's detailed section will be compacted at Sprint 3's own closure, and so on each sprint thereafter.
+**Note**: Older sessions (specs 001-007, sprint infrastructure setup) are compacted to save tokens. Policy: each sprint's implementation sessions are compacted into a `(Compacted)` summary immediately at that sprint's own closure — the same pass that updates the sprint-closure documentation. At any given time, only the sprint currently in progress (not yet closed) has a `(Detailed)` section; the moment it closes, it gets compacted, no rolling window. Compacted sections favor brevity over completeness: PR/issue/Group IDs, decisions with lasting effect, and still-open follow-ups only — narrative process detail is cut, and duplicates of `patterns-discovered.md` entries are referenced by name instead of re-explained. Sprint 1 and Sprint 2 were compacted together on 2026-07-11; Sprint 3 was compacted at its own closure on 2026-07-12 (and re-tightened for conciseness the same day, which also lightly trimmed the Sprint 1/2 sections).
 
 ## Template
 
@@ -66,156 +66,59 @@ Historical summaries of completed development sessions. Committed to git as a re
 ### Sessions: Sprint 1 Closure, Sprint 2 Consolidation Planning, Git Templates, Doc Audit & Claude Code Migration
 - **Date Range**: 2026-07-08 to 2026-07-09
 - **Key Outcomes**:
-  - **Sprint 1 closure audit**: All 23 tasks (Spec 005 Phases 1-2, Setup + Foundational) confirmed complete across 8 PRs (#43-#50; #48/#49/#50 merged). 10 stale roadmap rows corrected Backlog/In Progress → Done with PR references; `## Sprint Plan`'s Sprint 1 block marked "✅ COMPLETE". 100% completion rate in ~2 weeks — established the ~23-tasks/sprint velocity baseline used to scope Sprint 2 (62 tasks, 3 parallel tracks).
-  - **Sprint 2 consolidation planning**: 37 tasks (005-T024–T060) grouped into 14 work items (-62% issue reduction) via new `Group` values (e.g. `G-SPRINT2-BACKEND-HTTP-SERVER` for T035-T037, expanded `G-SPRINT2-BACKEND-EXAMPLE` for T038-T041, `G-SPRINT2-FRONTEND-INFRASTRUCTURE` for T056-T058). `.github/SPRINT-CONSOLIDATION-CHECKLIST.md` created as the enforced pre-issue-creation checkpoint for all future sprints.
-  - **Git templates standardized**: `.github/PULL_REQUEST_TEMPLATE.md` (Description/Implementation Summary/Testing/Checklist/Verification/Dependencies, Stable-ID/Spec/Sprint/Group fields, grouped-vs-standalone support) and `.github/COMMIT_GUIDELINES.md` (Conventional Commits, approved types, 7 worked examples, anti-patterns) created to fix Sprint 1's inconsistent commit/PR structure; `copilot-instructions.md` updated to reference both.
-  - **Documentation audit (005-T029)**: Added 28 lines of documentation to backend `config`/`database` packages (loader functions, `validate()` rationale, `setupPostgresContainer` helper); confirmed all 4 project areas (backend/frontend/e2e/infra) already met documentation standards with zero behavior changes (config: 26 tests, database: 11 tests, all passing).
-  - **Claude Code established as primary tool**: `CLAUDE.md` created as the canonical instructions file (`copilot-instructions.md` demoted to a mirror); `.github/memory/README.md` unified as the single cross-tool memory protocol with `**Tool**:` provenance tagging on every new entry. 10 Copilot agents/prompts hand-ported to `.claude/agents/` subagents (5 role agents merging their linked one-shot prompt as a `## Task:` section; 5 standalone workflows: `build-roadmap`, `commit-and-push`, `open-pr`, `promote-fundations`, `sync-issues`). Official spec-kit Claude integration installed (`specify integration install claude --script sh --force`), generating 10 `.claude/skills/speckit-*/SKILL.md` skills. A mistaken hand-ported `.claude/agents/speckit-*.md` + `.claude/commands/speckit-*.md` duplication (20 files) was found and deleted once the official integration was confirmed to cover the same ground; the entire `.claude/commands/` wrapper layer was also removed, per explicit user request to minimize file count.
+  - Sprint 1 closure: 23/23 tasks done across 8 PRs (#43-#50). Established ~23-tasks/sprint velocity baseline used to scope Sprint 2.
+  - Sprint 2 pre-consolidated: 37 tasks (005-T024–T060) → 14 work items (-62%). `.github/SPRINT-CONSOLIDATION-CHECKLIST.md` created as the enforced pre-issue-creation checkpoint going forward.
+  - `.github/PULL_REQUEST_TEMPLATE.md` and `.github/COMMIT_GUIDELINES.md` created (Conventional Commits, Stable-ID/Spec/Sprint/Group fields) to fix Sprint 1's inconsistent commit/PR structure.
+  - Doc audit (005-T029): backend `config`/`database` packages documented; all 4 project areas already met documentation standards.
+  - Claude Code established as primary tool: `CLAUDE.md` is now canonical (`copilot-instructions.md` a mirror); `.github/memory/README.md` unified cross-tool memory protocol. 10 Copilot agents/prompts ported to `.claude/agents/`. Official spec-kit Claude integration installed; a mistaken hand-ported duplicate (`.claude/agents/speckit-*.md` + `.claude/commands/`) was found and deleted once the official integration covered the same ground.
 - **Key Decisions**:
-  - One-task-per-issue was Sprint 1's approach but caused backlog fragmentation (PRs naturally combined multiple tasks anyway); consolidation-first became **mandatory starting Sprint 2**. Group naming fixed as `G-SPRINT<N>-<STACK>-<AREA>`, optimal group size 2-4 tasks (~150-200 LOC, one reviewable PR); foundation components/critical blockers/single-file features stay standalone.
-  - PR/commit templates are GitHub-native (auto-populating) rather than manually enforced, guaranteeing Stable-ID/Spec/Sprint/Group traceability on every future PR.
-  - **Always check for an official multi-agent-tool integration before hand-porting a toolkit's own agent config** (see `patterns-discovered.md` "Prefer the official multi-agent integration..." entry) — this is why the SpecKit hand-port was reverted; standing practice for adding any future AI tool to this repo. `specify integration install <key> --force` adds a second integration without touching the existing one.
-  - Bidirectional drift detection (`scripts/agent-port-manifest.json` + `scripts/check-agent-drift.py`, see matching `patterns-discovered.md` entry) adopted to reconcile Claude Code's and Copilot's hand-ported agent/prompt pairs, since the two formats differ too much for safe full codegen.
-  - Background `Agent`-tool tasks that get unexpectedly killed should be resumed once via `SendMessage`; if killed again, fall back to foreground work rather than retrying indefinitely.
+  - Consolidation-first became **mandatory starting Sprint 2** (one-task-per-issue caused backlog fragmentation). Group naming `G-SPRINT<N>-<STACK>-<AREA>`, optimal size 2-4 tasks; foundation/critical-blocker/single-file work stays standalone.
+  - **Always check for an official multi-agent-tool integration before hand-porting a toolkit's own agent config** (`patterns-discovered.md`) — why the SpecKit hand-port was reverted.
+  - Bidirectional drift detection (`scripts/check-agent-drift.py`) adopted to reconcile Claude/Copilot hand-ported agent pairs.
+  - Killed background `Agent`-tool tasks: resume once via `SendMessage`; if killed again, fall back to foreground.
 
 ---
 
 ## Sprint 2 Implementation (Compacted)
 
 ### Sessions: Backend Foundation (Middleware, HTTP Server, Errors, AI Client, Reference Pattern), CI/Docker Fixes & Repo Ruleset, Frontend Foundation (Tokens, Primitives, App Shell, Auth Store)
-- **Date Range**: 2026-07-09 to 2026-07-10 (Sprint 2 closed 2026-07-11 — all 37 tasks / 14 work items done across 10+ PRs; see `docs/roadmap.md`'s Sprint 2 entry in `## Sprint Plan`)
+- **Date Range**: 2026-07-09 to 2026-07-10 (closed 2026-07-11 — 37 tasks / 14 work items, 10+ PRs)
 - **Key Outcomes**:
-  - **G-SPRINT2-BACKEND-MIDDLEWARE** (005-T024–T028, issue #54, PR #71): `backend/internal/middleware/` — `RequestID`/`Logger`/`Recovery`/`CORS`/`BodySize`, all constructor-injected (no globals), 22 tests/98.6% coverage. Established the "mockery is for external-system interfaces only, plain constructor injection is enough for stdlib-typed deps" rule (`patterns-discovered.md`).
-  - **G-SPRINT2-BACKEND-HTTP-SERVER** (005-T035–T037, issue #57, PR #72): real Chi router (`cmd/api/server.go`/`routes.go`) replacing the `main.go` TODO stub, mandated middleware order, `/healthz`, graceful shutdown; first real use of `go-chi/chi/v5`. Also fixed a persistent local dev annoyance (gvm's per-directory `.go-version` auto-switch dropping shell functions in Claude Code's snapshot mechanism — machine-level `~/.gvm` fix, not project code) and added gopls `-tags=test` build flags.
-  - **G-SPRINT2-BACKEND-ERRORS** (005-T033–T034, issue #56, PR #74): `backend/internal/errors/` — `DomainError` + 5 constructors + `HandleError`, 21 tests/96.3% coverage. Alongside it, a real CI perf investigation (not part of any ticket) found `backend/Dockerfile`'s builder stage running fully under QEMU emulation (451s of an 8.5min build); fixed via `FROM --platform=$BUILDPLATFORM` + `ARG TARGETOS/TARGETARCH` (PR #73, dropped `go build` to ~56s) — formalized in `patterns-discovered.md` ("Native Cross-Compilation..."). Also bumped `alpine:3.19`→`3.23` (real CVE drift) but left `postgres:15.4-alpine` alone (a documented architectural pin, not drift — still open, tracked in working-notes.md).
-  - **Repo governance** (PR #75): configured a "Protect main" ruleset (PR + 1 approval + 10 named required checks + strict up-to-date + no force-push/delete, Admin-role bypass) — required discovering GitHub Rulesets need a public repo or Pro plan for personal accounts. Found and fixed a real correctness gap along the way: `paths:`-filtered `pull_request` triggers on required-check workflows leave GitHub's check stuck at "Expected" forever on non-matching PRs; fixed via an always-running `dorny/paths-filter` gate job per workflow (`backend-ci.yml`/`frontend-ci.yml`/`infra-plan.yml`) — formalized in `patterns-discovered.md` ("Required Status Checks Must Always Run"). Live-verified via PR #75, which also surfaced two real pre-existing frontend gaps (missing `test` script, unformatted files).
-  - **G-SPRINT2-BACKEND-AI-CLIENT** (005-T030–T032, issue #55, PR #77): `backend/internal/ai/` `AIClient` interface + stubs, plus a user-approved scope extension — a real local-dev `OllamaClient` (`AI_PROVIDER=ollama` by default in dev) with `docker-compose.yml`'s `ollama` service and `docs/local-ai-setup.md`. Local-dev-only doc additions appended *after* the `PROMOTED:...END` markers in `docs/architecture.md`/`docs/cloud-and-environments.md` rather than editing promoted content (reusable pattern, not yet in `patterns-discovered.md` — flagged in the compaction report). Also fixed an unrelated real bug: `CookieSecure` wasn't deriving from `GO_ENV` like `AIConfig` did. Surfaced the still-open Swagger/OpenAPI planning gap for Sprint 3 (saved to cross-session memory).
-  - **G-SPRINT2-BACKEND-EXAMPLE** (005-T038–T041, issue #58, PR #78): `backend/internal/example/` — the canonical model→repository→service→handler reference pattern (58 tests, 88% coverage), `If-Match`-header optimistic locking, a real two-query pagination fix for a `COUNT(*) OVER()` empty-page bug (formalized in `patterns-discovered.md`). **This package is throwaway and must be deleted once the first real domain package (Trip, etc.) ships** — full deletion checklist in its own `patterns-discovered.md` entry; still pending as of Sprint 2 close.
-  - **G-SPRINT2-FRONTEND-TOKENS** (005-T042–T043, issue #59, PR #79): `tokens.css`/`global.css` sourced from `docs/ui-guidelines.md` (not stale issue pseudocode). Same session fixed a live CI gap (`frontend/package.json` had no `test` script at all) by installing the real Vitest/RTL/MSW toolchain, and removed the deprecated `tsconfig.json` `baseUrl`. Follow-up commit corrected a stale "Sprint 2" Lighthouse-CI claim in `frontend-ci.yml`/README and flagged the Lighthouse/a11y-CI scheduling gap for Sprint 3 planning (cross-session memory).
-  - **G-SPRINT2-FRONTEND-PRIMITIVES+FORM** (005-T048–T051/T055, issues #63/#65, PR #80): `Button`/`Input`/`Card` primitives + `Form` composite, first entities driven purely by the tokens above. Formalized the recurring "issue-body pseudocode is lowest authority" lesson into a general rule in `patterns-discovered.md` (real code > spec `tasks.md` > root `docs/*.md` > issue body), after it had independently resurfaced 3 times by this point.
-  - **G-SPRINT2-FRONTEND-APP-SHELL** (005-T044/T045/T047/T056-T060, issues #60/#62/#66, PR #81): `api-client.ts`/`query-client.ts`, `ErrorBoundary` + React Router v7 config, `App.tsx` wiring `ErrorBoundary > QueryClientProvider > RouterProvider`. Removed a hardcoded `VITE_API_BASE_URL` fallback that was silently masking a CI test-job wiring gap (fixed with a committed `frontend/.env.test`) — formalized in `patterns-discovered.md`. Live headless-Chromium smoke test confirmed zero console errors through the full provider stack.
-  - **G-SPRINT2-FRONTEND-AUTH-STORE+PRIMITIVES** (005-T046/T052-T054, issues #61/#64, PR #82): Zustand `auth-store.ts` (role enum corrected to the real `'admin'|'partner'` from `docs/data-model.md`, not the issue's stale sketch) plus `LoadingSpinner`/`ErrorMessage`/`EmptyState`. Bundled a `tdd-developer`/`implement-feature` self-optimization (targeted grep-based memory loading instead of full-file reads, now in `patterns-discovered.md`) into the same PR at the user's request. This closed out all remaining `005-T042–T060` frontend-architecture items.
+  - G-SPRINT2-BACKEND-MIDDLEWARE (005-T024–T028, #54, PR #71): `RequestID`/`Logger`/`Recovery`/`CORS`/`BodySize`, constructor-injected. Established "mockery is for external-system interfaces only" rule (`patterns-discovered.md`).
+  - G-SPRINT2-BACKEND-HTTP-SERVER (005-T035–T037, #57, PR #72): real Chi router, mandated middleware order, `/healthz`, graceful shutdown.
+  - G-SPRINT2-BACKEND-ERRORS (005-T033–T034, #56, PR #74): `DomainError` + `HandleError`. Same session fixed `backend/Dockerfile`'s QEMU-emulated builder (PR #73, `--platform=$BUILDPLATFORM`, 8.5min→~56s build) — formalized in `patterns-discovered.md` ("Native Cross-Compilation..."). `alpine:3.19`→`3.23` bumped (CVE); `postgres:15.4-alpine` deliberately left alone (architectural pin, not drift).
+  - Repo governance (PR #75): "Protect main" ruleset (10 required checks). Fixed a real gap: `paths:`-filtered required-check workflows stick at "Expected" forever — fixed via an always-running gate job, formalized as "Required Status Checks Must Always Run" (`patterns-discovered.md`).
+  - G-SPRINT2-BACKEND-AI-CLIENT (005-T030–T032, #55, PR #77): `AIClient` interface + stubs, plus an approved scope extension — real local-dev `OllamaClient` (default in dev), `docker-compose.yml` `ollama` service, `docs/local-ai-setup.md`. Surfaced the Swagger/OpenAPI planning gap for Sprint 3.
+  - G-SPRINT2-BACKEND-EXAMPLE (005-T038–T041, #58, PR #78): `internal/example/` canonical model→repository→service→handler reference pattern, `If-Match` optimistic locking, a two-query pagination fix (`patterns-discovered.md`). **Throwaway — must be deleted once the first real domain package ships**; still pending.
+  - G-SPRINT2-FRONTEND-TOKENS (005-T042–T043, #59, PR #79): `tokens.css`/`global.css` from `docs/ui-guidelines.md`; installed the real Vitest/RTL/MSW toolchain (was missing entirely). Flagged the Lighthouse/a11y-CI scheduling gap for Sprint 3.
+  - G-SPRINT2-FRONTEND-PRIMITIVES+FORM (005-T048–T051/T055, #63/#65, PR #80): `Button`/`Input`/`Card`/`Form`. Formalized "issue-body pseudocode is lowest authority" as a general rule (`patterns-discovered.md`: real code > `tasks.md` > root docs > issue body).
+  - G-SPRINT2-FRONTEND-APP-SHELL (005-T044/T045/T047/T056-T060, #60/#62/#66, PR #81): `api-client.ts`/`query-client.ts`, `ErrorBoundary` + Router v7, `App.tsx` wiring. Removed a hardcoded `VITE_API_BASE_URL` fallback masking a CI wiring gap.
+  - G-SPRINT2-FRONTEND-AUTH-STORE+PRIMITIVES (005-T046/T052-T054, #61/#64, PR #82): Zustand `auth-store.ts` (`'admin'|'partner'` roles per `docs/data-model.md`), `LoadingSpinner`/`ErrorMessage`/`EmptyState`. Closed out all remaining Sprint 2 frontend items.
 - **Key Decisions**:
-  - **"Issue-body pseudocode/diagrams go stale — verify against real code/docs" recurred independently across nearly every session this sprint** (token names, backend package signatures, component file placement, test-file placement, domain-entity shape) and was eventually promoted to a single general rule in `patterns-discovered.md` with an explicit authority ranking — treat any new instance as confirming that rule, not as a fresh one-off.
-  - **Independently re-verify every subagent's output** (rebuild, re-run tests/lint, read the actual diff) rather than trusting self-reports — this standing practice caught real issues multiple times this sprint (stale doc claims, wrong test-file location, a hardcoded fallback masking a CI gap) and was extended explicitly to documentation-review subagent passes, not just `tdd-developer`.
-  - **Operationally consequential GitHub/Docker platform behavior must be verified against current docs or by actually running it, not recalled from training data** — both the required-status-check semantics and the QEMU/cross-compile fix were confirmed empirically (WebSearch against current GitHub docs; a real local `docker buildx` run) after an initial wrong assumption in the ruleset session.
-  - Scope-extension/scope-limiting decisions on a ticket (e.g. Ollama-as-real-client vs. doc-only stub) should go through explicit `AskUserQuestion` confirmation rather than being inferred, given multi-file/hard-to-reverse blast radius.
-  - **Known open items carried past Sprint 2 close** (see `scratch/working-notes.md` and `patterns-discovered.md` for full detail): `postgres:15.4-alpine` version-staleness decision still pending; `internal/example/` deletion still pending (blocked on the first real domain package); a pre-existing escape-sequence text corruption (literal `\n`/`—`) in `patterns-discovered.md`'s "Suggest-Then-Approve Collaboration Workflow" entry was found and fixed in a concurrent edit during this same session (`patterns-discovered.md` was also simplified/deduplicated in that pass — see that file's own top note).
+  - "Issue-body pseudocode/diagrams go stale — verify against real code/docs" recurred all sprint; promoted to a general authority-ranking rule in `patterns-discovered.md`.
+  - **Independently re-verify every subagent's output** (rebuild, re-run tests/lint, read the diff) rather than trusting self-reports — caught real issues multiple times this sprint.
+  - Operationally consequential platform behavior (GitHub required-checks, Docker/QEMU) must be verified against current docs or by actually running it, not recalled.
+  - Scope-extension decisions on a ticket (e.g. Ollama-as-real-client) go through explicit `AskUserQuestion` confirmation, not inference.
+  - **Known open items carried past Sprint 2 close**: `postgres:15.4-alpine` staleness decision pending; `internal/example/` deletion pending (blocked on first real domain package).
 
 ---
 
-## Sprint 3 Implementation (Detailed)
+## Sprint 3 Implementation (Compacted)
 
-**Note**: This is the first Sprint 3 entry in this file, even though Sprint 3 infra work already
-landed before it (VPC module PR #95, RDS module PR #98, ALB module PR #99) — those sessions'
-summaries were never appended here; their outcomes are only reconstructable from git/PR history and
-`docs/roadmap.md`. Flagging the gap rather than silently backfilling entries for sessions this tool
-has no first-hand record of.
-
-### Session: CloudFront/S3 Frontend Delivery Module + Infra Docs Audit
-- **Date**: 2026-07-12
-- **Tool**: Claude Code
-- **What was accomplished**: Implemented `G-SPRINT3-INFRA-CLOUDFRONT` (issue #88, stable IDs
-  005-T093–T098) via the `tdd-developer` subagent — `infra/modules/cloudfront/` Terraform module:
-  private S3 origin bucket (public access fully blocked), a CloudFront Origin Access Identity with a
-  bucket policy scoping `s3:GetObject` to that OAI only, and a CloudFront distribution (HTTPS-only via
-  `redirect-to-https`, GET/HEAD/OPTIONS, `custom_error_response` rewriting 404→`/index.html` as HTTP
-  200 for SPA client-side routing, `price_class` variable defaulting to `PriceClass_100`
-  staging/`PriceClass_200` production). Verified via `terraform validate` and
-  `terraform fmt -check -recursive` (both independently re-run and confirmed, not just trusted from
-  the subagent's report) — no `terraform apply`/AWS calls made. Branch renamed mid-session to match
-  this repo's issue-number branch convention:
-  `feature/88-g-sprint3-infra-cloudfront-cloudfront-s3-frontend-delivery-module`.
-  User then requested a docs-audit pass (module-only PRs hadn't been checked against `/docs` for
-  drift before): fixed real staleness in `infra/README.md`'s "CI/CD Integration" section (it
-  presented `.github/workflows/infra-apply.yml` as if it existed and ran automated staging applies —
-  it doesn't, `005-T108` is still Backlog; `infra-plan.yml`'s own `terraform plan` step is also still
-  a placeholder pending root module wiring, `005-T107`, Backlog, both under
-  `G-SPRINT3-INFRA-ROOT-WIRING`/issue #90). Added `docs/README.md`, a categorized index of every file
-  under `docs/`, linked from the root `README.md`. Two separate commits made per explicit user
-  request (code vs. docs), both pushed: `23cd2ad` (module) and `5c89c9c` (docs).
-- **Key findings and decisions**:
-  - Confirmed via `git log -p` on `docs/architecture.md`/`docs/cloud-and-environments.md` that their
-    S3/CloudFront content predates and was untouched by every module implementation so far
-    (VPC/RDS/ALB/CloudFront) — these `PROMOTED:...`-marked docs describe target architecture at a
-    high level and don't need a per-module edit unless something becomes factually wrong, which
-    nothing was here. Formalized as a new `patterns-discovered.md` entry ("What 'Keep docs/ Updated'
-    Actually Means for an Infra Module PR") establishing the two-tier rule: implementation-status
-    trackers (`infra/README.md`, `docs/roadmap.md`) update every infra PR; target-architecture docs
-    inside `PROMOTED:...` blocks only get touched on genuine factual drift.
-  - Roadmap rows `005-T093`–`T098` intentionally left as `Backlog` in this session — this repo's
-    established pattern (confirmed against the already-merged VPC/RDS/ALB rows) is that roadmap
-    status flips to `Done` with a PR reference only *after* merge, not while a PR is open.
-- **Outcomes**: `infra/modules/cloudfront/` complete and Terraform-validated (module-only; no AWS
-  resources created; root module wiring in `infra/main.tf` remains a separate, later ticket, issue
-  #90). `docs/README.md` now exists as the canonical documentation index. Branch has 2 commits,
-  pushed, ready for PR via the `open-pr` subagent.
-
-### Session: Accessibility CI Gate (Lighthouse + axe-core)
-- **Date**: 2026-07-12
-- **Tool**: Claude Code
-- **What was accomplished**: Implemented `G-SPRINT3-A11Y-CI` (issue #93, stable IDs 002-T002/T004/
-  T022/T024) via the `tdd-developer` subagent, on branch
-  `feature/93-g-sprint3-a11y-ci-accessibility-ci-gate-lighthouse-axe-core` — following
-  `specs/002-nfr-system-constraints/tasks.md` as the authoritative file-path source over the
-  paraphrased issue body (e.g. `lighthouserc.yml` at repo root, not `frontend/lighthouserc.yml`;
-  the helper at `frontend/tests/helpers/a11y.ts`, not under `e2e/`). Added `@axe-core/playwright` +
-  `@lhci/cli` to `frontend/package.json`; root `lighthouserc.yml` with thresholds matching
-  `docs/nfrs.md` NFR-PERF-003/NFR-A11Y-004 exactly (accessibility ≥ 0.9, LCP ≤ 2500 ms, CLS ≤ 0.1,
-  INP ≤ 200 ms); `checkPageA11y(page)` helper wrapping `AxeBuilder`, TDD'd with a mocked-AxeBuilder
-  Vitest suite (throws with a violation, resolves cleanly without one); a new dedicated
-  `.github/workflows/accessibility.yml` (builds+serves the frontend, runs
-  `playwright test --grep @accessibility` from `e2e/`, then `lhci autorun` from `frontend/`),
-  replacing the old placeholder `accessibility` job and TODO in `frontend-ci.yml`. A supporting
-  `frontend/tsconfig.tests.json` was added so ESLint's typed linting can parse `frontend/tests/`
-  (not covered by `tsconfig.json`'s `include: ["src"]`), registered in `eslint.config.js`.
-  User then asked for the Playwright step to *skip* rather than fail given 002-T023 (tagging
-  `e2e/*.spec.ts` with `@accessibility`) hadn't landed yet — added `--pass-with-no-tests` (a real,
-  verified Playwright 1.61 CLI flag) to that step. Followed with a documentation/comment audit
-  (`docs/roadmap.md`'s Sprint 3 planning-note block, `frontend/README.md`'s Tech Stack/Project
-  Structure/Accessibility/CI sections, all updated from "planned" to reflect the real implemented
-  state) so the temporary bridge and its required follow-up aren't silently forgotten.
-- **Key findings and decisions**:
-  - Confirmed via `npx playwright test --help` that `--pass-with-no-tests` is real (not
-    recalled/assumed) before using it — makes the step exit 0 instead of exit 1 "No tests found."
-  - `accessibility.yml` is deliberately **not** a required branch-protection check yet, precisely
-    because it can't fail on missing a11y coverage until 002-T023 lands — recorded as an explicit
-    follow-up in `docs/roadmap.md`, `frontend/README.md`, and this tool's own cross-session memory
-    (`sprint3-lighthouse-ci-gap` — same thread as the original Sprint-2-era planning-gap memory,
-    now updated to track this new, more specific follow-up instead of a fresh one).
-  - `e2e/package.json` already had `@axe-core/playwright` (Sprint 1, issue #24) — the new
-    `frontend/`-scoped dependency (002-T002) is separate and intentional per the spec, since the
-    helper function itself lives in the `frontend/` package while the specs that will eventually
-    call it live in the separate `e2e/` package (no npm workspaces link the two).
-  - Committed (`87b685f`), pushed, and PR #103 opened. CI then surfaced a real bug: the
-    `interaction-to-next-paint` assertion in `lighthouserc.yml` failed every run
-    (`auditRan` pseudo-assertion, `found: 0`) — not a config typo. Confirmed by reading the actual
-    Lighthouse source (`lighthouse/core/audits/metrics/interaction-to-next-paint.js`): that audit
-    only supports `timespan` mode with a real recorded interaction and returns `notApplicable` for a
-    standard single-navigation `lhci autorun` (what `accessibility.yml` runs), so it can *never*
-    produce a value here regardless of actual performance. Fixed by asserting `total-blocking-time`
-    instead — Google's documented lab-mode proxy for input responsiveness when real INP can't be
-    measured, sharing the same 200 ms "good" threshold, so the NFR-PERF-003 number didn't change,
-    only the audit id. Verified the fix for real (not just reasoning about it): built the frontend,
-    served it with `vite preview --port 5173`, and ran `npx lhci autorun --config=../lighthouserc.yml`
-    locally — all assertions now pass. `docs/nfrs.md` (inside a `PROMOTED:...` block) was deliberately
-    left untouched — the target-level requirement is still accurate, only the CI implementation
-    detail changed. New `patterns-discovered.md` entry captures this for future Lighthouse CI work.
-    Also gitignored `frontend/.lighthouseci/` (LHCI's local run-artifact directory), never previously
-    added since this was the first real `lhci autorun` in the repo.
-  - After that push, the user reported PR #103's required "Accessibility Audit" check stuck at
-    "Expected — Waiting for status to be reported" forever, with every other check reporting fine.
-    Root cause (confirmed via `gh api repos/.../rulesets/18752818`, the "Protect main" ruleset,
-    created 2026-07-09 during Sprint 1 CI setup — before this issue existed): its
-    `required_status_checks` list has an exact-string entry `"Accessibility Audit"`, pre-provisioned
-    for this future workflow, matching the naming convention of every sibling required check ("Lint
-    Backend Code", "Run Frontend Tests", etc. — all short, no parenthetical detail). The
-    `accessibility.yml` job's `name:` was `Accessibility Audit (Lighthouse + axe-core)` — a string
-    mismatch, not the already-solved "no `paths:` filter" stuck-check bug — so GitHub waited forever
-    for a check name that would never be reported. Fixed by renaming the job to exactly
-    `Accessibility Audit`; verified via `gh pr checks 103` that the real job (still doing the same
-    work) now reports under that name, and cross-checked all 10 ruleset required-check contexts each
-    have an exact `name:` match somewhere in `.github/workflows/*.yml`.
-- **Outcomes**: All 4 in-scope tasks complete; 123/123 frontend Vitest tests pass; lint/type-check/
-  build clean; `lhci autorun` verified passing locally after the INP→TBT fix; required-check name
-  mismatch fixed and verified against the live ruleset. PR #103 open against `main`, not yet merged.
+### Sessions: Terraform Modules (VPC, RDS, ALB, CloudFront, Secrets, ECS, Root Wiring, CI/CD+OIDC), Terraform State Bootstrap, Accessibility CI Gate
+- **Date Range**: 2026-07-11 to 2026-07-12 (closed 2026-07-12 — 54 tasks / 11 work items, 10 PRs)
+- **Key Outcomes** (`infra/modules/` unless noted; PR = merged, no live `terraform apply`/`aws` calls made against real AWS in any of them):
+  - G-SPRINT3-INFRA-VPC (005-T061–T068, #84, PR #95): `vpc/` — subnets across 2 AZs, IGW, conditional NAT, tagging.
+  - G-SPRINT3-INFRA-RDS (005-T078–T084, #86, PR #98): `rds/` — Postgres 15.4, ECS-only ingress, owns the `db_credentials` secret (auto via `random_password`).
+  - G-SPRINT3-INFRA-ALB (005-T085–T092, #87, PR #99): `alb/` — HTTPS→target-group, HTTP redirect-only.
+  - G-SPRINT3-INFRA-CLOUDFRONT (005-T093–T098, #88, PR #100): `cloudfront/` — private S3 + OAI, SPA 404→`/index.html`. Same PR added `docs/README.md` and established the "two-tier docs update" pattern (`patterns-discovered.md`, "What 'Keep docs/ Updated' Actually Means for an Infra Module PR").
+  - G-SPRINT3-INFRA-SECRETS (005-T099–T101, #89, PR #102): `secrets/` — only `ai_api_key`/`jwt_signing_key` (not `db_credentials`, owned by RDS above — deliberate split, avoids two sources of truth).
+  - G-SPRINT3-INFRA-ECS (005-T069–T077, #85, PR #105): `ecs/` — Fargate, ARM64 task def, autoscaling 70%, ALB-only ingress (added additive `alb_security_group_id` output to the ALB module for this).
+  - G-SPRINT3-INFRA-ROOT-WIRING (005-T102–T106, #90, PR #106): root `main.tf` wires all 6 modules + staging/production `.tfvars`. Fixed a real bug: `alb/variables.tf` had an unused `ecs_security_group_id` that would have created a circular module dependency — removed.
+  - G-SPRINT3-INFRA-CICD + 005-T109 OIDC (005-T107–T109, #91/#92, PR #107): `infra-plan.yml` real init/validate/fmt/plan; `infra-apply.yml` (staging auto-apply on merge to `main`) added but every AWS-touching step gates on the nonexistent `AWS_ROLE_ARN` secret (skip, not fail); OIDC federation setup documented in `infra/README.md` only, no `aws iam` calls.
+  - 003-T009 Terraform state bootstrap (#96, PR #104): idempotent `infra/scripts/bootstrap-state.sh` (S3 + DynamoDB lock table), test-verified against a mocked `aws` CLI, never run for real.
+  - G-SPRINT3-A11Y-CI (002-T002/T004/T022/T024, #93, PR #103): `@axe-core/playwright`+`@lhci/cli`, `lighthouserc.yml`, `checkPageA11y` helper, `accessibility.yml` workflow. Two CI bugs fixed and already captured in `patterns-discovered.md`: `interaction-to-next-paint` → `total-blocking-time` (INP can't be measured in single-navigation `lhci autorun`), and a required-check stuck at "Expected" from a job-name mismatch (must exactly match the ruleset string).
+- **Key Decisions / still open**:
+  - AWS-cost-avoidance constraint held all sprint (nothing executed against real AWS) and **remains in force** — no real `terraform apply`/`aws` resource creation until the user says infra is ready.
+  - Open follow-up: 002-T023 (tag E2E specs `@accessibility`, Sprint 9) still needed before `accessibility.yml` can become a required check (`sprint3-lighthouse-ci-gap` memory).
+  - Carried from Sprint 2, still open: `postgres:15.4-alpine` staleness watch; `internal/example/` deletion (blocked on first real domain package).

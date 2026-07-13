@@ -315,17 +315,17 @@ gh variable set ECS_CLUSTER_NAME_STAGING --body "trAIveler-staging"
 gh variable set ECS_SERVICE_NAME_STAGING --body "trAIveler-backend-staging"
 
 # 2. Store secrets in AWS Secrets Manager (required by ECS tasks)
+# Naming convention: traveler-${environment}-${secret_name} — matches the shipped
+# infra/modules/secrets/main.tf and infra/modules/rds/main.tf (Sprint 3, issue #89).
+# traveler-staging-db-credentials is created and auto-populated by the RDS module itself
+# (JSON: {"username": ..., "password": ...}) — do not recreate it here.
 aws secretsmanager create-secret \
-  --name staging/database/url \
-  --secret-string "postgresql://trAIvelerAdmin:<password>@$(terraform output -raw rds_endpoint)/trAIveler"
-
-aws secretsmanager create-secret \
-  --name staging/anthropic/api-key \
+  --name traveler-staging-ai-api-key \
   --secret-string "sk-ant-api03-YOUR_KEY_HERE"
 
 aws secretsmanager create-secret \
-  --name staging/jwt/secret \
-  --secret-string "$(openssl rand -base64 32)"
+  --name traveler-staging-jwt-signing-key \
+  --secret-string "$(cat jwt-signing-key.pem)"
 
 # 3. Push code to main branch to trigger deployment workflow
 git add backend/
@@ -721,7 +721,7 @@ aws dynamodb delete-item \
 aws logs tail /ecs/trAIveler-backend-staging --follow
 
 # 2. Verify secrets are accessible
-aws secretsmanager get-secret-value --secret-id staging/database/url
+aws secretsmanager get-secret-value --secret-id traveler-staging-db-credentials
 
 # 3. Check security group rules
 aws ec2 describe-security-groups --group-ids <ecs-sg-id>
