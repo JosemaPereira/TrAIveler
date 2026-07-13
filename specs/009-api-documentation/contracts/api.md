@@ -8,12 +8,12 @@ does).
 
 ## `GET /swagger/doc.json`
 
-Serves the generated OpenAPI v3 document as JSON.
+Serves the generated Swagger 2.0 (OpenAPI 2.0) document as JSON.
 
 - **Auth**: Same as any other route mounted inside the shared route group (none today; JWT
   once Sprint 5 lands — see `research.md`).
-- **Response 200**: `application/json` body containing the full OpenAPI v3 document (see
-  `data-model.md` for the shape).
+- **Response 200**: `application/json` body containing the full Swagger 2.0 (OpenAPI 2.0)
+  document (see `data-model.md` for the shape).
 - **Response 401/403**: Once auth exists, same error format as every other protected endpoint
   per `docs/api-design-standards.md` §7 (standardized error envelope).
 

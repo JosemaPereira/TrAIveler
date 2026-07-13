@@ -7,8 +7,10 @@ decisions needed before design.
 ## Decision: Contract generation library
 
 - **Decision**: `github.com/swaggo/swag` (CLI `swag init`), parsing Go doc-comment annotations
-  on each Chi handler function into an OpenAPI v3 document (`swagger.json`/`swagger.yaml` +
-  a generated `docs.go` Go package for embedding).
+  on each Chi handler function into a Swagger 2.0 (OpenAPI 2.0) document (`swagger.json`/
+  `swagger.yaml` + a generated `docs.go` Go package for embedding). `swag init` has no OpenAPI
+  v3 output mode (confirmed against the installed CLI, `swag init --help`) — Swagger 2.0 is
+  the tool's native, non-negotiable output format, not a configuration choice.
 - **Rationale**: Confirmed by the Sprint 3 planning clarification (see spec's `## Clarifications`).
   It is the most widely-adopted Go OpenAPI generator, has first-class Chi support via
   `swaggo/http-swagger`, requires zero new abstraction (annotations live directly above the

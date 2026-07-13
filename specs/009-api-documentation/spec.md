@@ -76,7 +76,7 @@ As a technical lead reviewing a pull request, I need an automated check that fai
 
 ### Functional Requirements
 
-- **FR-001**: System MUST produce a machine-readable OpenAPI (v3) document describing every implemented backend endpoint's path, HTTP method, parameters, request body schema, response schemas, and status codes.
+- **FR-001**: System MUST produce a machine-readable Swagger 2.0 (OpenAPI 2.0) document describing every implemented backend endpoint's path, HTTP method, parameters, request body schema, response schemas, and status codes.
 - **FR-002**: The OpenAPI document MUST be regenerated from Go doc-comment annotations colocated with each handler (`swaggo/swag`-style) as part of the normal backend build/CI process, without a separate manual authoring step for endpoints that already carry these annotations.
 - **FR-003**: System MUST serve Swagger UI, rendering the generated OpenAPI document and letting a user browse all endpoints grouped by resource.
 - **FR-004**: The interactive documentation UI MUST allow executing real HTTP requests against a running backend instance and display the actual response received.
@@ -89,7 +89,7 @@ As a technical lead reviewing a pull request, I need an automated check that fai
 
 ### Key Entities
 
-- **OpenAPI Document**: The machine-readable contract artifact (OpenAPI v3 schema) describing all published endpoints, their inputs, outputs, and status codes; generated from the backend's real route/handler/type definitions.
+- **OpenAPI Document**: The machine-readable contract artifact (Swagger 2.0 / OpenAPI 2.0 schema) describing all published endpoints, their inputs, outputs, and status codes; generated from the backend's real route/handler/type definitions.
 - **Documentation UI**: Swagger UI, the interactively-servable rendering of the OpenAPI Document that lets a human browse endpoints and execute real requests.
 
 ## Success Criteria *(mandatory)*

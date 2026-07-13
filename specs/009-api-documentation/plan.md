@@ -6,7 +6,7 @@
 
 ## Summary
 
-Generate a machine-readable OpenAPI v3 contract directly from Go doc-comment annotations
+Generate a machine-readable Swagger 2.0 (OpenAPI 2.0) contract directly from Go doc-comment annotations
 colocated with each backend handler (`swaggo/swag`), and serve it through Swagger UI
 (`swaggo/http-swagger`) so contributors and API consumers can browse and execute real
 requests against a running backend instead of relying on hand-written Markdown. A CI check
@@ -28,7 +28,7 @@ OpenAPI artifact), `github.com/swaggo/http-swagger/v2` (Chi-compatible Swagger U
 committed alongside code, like generated protobuf/mock code elsewhere in this repo
 
 **Testing**: Go `testing` + `testify` (existing); a new integration test asserting
-`/swagger/doc.json` parses as valid OpenAPI v3 and `/swagger/index.html` returns 200; CI
+`/swagger/doc.json` parses as valid Swagger 2.0 (OpenAPI 2.0) and `/swagger/index.html` returns 200; CI
 drift-check step (regenerate + `git diff --exit-code`) is validation, not a unit test
 
 **Target Platform**: Linux server (ECS Fargate, ARM64) — same runtime as today, no new
