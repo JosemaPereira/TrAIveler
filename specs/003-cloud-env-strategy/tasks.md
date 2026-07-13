@@ -104,7 +104,7 @@ Terraform module references ensure ECS tasks can retrieve these at runtime.
 
 **Independent Test**: Quickstart Scenario 5 step 2 — secrets exist in Secrets Manager, ECS tasks can read them (verified by successful backend deployment with database connection).
 
-- [ ] T045 [P] [US2] Create secrets initialization script: uses AWS CLI to create secrets in Secrets Manager with naming pattern `${environment}/${service}/${secret_name}` — `infra/terraform/scripts/init-secrets.sh`
+- [ ] T045 [P] [US2] Create secrets initialization script: uses AWS CLI to create secrets in Secrets Manager with naming pattern `traveler-${environment}-${secret_name}` (matches the convention already shipped in `infra/modules/secrets/main.tf` / `infra/modules/rds/main.tf`, Sprint 3 issue #89 — reuse those modules' secrets rather than recreating them) — `infra/terraform/scripts/init-secrets.sh`
 - [ ] T046 [US2] Create Terraform data sources for Secrets Manager: reference existing secrets for database URL, Anthropic API key, JWT secret by name — `infra/terraform/secrets.tf`
 - [ ] T047 [US2] Update ECS task definition in T025 to reference secret ARNs from T046 in `secrets` block (not `environment` block) — `infra/terraform/modules/ecs/main.tf`
 

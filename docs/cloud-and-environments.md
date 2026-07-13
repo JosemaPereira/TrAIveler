@@ -282,13 +282,17 @@ graph TB
 ### Secrets (AWS Secrets Manager)
 
 - **Storage**: All sensitive values (database passwords, API keys, JWT secrets)
-- **Naming Convention**: `${environment}/${service}/${secret_name}`
+- **Naming Convention**: `traveler-${environment}-${secret_name}`
 - **Access**: IAM role-based authentication from ECS tasks
 - **Rotation**: Supported without requiring redeployment
-- **Examples**:
-  - `staging/backend/database-url`
-  - `staging/backend/anthropic-api-key`
-  - `staging/backend/jwt-secret`
+- **Examples** (as implemented in `infra/modules/secrets/main.tf` and
+  `infra/modules/rds/main.tf`, Sprint 3, issue #89):
+  - `traveler-staging-db-credentials` — RDS master credentials (username + password),
+    auto-populated by the RDS module via the `random` provider
+  - `traveler-staging-ai-api-key` — Anthropic AI API key, created empty and populated
+    manually post-`apply`
+  - `traveler-staging-jwt-signing-key` — JWT RS256 signing key (PEM), created empty and
+    populated manually post-`apply`
 
 ### Non-Secret Configuration
 
@@ -379,7 +383,7 @@ graph TB
 
 This section is a local-development addendum, outside the promoted cloud/environment strategy
 above — staging and production still integrate with **Anthropic Claude** via the
-`staging/backend/anthropic-api-key` Secrets Manager entry noted earlier in this document.
+`traveler-staging-ai-api-key` Secrets Manager entry noted earlier in this document.
 
 For local development and MVP testing only, no AWS Secrets Manager entry or external API key is
 needed: the backend defaults to a locally-running **Ollama** server with a **Gemma** model,

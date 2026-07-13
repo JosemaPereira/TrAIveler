@@ -207,6 +207,11 @@ func TestCreateTrip_ValidPayload_Returns201(t *testing.T) { ... }
 - Each file covers one user flow: `generate-itinerary.spec.ts`, `share-trip.spec.ts`.
 - E2E tests run against a fully deployed (or locally running) instance of the application.
 - Do not use hard-coded timeouts. Use Playwright's built-in auto-wait and `expect` assertions.
+- Accessibility scanning (`@axe-core/playwright`, WCAG 2.1 AA) is a dedicated CI gate
+  (`.github/workflows/accessibility.yml`, issue #93) rather than a fourth testing layer — it reuses
+  Playwright specs tagged `@accessibility` in `e2e/` plus a Lighthouse CI audit. See
+  [`e2e/README.md`](../e2e/README.md#accessibility-testing) for current wiring status and
+  `docs/nfrs.md` (NFR-A11Y) for the validated thresholds.
 
 ```ts
 test('user can generate a trip itinerary', async ({ page }) => {

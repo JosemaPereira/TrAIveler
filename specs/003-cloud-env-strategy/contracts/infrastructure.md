@@ -482,19 +482,31 @@ provider "aws" {
 
 ### Secret Naming Convention
 
-**Pattern**: `${environment}/${service}/${secret_name}`
+**Pattern**: `traveler-${environment}-${secret_name}`
 
-**Examples**:
-- `staging/database/url` — Database connection string
-- `staging/anthropic/api-key` — Anthropic Claude API key
-- `staging/jwt/secret` — JWT signing secret
-- `production/database/url` — Production database connection string
+> Reconciled 2026-07-12 to match the naming convention already shipped in Sprint 3
+> (`infra/modules/secrets/main.tf`, `infra/modules/rds/main.tf`, issue #89, PR #102) under the
+> `005-system-architecture` spec, which implemented Secrets Manager ahead of this spec. When this
+> spec (003) is implemented, it MUST reuse the existing secrets/RDS modules and this naming
+> convention rather than creating a second, conflicting one.
+
+**Examples** (as implemented):
+
+- `traveler-staging-db-credentials` — RDS master credentials, created and auto-populated by the
+  RDS module (`infra/modules/rds/main.tf`) via the `random` provider — not created by this spec
+- `traveler-staging-ai-api-key` — Anthropic AI API key, created empty by the secrets module
+  (`infra/modules/secrets/main.tf`) and populated manually post-`apply`
+- `traveler-staging-jwt-signing-key` — JWT RS256 signing key, created empty and populated manually
+  post-`apply`
+- `traveler-production-db-credentials` — Production database credentials (same convention, dormant
+  environment)
 
 ### Secret Value Format
 
-**Database URL**:
-```
-postgresql://<username>:<password>@<rds_endpoint>/<database_name>
+**DB Credentials** (JSON, matches `infra/modules/rds/main.tf`'s `jsonencode`):
+
+```json
+{"username": "<master_username>", "password": "<generated_password>"}
 ```
 
 **Anthropic API Key**:
@@ -502,14 +514,17 @@ postgresql://<username>:<password>@<rds_endpoint>/<database_name>
 sk-ant-api03-<key>
 ```
 
-**JWT Secret** (base64-encoded 32-byte random value):
+**JWT Signing Key** (RS256 private key, PEM-encoded — matches `docs/security.md`'s JWT RS256
+multi-key rotation model, not a symmetric base64 secret):
 ```
-<base64_string>
+-----BEGIN PRIVATE KEY-----
+<pem_contents>
+-----END PRIVATE KEY-----
 ```
 
 ### IAM Access Policy
 
-ECS Task Role must have `secretsmanager:GetSecretValue` permission for secrets matching pattern `${environment}/*`:
+ECS Task Role must have `secretsmanager:GetSecretValue` permission for secrets matching pattern `traveler-${environment}-*`:
 
 ```json
 {
@@ -518,7 +533,7 @@ ECS Task Role must have `secretsmanager:GetSecretValue` permission for secrets m
     {
       "Effect": "Allow",
       "Action": "secretsmanager:GetSecretValue",
-      "Resource": "arn:aws:secretsmanager:us-east-1:<account>:secret:${environment}/*"
+      "Resource": "arn:aws:secretsmanager:us-east-1:<account>:secret:traveler-${environment}-*"
     }
   ]
 }

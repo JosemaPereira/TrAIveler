@@ -243,3 +243,13 @@ CloudWatch metrics are emitted for:
 **Alarm Response Strategy (MVP)**: Alarms trigger notifications for manual review and response. No automated IP blocking or account suspension is performed to avoid false-positive service disruptions.
 
 <!-- PROMOTED:security END -->
+
+## Implementation Status Note: Secrets Management
+
+The Secrets Management target design above (all secrets in AWS Secrets Manager, IAM role-based
+runtime retrieval, rotation without redeployment) now has a corresponding Terraform module
+(`infra/modules/secrets/`, Sprint 3, issue #89) plus the RDS module's own auto-generated database
+credentials secret. Neither has been applied against a real AWS account yet — no Secrets Manager
+secret actually exists — per the project's AWS-cost-avoidance policy. See
+[infra/README.md](../infra/README.md) ("Secrets Population" section) for the current implementation
+status and the manual population steps required after the first real `terraform apply`.

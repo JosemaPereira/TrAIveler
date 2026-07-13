@@ -156,12 +156,18 @@ container_definitions:
       - name: ENVIRONMENT
         value: "staging"
     secrets:
+      # Naming convention reconciled 2026-07-12 to `traveler-${environment}-${secret_name}`,
+      # matching what Sprint 3 already shipped (infra/modules/secrets/main.tf,
+      # infra/modules/rds/main.tf, issue #89). traveler-*-db-credentials holds a JSON object
+      # ({"username": ..., "password": ...}), not a ready-made DATABASE_URL string — how the
+      # ECS task definition extracts individual JSON keys is left open for Spec 003's own
+      # implementation phase.
       - name: DATABASE_URL
-        value_from: "arn:aws:secretsmanager:us-east-1:<account>:secret:staging/database-url"
+        value_from: "arn:aws:secretsmanager:us-east-1:<account>:secret:traveler-staging-db-credentials"
       - name: ANTHROPIC_API_KEY
-        value_from: "arn:aws:secretsmanager:us-east-1:<account>:secret:staging/anthropic-api-key"
+        value_from: "arn:aws:secretsmanager:us-east-1:<account>:secret:traveler-staging-ai-api-key"
       - name: JWT_SECRET
-        value_from: "arn:aws:secretsmanager:us-east-1:<account>:secret:staging/jwt-secret"
+        value_from: "arn:aws:secretsmanager:us-east-1:<account>:secret:traveler-staging-jwt-signing-key"
     log_configuration:
       log_driver: awslogs
       options:
@@ -211,7 +217,7 @@ task_definition:
           value: "8080"
       secrets:
         - name: DATABASE_URL
-          value_from: "arn:aws:secretsmanager:us-east-1:123456789012:secret:staging/database-url-XYZ123"
+          value_from: "arn:aws:secretsmanager:us-east-1:123456789012:secret:traveler-staging-db-credentials-XYZ123"
 service_configuration:
   service_name: trAIveler-backend-staging
   desired_count: 1
@@ -256,7 +262,7 @@ backup_retention_days: 7
 maintenance_window: "sun:03:00-sun:04:00"
 database_name: trAIveler
 username: trAIvelerAdmin
-password_secret_arn: "arn:aws:secretsmanager:us-east-1:123456789012:secret:staging/rds-password-XYZ123"
+password_secret_arn: "arn:aws:secretsmanager:us-east-1:123456789012:secret:traveler-staging-db-credentials-XYZ123"
 security_group_ids:
   - "sg-0abc123def456789"  # rds-sg
 ```
