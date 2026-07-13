@@ -176,9 +176,9 @@ entry under [Sprint Plan](#sprint-plan) for details.
 | ID | Task | Group | Sprint | Priority | Status | Depends on | Parallel | Issue | Notes |
 |----|------|-------|--------|----------|--------|------------|----------|-------|-------|
 | 002-T001 | Add `github.com/microcosm-cc/bluemonday` HTML sanitisation dependency to Go module | | | P1 | Backlog | - | no | | |
-| 002-T002 | Add `@axe-core/playwright` and `@lhci/cli` as frontend dev dependencies | G-SPRINT3-A11Y-CI | 3 | P1 | Backlog | - | yes | https://github.com/JosemaPereira/TrAIveler/issues/93 | |
+| 002-T002 | Add `@axe-core/playwright` and `@lhci/cli` as frontend dev dependencies | G-SPRINT3-A11Y-CI | 3 | P1 | Done | - | yes | https://github.com/JosemaPereira/TrAIveler/issues/93 | PR #103 - Accessibility CI gate (Lighthouse + axe-core): checkPageA11y helper, lighthouserc.yml, accessibility.yml PR gate. Closes #93. |
 | 002-T003 | Create `backend/config/prompt-rules.yml` with 5 seed deny-list rules (instruction-override, role-switching, jailbreak-prefix, etc.) | G-NFR-CONFIG | | P1 | Backlog | - | yes | | |
-| 002-T004 | Create `lighthouserc.yml` with LHCI assertion thresholds (a11y ≥ 0.9, LCP ≤ 2500 ms, CLS ≤ 0.1, INP ≤ 200 ms) | G-SPRINT3-A11Y-CI | 3 | P1 | Backlog | - | yes | https://github.com/JosemaPereira/TrAIveler/issues/93 | |
+| 002-T004 | Create `lighthouserc.yml` with LHCI assertion thresholds (a11y ≥ 0.9, LCP ≤ 2500 ms, CLS ≤ 0.1, INP ≤ 200 ms) | G-SPRINT3-A11Y-CI | 3 | P1 | Done | - | yes | https://github.com/JosemaPereira/TrAIveler/issues/93 | PR #103 - Accessibility CI gate (Lighthouse + axe-core): checkPageA11y helper, lighthouserc.yml, accessibility.yml PR gate. Closes #93. |
 | 002-T005 | Create `.gitleaks.toml` secret-scanning configuration (scan all committed files, exclude test fixtures) | G-NFR-CONFIG | | P1 | Backlog | - | yes | | |
 
 #### Phase 2 — Foundational: Observability Core (NFR-OBS-001–003) → **Sprint 4**
@@ -211,9 +211,9 @@ entry under [Sprint Plan](#sprint-plan) for details.
 | 002-T019 | Implement `PrivacyPolicyLink` atom component (accessible `<a>` linking to /privacy-policy) | G-A11Y-PRIVACY-LINK | 9 | P1 | Backlog | 002-T002 | yes | | |
 | 002-T020 | Write Vitest unit test for `PrivacyPolicyLink` (correct href, accessible text present) | G-A11Y-PRIVACY-LINK | 9 | P1 | Backlog | 002-T019 | yes | | |
 | 002-T021 | Add `/privacy-policy` route to React Router; add `PrivacyPolicyLink` to registration form footer | | 9 | P1 | Backlog | 002-T017, 002-T019 | no | | |
-| 002-T022 | Create accessibility E2E helper `checkPageA11y(page)` wrapping `@axe-core/playwright` | G-SPRINT3-A11Y-CI | 3 | P1 | Backlog | 002-T002 | yes | https://github.com/JosemaPereira/TrAIveler/issues/93 | |
+| 002-T022 | Create accessibility E2E helper `checkPageA11y(page)` wrapping `@axe-core/playwright` | G-SPRINT3-A11Y-CI | 3 | P1 | Done | 002-T002 | yes | https://github.com/JosemaPereira/TrAIveler/issues/93 | PR #103 - Accessibility CI gate (Lighthouse + axe-core): checkPageA11y helper, lighthouserc.yml, accessibility.yml PR gate. Closes #93. |
 | 002-T023 | Add `checkPageA11y(page)` call to every existing Playwright E2E spec; tag with `@accessibility` | | 9 | P1 | Backlog | 002-T022 | no | | |
-| 002-T024 | Create `accessibility.yml` GitHub Actions workflow (axe-core Playwright run + lhci autorun; PR gate) | G-SPRINT3-A11Y-CI | 3 | P1 | Backlog | 002-T022, 002-T004 | no | https://github.com/JosemaPereira/TrAIveler/issues/93 | |
+| 002-T024 | Create `accessibility.yml` GitHub Actions workflow (axe-core Playwright run + lhci autorun; PR gate) | G-SPRINT3-A11Y-CI | 3 | P1 | Done | 002-T022, 002-T004 | no | https://github.com/JosemaPereira/TrAIveler/issues/93 | PR #103 - Accessibility CI gate (Lighthouse + axe-core): checkPageA11y helper, lighthouserc.yml, accessibility.yml PR gate. Closes #93. |
 
 #### Phase 5 — User Story 3: Security Reviewer Confirms Security Posture (Priority: P1) → **Sprint 9**
 
@@ -281,7 +281,7 @@ entry under [Sprint Plan](#sprint-plan) for details.
 
 | ID | Task | Group | Sprint | Priority | Status | Depends on | Parallel | Issue | Notes |
 |----|------|-------|--------|----------|--------|------------|----------|-------|-------|
-| 003-T009 | Create Terraform state bootstrap script: provisions S3 bucket (`trAIveler-terraform-state`) with versioning and encryption, DynamoDB table (`trAIveler-terraform-locks`) | | 3 | P1 | Backlog | 003-T001 | no | https://github.com/JosemaPereira/TrAIveler/issues/96 | Pulled forward into Sprint 3 (2026-07-11) — hard blocker for 005-T107 (`terraform init` in CI has no real S3/DynamoDB backend to init against otherwise). Dependency 003-T001 is functionally already satisfied by 005-T004 (Done, Sprint 1, issue #22) which created the `infra/` tree. Bucket/table names must be lowercase (`traveler-terraform-state` / `traveler-terraform-locks`) to match the already-shipped `infra/backend.tf` (005-T022, issue #18) — AWS S3 does not allow uppercase bucket names, so the original mixed-case spec text cannot be taken literally. **AWS-cost-avoidance note (2026-07-11)**: this task is script authoring only — the script must NOT be executed (no bucket/table actually provisioned) until infra refinement is complete; no target sprint set yet for lifting this. |
+| 003-T009 | Create Terraform state bootstrap script: provisions S3 bucket (`trAIveler-terraform-state`) with versioning and encryption, DynamoDB table (`trAIveler-terraform-locks`) | | 3 | P1 | Done | 003-T001 | no | https://github.com/JosemaPereira/TrAIveler/issues/96 | PR #104 - Idempotent Terraform state bootstrap script (S3 bucket + DynamoDB lock table), test-verified with mocked aws CLI; not executed against real AWS (AWS-cost-avoidance constraint). Closes #96. |
 | 003-T010 | Create Terraform backend configuration using S3 bucket and DynamoDB table from T009 | | | P1 | Superseded | 003-T009 | no | | Superseded by 005-T022 (Done, Sprint 1, issue #18, PR #49) — `infra/backend.tf` already implements this exact S3+DynamoDB backend configuration. Not scheduled; keep as historical record only. |
 | 003-T011 | Create AWS provider configuration with default tags (Project, Environment, ManagedBy, CostCenter); region: us-east-1 | G-INFRA-TF-CONFIG | | P1 | Backlog | 003-T001 | yes | | |
 | 003-T012 | Create GitHub Actions OIDC trust policy JSON templates for staging and production environments | G-INFRA-TF-CONFIG | | P1 | Backlog | 003-T001 | yes | | |
@@ -648,15 +648,15 @@ entry under [Sprint Plan](#sprint-plan) for details.
 | 005-T066 | Create infra/modules/vpc/variables.tf defining environment, vpc_cidr, availability_zones, enable_nat_gateway variables | G-SPRINT3-INFRA-VPC | 3 | P1 | Done | 005-T061 | no | https://github.com/JosemaPereira/TrAIveler/issues/84 | PR #95 - VPC networking module (public/private subnets across 2 AZs, IGW, conditional NAT instance/gateway). Closes #84. |
 | 005-T067 | Create infra/modules/vpc/outputs.tf exporting vpc_id, public_subnet_ids, private_subnet_ids | G-SPRINT3-INFRA-VPC | 3 | P1 | Done | 005-T066 | no | https://github.com/JosemaPereira/TrAIveler/issues/84 | PR #95 - VPC networking module (public/private subnets across 2 AZs, IGW, conditional NAT instance/gateway). Closes #84. |
 | 005-T068 | Add resource tagging in infra/modules/vpc/main.tf with Environment, ManagedBy, Project tags per FR-023 | G-SPRINT3-INFRA-VPC | 3 | P1 | Done | 005-T061 | no | https://github.com/JosemaPereira/TrAIveler/issues/84 | PR #95 - VPC networking module (public/private subnets across 2 AZs, IGW, conditional NAT instance/gateway). Closes #84. |
-| 005-T069 | Create infra/modules/ecs/main.tf defining aws_ecs_cluster resource | G-SPRINT3-INFRA-ECS | 3 | P1 | Backlog | 005-T022 | yes | https://github.com/JosemaPereira/TrAIveler/issues/85 | |
-| 005-T070 | Add aws_ecs_task_definition in infra/modules/ecs/main.tf with ARM64 architecture, task_cpu and task_memory from variables, container definition with ECR image URL, environment variables, CloudWatch log configuration | G-SPRINT3-INFRA-ECS | 3 | P1 | Backlog | 005-T022 | yes | https://github.com/JosemaPereira/TrAIveler/issues/85 | |
-| 005-T071 | Add aws_ecs_service in infra/modules/ecs/main.tf with desired_count, launch_type FARGATE, network_configuration using private subnets, load_balancer attachment to ALB target group, health_check_grace_period_seconds 60 | G-SPRINT3-INFRA-ECS | 3 | P1 | Backlog | 005-T022 | yes | https://github.com/JosemaPereira/TrAIveler/issues/85 | |
-| 005-T072 | Add aws_appautoscaling_target and aws_appautoscaling_policy in infra/modules/ecs/main.tf for CPU-based target tracking at 70% with min_tasks and max_tasks from variables | G-SPRINT3-INFRA-ECS | 3 | P1 | Backlog | 005-T022 | yes | https://github.com/JosemaPereira/TrAIveler/issues/85 | |
-| 005-T073 | Add aws_cloudwatch_log_group in infra/modules/ecs/main.tf with retention_in_days from variable | G-SPRINT3-INFRA-ECS | 3 | P1 | Backlog | 005-T022 | yes | https://github.com/JosemaPereira/TrAIveler/issues/85 | |
-| 005-T074 | Add aws_security_group for ECS tasks in infra/modules/ecs/main.tf allowing ingress from ALB security group on port 8080 | G-SPRINT3-INFRA-ECS | 3 | P1 | Backlog | 005-T022 | yes | https://github.com/JosemaPereira/TrAIveler/issues/85 | |
-| 005-T075 | Create infra/modules/ecs/variables.tf defining environment, vpc_id, private_subnet_ids, task_cpu, task_memory, min_tasks, max_tasks, log_retention_days, ecr_repository_url variables | G-SPRINT3-INFRA-ECS | 3 | P1 | Backlog | 005-T069 | no | https://github.com/JosemaPereira/TrAIveler/issues/85 | |
-| 005-T076 | Create infra/modules/ecs/outputs.tf exporting cluster_name, service_name, task_definition_family, log_group_name | G-SPRINT3-INFRA-ECS | 3 | P1 | Backlog | 005-T075 | no | https://github.com/JosemaPereira/TrAIveler/issues/85 | |
-| 005-T077 | Add resource tagging in infra/modules/ecs/main.tf with Environment, ManagedBy, Project tags | G-SPRINT3-INFRA-ECS | 3 | P1 | Backlog | 005-T069 | no | https://github.com/JosemaPereira/TrAIveler/issues/85 | |
+| 005-T069 | Create infra/modules/ecs/main.tf defining aws_ecs_cluster resource | G-SPRINT3-INFRA-ECS | 3 | P1 | Done | 005-T022 | yes | https://github.com/JosemaPereira/TrAIveler/issues/85 | PR #105 - ECS cluster & service Terraform module (Fargate, ARM64 task def, autoscaling, log group, security group). Closes #85. |
+| 005-T070 | Add aws_ecs_task_definition in infra/modules/ecs/main.tf with ARM64 architecture, task_cpu and task_memory from variables, container definition with ECR image URL, environment variables, CloudWatch log configuration | G-SPRINT3-INFRA-ECS | 3 | P1 | Done | 005-T022 | yes | https://github.com/JosemaPereira/TrAIveler/issues/85 | PR #105 - ECS cluster & service Terraform module (Fargate, ARM64 task def, autoscaling, log group, security group). Closes #85. |
+| 005-T071 | Add aws_ecs_service in infra/modules/ecs/main.tf with desired_count, launch_type FARGATE, network_configuration using private subnets, load_balancer attachment to ALB target group, health_check_grace_period_seconds 60 | G-SPRINT3-INFRA-ECS | 3 | P1 | Done | 005-T022 | yes | https://github.com/JosemaPereira/TrAIveler/issues/85 | PR #105 - ECS cluster & service Terraform module (Fargate, ARM64 task def, autoscaling, log group, security group). Closes #85. |
+| 005-T072 | Add aws_appautoscaling_target and aws_appautoscaling_policy in infra/modules/ecs/main.tf for CPU-based target tracking at 70% with min_tasks and max_tasks from variables | G-SPRINT3-INFRA-ECS | 3 | P1 | Done | 005-T022 | yes | https://github.com/JosemaPereira/TrAIveler/issues/85 | PR #105 - ECS cluster & service Terraform module (Fargate, ARM64 task def, autoscaling, log group, security group). Closes #85. |
+| 005-T073 | Add aws_cloudwatch_log_group in infra/modules/ecs/main.tf with retention_in_days from variable | G-SPRINT3-INFRA-ECS | 3 | P1 | Done | 005-T022 | yes | https://github.com/JosemaPereira/TrAIveler/issues/85 | PR #105 - ECS cluster & service Terraform module (Fargate, ARM64 task def, autoscaling, log group, security group). Closes #85. |
+| 005-T074 | Add aws_security_group for ECS tasks in infra/modules/ecs/main.tf allowing ingress from ALB security group on port 8080 | G-SPRINT3-INFRA-ECS | 3 | P1 | Done | 005-T022 | yes | https://github.com/JosemaPereira/TrAIveler/issues/85 | PR #105 - ECS cluster & service Terraform module (Fargate, ARM64 task def, autoscaling, log group, security group). Closes #85. |
+| 005-T075 | Create infra/modules/ecs/variables.tf defining environment, vpc_id, private_subnet_ids, task_cpu, task_memory, min_tasks, max_tasks, log_retention_days, ecr_repository_url variables | G-SPRINT3-INFRA-ECS | 3 | P1 | Done | 005-T069 | no | https://github.com/JosemaPereira/TrAIveler/issues/85 | PR #105 - ECS cluster & service Terraform module (Fargate, ARM64 task def, autoscaling, log group, security group). Closes #85. |
+| 005-T076 | Create infra/modules/ecs/outputs.tf exporting cluster_name, service_name, task_definition_family, log_group_name | G-SPRINT3-INFRA-ECS | 3 | P1 | Done | 005-T075 | no | https://github.com/JosemaPereira/TrAIveler/issues/85 | PR #105 - ECS cluster & service Terraform module (Fargate, ARM64 task def, autoscaling, log group, security group). Closes #85. |
+| 005-T077 | Add resource tagging in infra/modules/ecs/main.tf with Environment, ManagedBy, Project tags | G-SPRINT3-INFRA-ECS | 3 | P1 | Done | 005-T069 | no | https://github.com/JosemaPereira/TrAIveler/issues/85 | PR #105 - ECS cluster & service Terraform module (Fargate, ARM64 task def, autoscaling, log group, security group). Closes #85. |
 | 005-T078 | Create infra/modules/rds/main.tf defining aws_db_subnet_group using private subnets | G-SPRINT3-INFRA-RDS | 3 | P1 | Done | 005-T022 | yes | https://github.com/JosemaPereira/TrAIveler/issues/86 | PR #98 - RDS PostgreSQL module (subnet group, ECS-only security group, Secrets Manager-backed credentials). Closes #86. |
 | 005-T079 | Add aws_db_instance in infra/modules/rds/main.tf with engine postgresql, engine_version 15.4, instance_class from variable, allocated_storage 20, multi_az from variable, backup_retention_period from variable, backup_window 03:00-04:00, maintenance_window sun:04:00-sun:05:00 | G-SPRINT3-INFRA-RDS | 3 | P1 | Done | 005-T022 | yes | https://github.com/JosemaPereira/TrAIveler/issues/86 | PR #98 - RDS PostgreSQL module (subnet group, ECS-only security group, Secrets Manager-backed credentials). Closes #86. |
 | 005-T080 | Add aws_security_group for RDS in infra/modules/rds/main.tf allowing ingress from ECS security group on port 5432 | G-SPRINT3-INFRA-RDS | 3 | P1 | Done | 005-T022 | yes | https://github.com/JosemaPereira/TrAIveler/issues/86 | PR #98 - RDS PostgreSQL module (subnet group, ECS-only security group, Secrets Manager-backed credentials). Closes #86. |
@@ -672,23 +672,23 @@ entry under [Sprint Plan](#sprint-plan) for details.
 | 005-T090 | Create infra/modules/alb/variables.tf defining environment, vpc_id, public_subnet_ids, certificate_arn, ecs_security_group_id variables | G-SPRINT3-INFRA-ALB | 3 | P1 | Done | 005-T085 | no | https://github.com/JosemaPereira/TrAIveler/issues/87 | PR #99 - ALB module (HTTPS listener forwarding to target group, HTTP redirect-only listener, /healthz-checked target group). Closes #87. |
 | 005-T091 | Create infra/modules/alb/outputs.tf exporting alb_dns_name, alb_zone_id, target_group_arn | G-SPRINT3-INFRA-ALB | 3 | P1 | Done | 005-T090 | no | https://github.com/JosemaPereira/TrAIveler/issues/87 | PR #99 - ALB module (HTTPS listener forwarding to target group, HTTP redirect-only listener, /healthz-checked target group). Closes #87. |
 | 005-T092 | Add resource tagging in infra/modules/alb/main.tf with Environment, ManagedBy, Project tags | G-SPRINT3-INFRA-ALB | 3 | P1 | Done | 005-T085 | no | https://github.com/JosemaPereira/TrAIveler/issues/87 | PR #99 - ALB module (HTTPS listener forwarding to target group, HTTP redirect-only listener, /healthz-checked target group). Closes #87. |
-| 005-T093 | Create infra/modules/cloudfront/main.tf defining aws_s3_bucket for frontend builds with private ACL | G-SPRINT3-INFRA-CLOUDFRONT | 3 | P1 | Backlog | 005-T022 | yes | https://github.com/JosemaPereira/TrAIveler/issues/88 | |
-| 005-T094 | Add aws_cloudfront_origin_access_identity and bucket policy in infra/modules/cloudfront/main.tf granting OAI read access to S3 | G-SPRINT3-INFRA-CLOUDFRONT | 3 | P1 | Backlog | 005-T022 | yes | https://github.com/JosemaPereira/TrAIveler/issues/88 | |
-| 005-T095 | Add aws_cloudfront_distribution in infra/modules/cloudfront/main.tf with S3 origin, default_cache_behavior (viewer_protocol_policy redirect-to-https, allowed_methods GET HEAD OPTIONS), custom_error_response for SPA routing (404 → /index.html), aliases from domain_name variable, viewer_certificate with certificate_arn | G-SPRINT3-INFRA-CLOUDFRONT | 3 | P1 | Backlog | 005-T022 | yes | https://github.com/JosemaPereira/TrAIveler/issues/88 | |
-| 005-T096 | Create infra/modules/cloudfront/variables.tf defining environment, domain_name, certificate_arn variables | G-SPRINT3-INFRA-CLOUDFRONT | 3 | P1 | Backlog | 005-T093 | no | https://github.com/JosemaPereira/TrAIveler/issues/88 | |
-| 005-T097 | Create infra/modules/cloudfront/outputs.tf exporting s3_bucket_name, cloudfront_distribution_id, cloudfront_domain_name | G-SPRINT3-INFRA-CLOUDFRONT | 3 | P1 | Backlog | 005-T096 | no | https://github.com/JosemaPereira/TrAIveler/issues/88 | |
-| 005-T098 | Add resource tagging in infra/modules/cloudfront/main.tf with Environment, ManagedBy, Project tags | G-SPRINT3-INFRA-CLOUDFRONT | 3 | P1 | Backlog | 005-T093 | no | https://github.com/JosemaPereira/TrAIveler/issues/88 | |
-| 005-T099 | Create infra/modules/secrets/main.tf defining aws_secretsmanager_secret resources for db_credentials, ai_api_key, jwt_signing_key (secrets created empty, values populated manually post-apply) | G-SPRINT3-INFRA-SECRETS | 3 | P1 | Backlog | 005-T022 | yes | https://github.com/JosemaPereira/TrAIveler/issues/89 | |
-| 005-T100 | Create infra/modules/secrets/variables.tf defining environment variable | G-SPRINT3-INFRA-SECRETS | 3 | P1 | Backlog | 005-T099 | no | https://github.com/JosemaPereira/TrAIveler/issues/89 | |
-| 005-T101 | Create infra/modules/secrets/outputs.tf exporting db_secret_arn, ai_api_key_secret_arn, jwt_signing_key_secret_arn (all marked sensitive) | G-SPRINT3-INFRA-SECRETS | 3 | P1 | Backlog | 005-T100 | no | https://github.com/JosemaPereira/TrAIveler/issues/89 | |
-| 005-T102 | Create infra/main.tf calling vpc, ecs, rds, alb, cloudfront, secrets modules with dependency injection via module outputs | G-SPRINT3-INFRA-ROOT-WIRING | 3 | P1 | Backlog | 005-T067, 005-T076, 005-T083, 005-T091, 005-T097, 005-T101 | no | https://github.com/JosemaPereira/TrAIveler/issues/90 | |
-| 005-T103 | Create infra/variables.tf defining all root-level variables (environment, vpc_cidr, availability_zones, enable_nat_gateway, task_cpu, task_memory, min_tasks, max_tasks, log_retention_days, instance_class, multi_az, backup_retention_days, backend_domain, frontend_domain) | G-SPRINT3-INFRA-ROOT-WIRING | 3 | P1 | Backlog | 005-T102 | no | https://github.com/JosemaPereira/TrAIveler/issues/90 | |
-| 005-T104 | Create infra/outputs.tf exporting CI/CD-relevant outputs (ecr_repository_url, ecs_cluster_name, ecs_service_name, s3_bucket_name, cloudfront_distribution_id) | G-SPRINT3-INFRA-ROOT-WIRING | 3 | P1 | Backlog | 005-T103 | no | https://github.com/JosemaPereira/TrAIveler/issues/90 | |
-| 005-T105 | Create infra/environments/staging.tfvars with cost-optimized configuration (vpc_cidr 10.0.0.0/16, enable_nat_gateway false, task_cpu 256, task_memory 512, min_tasks 1, max_tasks 2, log_retention_days 7, instance_class db.t4g.micro, multi_az false, backup_retention_days 1) | G-SPRINT3-INFRA-ROOT-WIRING | 3 | P1 | Backlog | 005-T103 | yes | https://github.com/JosemaPereira/TrAIveler/issues/90 | |
-| 005-T106 | Create infra/environments/production.tfvars with production configuration (vpc_cidr 10.1.0.0/16, enable_nat_gateway true, task_cpu 1024, task_memory 2048, min_tasks 2, max_tasks 20, log_retention_days 30, instance_class db.t4g.small, multi_az true, backup_retention_days 30) | G-SPRINT3-INFRA-ROOT-WIRING | 3 | P1 | Backlog | 005-T103 | yes | https://github.com/JosemaPereira/TrAIveler/issues/90 | |
-| 005-T107 | Update .github/workflows/infra-plan.yml implementing terraform init, terraform validate, terraform fmt -check, terraform plan for both staging and production .tfvars, and PR comment with plan output | G-SPRINT3-INFRA-CICD | 3 | P1 | Backlog | 003-T009, 005-T019, 005-T104 | no | https://github.com/JosemaPereira/TrAIveler/issues/91 | Added 003-T009 as explicit dependency (2026-07-11) — `terraform init` needs the real S3/DynamoDB backend to exist first. |
-| 005-T108 | Create .github/workflows/infra-apply.yml implementing terraform apply -auto-approve for staging on main merge, with output export to GitHub Secrets for backend-ci.yml and frontend-ci.yml | G-SPRINT3-INFRA-CICD | 3 | P1 | Backlog | 005-T107 | no | https://github.com/JosemaPereira/TrAIveler/issues/91 | **AWS-cost-avoidance note (2026-07-11)**: the workflow file may be authored in Sprint 3, but must not actually run for real against AWS (no live `terraform apply` on merge to `main`) until infra refinement is complete — no target sprint set yet for lifting this; keep the trigger inert/gated or the workflow unmerged to `main` until then. |
-| 005-T109 | Configure OIDC federation in AWS IAM (manual step documented in infra/README.md) creating IAM role with trust policy for GitHub Actions and permissions for Terraform operations | | 3 | P1 | Backlog | 005-T108 | no | https://github.com/JosemaPereira/TrAIveler/issues/92 | |
+| 005-T093 | Create infra/modules/cloudfront/main.tf defining aws_s3_bucket for frontend builds with private ACL | G-SPRINT3-INFRA-CLOUDFRONT | 3 | P1 | Done | 005-T022 | yes | https://github.com/JosemaPereira/TrAIveler/issues/88 | PR #100 - CloudFront & S3 frontend delivery Terraform module (private origin bucket, OAI, SPA routing). Closes #88. |
+| 005-T094 | Add aws_cloudfront_origin_access_identity and bucket policy in infra/modules/cloudfront/main.tf granting OAI read access to S3 | G-SPRINT3-INFRA-CLOUDFRONT | 3 | P1 | Done | 005-T022 | yes | https://github.com/JosemaPereira/TrAIveler/issues/88 | PR #100 - CloudFront & S3 frontend delivery Terraform module (private origin bucket, OAI, SPA routing). Closes #88. |
+| 005-T095 | Add aws_cloudfront_distribution in infra/modules/cloudfront/main.tf with S3 origin, default_cache_behavior (viewer_protocol_policy redirect-to-https, allowed_methods GET HEAD OPTIONS), custom_error_response for SPA routing (404 → /index.html), aliases from domain_name variable, viewer_certificate with certificate_arn | G-SPRINT3-INFRA-CLOUDFRONT | 3 | P1 | Done | 005-T022 | yes | https://github.com/JosemaPereira/TrAIveler/issues/88 | PR #100 - CloudFront & S3 frontend delivery Terraform module (private origin bucket, OAI, SPA routing). Closes #88. |
+| 005-T096 | Create infra/modules/cloudfront/variables.tf defining environment, domain_name, certificate_arn variables | G-SPRINT3-INFRA-CLOUDFRONT | 3 | P1 | Done | 005-T093 | no | https://github.com/JosemaPereira/TrAIveler/issues/88 | PR #100 - CloudFront & S3 frontend delivery Terraform module (private origin bucket, OAI, SPA routing). Closes #88. |
+| 005-T097 | Create infra/modules/cloudfront/outputs.tf exporting s3_bucket_name, cloudfront_distribution_id, cloudfront_domain_name | G-SPRINT3-INFRA-CLOUDFRONT | 3 | P1 | Done | 005-T096 | no | https://github.com/JosemaPereira/TrAIveler/issues/88 | PR #100 - CloudFront & S3 frontend delivery Terraform module (private origin bucket, OAI, SPA routing). Closes #88. |
+| 005-T098 | Add resource tagging in infra/modules/cloudfront/main.tf with Environment, ManagedBy, Project tags | G-SPRINT3-INFRA-CLOUDFRONT | 3 | P1 | Done | 005-T093 | no | https://github.com/JosemaPereira/TrAIveler/issues/88 | PR #100 - CloudFront & S3 frontend delivery Terraform module (private origin bucket, OAI, SPA routing). Closes #88. |
+| 005-T099 | Create infra/modules/secrets/main.tf defining aws_secretsmanager_secret resources for db_credentials, ai_api_key, jwt_signing_key (secrets created empty, values populated manually post-apply) | G-SPRINT3-INFRA-SECRETS | 3 | P1 | Done | 005-T022 | yes | https://github.com/JosemaPereira/TrAIveler/issues/89 | PR #102 - Secrets Manager module (AI API key, JWT signing key; DB credentials owned by RDS module per #98). Closes #89. |
+| 005-T100 | Create infra/modules/secrets/variables.tf defining environment variable | G-SPRINT3-INFRA-SECRETS | 3 | P1 | Done | 005-T099 | no | https://github.com/JosemaPereira/TrAIveler/issues/89 | PR #102 - Secrets Manager module (AI API key, JWT signing key; DB credentials owned by RDS module per #98). Closes #89. |
+| 005-T101 | Create infra/modules/secrets/outputs.tf exporting db_secret_arn, ai_api_key_secret_arn, jwt_signing_key_secret_arn (all marked sensitive) | G-SPRINT3-INFRA-SECRETS | 3 | P1 | Done | 005-T100 | no | https://github.com/JosemaPereira/TrAIveler/issues/89 | PR #102 - Secrets Manager module (AI API key, JWT signing key; DB credentials owned by RDS module per #98). Closes #89. |
+| 005-T102 | Create infra/main.tf calling vpc, ecs, rds, alb, cloudfront, secrets modules with dependency injection via module outputs | G-SPRINT3-INFRA-ROOT-WIRING | 3 | P1 | Done | 005-T067, 005-T076, 005-T083, 005-T091, 005-T097, 005-T101 | no | https://github.com/JosemaPereira/TrAIveler/issues/90 | PR #106 - Root Terraform module wiring (vpc/ecs/rds/alb/cloudfront/secrets) + staging/production tfvars. Closes #90. |
+| 005-T103 | Create infra/variables.tf defining all root-level variables (environment, vpc_cidr, availability_zones, enable_nat_gateway, task_cpu, task_memory, min_tasks, max_tasks, log_retention_days, instance_class, multi_az, backup_retention_days, backend_domain, frontend_domain) | G-SPRINT3-INFRA-ROOT-WIRING | 3 | P1 | Done | 005-T102 | no | https://github.com/JosemaPereira/TrAIveler/issues/90 | PR #106 - Root Terraform module wiring (vpc/ecs/rds/alb/cloudfront/secrets) + staging/production tfvars. Closes #90. |
+| 005-T104 | Create infra/outputs.tf exporting CI/CD-relevant outputs (ecr_repository_url, ecs_cluster_name, ecs_service_name, s3_bucket_name, cloudfront_distribution_id) | G-SPRINT3-INFRA-ROOT-WIRING | 3 | P1 | Done | 005-T103 | no | https://github.com/JosemaPereira/TrAIveler/issues/90 | PR #106 - Root Terraform module wiring (vpc/ecs/rds/alb/cloudfront/secrets) + staging/production tfvars. Closes #90. |
+| 005-T105 | Create infra/environments/staging.tfvars with cost-optimized configuration (vpc_cidr 10.0.0.0/16, enable_nat_gateway false, task_cpu 256, task_memory 512, min_tasks 1, max_tasks 2, log_retention_days 7, instance_class db.t4g.micro, multi_az false, backup_retention_days 1) | G-SPRINT3-INFRA-ROOT-WIRING | 3 | P1 | Done | 005-T103 | yes | https://github.com/JosemaPereira/TrAIveler/issues/90 | PR #106 - Root Terraform module wiring (vpc/ecs/rds/alb/cloudfront/secrets) + staging/production tfvars. Closes #90. |
+| 005-T106 | Create infra/environments/production.tfvars with production configuration (vpc_cidr 10.1.0.0/16, enable_nat_gateway true, task_cpu 1024, task_memory 2048, min_tasks 2, max_tasks 20, log_retention_days 30, instance_class db.t4g.small, multi_az true, backup_retention_days 30) | G-SPRINT3-INFRA-ROOT-WIRING | 3 | P1 | Done | 005-T103 | yes | https://github.com/JosemaPereira/TrAIveler/issues/90 | PR #106 - Root Terraform module wiring (vpc/ecs/rds/alb/cloudfront/secrets) + staging/production tfvars. Closes #90. |
+| 005-T107 | Update .github/workflows/infra-plan.yml implementing terraform init, terraform validate, terraform fmt -check, terraform plan for both staging and production .tfvars, and PR comment with plan output | G-SPRINT3-INFRA-CICD | 3 | P1 | Done | 003-T009, 005-T019, 005-T104 | no | https://github.com/JosemaPereira/TrAIveler/issues/91 | PR #107 - Real terraform init/validate/fmt/plan CI (staging+production) + gated infra-apply.yml (AWS-cost-avoidance: gated on nonexistent AWS_ROLE_ARN secret, not executed). Closes #91. |
+| 005-T108 | Create .github/workflows/infra-apply.yml implementing terraform apply -auto-approve for staging on main merge, with output export to GitHub Secrets for backend-ci.yml and frontend-ci.yml | G-SPRINT3-INFRA-CICD | 3 | P1 | Done | 005-T107 | no | https://github.com/JosemaPereira/TrAIveler/issues/91 | PR #107 - Real terraform init/validate/fmt/plan CI (staging+production) + gated infra-apply.yml (AWS-cost-avoidance: gated on nonexistent AWS_ROLE_ARN secret, not executed). Closes #91. |
+| 005-T109 | Configure OIDC federation in AWS IAM (manual step documented in infra/README.md) creating IAM role with trust policy for GitHub Actions and permissions for Terraform operations | | 3 | P1 | Done | 005-T108 | no | https://github.com/JosemaPereira/TrAIveler/issues/92 | PR #107 - OIDC federation setup documented in infra/README.md (manual step; no AWS IAM resources created). Closes #92. |
 
 #### Phase 6 — User Story 4: Integration and Error Handling Patterns (Priority: P2) → **Sprint 4**
 
@@ -1455,48 +1455,7 @@ The minimum sequential chain to reach a fully functional, security-hardened, dem
 
 ---
 
-### ☁️ Sprint 3: Infrastructure Architecture (Weeks 5-6)
-
-> ✅ **Planning note resolved (2026-07-11)**: The Lighthouse CI / accessibility-gate gap flagged on
-> 2026-07-10 (`frontend-ci.yml`'s stale `TODO Sprint 2` comment vs. the actual unscheduled/Sprint-9 tasks)
-> has been decided — **002-T002**, **002-T004**, and **002-T024** are pulled forward into this sprint,
-> along with **002-T022** (the `checkPageA11y` E2E helper, added because T024 depends on it and it was
-> not otherwise scheduled before Sprint 9 — pulling T024 forward without it would have violated
-> dependency ordering). **002-T023** (tagging all existing E2E specs with `@accessibility`) stays in
-> Sprint 9, since the gate itself (T024) can land now and become fully effective once T023 lands later.
-> See `G-SPRINT3-A11Y-CI` below.
->
-> ⚠️ **Follow-up required when 002-T023 lands (Sprint 9) — do not let this slip**:
-> `.github/workflows/accessibility.yml`'s Playwright step runs `playwright test --grep @accessibility
-> --pass-with-no-tests` (issue #93) as a deliberate bridge — no E2E spec is tagged `@accessibility` yet,
-> so the step passes trivially instead of failing on "no tests found." Once T023 tags real specs with
-> `@accessibility`, revisit this workflow: confirm the step is actually exercising them, and only then
-> consider promoting `accessibility.yml` to a required branch-protection check — it is **not** required
-> yet, precisely because it can't fail on missing coverage today.
->
-> ✅ **Planning note resolved (2026-07-11)**: a second gap surfaced while diagnosing a local
-> `terraform init` 403 AccessDenied against the `traveler-terraform-state` S3 backend —
-> **003-T009** (the Terraform remote-state bootstrap script that actually provisions the S3 bucket
-> and DynamoDB lock table `infra/backend.tf` already points to) had never been scheduled to any
-> sprint. `005-T022` (Sprint 1, Done, issue #18) only wrote the backend *configuration*; the
-> underlying AWS resources were left as an undocumented manual step, so `terraform init` cannot
-> succeed anywhere — locally or in CI — until they exist. **003-T009** is pulled forward into this
-> sprint and added as an explicit dependency of **005-T107** (the task that turns `infra-plan.yml`
-> into a real `terraform init`/`plan` pipeline), so the bucket/table are guaranteed to exist before
-> CI attempts to initialize against them. Its sibling **003-T010** ("create backend configuration
-> from T009") is **superseded** — `005-T022`/`infra/backend.tf` already shipped that exact backend
-> configuration in Sprint 1 — and stays unscheduled. See the standalone `003-T009` row in the work
-> items table below.
->
-> **AWS-cost-avoidance constraint (2026-07-11)**: nothing in this sprint may actually provision or
-> touch real AWS resources until the Terraform infra has been fully refined (no target sprint set yet
-> for lifting this). Concretely: **003-T009** ships as script code only — the bootstrap script is
-> authored but not executed, so `traveler-terraform-state`/`traveler-terraform-locks` are not actually
-> created this sprint. **005-T107**'s `terraform init`/`plan` therefore also cannot run for real in CI
-> against that backend yet. **005-T108** (`infra-apply.yml`) may be authored but must not be allowed to
-> trigger a live `terraform apply` on merge to `main`. **005-T109** (OIDC federation) is likewise
-> deferred in practice, even once its issue is filed. Doc/roadmap edits and issue creation are exempt
-> from this constraint (no AWS cost); only actual resource-creation/apply commands are blocked.
+### ☁️ Sprint 3: Infrastructure Architecture (Weeks 5-6) ✅ **COMPLETE**
 
 **Epic Label**: `epic:architecture-infra` (continuation)
 
@@ -1505,52 +1464,65 @@ accessibility CI gate forward so it isn't sitting unenforced for 6+ sprints afte
 started shipping in Sprint 2, and pull the Terraform remote-state bootstrap script forward so
 `terraform init` in CI has a real backend to initialize against.
 
-**Scope**: Spec 005 Phase 5 (Infrastructure completion) + accessibility-CI pull-forward from Spec 002
-+ Terraform state bootstrap pull-forward from Spec 003 (003-T009)
+**Scope**: Spec 005 Phase 5 (Infrastructure completion) + accessibility-CI pull-forward from Spec 002 + Terraform state bootstrap pull-forward from Spec 003 (003-T009)
 
-> **Correction**: the previous draft of this sprint under-counted the Terraform scope as "24 tasks" —
-> Spec 005 Phase 5 is actually **49 tasks** (005-T061–T109). That correction, on its own, already puts
-> this sprint at roughly Sprint 2's completed volume (37 tasks / 14 work items), so **all of Spec 009
-> (API Documentation/OpenAPI, 26 tasks, including its own P1 MVP slice US1+US2) has been deferred to
-> Sprint 4** rather than split across both sprints — see the Sprint 4 entry below.
+**Status**: ✅ **Complete** (2026-07-12) — All 54 tasks done across 11 work items (10 PRs)
 
-| Work Items | Task Count | Key Deliverables |
-|------------|------------|------------------|
-| G-SPRINT3-INFRA-VPC | 8 | `infra/modules/vpc/` — VPC, subnets, IGW/routes, conditional NAT, variables, outputs, tagging |
-| G-SPRINT3-INFRA-ECS | 9 | `infra/modules/ecs/` — cluster, ARM64 task def, service, autoscaling, log group, security group, variables, outputs, tagging |
-| G-SPRINT3-INFRA-RDS | 7 | `infra/modules/rds/` — subnet group, Postgres 15.4 instance, security group, Secrets Manager creds, variables, outputs, tagging |
-| G-SPRINT3-INFRA-ALB | 8 | `infra/modules/alb/` — ALB, target group, HTTPS/HTTP listeners, security group, variables, outputs, tagging |
-| G-SPRINT3-INFRA-CLOUDFRONT | 6 | `infra/modules/cloudfront/` — S3 origin bucket, OAI, distribution, variables, outputs, tagging |
-| G-SPRINT3-INFRA-SECRETS | 3 | `infra/modules/secrets/` — Secrets Manager placeholders for DB/AI-key/JWT, variables, outputs |
-| G-SPRINT3-INFRA-ROOT-WIRING | 5 | Root `main.tf` module wiring, root variables/outputs, staging + production `.tfvars` |
-| 003-T009 (standalone) | 1 | `infra/terraform/scripts/bootstrap-state.sh` — authors the script that will provision the `traveler-terraform-state` S3 bucket + `traveler-terraform-locks` DynamoDB table that `infra/backend.tf` (Sprint 1) already points to; hard blocker for `terraform init` in G-SPRINT3-INFRA-CICD. **Script authored only — not executed** (AWS-cost-avoidance constraint, 2026-07-11; no target sprint yet for lifting it) |
-| G-SPRINT3-INFRA-CICD | 2 | `infra-plan.yml` (real plan/validate/fmt) + `infra-apply.yml` (staging auto-apply — **workflow authored only; not expected to trigger for real against AWS yet**, same AWS-cost-avoidance constraint) |
-| 005-T109 (standalone) | 1 | OIDC federation in AWS IAM (manual step, documented in `infra/README.md`) — depends on CICD group; also gated by the same AWS-cost-avoidance constraint (no live AWS provisioning yet) |
-| G-SPRINT3-A11Y-CI | 4 | `@lhci/cli`/`@axe-core/playwright` deps, `lighthouserc.yml`, `checkPageA11y` E2E helper, `accessibility.yml` PR-gate workflow |
+**Planning decisions made during the sprint** (full rationale in `.github/memory/session-notes.md`
+Sprint 3 Compacted section and `MEMORY.md`; kept here only as short pointers):
 
-**Total**: 54 tasks → **11 work items** (-80% vs. ungrouped) (9 Terraform work items covering 49 tasks + 1 standalone Terraform state bootstrap task + 1 accessibility-CI work item covering 4 tasks)  
-**Consolidation rationale**: each Terraform module (main.tf + variables.tf + outputs.tf + tagging) is one
-reviewable PR by nature — splitting them further would fragment a single Terraform module across
-multiple tickets for no reviewability benefit. The accessibility-CI group bundles a small, tightly-coupled
-CI/config change set (deps → config → helper → workflow) that ships together. **003-T009** is kept
-standalone rather than folded into `G-SPRINT3-INFRA-CICD` — it is both a critical blocker (needs
-individual visibility per the consolidation checklist) and cross-spec (003 vs. 005), so it does not
-meet the "same spec" consolidation criterion even though it shares the Terraform/AWS tech stack.  
-**Risks**: AWS account limits, Terraform state management, module PRs running larger than the usual
-2-4 task guideline (accepted here — see consolidation rationale above), accessibility gate landing before
-its own E2E tagging task (002-T023, Sprint 9) — the workflow will initially have little to check against;
-003-T009's bootstrap script provisions the Terraform backend itself, so it must run via plain AWS
-CLI/scripting (not Terraform) before any `terraform init` can succeed — a chicken-and-egg constraint
-inherent to remote-state bootstrapping, not a defect (currently moot in practice — see AWS-cost-avoidance
-constraint above: the script is not being executed this sprint); the AWS-cost-avoidance constraint itself
-means 003-T009/005-T107/005-T108/005-T109 land as authored-but-unexecuted code this sprint, so `terraform
-init`/`plan`/`apply` validation against a real backend is deferred to whenever that constraint lifts  
-**Dependencies**: Sprint 2 complete (005-T022 Terraform provider config; 002-T002 for the LHCI/axe-core deps);
-003-T001/005-T004 (infra/ directory structure, Done Sprint 1) for 003-T009
+- Accessibility CI (`G-SPRINT3-A11Y-CI`) pulled forward from Sprint 9 so the gate wouldn't sit
+  unenforced for 6+ sprints. Follow-up open: 002-T023 (Sprint 9) must tag E2E specs `@accessibility`
+  before `accessibility.yml` can become a required check — see Sprint 4's carry-forward note below.
+- 003-T009 (Terraform state bootstrap) pulled forward as a standalone item and made an explicit
+  dependency of 005-T107; sibling 003-T010 stays Superseded (covered by Sprint 1's `infra/backend.tf`).
+- Scope correction: Spec 005 Phase 5 is 49 tasks (005-T061–T109), not the originally-drafted 24.
+- AWS-cost-avoidance constraint held for the whole sprint (no real `terraform apply`/AWS resource
+  creation) and remains in force project-wide until the user lifts it.
+
+| Work Items | Task Count | Status | Key PRs |
+|------------|------------|--------|---------|
+| G-SPRINT3-INFRA-VPC | 8 | ✅ Done | #95 |
+| G-SPRINT3-INFRA-ECS | 9 | ✅ Done | #105 |
+| G-SPRINT3-INFRA-RDS | 7 | ✅ Done | #98 |
+| G-SPRINT3-INFRA-ALB | 8 | ✅ Done | #99 |
+| G-SPRINT3-INFRA-CLOUDFRONT | 6 | ✅ Done | #100 |
+| G-SPRINT3-INFRA-SECRETS | 3 | ✅ Done | #102 |
+| G-SPRINT3-INFRA-ROOT-WIRING | 5 | ✅ Done | #106 |
+| 003-T009 (standalone) | 1 | ✅ Done | #104 |
+| G-SPRINT3-INFRA-CICD | 2 | ✅ Done | #107 |
+| 005-T109 (standalone) | 1 | ✅ Done | #107 (same PR as CICD group) |
+| G-SPRINT3-A11Y-CI | 4 | ✅ Done | #103 |
+
+**Total**: 54 tasks → **11 work items** (-80% vs. ungrouped) (all complete)  
+**PRs**: #95 (VPC networking module), #98 (RDS PostgreSQL module), #99 (ALB module), #100 (CloudFront &
+S3 frontend delivery), #102 (Secrets Manager module), #104 (Terraform state bootstrap script, authored
+only — not executed), #105 (ECS cluster & service module), #106 (root Terraform module wiring +
+environment tfvars), #107 (gated real Terraform plan/apply CI + OIDC federation docs), #103
+(accessibility CI gate)  
+**Actual completion**: 2026-07-12 (PR #107, merged 2026-07-12T23:50:33Z)  
+**Dependencies**: Sprint 2 complete (005-T022 Terraform provider config; 002-T002 for the LHCI/axe-core
+deps); 003-T001/005-T004 (infra/ directory structure, Done Sprint 1) for 003-T009
 
 ---
 
 ### 🔗 Sprint 4: Integration & Observability (Weeks 7-8)
+
+> ⚠️ **Carried forward from Sprint 3 closure (2026-07-12) — review before planning this sprint**:
+>
+> - **AWS-cost-avoidance constraint still in force**: no real `terraform apply` or AWS resource
+>   creation is authorized yet (no target sprint set for lifting this) — irrelevant to this sprint's
+>   own scope (no infra tasks), but applies to any Sprint 4+ work that touches `infra/`.
+> - **`internal/example/` deletion is not yet triggered**: per the standing rule, delete it in the
+>   same PR as the first real domain package (currently Sprint 8, Trip). Not actionable this sprint —
+>   Spec 009 (OpenAPI/Swagger, in this sprint's scope) actually still annotates `internal/example`
+>   handlers, so keep it until Sprint 8.
+> - **`postgres:15.4-alpine` CVE staleness watch**: still unresolved, no target sprint. It's a
+>   deliberate pin (RDS `engine_version` match) — flag to the user for a coordinated Terraform+docs
+>   update if it ever needs bumping, don't patch it silently.
+> - **002-T023 follow-up (Sprint 9, not this sprint)**: tag existing E2E specs `@accessibility` —
+>   required before `.github/workflows/accessibility.yml` can become a required branch-protection
+>   check. Just a "don't let it slip" reminder; no action needed until Sprint 9.
 
 **Epic Label**: `epic:integration-observability`
 
