@@ -51,7 +51,7 @@ The backend exposes a RESTful JSON API consumed by the frontend SPA. Its primary
 | Database driver | `github.com/jackc/pgx/v5` (PostgreSQL 15.4, no ORM) |
 | Migrations | `github.com/pressly/goose/v3` |
 | Auth tokens | `github.com/golang-jwt/jwt/v5` (HTTP-only cookies) |
-| AI provider | Local dev/MVP: **Ollama** (`internal/ai/ollama_client.go`, `net/http`, no SDK) running a Gemma model — see [docs/local-ai-setup.md](../docs/local-ai-setup.md). Staging/production: `github.com/anthropics/anthropic-sdk-go` (not yet implemented, tracked as `005-T112`) |
+| AI provider | Local dev/MVP: **Ollama** (`internal/ai/ollama_client.go`, `net/http`, no SDK) running a Gemma model — see [docs/local-ai-setup.md](../docs/local-ai-setup.md). Staging/production: **Anthropic Claude** (`internal/ai/anthropic.go`, `github.com/anthropics/anthropic-sdk-go`) |
 | Structured logging | `log/slog` (stdlib, JSON handler) |
 | HTML sanitisation | `github.com/microcosm-cc/bluemonday` |
 | Unique IDs | `github.com/google/uuid` |
@@ -380,9 +380,9 @@ that implements the standard error format in
 `DomainError` represents a business-rule failure (`Code`, `Message`, an optional `Fields` slice for
 per-field validation errors, a `Details` map, and an optional wrapped `Err`) and implements
 `error`/`Unwrap`, so it keeps composing with `errors.Is`/`errors.As` even after a lower layer wraps
-it (e.g. `fmt.Errorf("...: %w", err)`). Five constructors — `NotFound`, `Validation`, `Unauthorized`,
-`Forbidden`, `Conflict` — each build a fresh `*DomainError`; none is a shared package-level value,
-since every occurrence needs its own dynamic message, fields, and cause.
+it (e.g. `fmt.Errorf("...: %w", err)`). Six constructors — `NotFound`, `Validation`, `Unauthorized`,
+`Forbidden`, `Conflict`, `ServiceUnavailable` — each build a fresh `*DomainError`; none is a shared
+package-level value, since every occurrence needs its own dynamic message, fields, and cause.
 
 `HandleError(w, r, err)` maps a `*DomainError` to the standard JSON error envelope from
 [`docs/api-design-standards.md`](../docs/api-design-standards.md) §7:
@@ -394,6 +394,7 @@ since every occurrence needs its own dynamic message, fields, and cause.
 | `authentication_required` | 401 |
 | `forbidden` | 403 |
 | `conflict` | 409 |
+| `service_unavailable` | 503 (also sets a `Retry-After` header from `Details["retry_after_seconds"]` — see [AI client foundation](#ai-client-foundation-internalai) below) |
 | anything unrecognized (incl. non-`*DomainError` errors) | 500 / `internal_error` |
 
 Any error that is not a `*DomainError` (and does not wrap one) is logged server-side via
@@ -436,9 +437,23 @@ channel for `StreamItinerary`. It does not build itinerary-specific system promp
 schema-guided generation — it forwards `ConversationHistory` as-is; that's spec 008's job. See
 [docs/local-ai-setup.md](../docs/local-ai-setup.md) for setup.
 
-The Anthropic-backed `AIClient` implementation for staging/production (`AI_PROVIDER=anthropic`) is
-tracked separately (`docs/roadmap.md` task `005-T112`) and not yet built; `AIClient`'s interface is
-designed so adding it won't require a breaking change.
+`AnthropicClient` (`anthropic.go`) is the Anthropic-backed `AIClient` implementation for
+staging/production (`AI_PROVIDER=anthropic`, `docs/roadmap.md` task `005-T112`), built on the
+official `github.com/anthropics/anthropic-sdk-go`. It delegates retry/backoff to the SDK's own
+built-in support (`option.WithMaxRetries`, `option.WithRequestTimeout`) rather than a hand-rolled
+loop; a 429/503 response that survives every retry attempt is returned as a
+`*ProviderUnavailableError` (wrapping the `ErrProviderUnavailable` sentinel) instead of an opaque
+error, so callers can distinguish "provider is transiently unavailable" from other failures. Like
+`OllamaClient`, it forwards `ConversationHistory` as-is and parses the model's response text
+directly as itinerary JSON — schema-guided generation is spec 008's job.
+
+`NewAIClient` (`client.go`) is the single factory that picks between `OllamaClient` and
+`AnthropicClient` based on `config.AIConfig.Provider`, so callers depend only on the `AIClient`
+interface and never construct a provider directly. `TranslateError` (`client.go`) is the
+factory-adjacent helper that turns a `*ProviderUnavailableError` into a `"service_unavailable"`
+`*errors.DomainError` carrying a `Retry-After` hint (`errors.ServiceUnavailable`,
+`internal/errors/types.go`) — `writeErrorResponse` (`internal/errors/handler.go`) sets the
+`Retry-After` response header from it (005-T113).
 
 ### HTTP server (`cmd/api/`)
 
