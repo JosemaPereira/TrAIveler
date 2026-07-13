@@ -1,4 +1,4 @@
-.PHONY: help test test-unit test-integration test-coverage mocks lint fmt vet clean swagger
+.PHONY: help test test-unit test-integration test-coverage mocks lint fmt vet clean swagger run check-tools install-tools
 
 # Default target
 help:
@@ -8,6 +8,9 @@ help:
 	@echo "  make test-coverage     - Run tests with coverage report (CI configuration)"
 	@echo "  make mocks             - Generate mocks using mockery"
 	@echo "  make swagger           - Regenerate OpenAPI/Swagger docs from swag annotations"
+	@echo "  make run               - Start Postgres (Docker), migrate, and run the API via 'go run' for debugging"
+	@echo "  make check-tools       - Verify the local dev tools needed for 'make run' are installed"
+	@echo "  make install-tools     - Install what 'make check-tools' can auto-install (mockery, goose)"
 	@echo "  make lint              - Run golangci-lint"
 	@echo "  make fmt               - Format code with gofmt"
 	@echo "  make vet               - Run go vet"
@@ -66,6 +69,23 @@ swagger:
 		exit 1; \
 	fi
 
+# Run the API locally for debugging: starts only Postgres via Docker (waits for it to be
+# healthy), then applies pending Goose migrations and runs the API with `go run ./cmd/api` --
+# the Go process itself is never Dockerized, so breakpoints/debuggers attach normally.
+run:
+	@if [ ! -f .env ]; then \
+		echo "❌ backend/.env not found. Run: cp .env.example .env"; \
+		exit 1; \
+	fi
+	@if ! command -v goose >/dev/null 2>&1; then \
+		echo "❌ goose not found. Install with: go install github.com/pressly/goose/v3/cmd/goose@v3.27.2"; \
+		exit 1; \
+	fi
+	docker-compose -f ../docker-compose.yml up -d --wait postgres
+	set -a && . ./.env && set +a && \
+	goose -dir migrations postgres "$$DATABASE_URL" up && \
+	go run ./cmd/api
+
 # Run linter (requires golangci-lint)
 lint:
 	@if command -v golangci-lint >/dev/null 2>&1; then \
@@ -89,10 +109,29 @@ clean:
 	rm -f coverage.out coverage.html
 	go clean -cache -testcache
 
+# Verify the local dev tools needed to run the API locally (`make run`) are installed.
+# See the Prerequisites table in README.md for the full list, including CI-only tools
+# (golangci-lint, gosec, govulncheck, gitleaks) that this check intentionally skips.
+check-tools:
+	@echo "Checking tools required for 'make run'..."
+	@ok=1; \
+	if command -v go >/dev/null 2>&1; then echo "✅ go: $$(go version)"; else echo "❌ go not found. See https://go.dev/dl/"; ok=0; fi; \
+	if command -v docker >/dev/null 2>&1; then echo "✅ docker: $$(docker --version)"; else echo "❌ docker not found. Use Colima or Podman -- see README.md Prerequisites"; ok=0; fi; \
+	if command -v docker-compose >/dev/null 2>&1; then echo "✅ docker-compose: $$(docker-compose --version)"; else echo "❌ docker-compose not found"; ok=0; fi; \
+	if command -v goose >/dev/null 2>&1; then echo "✅ goose: $$(goose --version)"; else echo "❌ goose not found. Install with: go install github.com/pressly/goose/v3/cmd/goose@v3.27.2"; ok=0; fi; \
+	if [ "$$ok" -eq 1 ]; then \
+		echo "✅ All tools required for 'make run' are installed"; \
+	else \
+		echo "❌ Missing tools above -- install them before 'make run' (or run 'make install-tools' for the go-installable ones)"; \
+		exit 1; \
+	fi
+
 # Install development tools
 install-tools:
 	@echo "Installing development tools..."
 	go install github.com/vektra/mockery/v2@latest
+	go install github.com/pressly/goose/v3/cmd/goose@v3.27.2
 	@echo "✅ Tools installed successfully"
-	@echo "Note: You may need to install golangci-lint separately:"
+	@echo "Note: You may need to install golangci-lint, Docker/Colima, and Docker Compose separately:"
 	@echo "  https://golangci-lint.run/usage/install/"
+	@echo "  https://github.com/abiosoft/colima"

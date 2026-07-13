@@ -205,6 +205,7 @@ backend/
 | `gitleaks` | ≥ 8 | `gitleaks version` | |
 | Ollama | Latest | `ollama --version` | Only needed for the **Local Go** setup path below — `docker-compose` starts it automatically. See [docs/local-ai-setup.md](../docs/local-ai-setup.md) |
 | `swag` | ≥ 1.16 | `swag --version` | Only needed to regenerate the OpenAPI/Swagger contract (`make swagger`). Install with `go install github.com/swaggo/swag/cmd/swag@latest`. See [specs/009-api-documentation/](../specs/009-api-documentation/) |
+| `goose` | v3.27.2 | `goose --version` | Only needed for the **Local Go** setup path below (`make run` or a manual migration). Install with `go install github.com/pressly/goose/v3/cmd/goose@v3.27.2` |
 
 ```bash
 brew install colima
@@ -283,6 +284,10 @@ goose -dir migrations postgres "$DATABASE_URL" up
 go run ./cmd/api
 # HTTP server listening on :8080 (or $HTTP_PORT); Ctrl+C (SIGINT) drains in-flight requests
 ```
+
+Or, once `.env` exists and Postgres is reachable, run the last two steps (migrate + start) in one
+command with `make run` (from `backend/`) — it only skips Dockerizing the Go process itself, it
+still expects Postgres to already be running per the step above.
 
 ### Try the API (interactive Swagger UI)
 
