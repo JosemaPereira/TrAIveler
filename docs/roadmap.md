@@ -5,19 +5,9 @@
 > Notes are human-owned and preserved across runs. Do not hand-edit the stable IDs.
 
 **Last reconciled**: 2026-07-10 (added spec 009 — API Documentation via OpenAPI/Swagger)  
-**Sprint planning**: 2026-07-06 (MVP: 10 sprints, 390 tasks assigned to Sprints 1-10; Post-MVP: 381 tasks unassigned, including the 26 new spec 009 tasks pending sprint assignment)  
-**Sprint 3 finalized**: 2026-07-11 — corrected a Terraform-infra miscount in the Sprint Plan narrative (Spec 005
-Phase 5 is 49 tasks, 005-T061–T109, not the previously-drafted 24), pulled the Lighthouse CI /
-accessibility-gate trio (002-T002, 002-T004, 002-T024) plus its untracked dependency 002-T022 forward
-from Sprint 9/unscheduled into Sprint 3, and assigned spec 009 (26 tasks, all P1/P2) to Sprint 4 —
-Sprint 3 was already at capacity once the Terraform count was corrected. See the Sprint 3 and Sprint 4
-entries under [Sprint Plan](#sprint-plan) for details.  
-**Sprint 3 amended**: 2026-07-11 — pulled 003-T009 (Terraform remote-state bootstrap: S3 bucket +
-DynamoDB lock table) forward from unscheduled into Sprint 3 as a standalone work item, and added it as
-an explicit dependency of 005-T107, after diagnosing a local `terraform init` 403 AccessDenied that
-traced back to this task never having been scheduled. Marked its sibling 003-T010 (backend config from
-T009) as Superseded — already shipped via 005-T022/`infra/backend.tf` in Sprint 1. See the Sprint 3
-entry under [Sprint Plan](#sprint-plan) for details.
+**Current status**: 841 tasks across 9 specs; MVP = 427 tasks across Sprints 1-10. Sprints 1-3 complete
+(114 tasks shipped). See [Sprint Plan](#sprint-plan) for per-sprint detail and
+`.github/memory/session-notes.md` for the narrative history of past sprint-closure decisions.
 
 ## Legend
 
@@ -1388,14 +1378,6 @@ The minimum sequential chain to reach a fully functional, security-hardened, dem
 - **Coverage gates**: `005-T017 → 001-T078 → 002-T044` (backend) and `005-T018 → 001-T079 → 002-T043` (frontend)
 - **Infrastructure observability**: `005-T109 → 003-T054 → 003-T055–064` (CloudWatch dashboards)
 
-**Estimated Timeline** (assuming 3-person team):
-- **Sprint 1**: Spec 005 Phase 1-2 (setup + foundational, 23 tasks) — 1-2 weeks
-- **Sprint 2-3**: Spec 005 Phase 3-5 (parallel architecture, 86 tasks across 3 tracks) — 3-4 weeks
-- **Sprint 4**: Spec 005 Phase 6-7 (integration + polish, 22 tasks) — 1 week
-- **Sprint 5+**: Feature implementation (specs 001-004, 331 tasks) — 8-12 weeks
-
-**Total time to first deployable MVP**: ~15-20 weeks with architecture-first approach
-
 ---
 
 ## Sprint Plan
@@ -1544,8 +1526,11 @@ tasks is well above this team's observed velocity (23 → 37 tasks/sprint in Spr
 be re-examined at the next Sprint 4 planning pass. The likely lever: Spec 009's own MVP slice
 (Setup+Foundational+US1+US2, 009-T001–T017, 17 tasks, P1) can ship in Sprint 4 while its CI-gate/polish
 slice (US3+Polish, 009-T018–T026, 9 tasks, P2) trails into Sprint 5 if 55 tasks proves too large for one
-2-week sprint. Spec 009 tasks are not yet consolidated into Group work items — that consolidation
-analysis is deferred to the Sprint 4 planning pass, per the mandatory consolidation-first workflow.  
+2-week sprint. Spec 009 tasks are not yet consolidated into Group work items (`Group` column is still
+empty for all 26 rows) — that consolidation analysis is deferred to the Sprint 4 planning pass, per the
+mandatory consolidation-first workflow. Candidate groupings identified during the spec 009 reconciliation,
+for the PM to confirm/adjust at that planning pass: 009-T007/T008 (share one test file), 009-T018–T021
+(US3 CI-gate phase), and 009-T022–T026 (Polish phase).  
 **Dependencies**: Sprint 3 complete
 
 ---
@@ -1673,17 +1658,15 @@ analysis is deferred to the Sprint 4 planning pass, per the mandatory consolidat
 | Metric | Value |
 |--------|-------|
 | **MVP sprints** | 10 sprints (20 weeks) |
-| **Total MVP tasks** | 390 tasks (52% of project) |
-| **Average velocity** | 39 tasks/sprint |
-| **Parallelization rate** | 54% of tasks can run concurrently |
-| **GitHub Issues (estimated)** | ~270 parent + sub-issues (vs 745 if ungrouped) |
+| **Total MVP tasks** | 427 tasks (51% of 841 total project tasks) |
+| **Planned average velocity** | 42.7 tasks/sprint (427 ÷ 10, all sprints) |
+| **Actual velocity (Sprints 1-3, closed)** | 38 tasks/sprint (23, 37, 54) |
 | **Epic labels** | 11 epics across all sprints (see each sprint header) |
 | **Team size assumption** | 2-3 full-stack developers |
 
-> **Stale as of 2026-07-11**: these aggregate figures predate the Sprint 3 Terraform-count correction
-> (24 → 49 tasks), the Sprint 3 accessibility-CI pull-forward (+4 tasks), and the Spec 009 addition to
-> Sprint 4 (+26 tasks). Recompute at the next full sprint-plan refresh rather than trusting this table
-> for exact totals in the meantime; the per-sprint entries above are the current source of truth.
+_Recomputed 2026-07-12 from the per-sprint entries above (the source of truth); supersedes the earlier
+390-task/39-per-sprint figures, which predated the Sprint 3 Terraform-count correction and Spec 009's
+addition to Sprint 4._
 
 **GitHub Organization**:
 - **Epic tracking**: Filter by `epic:architecture-foundation`, `epic:auth-security`, etc. in GitHub Projects
@@ -1732,103 +1715,25 @@ _No tasks removed from any source `tasks.md` as of the 2026-07-10 reconciliation
 
 ## Reconciliation Report
 
-**Run date**: 2026-07-10
+**Last full reconciliation**: 2026-07-10 — added spec 009 (API Documentation via OpenAPI/Swagger,
+26 tasks, pure ADD, T001–T026) with zero drift detected across specs 001–008 (815 pre-existing tasks
+diffed identical in title, phase grouping, and dependencies; no human-owned field touched). Priority
+for spec 009 was inherited from each phase's `(Priority: Px)` header, matching the convention used
+when specs 004 and 007 were added. Spec 009 has no blocking dependency on specs 001–008 (its only
+links are a documentation cross-reference to spec 007 and a CI extension pattern already used by
+003-T067) and none of specs 001–008 depend on it.
 
-> Note: this section reflects the full current state of the roadmap as of the run date above
-> (cumulative across all specs), not just the delta from the immediately preceding run. Earlier
-> runs' stale, partially-superseded report text (which had never been updated for the spec 008
-> reconciliation) has been consolidated into this single accurate snapshot.
-
-### Specs Discovered
-
-| Spec | Folder | Has tasks.md | Status |
-|------|--------|-------------|--------|
-| 001 | `specs/001-product-vision-scope/` | ✅ yes | Active |
-| 002 | `specs/002-nfr-system-constraints/` | ✅ yes | Active |
-| 003 | `specs/003-cloud-env-strategy/` | ✅ yes | Active |
-| 004 | `specs/004-security-auth-model/` | ✅ yes | Active |
-| 005 | `specs/005-system-architecture/` | ✅ yes | Active |
-| 006 | `specs/006-core-domain-model/` | ✅ yes | Active |
-| 007 | `specs/007-api-design-standards/` | ✅ yes | Active |
-| 008 | `specs/008-auth-collaboration-ux/` | ✅ yes | Active |
-| 009 | `specs/009-api-documentation/` | ✅ yes | **NEW** |
-
-No spec folders were removed since the last run. No spec folders exist without a `tasks.md`.
-
-### Change Counts
-
-| Operation | Count |
-|-----------|-------|
-| **ADD** | 26 (spec 009: all 26 tasks, T001–T026) |
-| **UPDATE** | 0 |
-| **UNCHANGED** | 815 (001: 81, 002: 46, 003: 72, 004: 132, 005: 131, 006: 77, 007: 70, 008: 206) |
-| **REMOVE** | 0 |
-| **ARCHIVED** | 0 |
-| **Structural** | No new groups added — all 26 spec 009 tasks left standalone (`Group` blank) per the no-auto-grouping rule; grouping is a human/PM decision to be made later if desired |
-
-**Total tasks in roadmap**: 841 (was 815, added 26)  
-**Grouped tasks**: 546 (64.9% of total, forming 184 work items across specs 001–008)  
-**Standalone tasks**: 295 (35.1% of total, including all 26 new spec 009 tasks)
-
-Specs 001–008 rows were diffed against their current `tasks.md` sources and found identical in
-title, phase grouping, and dependencies — **zero drift detected**. No `Group`, `Sprint`, `Priority`,
-`Status`, `Issue`, or `Notes` values were touched for any pre-existing row.
-
-### Spec 009 — New Tasks (Pure ADD)
-
-| Phase | Tasks | Priority (inherited from source phase header) |
-|-------|-------|-------------------------------------------------|
-| Phase 1 — Setup | 009-T001–003 (3) | P1 |
-| Phase 2 — Foundational (blocking) | 009-T004–006 (3) | P1 |
-| Phase 3 — US1 Contract regenerates automatically 🎯 MVP | 009-T007–013 (7) | P1 |
-| Phase 4 — US2 Interactive Swagger UI | 009-T014–017 (4) | P1 |
-| Phase 5 — US3 CI drift gate | 009-T018–021 (4) | P2 |
-| Phase 6 — Polish & cross-cutting | 009-T022–026 (5) | P2 |
-
-Priority was inherited from each phase's own `(Priority: Px)` header in `tasks.md` — the same
-convention used when specs 004 and 007 were first added to this roadmap — rather than defaulting
-every row to `TBD`, since that established per-spec pattern already exists. `Sprint` was left
-blank for all 26 rows (sprint assignment is intentionally deferred to the next Plan Sprints pass).
-`Status` = `Backlog`, `Issue` = empty, `Group` = empty for all 26 rows.
-
-### Cross-Spec Dependencies (Spec 009)
-
-| Type | Description |
-|------|-------------|
-| **Builds on spec 007** | The generated contract is cross-referenced from `docs/api-design-standards.md` (009-T023), which spec 007 promoted to `docs/`. No task-level blocking dependency — purely a documentation cross-link. |
-| **Extends CI** | 009-T018 adds a `swagger-drift` step to the existing `.github/workflows/backend-ci.yml`, reusing the `dorny/paths-filter` `backend` condition already in place for other required checks (same pattern as 003-T067 extending `backend-lint.yml`). |
-| **Reuses reference package** | 009-T009 annotates `backend/internal/example/handler.go`, the same throwaway reference package used by other specs' model→repository→service→handler pattern; no new domain code introduced. |
-
-**No blocking dependencies on unfinished work** — spec 009 is additive tooling around the existing
-`internal/example` reference handler and CI pipeline; it does not block or get blocked by specs
-001–008 feature delivery.
-
-### Human Attention Required
-
-| Item | Detail |
-|------|--------|
-| **New spec review** | Spec 009 (API Documentation via OpenAPI/Swagger) added with 26 tasks. Review phase priorities and dependency chain before sprint planning. |
-| **Priority** | All 26 tasks have a concrete priority (P1 for Phases 1–4, P2 for Phases 5–6) inherited from the spec's own phase headers — none are `TBD`. |
-| **Sprint column** | All 26 spec 009 `Sprint` fields are empty — intentionally left for the next Plan Sprints pass (this run does not assign sprints per its instructions). Per project memory, a Swagger/OpenAPI task was previously flagged as a Sprint 3 planning gap; that gap is now closed by this spec's existence and should be resolved explicitly in the next sprint-planning run. |
-| **Group column** | All 26 rows left standalone (no `Group` value). Candidate consolidation the PM may want to consider: 009-T007/T008 (same test file), 009-T018–T021 (US3 CI-gate phase), and 009-T022–T026 (Polish phase) each look like plausible single-issue groupings — left as a recommendation only, not applied automatically. |
-| **Issue column** | All 26 new spec 009 `Issue` fields are empty. If left standalone, running the issue-creation step would open **26 new issues**; if the PM applies the candidate groupings above, it could be as few as ~13–15 issues. |
-| **Status review** | All 26 new tasks default to `Backlog`. |
-| **Parallel execution** | 13 of 26 tasks (50%) carry the `[P]` flag in source. |
-
-### Next Steps
-
-1. **Review spec 009 priorities and dependency chain** above before sprint planning.
-2. **Sprint planning**: run the Plan Sprints procedure to assign a `Sprint` value to the 26 new spec 009 rows (and decide whether to close the previously-flagged Sprint 3 Swagger/OpenAPI gap with this spec).
-3. **Decide on grouping**: review the candidate groupings noted above; if adopted, set the `Group` column accordingly before creating issues.
-4. **Run the issue-creation step** for any row with an empty `Issue` field once sprint/priority/grouping decisions are finalized.
-5. **Re-run this reconciliation** whenever `specs/*/tasks.md` changes or a new spec is added — it will preserve all `Group`, `Sprint`, `Priority`, `Status`, `Issue`, and `Notes` values already set.
-
----
+Spec 009's candidate `Group` consolidation (identified during this run but deliberately left
+unapplied) was relocated to the Sprint 4 entry under [Sprint Plan](#sprint-plan), since spec 009 is
+now scheduled there and the consolidation decision is actionable at that sprint's planning pass.
 
 **Total project task count**: **841 tasks** across 9 specs (001–009)  
-**Grouped work items**: **184 issues** (combining 546 tasks, specs 001–008 only)  
-**Standalone work items**: **295 issues** (includes all 26 new spec 009 tasks)  
+**Grouped work items**: **184 issues** (546 tasks, specs 001–008 only)  
+**Standalone work items**: **295 issues** (includes all 26 spec 009 tasks, not yet grouped)  
 **Total issues when fully synced**: **479 issues**
+
+Re-run the `build-roadmap` reconciliation whenever `specs/*/tasks.md` changes or a new spec is added
+— it preserves all `Group`, `Sprint`, `Priority`, `Status`, `Issue`, and `Notes` values already set.
 
 ---
 
