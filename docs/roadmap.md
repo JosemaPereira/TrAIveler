@@ -317,7 +317,7 @@
 
 | ID | Task | Group | Sprint | Priority | Status | Depends on | Parallel | Issue | Notes |
 |----|------|-------|--------|----------|--------|------------|----------|-------|-------|
-| 003-T045 | Create secrets initialization script: uses AWS CLI to create secrets in Secrets Manager with naming pattern `${environment}/${service}/${secret_name}` | G-INFRA-SECRETS | 10 | P1 | Backlog | 003-T009 | yes | | |
+| 003-T045 | Create secrets initialization script: uses AWS CLI to create secrets in Secrets Manager with naming pattern `traveler-${environment}-${secret_name}` (matches convention already shipped in Sprint 3, issue #89) | G-INFRA-SECRETS | 10 | P1 | Backlog | 003-T009 | yes | | |
 | 003-T046 | Create Terraform data sources for Secrets Manager: reference existing secrets for database URL, Anthropic API key, JWT secret | G-INFRA-SECRETS | 10 | P1 | Backlog | 003-T009 | yes | | |
 | 003-T047 | Update ECS task definition in T025 to reference secret ARNs from T046 in `secrets` block | | 10 | P1 | Backlog | 003-T025, 003-T046 | no | | |
 
