@@ -77,11 +77,13 @@ func TestLogger_RequestCompletes_LogsExpectedFields(t *testing.T) {
 
 	entry := decodeLastLogLine(t, &buf)
 	assert.Equal(t, "HTTP request", entry["msg"])
+	assert.Equal(t, "traiveler-api", entry["service"])
 	assert.Equal(t, http.MethodPost, entry["method"])
 	assert.Equal(t, "/trips", entry["path"])
 	assert.EqualValues(t, http.StatusCreated, entry["status"])
 	assert.Equal(t, "log-fields-id", entry["request_id"])
-	assert.Contains(t, entry, "duration_ms")
+	require.Contains(t, entry, "duration_ms")
+	assert.GreaterOrEqual(t, entry["duration_ms"], float64(0))
 }
 
 func TestLogger_NoRequestIDInContext_LogsEmptyString(t *testing.T) {
@@ -101,4 +103,41 @@ func TestLogger_NoRequestIDInContext_LogsEmptyString(t *testing.T) {
 
 	entry := decodeLastLogLine(t, &buf)
 	assert.Equal(t, "", entry["request_id"])
+}
+
+func TestLogger_UserIDInContext_LogsUserID(t *testing.T) {
+	var buf bytes.Buffer
+	logger := newTestLogger(&buf)
+
+	next := http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.WriteHeader(http.StatusOK)
+	})
+
+	req := httptest.NewRequest(http.MethodGet, "/trips", nil)
+	ctx := context.WithValue(req.Context(), ctxKeyUserID{}, "9f1c1a1e-2b3d-4c5e-8f6a-1234567890ab")
+	req = req.WithContext(ctx)
+	rec := httptest.NewRecorder()
+
+	Logger(logger)(next).ServeHTTP(rec, req)
+
+	entry := decodeLastLogLine(t, &buf)
+	assert.Equal(t, "9f1c1a1e-2b3d-4c5e-8f6a-1234567890ab", entry["user_id"])
+}
+
+func TestLogger_NoUserIDInContext_OmitsUserIDField(t *testing.T) {
+	var buf bytes.Buffer
+	logger := newTestLogger(&buf)
+
+	next := http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.WriteHeader(http.StatusOK)
+	})
+
+	req := httptest.NewRequest(http.MethodGet, "/trips", nil)
+	rec := httptest.NewRecorder()
+
+	Logger(logger)(next).ServeHTTP(rec, req)
+
+	entry := decodeLastLogLine(t, &buf)
+	_, ok := entry["user_id"]
+	assert.False(t, ok, "user_id key must be entirely absent for unauthenticated requests")
 }
