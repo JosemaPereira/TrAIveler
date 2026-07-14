@@ -477,3 +477,28 @@ dropped — only prose and illustrative code were trimmed. Supersedes the 2026-0
   response's `Retry-After` header). Only hand-roll when wrapping a bare HTTP API with no SDK (still
   correct for `OllamaClient`) or when the SDK's built-in behavior doesn't match the required contract.
 - **Related**: `backend/internal/ai/anthropic.go`, `backend/internal/ai/ollama_client.go`
+
+---
+
+### Simulating a Realistic DB Timeout in an Integration Test
+- **Discovered**: 2026-07-13 — **Tool**: Claude Code
+- **Context**: Black-box integration tests (real compiled binary + real Postgres testcontainer,
+  `backend/tests/integration/`) needing to exercise a genuine DB-timeout failure path (issue #119,
+  `error_test.go`), where the issue's own Review Focus explicitly required "a realistic simulated
+  failure ... not an artificial short-circuit that wouldn't occur in production."
+- **Problem**: Mocking the repository or short-circuiting with a canceled `context.Context` would
+  prove the Go-level error-wrapping logic works, but not that a *real* Postgres timeout produces the
+  same code path — and a query against a healthy, idle test database never naturally times out on
+  its own.
+- **Solution**: (1) Append `&statement_timeout=<ms>` to the app's own `DATABASE_URL` connection
+  string — pgx's `ParseConfig` forwards unrecognized connection-string keys into the connection's
+  startup `RuntimeParams`, so Postgres applies it like `SET statement_timeout = ...` to every pooled
+  connection the app opens, not just the first. (2) From a *second*, independent connection, open a
+  transaction and run `LOCK TABLE <table> IN ACCESS EXCLUSIVE MODE` without committing/rolling back —
+  Postgres's most restrictive lock, conflicting with even a plain `SELECT`. (3) Issue the request
+  under test while that lock is held: `statement_timeout` counts time spent waiting on a lock, so
+  Postgres itself cancels the app's blocked query (SQLSTATE `57014`) once the timeout elapses — a
+  genuine driver error, not a fabricated one. Release the lock (rollback) once the assertions are
+  done. Keep the timeout short (hundreds of ms) so the test stays fast, and use a bounded
+  client-side HTTP timeout on the request so a wiring mistake fails fast instead of hanging.
+- **Related**: `backend/tests/integration/error_test.go`, `backend/internal/example/repository.go`

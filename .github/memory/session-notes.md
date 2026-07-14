@@ -258,3 +258,43 @@ Historical summaries of completed development sessions. Committed to git as a re
 - **Workflow note**: `docs/roadmap.md`'s 005-T114–T116 rows are deliberately left at `Backlog` in
   this commit, same established convention as #117/#110/#109 — the Backlog→Done flip happens once
   the PR exists/merges. Whoever runs `open-pr`/closes this ticket next should flip those three rows.
+
+### Session: G-ARCH-INTEGRATION-TESTS (#119) + 005-T119 Docs (#120) — Healthz/DB-Timeout Integration Tests, Error-Handling Pattern Docs
+- **Date**: 2026-07-13
+- **Tool**: Claude Code
+- **Outcome**: Found the previous session's workflow note above had gone unactioned — #117/#118's
+  PRs (#128, #129) were already merged, but `docs/roadmap.md`'s 005-T110–T116 rows were still
+  `Backlog`. Fixed that debt first, standalone (PR #130, branch
+  `docs/sprint4-roadmap-status-117-118`), before starting new work. Then implemented both issues
+  requested in the same prompt on separate branches/PRs, per this repo's one-issue-per-PR norm:
+  - **#119** (005-T117/T118, tdd-developer, branch
+    `feature/119-g-arch-integration-tests-healthz-correlation-id-db-timeout-error-response`, PR
+    #131): `backend/tests/integration/health_test.go` (2 tests — 200 always, generated/echoed
+    `X-Request-ID`) and `error_test.go` (1 test). The DB-timeout scenario needed a *realistic*
+    simulated failure per the issue's Review Focus, not a short-circuit — see the new
+    `patterns-discovered.md` entry "Simulating a Realistic DB Timeout in an Integration Test" for
+    the technique (statement_timeout connection param + a second connection holding an `ACCESS
+    EXCLUSIVE` table lock). No RED phase existed (same honest caveat as the swagger_test.go
+    precedent) since #117's backend work was already merged — tests went GREEN immediately against
+    real Colima-backed Postgres testcontainers.
+  - **#120** (005-T119, technical-writer, branch
+    `feature/120-005-t119-document-error-handling-patterns`, PR #132): extended
+    `backend/README.md`'s error-handling section with 5 concrete, verified-against-source examples
+    (domain-error construction, wrap-vs-translate, handler `HandleError` usage, retry/backoff
+    cross-reference, correlation-ID propagation), and added a new `frontend/README.md` "Error
+    Handling" section (`APIError` → `useErrorHandler` → `ErrorMessage` end-to-end). While in that
+    same backend section, found and fixed a genuine stale spot: the `/healthz` table still
+    described the pre-#126 503/`unhealthy` contract instead of the real always-200,
+    status-in-body one — PR #126 apparently never updated this doc when it changed the behavior.
+- **Independent verification** (main session, not just subagents' self-reports): re-ran
+  `gofmt`/`go vet`/`golangci-lint`/`go build` myself, then the full non-short suite
+  (`go test -tags=test ./...` with Colima's `DOCKER_HOST`/`TESTCONTAINERS_DOCKER_SOCKET_OVERRIDE`
+  env vars) — all 8 packages `ok`, the new DB-timeout test bounded at ~6s (proving the timeout
+  mechanism genuinely engaged, not an instant pass). Re-read every README diff hunk against the
+  actual source files and confirmed the new `backend/README.md#error-handling-internalerrors`
+  anchor link matches GitHub's heading-slug convention already used elsewhere in the same file
+  (`#ai-client-foundation-internalai` precedent).
+- **Workflow note**: unlike #117/#118, this session flipped the *already-merged* 005-T110–T116 rows
+  to `Done` right away (PR #130) since that debt existed and the user asked to keep the roadmap
+  current — but 005-T117–T119's own rows are deliberately left `Backlog` in PRs #131/#132, same
+  established convention: flip after those two PRs merge, not now.
