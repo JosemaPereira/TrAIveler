@@ -308,6 +308,133 @@ Every data-dependent component must explicitly handle **Loading**, **Error**, an
 
 ---
 
+## Error Handling
+
+Three pieces compose into the intended error-handling pattern for any future data-fetching
+component: `APIError` (thrown at the fetch layer), `useErrorHandler` (turns it into display-ready
+info), and `ErrorMessage` (renders that info). **Note**: as of this writing no route makes a live
+API call yet (auth/trip pages are future-sprint work — issues #55/#117/#118), so this pattern isn't
+visible anywhere in the running app today; it documents what any future feature page should adopt.
+
+### `APIError` (`src/lib/api-client.ts`)
+
+`apiFetch` (and the `api.get`/`post`/`put`/`patch`/`delete` helpers built on it) throws `APIError`
+for any non-2xx response — callers never have to branch on a bare `Response`/`Error`:
+
+```ts
+export class APIError extends Error {
+  readonly status: number
+  readonly code: string
+  readonly requestId: string
+  readonly fields?: APIErrorField[]
+  // ...
+}
+```
+
+`status`/`code`/`message`/`requestId` (and, for 422 validation failures, `fields`) are parsed from
+the backend's standard error envelope (`{error, message, request_id, fields?}` —
+[`docs/api-design-standards.md`](../docs/api-design-standards.md) §7, the same envelope
+`backend/README.md`'s [error handling section](../backend/README.md#error-handling-internalerrors)
+documents from the server side). If the response body isn't a parseable envelope, `APIError` still
+gets built, with `code: 'unknown_error'` and `requestId: ''`.
+
+Every request also gets a fresh, client-generated `X-Request-ID` header via `crypto.randomUUID()`:
+
+```ts
+headers.set('X-Request-ID', crypto.randomUUID())
+```
+
+This is **not** the same ID as `APIError.requestId` — the header above is generated per outgoing
+request before the server ever sees it, while `requestId` on a thrown `APIError` is whatever the
+server's own response body/`X-Request-ID` response header echoed back (the backend's `RequestID`
+middleware reuses an incoming header when present, per the correlation-ID pattern described in the
+backend section linked above). In the normal case they're the same value round-tripped; only a
+proxy/gateway rewriting the header in transit would make them diverge.
+
+### `useErrorHandler` (`src/hooks/useErrorHandler.ts`)
+
+The first hook in `src/hooks/`. Turns an `unknown` value — typically a TanStack Query `error`
+field — into render-ready display info, or `null` when there's nothing to show:
+
+```ts
+export interface ErrorHandlerResult {
+  title: string
+  message: string
+  requestId?: string
+  isRetryable: boolean
+}
+
+export function useErrorHandler(error: unknown): ErrorHandlerResult | null
+```
+
+It switches on `APIError.status` (via the existing `isAPIError` guard from
+`src/lib/query-client.ts`, not a fresh `instanceof` check):
+
+- **401** — returns non-retryable "Session Expired" info, and separately triggers a redirect to
+  `/login` via `useNavigate()`. The redirect runs inside a `useEffect`, not during render, because
+  React Router forbids calling `navigate()` while rendering.
+- **403** / **404** — non-retryable "Permission Denied" / "Not Found" info.
+- **anything else** (500/503, any other 5xx, or a non-`APIError` failure such as a network error) —
+  a generic, **retryable** "Something Went Wrong" result.
+
+`requestId` is only set when `APIError.requestId` is a non-empty string — an empty string (a real
+possible value, not just `undefined`) is treated as "no id."
+
+Minimal usage:
+
+```tsx
+const errorInfo = useErrorHandler(error)
+if (!errorInfo) return null
+```
+
+### `ErrorMessage` (`src/components/primitives/ErrorMessage.tsx`)
+
+Renders an `ErrorHandlerResult` (or any equivalent props) as an alert-role error state:
+
+```tsx
+<ErrorMessage
+  title={errorInfo.title}
+  message={errorInfo.message}
+  requestId={errorInfo.requestId}
+  onRetry={refetch}
+/>
+```
+
+`requestId?: string` is optional and only renders a de-emphasized "Reference ID: ..." line
+(`data-testid="error-request-id"`) when it's truthy — an empty string from `APIError.requestId`
+renders nothing, not a blank line. `onRetry` is likewise optional, for error states with no
+meaningful retry action (e.g. a permanent 403).
+
+### End-to-end pattern
+
+The intended full chain for any future data-fetching component — a TanStack Query hook's `error` →
+`useErrorHandler` → `ErrorMessage`:
+
+```tsx
+function TripView({ tripId }: { tripId: string }) {
+  const { data, error, refetch } = useQuery({
+    queryKey: ['trip', tripId],
+    queryFn: () => api.get<Trip>(`/api/v1/trips/${tripId}`),
+  })
+
+  const errorInfo = useErrorHandler(error)
+  if (errorInfo) {
+    return (
+      <ErrorMessage
+        title={errorInfo.title}
+        message={errorInfo.message}
+        requestId={errorInfo.requestId}
+        onRetry={errorInfo.isRetryable ? refetch : undefined}
+      />
+    )
+  }
+
+  // ...render data
+}
+```
+
+---
+
 ## Design Tokens
 
 All design tokens are defined as CSS custom properties in `src/styles/tokens.css` (color, spacing,
