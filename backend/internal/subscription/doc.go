@@ -1,0 +1,8 @@
+// Package subscription provides the subscription and billing domain: plan
+// lifecycle (create, cancel, renew, grace period), the stub payment
+// provider, and the HTTP handlers built on top of them. It is currently
+// scaffolding for Spec 008 (Authentication & Collaboration UX, see
+// specs/008-auth-collaboration-ux/) — the models, repository, service, and
+// handler implementations land in later Spec 008 issues
+// (specs/008-auth-collaboration-ux/tasks.md, T039+).
+package subscription
