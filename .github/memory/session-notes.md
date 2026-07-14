@@ -298,3 +298,41 @@ Historical summaries of completed development sessions. Committed to git as a re
   to `Done` right away (PR #130) since that debt existed and the user asked to keep the roadmap
   current — but 005-T117–T119's own rows are deliberately left `Backlog` in PRs #131/#132, same
   established convention: flip after those two PRs merge, not now.
+
+### Session: G-ARCH-POLISH-VALIDATION (#122) — Spec 005 Validation Runs (Quickstart, Lint, Coverage, axe-core)
+- **Date**: 2026-07-13
+- **Tool**: Claude Code
+- **Outcome**: Issue #122 (005-T124–T130), branch
+  `feature/122-g-arch-polish-validation-spec-005-validation-runs`, committed locally (`f90671a`),
+  not pushed. First validation-results doc in the repo: new
+  `specs/005-system-architecture/validation-results.md`. All 7 checks run for real and passed:
+  (1) backend `go build`/`go run` against a real local Postgres — `/healthz` matches the current
+  `HealthCheckResponse` contract, DB pool min5/max25, CORS preflight correct, `SIGTERM` graceful
+  shutdown confirmed via log; (2) frontend dev server renders with 0 console/page errors (headless
+  Chromium via Playwright); (3) `terraform init -backend=false`/`validate`/`fmt -check -recursive`
+  all clean across all 6 modules — `terraform plan` deliberately **not** run against real AWS even
+  though this machine has live credentials (`aws sts get-caller-identity` succeeds), matching the
+  standing AWS-cost-avoidance policy and `infra-plan.yml`'s own gated `plan` job; (4) a real browser
+  `fetch` from the frontend origin to the running backend confirmed CORS + reachability (no
+  `ArchitectureTest`-style component exists in the current codebase, so this validated the
+  underlying mechanics instead of the quickstart's stale literal steps); (5) `golangci-lint`/
+  ESLint+Prettier both 0 errors; (6) `internal/example` coverage — **89.1%** for service+repository
+  combined via the full Colima-backed suite (the CI `-short` lane alone reads 64.1%, expected since
+  `repository.go`'s DB-backed methods need testcontainers, skipped there by design — flagged in the
+  write-up, not treated as a gap); (7) Button/Card/Input tests 27/27 (136/136 full suite); (8) an
+  ad-hoc, disposable axe-core scan (`@axe-core/playwright`, not committed) found **0 violations** on
+  the current placeholder `HomePage`.
+- **Key decision**: per the issue's own explicit accessibility note, did **not** author a new
+  permanent `accessibility.spec.ts` — `accessibility.yml`'s `--pass-with-no-tests` vacuous-pass state
+  is a deliberately deferred, already-tracked decision (002-T023, Sprint 9), not a gap this issue
+  should silently "fix" by inventing a real spec. The ad-hoc scan gives an honest point-in-time
+  number without pretending to close that follow-up.
+- **No trivial fixes were needed** — lint/format/tests were already clean going in, unlike a typical
+  "fix what you find" pass. Issue #122's checklist ticked via `gh issue edit` (all 7 items +
+  Testing/Deployment-Notes checkboxes), with the validation-results.md link and summary posted as a
+  trailer.
+- **Workflow note**: this session also carried forward the already-pending, unrelated
+  `docs/roadmap.md` edit (005-T117–T119 Backlog→Done, PRs #131/#132) that existed in the working
+  tree before the session started, per explicit user instruction to leave it untouched and let it
+  land in this same commit. `docs/roadmap.md` rows 005-T124–T130 themselves are deliberately left
+  `Backlog` — same established convention, flip after this PR merges.
