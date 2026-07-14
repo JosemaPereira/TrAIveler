@@ -273,6 +273,120 @@ graph TD
 
 <!-- PROMOTED:architecture END -->
 
+## Implementation Status (Spec 005 — System Architecture, Sprints 1–4)
+
+This section is an addendum outside the promoted architecture above — it does not change any
+component boundary agreed in specs 001-003, it documents what is actually built today (Sprint 4
+close, spec `specs/005-system-architecture/`) versus what remains target/planned. Component-level
+detail lives in each area's own README (`backend/README.md`, `frontend/README.md`,
+`infra/README.md`); this section is a cross-area summary kept in sync with them, not a duplicate
+source of truth — see those files for exhaustive project-structure trees, environment variables,
+and per-module notes.
+
+### As-built component diagram
+
+```mermaid
+graph TD
+    User[End User Browser]
+    FE[React 19 SPA — Vite dev server :5173<br/>ErrorBoundary → QueryClientProvider → RouterProvider<br/>Single real route: placeholder HomePage]
+    API[Go 1.26 API — cmd/api<br/>Chi router<br/>Middleware: RequestID → Logger → Recovery → CORS → BodySize<br/>GET /healthz, /api/v1/examples reference resource, /swagger/*]
+    DB[(PostgreSQL 15.4<br/>docker-compose locally; RDS module authored, not applied)]
+    AI[Ollama + Gemma — local dev default<br/>AnthropicClient built for staging/production]
+    TF[6 Terraform modules<br/>vpc · ecs · rds · alb · cloudfront · secrets<br/>validate/fmt clean, never applied]
+
+    User -->|http://localhost:5173| FE
+    FE -.->|VITE_API_BASE_URL configured; no route calls it yet| API
+    API -->|pgx pool, min 5 / max 25| DB
+    API -->|AI_PROVIDER=ollama default in development| AI
+    TF -.->|would provision; AWS-cost-avoidance policy in force| DB
+
+    style User fill:#e1f5ff
+    style FE fill:#f3e5f5
+    style API fill:#e8f5e9
+    style DB fill:#fce4ec
+    style AI fill:#fff9c4
+    style TF fill:#fff4e6
+```
+
+### Backend (`backend/`)
+
+The Chi router is built in `cmd/api/server.go`; `cmd/api/routes.go`'s `registerRoutes()` is the
+single place new endpoints get mounted. The middleware chain runs in this exact order —
+`RequestID → Logger → Recovery → CORS → BodySize` (`internal/middleware/`) — `RequestID` first so
+downstream middleware can correlate by request ID, `Recovery` wrapping everything so a panic
+anywhere still yields a clean `500`. `internal/database/client.go` wraps a `pgxpool` connection
+pool (min 5 / max 25 connections, configurable) behind a `database.Client` interface. `internal/errors/`
+defines `DomainError` (six constructors: `NotFound`, `Validation`, `Unauthorized`, `Forbidden`,
+`Conflict`, `ServiceUnavailable`) and `HandleError`, which maps a domain error to the standard JSON
+error envelope (`docs/api-design-standards.md` §7), including the correlation ID from context.
+
+`internal/ai/` defines the `AIClient` interface (`GenerateItinerary`, `StreamItinerary`) with **two
+real implementations** selected by the `AI_PROVIDER` environment variable: `OllamaClient` (default
+in `development` — a free, local, no-API-key backend against a local Ollama server running a Gemma
+model) and `AnthropicClient` (default in `production` — the official `anthropic-sdk-go`, delegating
+retry/backoff to the SDK's own `option.WithMaxRetries`/`option.WithRequestTimeout`, surfacing an
+exhausted-retries 429/503 as a `service_unavailable` `DomainError` with a `Retry-After` hint). See
+[Local AI Setup](local-ai-setup.md).
+
+`internal/example/` is a throwaway model→repository→service→handler reference implementation
+(CRUD + optimistic locking via a `version` column, pagination, `swag` annotations for every
+handler) — it demonstrates the layering every future real domain package should copy, and must be
+deleted once the first one (Trip, targeted Sprint 8 per `docs/roadmap.md`) ships. **No real domain
+package exists yet**: `internal/{auth, trip, itinerary, conversation, suggestion, subscription}`
+from the original spec text are still unbuilt. `backend/docs/` (a generated Swagger 2.0/OpenAPI
+contract, `swaggo/swag`) is produced from `internal/example/handler.go`'s doc-comment annotations
+and served at `/swagger/index.html` / `/swagger/doc.json`, unauthenticated for now (see the
+"Planned Addendum" section below, which predates this status update and remains accurate).
+
+### Frontend (`frontend/`)
+
+Vite + React 19 + TypeScript strict mode. `src/App.tsx` composes `ErrorBoundary` >
+`QueryClientProvider` (`src/lib/query-client.ts`) > `RouterProvider` (`src/routes/index.tsx`).
+Atomic Design layering under `src/components/`: `primitives/` (`Button`, `Input`, `Card`,
+`LoadingSpinner`, `ErrorMessage`, `EmptyState`, each token-driven via CSS Modules), `composites/`
+(`Form`, composing `Button` + `Input`), and an empty `features/` placeholder (`.gitkeep`) reserved
+for feature-scoped modules as later specs land. `ErrorBoundary` itself sits outside this layering,
+directly under `src/components/`. `src/stores/auth-store.ts` is a Zustand store
+(`isAuthenticated`/`user`/`isLoading` + `login`/`logout`/`refreshSession`) with **no persistence
+middleware** — the HTTP-only JWT cookie is the real session store, state is re-derived via
+`refreshSession()` on reload. `src/lib/api-client.ts` (typed `fetch` wrapper, `APIError` matching
+the backend's error envelope, a fresh `X-Request-ID` per request) and
+`src/hooks/useErrorHandler.ts` (the first hook under `src/hooks/`, mapping an API error to
+render-ready `{title, message, requestId?, isRetryable}`) form a complete, unit-tested
+error-handling chain — but **no route consumes live API data yet**: `src/routes/` holds a single
+real route, `HomePage`, a documented placeholder (`<h1>TrAIveler</h1>`). Auth/trip/generate pages
+are future-sprint work.
+
+### Infrastructure (`infra/`)
+
+Six Terraform modules exist and pass `terraform validate` / `terraform fmt -check -recursive`:
+`vpc`, `ecs` (Fargate, ARM64/Graviton2 task definitions), `rds` (PostgreSQL 15.4), `alb`
+(`/healthz`-checked target group), `cloudfront` (S3 origin via OAI, SPA 404→`/index.html`
+rewrite), and `secrets` (AI API key, JWT signing key — DB credentials are created directly by the
+`rds` module). The root `infra/main.tf` wires all six via module outputs; `infra/environments/
+{staging,production}.tfvars` hold environment-specific sizing matching the "Environment
+Configurations" table above. `.github/workflows/infra-plan.yml` and `infra-apply.yml` exist; their
+non-AWS steps (`terraform init -backend=false`, `validate`, `fmt -check`) run for real on every
+pull request, but **every AWS-touching step is gated behind the `AWS_ROLE_ARN` repository secret**,
+which has never been set — no `terraform apply` has run against real AWS infrastructure, per this
+repo's standing AWS-cost-avoidance policy (see `.github/memory/session-notes.md`). OIDC IAM role
+creation is fully documented and reproducible (`infra/README.md`) but deliberately not provisioned.
+
+### Divergences from the original Spec 005 plan worth flagging
+
+- The promoted architecture above (from specs 001-003) describes 8+ domain database tables and
+  roughly 15 REST endpoint groups; none of that domain layer is built. The only real HTTP surface
+  today is `/healthz` and the throwaway `internal/example` reference CRUD resource.
+- Local development defaults to **Ollama + Gemma**, not Anthropic Claude — a documented product
+  decision made during implementation (not present in the original spec text), to avoid requiring
+  an API key for MVP testing. Staging/production still target Anthropic Claude as originally
+  planned, and the `AnthropicClient` implementation is complete.
+- The frontend's error-handling chain (`APIError` → `useErrorHandler` → `ErrorMessage`) is fully
+  implemented and tested, but not yet visible anywhere in the running app — it documents the
+  pattern future feature pages should adopt, rather than something exercised today.
+- Infrastructure modules are code-complete and validated but never applied — the Component
+  Architecture diagram above depicts the target topology, not a currently running deployment.
+
 ## Local Development Note: AI Provider Override (Ollama)
 
 This section is a local-development addendum, outside the promoted architecture above — it does

@@ -163,6 +163,30 @@ func TestService_ProcessData_WithRunFunction(t *testing.T) {
 - `backend/internal/database/mocks/client_mock.go` — Generated mock example
 - [Coding Guidelines](coding-guidelines.md) — Mock Generation section
 
+#### Repository Integration Tests with Optional Testcontainers
+
+A repository's DB-backed methods (`Create`/`FindByID`/`FindByEmail`/`Update`/`Delete`/`List` in
+`backend/internal/example/repository.go`) aren't exercised by the service-layer mock-based tests
+above — they need a real PostgreSQL connection. Rather than requiring Docker for every local test
+run, these tests are gated behind Go's `testing.Short()`:
+
+- **`make test`** (default, CI's fast lane) — `go test -tags=test ./... -short`, skips
+  testcontainer-gated tests entirely. No Docker/Colima required.
+- **`make test-all`** — `go test -tags=test ./...` (no `-short`), runs the full suite including
+  testcontainers. Requires [Colima](https://github.com/abiosoft/colima) (`colima start --cpu 2
+  --memory 4`) or another Docker-compatible runtime running locally.
+- **`make test-coverage`** — the actual CI coverage target; same `-short` flag as `make test`, so
+  it does **not** exercise `repository.go`'s DB-backed methods. This is expected, not a bug: see
+  `specs/005-system-architecture/validation-results.md` (005-T128) for the concrete before/after
+  coverage numbers this produces (64.1% short-mode vs. 89.1% full-suite for
+  `internal/example`'s combined service+repository code).
+
+`backend/internal/example/repository_integration_test.go` is the reference implementation: it
+starts a real `postgres:16-alpine` container via `testcontainers-go`, applies the goose migrations
+from `backend/migrations/`, and exercises the repository against it — see
+`setupRepositoryTestDB(ctx, t)` in that file, which mirrors `backend/internal/database/client_test.go`'s
+container-setup helper. See also `backend/TESTING.md` for the full command reference.
+
 ### Frontend (React / TypeScript)
 
 - Test files live next to the source file they test: `TripCard.test.tsx` alongside `TripCard.tsx`.
@@ -198,6 +222,14 @@ func TestCreateTrip_ValidPayload_Returns201(t *testing.T) { ... }
 - Integration tests verify that a feature's components, hooks, and API calls work together correctly.
 - Use **Mock Service Worker (MSW)** to intercept HTTP requests instead of mocking modules directly.
 - These tests live under `src/features/<feature>/__tests__/` or alongside the feature entry component.
+
+**Current state (as of Sprint 4)**: MSW (`msw` in `frontend/package.json`) is installed but **not
+yet wired up** — no route makes a live API call yet (`src/features/` is still an empty
+placeholder), so there is nothing for MSW to intercept. Today's tests that exercise
+`src/lib/api-client.ts` (e.g. `api-client.test.ts`) mock the global `fetch` directly instead. Once
+a real feature lands that calls the backend, switch that feature's tests to MSW per this section
+rather than continuing the direct-`fetch`-mock pattern — `api-client.test.ts` is a unit test for
+the client itself, not a precedent to follow for feature-level integration tests.
 
 ---
 
@@ -268,6 +300,16 @@ e2e/
 | E2E | All primary user flows defined in functional requirements |
 
 Coverage is a floor, not a goal. Prioritize meaningful tests over achieving a percentage.
+
+**Observed numbers (Spec 005 validation sweep, 2026-07-13 — see
+`specs/005-system-architecture/validation-results.md` for full detail)**: backend
+`internal/example` (service + repository combined) measured **89.1%** with the full,
+Colima-backed test run — comfortably over the 80% floor. The CI/`make test-coverage` lane alone
+(short mode, no testcontainers) reads a lower **64.1%** by design, since `repository.go`'s
+DB-backed methods are only exercised by the testcontainer-gated test (see "Repository Integration
+Tests with Optional Testcontainers" above) — not a real shortfall. Frontend has **no coverage
+threshold enforced yet** in `vitest.config.ts` (tracked separately as roadmap task `002-T041`);
+136/136 frontend tests pass across 15 files as of the same sweep.
 
 ---
 
