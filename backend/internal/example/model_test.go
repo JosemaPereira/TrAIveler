@@ -7,8 +7,6 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// TestUnitValidate_ValidExample_ReturnsNil verifies that a fully valid Example
-// passes validation with no error.
 func TestUnitValidate_ValidExample_ReturnsNil(t *testing.T) {
 	ex := &Example{
 		Name:   "Ada Lovelace",
@@ -21,8 +19,6 @@ func TestUnitValidate_ValidExample_ReturnsNil(t *testing.T) {
 	assert.Nil(t, err)
 }
 
-// TestUnitValidate_MissingName_ReturnsValidationError verifies that an empty
-// or whitespace-only name is rejected with a field-level error.
 func TestUnitValidate_MissingName_ReturnsValidationError(t *testing.T) {
 	tests := []struct {
 		name string
@@ -50,8 +46,6 @@ func TestUnitValidate_MissingName_ReturnsValidationError(t *testing.T) {
 	}
 }
 
-// TestUnitValidate_MissingEmail_ReturnsValidationError verifies that an empty
-// or whitespace-only email is rejected with a field-level error.
 func TestUnitValidate_MissingEmail_ReturnsValidationError(t *testing.T) {
 	ex := &Example{
 		Name:   "Ada Lovelace",
@@ -67,8 +61,6 @@ func TestUnitValidate_MissingEmail_ReturnsValidationError(t *testing.T) {
 	assert.Equal(t, "email", err.Fields[0].Field)
 }
 
-// TestUnitValidate_InvalidStatus_ReturnsValidationError verifies that a
-// status outside StatusActive/StatusInactive is rejected.
 func TestUnitValidate_InvalidStatus_ReturnsValidationError(t *testing.T) {
 	ex := &Example{
 		Name:   "Ada Lovelace",
