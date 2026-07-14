@@ -416,6 +416,78 @@ duplicate emails, missing rows, and optimistic-locking version mismatches. `/hea
 own local `writeJSON` in `cmd/api/server.go`, unrelated to this package — it predates `internal/errors`
 and has no domain-error case to report.
 
+**Concrete examples**, matching the real shipped code in `internal/example/`:
+
+1. **Creating a domain error** — `repository.go`'s `Create` reports a racing duplicate email as a
+   `Conflict`, and its `scanOne` helper (shared by `FindByID`/`FindByEmail`) reports a missing row
+   as a `NotFound`:
+
+   ```go
+   // repository.go — Create: translate a UNIQUE-violation into a domain error
+   if errors.As(err, &pgErr) && pgErr.Code == uniqueViolationCode {
+       return domainerrors.Conflict(fmt.Sprintf("an example with email %q already exists", ex.Email))
+   }
+
+   // repository.go — scanOne: translate "no rows" into a domain error
+   if errors.Is(err, pgx.ErrNoRows) {
+       return nil, domainerrors.NotFound("example", fmt.Sprintf("%v", arg))
+   }
+   ```
+
+   `Conflict(message string)` and `NotFound(resource, id string)` are two of the six constructors
+   listed above; both build a fresh `*DomainError` with no wrapped `Err`, since there is no
+   lower-level cause worth preserving for either case.
+
+2. **Wrapping instead of translating** — the same `scanOne` method also shows the *other* path, for
+   an error that stays unmapped:
+
+   ```go
+   return nil, fmt.Errorf("find example: %w", err)
+   ```
+
+   This wrapped error is **not** a `*DomainError` and does not wrap one, so it falls straight
+   through `HandleError`'s `errors.As(err, &domainErr)` check into the generic branch: the client
+   only ever sees `internal_error`/500, while the real cause is logged server-side via
+   `slog.Default()` with the request ID attached. This is exactly the mechanism
+   `tests/integration/error_test.go` (a sibling PR, #131, not yet merged as of this writing)
+   exercises for a DB-timeout scenario — asserting a generic 500 body reaches the client while the
+   specific timeout error still lands in the logs.
+
+3. **Handler translation** — every handler in `handler.go` follows the same one-line pattern to
+   turn a service error into the standard envelope; `handleGet` is the simplest example:
+
+   ```go
+   ex, err := h.service.GetExample(r.Context(), id)
+   if err != nil {
+       domainerrors.HandleError(w, r, err)
+       return
+   }
+   ```
+
+   Any future domain handler (trips, suggestions, auth, ...) should follow this exact shape — the
+   handler decides nothing about status codes or envelope shape, `HandleError` owns that entirely.
+
+4. **Retry/backoff on an outbound dependency** — see
+   [AI client foundation](#ai-client-foundation-internalai) below for `AnthropicClient`'s approach:
+   it delegates retry/backoff to the SDK's own `option.WithMaxRetries`/`option.WithRequestTimeout`
+   rather than a hand-rolled loop, and an exhausted-retries 429/503 ultimately surfaces as a
+   `"service_unavailable"` `DomainError` carrying a `Retry-After` header, via `TranslateError` — see
+   that section for the full mechanism rather than repeating it here.
+
+5. **Correlation ID propagation** — the same request ID appears in two places on every response:
+   the `X-Request-ID` response header (set once, first in the middleware chain, by `RequestID` in
+   `cmd/api/server.go`) and the JSON error body's `request_id` field, pulled from the same context
+   value by `HandleError`/`writeErrorResponse` via `middleware.RequestIDFromContext(r.Context())`.
+   For a failing request they carry the same value — a client or support engineer can quote either
+   one and land on the same request:
+
+   ```text
+   X-Request-ID: 6f1a9e2e-52f0-4b2b-9d21-9d6a7d9e0c31            <- response header
+
+   {"error":"not_found","message":"example with ID \"abc\" not found",
+    "request_id":"6f1a9e2e-52f0-4b2b-9d21-9d6a7d9e0c31"}         <- response body
+   ```
+
 ### AI client foundation (`internal/ai/`)
 
 `AIClient` is the stable contract for generating trip itineraries from a conversation history
@@ -465,16 +537,22 @@ endpoints get added as the API grows. `main.go` wires `config.Load()` → `datab
 `NewHTTPServer()` → `*http.Server` (serving in a goroutine) → waits on `SIGINT`/`SIGTERM` →
 `server.Shutdown(ctx)` with a 30s timeout → closes the database client.
 
-**`GET /healthz`** pings the database with a 2-second bounded timeout:
+**`GET /healthz`** pings the database with a 2-second bounded timeout. Per spec 002's
+`HealthCheckResponse` validation rules
+([`specs/002-nfr-system-constraints/data-model.md`](../specs/002-nfr-system-constraints/data-model.md)),
+the HTTP status is **always `200 OK`** — load balancers key their routing decisions off the HTTP
+status code, so a transient DB blip must never trigger a failover. The ping result is signaled only
+through the JSON body's `status` field (`"ok"` or `"degraded"`), plus a `logger.Warn` so the failure
+is still visible to operators instead of disappearing silently:
 
 | Condition | Status | Body |
 |-----------|--------|------|
-| Database reachable | `200` | `{"status":"healthy","database":"connected"}` |
-| Database ping fails or times out | `503` | `{"status":"unhealthy","database":"disconnected","error":"<message>"}` |
+| Database reachable | `200` | `{"status":"ok","version":"0.1.0","uptime_seconds":123.45}` |
+| Database ping fails or times out | `200` | `{"status":"degraded","version":"0.1.0","uptime_seconds":123.45}` |
 
-No authentication required. This is distinct from the simpler `{"status":"ok"}` contract described
-for `NFR-OBS-002` (tracked separately under roadmap group `G-OBS-HEALTHZ`) — this endpoint actively
-checks the database, that one does not.
+No authentication required. `version` and `uptime_seconds` come from `cmd/api/server.go`'s package
+`version` variable and `startTime` respectively, matching the `HealthCheckResponse` struct defined
+there.
 
 ---
 
