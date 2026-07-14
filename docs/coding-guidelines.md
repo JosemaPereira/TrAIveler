@@ -44,9 +44,37 @@ import (
 
 Use `goimports` (or an equivalent tool) to keep imports sorted and remove unused imports automatically.
 
+**Real example** (`backend/internal/example/handler.go`), showing all three groups:
+
+```go
+import (
+    "encoding/json"
+    "fmt"
+    "log/slog"
+    "net/http"
+    "strconv"
+    "strings"
+
+    "github.com/go-chi/chi/v5"
+
+    domainerrors "github.com/JosemaPereira/TrAIveler/backend/internal/errors"
+    "github.com/JosemaPereira/TrAIveler/backend/internal/middleware"
+)
+```
+
+**Enforcement note**: `goimports` is enabled as a `golangci-lint` linter (`backend/.golangci.yml`),
+but that config does **not** set goimports' `local-prefixes` option — so the linter enforces that
+each import block is gofmt/goimports-formatted (correctly sorted within its group, no unused
+imports), not the specific three-way stdlib/external/internal split itself. The split is a project
+convention, preserved by keeping the blank lines between groups when you add or remove an import —
+`goimports` won't merge or re-split existing groups on its own without that flag configured. Follow
+the convention by hand; don't rely on the linter to catch a missing blank line here.
+
 ### Package Naming
 - Package names must be lowercase, single words, with no underscores or camelCase: `itinerary`, `handler`, `store`.
-- File names use snake_case: `itinerary_service.go`, `trip_handler.go`.
+- File names use snake_case: `itinerary_service.go`, `trip_handler.go`. Matches the real codebase,
+  e.g. `backend/internal/middleware/request_id.go`, `backend/internal/middleware/body_size.go`,
+  `backend/internal/ai/ollama_client.go`.
 
 ### Struct Field Ordering
 - **Prioritize logical grouping and readability over memory alignment optimization**.
@@ -343,18 +371,30 @@ make vet               # Run go vet only
 ```
 
 ### Project Structure (Backend)
+
+Actual current structure (see [`backend/README.md`](../backend/README.md#project-structure) for
+the full, up-to-date tree with per-file descriptions):
+
 ```
 backend/
   cmd/
-    server/         # main entrypoint
+    api/            # main entrypoint (main.go, server.go, routes.go) — not cmd/server/
   internal/
-    <domain>/       # one package per domain concept (itinerary, trip, user, etc.)
-      handler.go
-      service.go
-      repository.go
-  pkg/              # packages safe to import from outside internal/
+    middleware/      # RequestID, Logger, Recovery, CORS, BodySize
+    database/         # pgxpool client
+    errors/           # DomainError + HandleError
+    ai/               # AIClient interface + OllamaClient/AnthropicClient
+    example/          # throwaway model→repository→service→handler reference pattern —
+                       # copy this layering for a real <domain>/ package (handler.go,
+                       # service.go, repository.go, model.go), then delete example/
+  pkg/                # packages safe to import from outside internal/ (currently empty)
   config/
+  migrations/         # goose migrations
 ```
+
+`internal/example/` is the reference for what a real `internal/<domain>/` package should look
+like — `handler.go`, `service.go`, `repository.go` (plus `model.go`) — until the first real domain
+(Trip) ships and it is deleted.
 
 ---
 
@@ -369,7 +409,8 @@ backend/
 - Enable strict mode in `tsconfig.json`.
 
 ### Import Organization
-Imports must be grouped in this order, separated by blank lines:
+Imports must be grouped in this order, separated by blank lines: React/framework → third-party →
+internal absolute (`@/...`) → internal relative → styles/assets.
 
 ```ts
 // 1. React and framework
@@ -378,13 +419,24 @@ import { useState, useEffect } from 'react';
 // 2. Third-party libraries
 import { useQuery } from '@tanstack/react-query';
 
-// 3. Internal — absolute paths (via path aliases)
+// 3. Internal — absolute paths (via the '@' path alias, configured in vite.config.ts /
+//    tsconfig.json's "paths": { "@/*": ["./src/*"] })
 import { ItineraryCard } from '@/components/ItineraryCard';
 import { useTrip } from '@/hooks/useTrip';
+
+// 3b. Internal — relative paths (used when the absolute alias would be awkward, e.g. a
+//    hook importing a sibling lib module — see frontend/src/hooks/useErrorHandler.ts)
+import { isAPIError } from '../lib/query-client';
 
 // 4. Styles / assets
 import styles from './TripView.module.css';
 ```
+
+**Enforcement note**: this order is a documented project convention (also stated in
+[`frontend/README.md`](../frontend/README.md#code-standards)), not an automated ESLint rule —
+`frontend/eslint.config.js` has no `eslint-plugin-import`/`import/order` rule configured, and no
+such plugin is installed. `npm run lint` will not catch a misordered import block; follow the
+convention by hand and rely on code review to catch drift.
 
 ### Component Conventions
 - One component per file. The file name matches the component name in PascalCase: `TripCard.tsx`.
@@ -396,19 +448,42 @@ import styles from './TripView.module.css';
 - A hook must have a single, clearly named responsibility.
 
 ### Project Structure (Frontend)
+
+Actual current structure (see [`frontend/README.md`](../frontend/README.md#project-structure) for
+the full, up-to-date tree with per-file descriptions):
+
 ```
 frontend/
   src/
-    components/     # shared/reusable UI components
-    features/       # feature-scoped components and logic
-      itinerary/
-      trip/
-    hooks/          # shared custom hooks
-    pages/          # top-level route components
-    services/       # API client functions
-    types/          # shared TypeScript types and interfaces
-    utils/          # pure utility functions
+    components/
+      primitives/     # Button, Input, Card, LoadingSpinner, ErrorMessage, EmptyState
+      composites/     # Form (composes Button + Input)
+      ErrorBoundary.tsx  # top-level, sits outside the primitives/composites/features layers
+    routes/           # React Router v7 config (index.tsx, RootLayout, HomePage)
+    stores/           # Zustand stores (auth-store.ts)
+    features/         # feature-scoped components and logic (empty placeholder today)
+    hooks/            # shared custom hooks, e.g. useErrorHandler.ts
+    lib/               # framework/infra wiring: api-client.ts, query-client.ts
+    styles/            # tokens.css, global.css
+    test/              # Vitest setup helpers
 ```
+
+Note: there is no `pages/`, `services/`, `types/`, or `utils/` directory in the real codebase —
+route-level components live in `routes/`, API client functions in `lib/`, and shared types are
+currently colocated with the module that defines them (e.g. `APIError` in `lib/api-client.ts`).
+Introduce `types/`/`utils/` only once a genuinely cross-cutting type or pure helper needs one,
+per this file's DRY principle above.
+
+### File Naming Conventions
+
+| Kind | Convention | Example |
+|------|------------|---------|
+| Component | `PascalCase.tsx`, matching the exported component name | `Button.tsx`, `ErrorBoundary.tsx` |
+| Component test | `PascalCase.test.tsx`, co-located | `Button.test.tsx` |
+| Component styles | `PascalCase.module.css`, co-located | `Button.module.css` |
+| Hook | `camelCase.ts`, `use`-prefixed | `useErrorHandler.ts` |
+| Library / infra module (`lib/`, `stores/`) | `kebab-case.ts` | `api-client.ts`, `query-client.ts`, `auth-store.ts` |
+| Route component | `PascalCase.tsx` under `routes/` | `HomePage.tsx`, `RootLayout.tsx` |
 
 ---
 

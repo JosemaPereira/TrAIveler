@@ -61,9 +61,30 @@ The entire codebase follows strict quality gates — automated linting, testing,
 
 ## Current Status
 
-🔨 **In active development** — Planning and architecture complete; implementation in progress.
+🔨 **In active development** — architecture foundation shipped, feature build-out in progress.
 
-The project has comprehensive specifications covering product vision, technical design, cloud infrastructure, security model, data models, API contracts, and a detailed roadmap with 539 prioritized tasks across six foundation specs. All foundational documentation is complete and ready to guide the build.
+The project has comprehensive specifications covering product vision, technical design, cloud
+infrastructure, security model, data models, API contracts, and a detailed roadmap
+([`docs/roadmap.md`](docs/roadmap.md): 841 tasks across 9 specs; MVP = 424 tasks across 10
+sprints). **Sprints 1-3 are complete** (114 tasks shipped) and Sprint 4 (integration &
+observability) is in progress: the Go backend has a working Chi router, middleware chain, database
+pooling, and a local-dev AI client (Ollama, no API key needed); the React frontend has its full
+Atomic Design component layer, state management, and API client wired up; Terraform modules for
+all core AWS resources are authored and validated (not yet applied, per this repo's
+AWS-cost-avoidance policy). See [`backend/README.md`](backend/README.md),
+[`frontend/README.md`](frontend/README.md), and [`infra/README.md`](infra/README.md) for
+per-area implementation status.
+
+---
+
+## Architecture
+
+TrAIveler is a three-tier application: a React SPA (served via CloudFront/S3), a stateless Go REST
+API (ECS Fargate), and a PostgreSQL database (RDS) — with Anthropic Claude (Ollama locally) as an
+external AI dependency for itinerary generation. See [`docs/architecture.md`](docs/architecture.md)
+for the full component diagram, integration rules, and security boundaries, including an
+"Implementation Status" section documenting what's actually built today versus the target
+architecture.
 
 ---
 
@@ -77,10 +98,10 @@ TrAIveler starts as a web application for individual and small group travel plan
 
 TrAIveler is organized into distinct areas, each with its own README and development workflow:
 
-- **[backend/](backend/)** — Go REST API powering authentication, trip management, AI integration, and collaboration
-- **[frontend/](frontend/)** — React + TypeScript SPA delivering the user interface and experience
-- **[e2e/](e2e/)** — Playwright end-to-end test suite validating complete user flows
-- **[infra/](infra/)** — Terraform infrastructure as code for AWS deployment
+- **[backend/](backend/)** — Go REST API powering authentication, trip management, AI integration, and collaboration. Architecture (Chi router, middleware, DB pool, AI client, error handling) shipped; domain packages (auth, trip, itinerary, ...) are future-sprint work.
+- **[frontend/](frontend/)** — React + TypeScript SPA delivering the user interface and experience. Application structure (routing, state, design tokens, primitives/composites) shipped; feature pages are future-sprint work.
+- **[e2e/](e2e/)** — Playwright end-to-end test suite validating complete user flows. Tooling and accessibility CI gate in place; feature specs land alongside their corresponding features.
+- **[infra/](infra/)** — Terraform infrastructure as code for AWS deployment. All core modules (VPC, ECS, RDS, ALB, CloudFront, Secrets) authored and validated; not yet applied to real AWS.
 
 ---
 
