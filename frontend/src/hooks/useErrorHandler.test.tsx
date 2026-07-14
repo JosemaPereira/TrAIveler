@@ -9,7 +9,8 @@ import { useErrorHandler } from './useErrorHandler'
 const mockNavigate = vi.fn()
 
 vi.mock('react-router', async () => {
-  const actual = await vi.importActual<typeof import('react-router')>('react-router')
+  const actual =
+    await vi.importActual<typeof import('react-router')>('react-router')
   return {
     ...actual,
     useNavigate: () => mockNavigate,
@@ -57,7 +58,12 @@ describe('useErrorHandler', () => {
   })
 
   it('returns a permission-denied result for a 403 APIError without redirecting', () => {
-    const error = new APIError(403, 'forbidden', 'You cannot do that.', 'req-403')
+    const error = new APIError(
+      403,
+      'forbidden',
+      'You cannot do that.',
+      'req-403'
+    )
 
     const { result } = renderHook(() => useErrorHandler(error), { wrapper })
 
@@ -104,7 +110,12 @@ describe('useErrorHandler', () => {
   })
 
   it('returns a retryable result for a 500 APIError', () => {
-    const error = new APIError(500, 'internal_error', 'Internal error.', 'req-500')
+    const error = new APIError(
+      500,
+      'internal_error',
+      'Internal error.',
+      'req-500'
+    )
 
     const { result } = renderHook(() => useErrorHandler(error), { wrapper })
 

@@ -43,13 +43,28 @@ export function useErrorHandler(error: unknown): ErrorHandlerResult | null {
 
   switch (status) {
     case 401:
-      return { title: 'Session Expired', message, requestId, isRetryable: false }
+      return {
+        title: 'Session Expired',
+        message,
+        requestId,
+        isRetryable: false,
+      }
     case 403:
-      return { title: 'Permission Denied', message, requestId, isRetryable: false }
+      return {
+        title: 'Permission Denied',
+        message,
+        requestId,
+        isRetryable: false,
+      }
     case 404:
       return { title: 'Not Found', message, requestId, isRetryable: false }
     default:
       // Covers 500/503, any other 5xx, and non-APIError network failures.
-      return { title: 'Something Went Wrong', message, requestId, isRetryable: true }
+      return {
+        title: 'Something Went Wrong',
+        message,
+        requestId,
+        isRetryable: true,
+      }
   }
 }
