@@ -468,7 +468,8 @@ quickstart scenarios re-run against the current codebase, `golangci-lint`/ESLint
 primitive tests (136/136 passing), and an ad-hoc axe-core accessibility scan (0 violations) —
 recorded in `specs/005-system-architecture/validation-results.md` (issue #122, PR #133). This same
 session brought `docs/architecture.md`, `docs/coding-guidelines.md`, `docs/testing-guidelines.md`,
-and the root `README.md` up to date with what Sprints 1-4 actually shipped (issue #121), and marked
+and the root `README.md` up to date with what Sprints 1-4 actually shipped (issue #121, PR #134),
+and marked
 every task in this file complete (issue #123, this section).
 
 **Net result**: the system architecture defined by this spec — backend service layering and
