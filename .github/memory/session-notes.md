@@ -205,3 +205,56 @@ Historical summaries of completed development sessions. Committed to git as a re
   commit — per the G-OBS-HEALTHZ session's established convention, the Backlog→Done flip (with
   "Closed by PR #NN") happens once the PR exists/merges, not at commit time on the feature branch.
   Whoever runs `open-pr`/closes this ticket next should flip those four rows.
+
+### Session: G-ARCH-INTEGRATION-FRONTEND — X-Request-ID, useErrorHandler, ErrorMessage Correlation ID
+- **Date**: 2026-07-13
+- **Tool**: Claude Code
+- **Outcome**: Issue #118 (005-T114–T116), frontend counterpart to #117, on branch
+  `feature/118-g-arch-integration-frontend-frontend-integration-patterns-x-request-id-useerrorhandler-errormessage`
+  (branched off `main` post-#128 merge; `origin` already had an auto-created same-name branch with
+  zero diff from `main`, so no divergence to reconcile). 005-T114 (`X-Request-ID` header +
+  `requestId` extraction in `frontend/src/lib/api-client.ts`) was already fully satisfied by PR #81
+  (Sprint 2) — verified via existing tests, no code touched, mirroring how #117 found 005-T110
+  already done on the backend side. New work (tdd-developer, strict RED-GREEN): (1) 005-T115 —
+  `frontend/src/hooks/useErrorHandler.ts`, the **first hook** in `src/hooks/` (directory didn't
+  exist before). Takes `unknown`, returns `{ title, message, requestId?, isRetryable } | null`;
+  401 triggers a `useNavigate('/login')` redirect inside `useEffect` (React Router forbids
+  navigating during render), 403/404 return non-retryable display info, 500/503/anything-else/
+  non-`APIError` falls back to a retryable generic result; uses the existing `isAPIError` helper
+  from `query-client.ts` rather than a fresh `instanceof` check. (2) 005-T116 —
+  `ErrorMessage.tsx` gained an optional `requestId?: string` prop, rendered as a de-emphasized
+  "Reference ID: ..." line (`data-testid="error-request-id"`), gated on truthiness so `''` (a real
+  possible value from `APIError.requestId`, not just `undefined`) renders nothing; new `.requestId`
+  CSS class in `ErrorMessage.module.css` using existing tokens (`--font-size-sm`,
+  `--color-neutral-600`). Neither the hook nor the requestId prop is wired into any real page yet —
+  deliberately out of scope, since no route in this codebase makes a live API call yet (auth/trip
+  pages are all future-sprint work).
+- **Independent verification** (main session, not just the subagent's self-report): re-read every
+  changed file, re-ran `npm run lint` / `npm run type-check` / `npm test` myself from a clean
+  invocation (136/136 tests across 15 files, zero lint/type errors) both right after
+  tdd-developer's pass and again after technical-writer's docstring edit to `ErrorMessage.tsx`, and
+  grepped `tokens.css` directly to confirm `--color-neutral-600` is a real token, not a guess.
+- **Test-authoring note**: `useErrorHandler.test.tsx` needed a router-context wrapper (`MemoryRouter`)
+  plus a `vi.mock('react-router', ...)` with `importActual` to stub just `useNavigate` as a spy —
+  no existing repo precedent for testing a hook that calls `useNavigate` (`ErrorBoundary.test.tsx`
+  uses `window.location.assign`, a different mechanism; `routes/index.test.tsx` renders a router but
+  never asserts navigation calls). This is a new, reusable idiom for the next hook that needs to
+  assert on `useNavigate`.
+- **Documentation pass** (technical-writer, same session): `frontend/README.md`'s Implementation
+  Status callout and Project Structure "Current"/"Target" trees updated — `hooks/` is no longer
+  purely aspirational now that `useErrorHandler.ts` is the first real entry; also fixed a stale
+  coverage-thresholds sentence that said thresholds would apply "once those directories exist" even
+  though `src/components/` and `src/hooks/` both already exist today (the thresholds themselves are
+  still unconfigured, tracked separately as roadmap 002-T041). `ErrorMessage.tsx`'s docstring
+  enriched to describe the new `requestId` prop's behavior. **Flagged, not fixed**:
+  `specs/005-system-architecture/contracts/frontend-patterns.md` Patterns 1/2/4/7 all illustrate
+  `ErrorMessage` with a stale children-based API (`<ErrorMessage>{message}</ErrorMessage>`) instead
+  of the real prop-based one (`title`/`message`/`requestId`/`onRetry`) — predates this session,
+  spans multiple patterns/snippets (not a trivial one-line fix), and is a spec-kit-owned contract
+  doc, so left as a flagged known gap rather than hand-edited, per the same reasoning as the existing
+  "Issue-Body Snippets Are Lowest-Authority" pattern. Also noted: that same contract file isn't
+  cross-linked from `frontend/README.md`'s Related Specifications table (pre-existing gap, unrelated
+  to this session).
+- **Workflow note**: `docs/roadmap.md`'s 005-T114–T116 rows are deliberately left at `Backlog` in
+  this commit, same established convention as #117/#110/#109 — the Backlog→Done flip happens once
+  the PR exists/merges. Whoever runs `open-pr`/closes this ticket next should flip those three rows.

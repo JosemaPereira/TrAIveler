@@ -55,4 +55,39 @@ describe('ErrorMessage', () => {
 
     expect(onRetry).toHaveBeenCalledTimes(1)
   })
+
+  it('renders the request id when provided', () => {
+    render(
+      <ErrorMessage message="Something went wrong." requestId="req-abc-123" />
+    )
+
+    expect(screen.getByText(/req-abc-123/)).toBeInTheDocument()
+  })
+
+  it('does not render request id content when requestId is omitted', () => {
+    render(<ErrorMessage message="Something went wrong." />)
+
+    expect(screen.queryByText(/req-/)).not.toBeInTheDocument()
+  })
+
+  it('does not render request id content when requestId is an empty string', () => {
+    render(<ErrorMessage message="Something went wrong." requestId="" />)
+
+    expect(screen.queryByTestId('error-request-id')).not.toBeInTheDocument()
+  })
+
+  it('still renders and calls the retry button when both requestId and onRetry are provided', () => {
+    const onRetry = vi.fn()
+    render(
+      <ErrorMessage
+        message="Something went wrong."
+        requestId="req-xyz-789"
+        onRetry={onRetry}
+      />
+    )
+
+    expect(screen.getByText(/req-xyz-789/)).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'Try Again' }))
+    expect(onRetry).toHaveBeenCalledTimes(1)
+  })
 })
