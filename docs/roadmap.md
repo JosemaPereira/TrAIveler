@@ -5,9 +5,9 @@
 > Notes are human-owned and preserved across runs. Do not hand-edit the stable IDs.
 
 **Last reconciled**: 2026-07-10 (added spec 009 — API Documentation via OpenAPI/Swagger)  
-**Current status**: 841 tasks across 9 specs; MVP = 424 tasks across Sprints 1-10 (recomputed
-2026-07-12 at Sprint 4 planning — see Sprint Summary Statistics). Sprints 1-3 complete
-(114 tasks shipped). See [Sprint Plan](#sprint-plan) for per-sprint detail and
+**Current status**: 841 tasks across 9 specs; MVP = 410 tasks across Sprints 1-10 (recomputed
+2026-07-13 at Sprint 5 planning — see Sprint Summary Statistics). Sprints 1-4 complete
+(157 tasks shipped). See [Sprint Plan](#sprint-plan) for per-sprint detail and
 `.github/memory/session-notes.md` for the narrative history of past sprint-closure decisions.
 
 ## Legend
@@ -376,29 +376,29 @@
 > alarms/metrics integrate with 003 observability resources (003-T059–064). Prompt validation extends 002
 > security requirements.
 
-#### Phase 1 — Setup (Shared Infrastructure)
+#### Phase 1 — Setup (Shared Infrastructure) → **Sprint 5**
 
 | ID | Task | Group | Sprint | Priority | Status | Depends on | Parallel | Issue | Notes |
 |----|------|-------|--------|----------|--------|------------|----------|-------|-------|
-| 004-T001 | Create backend security package structure: `backend/internal/auth/`, `backend/internal/authorization/`, `backend/internal/validation/`, `backend/internal/concurrency/`, `backend/internal/observability/` | | | P1 | Backlog | - | no | | |
-| 004-T002 | Create frontend security structure: `frontend/src/lib/auth.ts`, `frontend/src/lib/authContext.tsx`, `frontend/src/hooks/`, `frontend/src/components/ProtectedRoute.tsx` | G-SEC-FRONTEND-STRUCTURE | | P1 | Backlog | - | yes | | |
-| 004-T003 | Add backend dependencies: `go get github.com/golang-jwt/jwt/v5`, `go get golang.org/x/crypto/bcrypt`, `go get github.com/microcosm-cc/bluemonday` | G-SEC-BACKEND-DEPS | | P1 | Backlog | - | yes | | |
-| 004-T004 | Add frontend dependencies: `npm install @tanstack/react-query zustand` (if not already present) | G-SEC-FRONTEND-DEPS | | P1 | Backlog | - | yes | | |
-| 004-T005 | Create test directory structure: `backend/tests/integration/`, `backend/tests/security/`, `e2e/tests/` | G-SEC-TEST-STRUCTURE | | P1 | Backlog | - | yes | | |
+| 004-T001 | Create backend security package structure: `backend/internal/auth/`, `backend/internal/authorization/`, `backend/internal/validation/`, `backend/internal/concurrency/`, `backend/internal/observability/` | G-SEC-SETUP | 5 | P1 | Backlog | - | no | https://github.com/JosemaPereira/TrAIveler/issues/136 | Sprint 5 planning (2026-07-13): consolidated with T002-T005 (was 4 separate 1-task groups) — mirrors spec 001's G-SETUP-INIT precedent of bundling mixed backend/frontend/test scaffolding |
+| 004-T002 | Create frontend security structure: `frontend/src/lib/auth.ts`, `frontend/src/lib/authContext.tsx`, `frontend/src/hooks/`, `frontend/src/components/ProtectedRoute.tsx` | G-SEC-SETUP | 5 | P1 | Backlog | - | yes | https://github.com/JosemaPereira/TrAIveler/issues/136 | |
+| 004-T003 | Add backend dependencies: `go get github.com/golang-jwt/jwt/v5`, `go get golang.org/x/crypto/bcrypt`, `go get github.com/microcosm-cc/bluemonday` | G-SEC-SETUP | 5 | P1 | Backlog | - | yes | https://github.com/JosemaPereira/TrAIveler/issues/136 | |
+| 004-T004 | Add frontend dependencies: `npm install @tanstack/react-query zustand` (if not already present) | G-SEC-SETUP | 5 | P1 | Backlog | - | yes | https://github.com/JosemaPereira/TrAIveler/issues/136 | |
+| 004-T005 | Create test directory structure: `backend/tests/integration/`, `backend/tests/security/`, `e2e/tests/` | G-SEC-SETUP | 5 | P1 | Backlog | - | yes | https://github.com/JosemaPereira/TrAIveler/issues/136 | |
 
-#### Phase 2 — Foundational (Blocking Prerequisites)
+#### Phase 2 — Foundational (Blocking Prerequisites) → **Sprint 5**
 
 | ID | Task | Group | Sprint | Priority | Status | Depends on | Parallel | Issue | Notes |
 |----|------|-------|--------|----------|--------|------------|----------|-------|-------|
-| 004-T006 | Create `users` table migration: `backend/migrations/001_create_users_table.sql` with columns per data-model.md | G-SEC-DB-MIGRATIONS | | P1 | Backlog | - | yes | | |
-| 004-T007 | Create `refresh_tokens` table migration: `backend/migrations/002_create_refresh_tokens_table.sql` | G-SEC-DB-MIGRATIONS | | P1 | Backlog | - | yes | | |
-| 004-T008 | Create `jwt_signing_keys` table migration: `backend/migrations/003_create_jwt_signing_keys_table.sql` | G-SEC-DB-MIGRATIONS | | P1 | Backlog | - | yes | | |
-| 004-T009 | Create `security_events` table migration: `backend/migrations/004_create_security_events_table.sql` | G-SEC-DB-MIGRATIONS | | P1 | Backlog | - | yes | | |
-| 004-T010 | Create `trips.version` column migration: `backend/migrations/005_add_version_to_trips.sql` | G-SEC-DB-MIGRATIONS | | P1 | Backlog | - | yes | | |
-| 004-T011 | Create `itinerary_items.version` column migration: `backend/migrations/006_add_version_to_itinerary_items.sql` | G-SEC-DB-MIGRATIONS | | P1 | Backlog | - | yes | | |
-| 004-T012 | Implement password hashing utility in `backend/internal/auth/password.go` (bcrypt cost 12) | G-SEC-CORE-UTILITIES | | P1 | Backlog | - | yes | | |
-| 004-T013 | Implement correlation ID generator in `backend/internal/observability/correlation.go` | G-SEC-CORE-UTILITIES | | P1 | Backlog | - | yes | | |
-| 004-T014 | Implement structured logger in `backend/internal/observability/logger.go` with CloudWatch JSON output | G-SEC-CORE-UTILITIES | | P1 | Backlog | - | yes | | |
+| 004-T006 | Create `users` table migration: `backend/migrations/001_create_users_table.sql` with columns per data-model.md | G-SEC-DB-MIGRATIONS | 5 | P1 | Backlog | - | yes | https://github.com/JosemaPereira/TrAIveler/issues/138 | |
+| 004-T007 | Create `refresh_tokens` table migration: `backend/migrations/002_create_refresh_tokens_table.sql` | G-SEC-DB-MIGRATIONS | 5 | P1 | Backlog | - | yes | https://github.com/JosemaPereira/TrAIveler/issues/138 | |
+| 004-T008 | Create `jwt_signing_keys` table migration: `backend/migrations/003_create_jwt_signing_keys_table.sql` | G-SEC-DB-MIGRATIONS | 5 | P1 | Backlog | - | yes | https://github.com/JosemaPereira/TrAIveler/issues/138 | |
+| 004-T009 | Create `security_events` table migration: `backend/migrations/004_create_security_events_table.sql` | G-SEC-DB-MIGRATIONS | 5 | P1 | Backlog | - | yes | https://github.com/JosemaPereira/TrAIveler/issues/138 | |
+| 004-T010 | Create `trips.version` column migration: `backend/migrations/005_add_version_to_trips.sql` | G-SEC-DB-MIGRATIONS | 5 | P1 | Backlog | - | yes | https://github.com/JosemaPereira/TrAIveler/issues/138 | |
+| 004-T011 | Create `itinerary_items.version` column migration: `backend/migrations/006_add_version_to_itinerary_items.sql` | G-SEC-DB-MIGRATIONS | 5 | P1 | Backlog | - | yes | https://github.com/JosemaPereira/TrAIveler/issues/138 | |
+| 004-T012 | Implement password hashing utility in `backend/internal/auth/password.go` (bcrypt cost 12) | G-SEC-CORE-UTILITIES | 5 | P1 | Backlog | - | yes | https://github.com/JosemaPereira/TrAIveler/issues/139 | |
+| 004-T013 | Implement correlation ID generator in `backend/internal/observability/correlation.go` | G-SEC-CORE-UTILITIES | 5 | P1 | Backlog | - | yes | https://github.com/JosemaPereira/TrAIveler/issues/139 | |
+| 004-T014 | Implement structured logger in `backend/internal/observability/logger.go` with CloudWatch JSON output | G-SEC-CORE-UTILITIES | 5 | P1 | Backlog | - | yes | https://github.com/JosemaPereira/TrAIveler/issues/139 | |
 
 #### Phase 3 — User Story 1: Backend Engineer Implements Secure API Endpoint (Priority: P1) 🎯 MVP → **Sprint 9**
 
@@ -969,51 +969,51 @@
 
 > Cross-spec note: Authentication feature implements security model from spec 004, uses architecture patterns from spec 005, follows API standards from spec 007, and extends data model from spec 006.
 
-#### Phase 1 — Setup (Shared Infrastructure)
+#### Phase 1 — Setup (Shared Infrastructure) → **Sprint 5**
 
 | ID | Task | Group | Sprint | Priority | Status | Depends on | Parallel | Issue | Notes |
 |----|------|-------|--------|----------|--------|------------|----------|-------|-------|
-| 008-T001 | Create backend project structure: backend/cmd/api/, backend/internal/{auth,subscription,collaboration,security}/, backend/pkg/{database,config}/, backend/tests/{unit,integration,contract}/ | | | P1 | Backlog | 005-T001 | no | | |
-| 008-T002 | Initialize Go module with Chi v5, pgx/v5, goose, golang-jwt/jwt v5, bcrypt dependencies in backend/go.mod | G-008-SETUP | | P1 | Backlog | 008-T001 | yes | | |
-| 008-T003 | Create frontend project structure: frontend/src/{features,components,stores,styles,services,routes}/, frontend/tests/{unit,integration,e2e}/ | G-008-SETUP | | P1 | Backlog | 005-T002 | yes | | |
-| 008-T004 | Initialize Vite React TypeScript project with TanStack Query v5, Zustand, React Router v7, Vitest, Playwright in frontend/package.json | G-008-SETUP | | P1 | Backlog | 008-T003 | yes | | |
-| 008-T005 | Configure backend linting: golangci-lint.yml with errcheck, govet, staticcheck, revive, gosec in backend/.golangci.yml | G-008-SETUP | | P1 | Backlog | 008-T001 | yes | | |
-| 008-T006 | Configure frontend linting: ESLint + Prettier with TypeScript strict mode in frontend/.eslintrc.json and frontend/.prettierrc | G-008-SETUP | | P1 | Backlog | 008-T003 | yes | | |
-| 008-T007 | Create E2E test structure: e2e/specs/{auth,collaboration,accessibility}/ directories | G-008-SETUP | | P1 | Backlog | 005-T003 | yes | | |
-| 008-T008 | Create infrastructure directory: infra/terraform/modules/secrets/ for JWT key rotation | G-008-SETUP | | P1 | Backlog | 005-T004 | yes | | |
+| 008-T001 | Create backend project structure: backend/cmd/api/, backend/internal/{auth,subscription,collaboration,security}/, backend/pkg/{database,config}/, backend/tests/{unit,integration,contract}/ | | 5 | P1 | Backlog | 005-T001 | no | https://github.com/JosemaPereira/TrAIveler/issues/137 | Sprint 5 planning (2026-07-13): root task for this phase, kept standalone (other Phase 1/2 tasks build on it) |
+| 008-T002 | Initialize Go module with Chi v5, pgx/v5, goose, golang-jwt/jwt v5, bcrypt dependencies in backend/go.mod | G-008-SETUP | 5 | P1 | Backlog | 008-T001 | yes | https://github.com/JosemaPereira/TrAIveler/issues/140 | |
+| 008-T003 | Create frontend project structure: frontend/src/{features,components,stores,styles,services,routes}/, frontend/tests/{unit,integration,e2e}/ | G-008-SETUP | 5 | P1 | Backlog | 005-T002 | yes | https://github.com/JosemaPereira/TrAIveler/issues/140 | |
+| 008-T004 | Initialize Vite React TypeScript project with TanStack Query v5, Zustand, React Router v7, Vitest, Playwright in frontend/package.json | G-008-SETUP | 5 | P1 | Backlog | 008-T003 | yes | https://github.com/JosemaPereira/TrAIveler/issues/140 | |
+| 008-T005 | Configure backend linting: golangci-lint.yml with errcheck, govet, staticcheck, revive, gosec in backend/.golangci.yml | G-008-SETUP | 5 | P1 | Backlog | 008-T001 | yes | https://github.com/JosemaPereira/TrAIveler/issues/140 | |
+| 008-T006 | Configure frontend linting: ESLint + Prettier with TypeScript strict mode in frontend/.eslintrc.json and frontend/.prettierrc | G-008-SETUP | 5 | P1 | Backlog | 008-T003 | yes | https://github.com/JosemaPereira/TrAIveler/issues/140 | |
+| 008-T007 | Create E2E test structure: e2e/specs/{auth,collaboration,accessibility}/ directories | G-008-SETUP | 5 | P1 | Backlog | 005-T003 | yes | https://github.com/JosemaPereira/TrAIveler/issues/140 | |
+| 008-T008 | Create infrastructure directory: infra/terraform/modules/secrets/ for JWT key rotation | G-008-SETUP | 5 | P1 | Backlog | 005-T004 | yes | https://github.com/JosemaPereira/TrAIveler/issues/140 | |
 
 #### Phase 2 — Foundational (Blocking Prerequisites) → **Sprint 5**
 
 | ID | Task | Group | Sprint | Priority | Status | Depends on | Parallel | Issue | Notes |
 |----|------|-------|--------|----------|--------|------------|----------|-------|-------|
-| 008-T009 | Setup PostgreSQL connection pooling with pgx/v5 in backend/pkg/database/connection.go | | 5 | P1 | Backlog | 008-T001 | no | | |
-| 008-T010 | Configure goose migrations framework in backend/pkg/database/migrations/ directory | G-008-DATABASE | | P1 | Backlog | 008-T009 | yes | | |
-| 008-T011 | Create migration 001_create_users.sql: users table with id, email (unique), password_hash, full_name, has_subscription (boolean), failed_login_attempts (integer default 0), last_failed_login_at (timestamp), email_verified (boolean default false), created_at, updated_at, version (integer for optimistic locking) | G-008-MIGRATIONS | | P1 | Backlog | 008-T010 | yes | | |
-| 008-T012 | Create migration 002_create_subscriptions.sql: subscriptions table with id, user_id (FK), plan_id (FK), status, current_period_start, current_period_end, grace_period_ends_at (nullable), cancelled_at (nullable), created_at, updated_at, version | G-008-MIGRATIONS | | P1 | Backlog | 008-T010 | yes | | |
-| 008-T013 | Create migration 003_create_password_reset_tokens.sql: password_reset_tokens table with id, user_id (FK CASCADE), token_hash (unique), expires_at, used_at (nullable), created_at; indexes on user_id, token_hash, expires_at | G-008-MIGRATIONS | | P1 | Backlog | 008-T010 | yes | | |
-| 008-T014 | Create migration 004_create_security_events.sql: security_events table with id, correlation_id (index), event_type (check constraint), user_id (FK SET NULL), email, severity, ip_address, user_agent, details (jsonb), created_at; indexes on correlation_id, user_id, email, created_at, event_type | G-008-MIGRATIONS | | P1 | Backlog | 008-T010 | yes | | |
-| 008-T015 | Create migration 005_create_trips.sql: trips table with id, creator_id (FK), destination, start_date, end_date, archived (boolean default false), created_at, updated_at, version; index on creator_id, archived | G-008-MIGRATIONS | | P1 | Backlog | 008-T010 | yes | | |
-| 008-T016 | Create migration 006_create_collaborators.sql: collaborators table with id, trip_id (FK CASCADE), user_id (FK CASCADE), email, status (pending/accepted/rejected), invited_at, accepted_at, created_at; indexes on trip_id, user_id, status | G-008-MIGRATIONS | | P1 | Backlog | 008-T010 | yes | | |
-| 008-T017 | Create migration 007_create_suggestions.sql: suggestions table with id, trip_id (FK CASCADE), collaborator_id (FK CASCADE), suggestion_type, content, details (jsonb), status (pending/approved/rejected), approved_at, rejected_at, created_at | G-008-MIGRATIONS | | P1 | Backlog | 008-T010 | yes | | |
-| 008-T018 | Create environment config loader in backend/pkg/config/config.go: load DATABASE_URL, JWT_SIGNING_KEY_SECRET_ARN, ANTHROPIC_API_KEY_SECRET_ARN from environment | | | P1 | Backlog | 008-T001 | no | | |
-| 008-T019 | Implement JWT generator with RS256 in backend/internal/auth/jwt/generator.go: GenerateAccessToken(userID, hasSubscription) returns signed JWT with 24h expiration | G-008-JWT | | P1 | Backlog | 008-T018 | yes | | |
-| 008-T020 | Implement JWT validator in backend/internal/auth/jwt/validator.go: ValidateToken(token) returns claims, supports multi-key validation for zero-downtime rotation | G-008-JWT | | P1 | Backlog | 008-T018 | yes | | |
-| 008-T021 | Implement JWT refresher in backend/internal/auth/jwt/refresher.go: RefreshToken(refreshToken) validates, revokes old token, issues new access+refresh tokens | G-008-JWT | | P1 | Backlog | 008-T020 | yes | | |
-| 008-T022 | Implement bcrypt password hasher in backend/internal/auth/password/hasher.go: HashPassword(password) with cost 12, ComparePassword(hash, password) for validation | G-008-PASSWORD | | P1 | Backlog | 008-T018 | yes | | |
-| 008-T023 | Implement password validator in backend/internal/auth/password/validator.go: ValidatePassword(password) checks 8-72 chars, uppercase, lowercase, digit | G-008-PASSWORD | | P1 | Backlog | 008-T018 | yes | | |
-| 008-T024 | Implement progressive delay rate limiter in backend/internal/auth/ratelimit/limiter.go: CheckRateLimit(email) tracks failed attempts, returns delay seconds (exponential backoff after 5 failures) | G-008-RATELIMIT | | P1 | Backlog | 008-T018 | yes | | |
-| 008-T025 | Implement rate limiter storage in backend/internal/auth/ratelimit/store.go: in-memory map with 15-minute TTL for failed attempt tracking (user_id, count, first_attempt_at) | G-008-RATELIMIT | | P1 | Backlog | 008-T024 | yes | | |
-| 008-T026 | Implement security event logger in backend/internal/security/logger.go: LogSecurityEvent(correlationID, eventType, userID, email, severity, ipAddress, userAgent, details) writes to CloudWatch Logs as structured JSON | | | P1 | Backlog | 008-T018 | yes | | |
-| 008-T027 | Implement auth middleware in backend/internal/security/middleware.go: ValidateJWTCookie() extracts token from cookie, validates with JWT validator, attaches user context to request | G-008-MIDDLEWARE | | P1 | Backlog | 008-T020 | yes | | |
-| 008-T028 | Implement request ID middleware in backend/internal/security/middleware.go: GenerateRequestID() creates correlation ID, adds to context and response header X-Request-ID | G-008-MIDDLEWARE | | P1 | Backlog | 008-T001 | yes | | |
-| 008-T029 | Implement rate limit middleware in backend/internal/security/middleware.go: RateLimitMiddleware() checks X-RateLimit headers, returns 429 with Retry-After if exceeded | G-008-MIDDLEWARE | | P1 | Backlog | 008-T024 | yes | | |
-| 008-T030 | Setup Chi router with middleware chain in backend/cmd/api/main.go: request ID → logging → CORS → rate limit → recovery | | | P1 | Backlog | 008-T027, 008-T028, 008-T029 | no | | |
-| 008-T031 | Create Axios instance in frontend/src/services/api.ts: base URL, withCredentials=true, request/response interceptors (correlation ID, 401 refresh, error mapping) | G-008-FRONTEND-API | | P1 | Backlog | 008-T003 | yes | | |
-| 008-T032 | Create error handler utility in frontend/src/services/errorHandler.ts: mapApiError(error) converts API errors to user-friendly messages per FR-019 | G-008-FRONTEND-API | | P1 | Backlog | 008-T031 | yes | | |
-| 008-T033 | Create auth store in frontend/src/stores/authStore.ts: Zustand store with user state (id, email, full_name, has_subscription), isAuthenticated boolean, login/logout/setUser actions | | | P1 | Backlog | 008-T003 | yes | | |
-| 008-T034 | Create CSS design tokens in frontend/src/styles/tokens.css: CSS custom properties for colors (primary, secondary, error, warning with WCAG AA contrast), spacing scale (4/8/12/16/24/32/48px), typography (font sizes, weights, line heights), focus indicators (outline-width, outline-color, outline-offset) | | | P1 | Backlog | 008-T003 | yes | | |
-| 008-T035 | Create global styles in frontend/src/styles/global.css: CSS reset, base typography, box-sizing border-box, accessible focus styles using tokens | | | P1 | Backlog | 008-T034 | yes | | |
-| 008-T036 | Create React Router configuration in frontend/src/routes/router.tsx: routes for /register, /login, /dashboard, /trips/:id, /settings, /password-reset, with protected route wrapper checking authStore.isAuthenticated | | | P1 | Backlog | 008-T033 | no | | |
+| 008-T009 | Setup PostgreSQL connection pooling with pgx/v5 in backend/pkg/database/connection.go | G-008-DATABASE | 5 | P1 | Backlog | 008-T001 | no | https://github.com/JosemaPereira/TrAIveler/issues/141 | Sprint 5 planning (2026-07-13): merged into G-008-DATABASE with T010 (2 tasks, same file area, sequential) |
+| 008-T010 | Configure goose migrations framework in backend/pkg/database/migrations/ directory | G-008-DATABASE | 5 | P1 | Backlog | 008-T009 | yes | https://github.com/JosemaPereira/TrAIveler/issues/141 | |
+| 008-T011 | Create migration 001_create_users.sql: users table with id, email (unique), password_hash, full_name, has_subscription (boolean), failed_login_attempts (integer default 0), last_failed_login_at (timestamp), email_verified (boolean default false), created_at, updated_at, version (integer for optimistic locking) | G-008-MIGRATIONS | 5 | P1 | Backlog | 008-T010 | yes | https://github.com/JosemaPereira/TrAIveler/issues/142 | |
+| 008-T012 | Create migration 002_create_subscriptions.sql: subscriptions table with id, user_id (FK), plan_id (FK), status, current_period_start, current_period_end, grace_period_ends_at (nullable), cancelled_at (nullable), created_at, updated_at, version | G-008-MIGRATIONS | 5 | P1 | Backlog | 008-T010 | yes | https://github.com/JosemaPereira/TrAIveler/issues/142 | |
+| 008-T013 | Create migration 003_create_password_reset_tokens.sql: password_reset_tokens table with id, user_id (FK CASCADE), token_hash (unique), expires_at, used_at (nullable), created_at; indexes on user_id, token_hash, expires_at | G-008-MIGRATIONS | 5 | P1 | Backlog | 008-T010 | yes | https://github.com/JosemaPereira/TrAIveler/issues/142 | |
+| 008-T014 | Create migration 004_create_security_events.sql: security_events table with id, correlation_id (index), event_type (check constraint), user_id (FK SET NULL), email, severity, ip_address, user_agent, details (jsonb), created_at; indexes on correlation_id, user_id, email, created_at, event_type | G-008-MIGRATIONS | 5 | P1 | Backlog | 008-T010 | yes | https://github.com/JosemaPereira/TrAIveler/issues/142 | |
+| 008-T015 | Create migration 005_create_trips.sql: trips table with id, creator_id (FK), destination, start_date, end_date, archived (boolean default false), created_at, updated_at, version; index on creator_id, archived | G-008-MIGRATIONS | 5 | P1 | Backlog | 008-T010 | yes | https://github.com/JosemaPereira/TrAIveler/issues/142 | |
+| 008-T016 | Create migration 006_create_collaborators.sql: collaborators table with id, trip_id (FK CASCADE), user_id (FK CASCADE), email, status (pending/accepted/rejected), invited_at, accepted_at, created_at; indexes on trip_id, user_id, status | G-008-MIGRATIONS | 5 | P1 | Backlog | 008-T010 | yes | https://github.com/JosemaPereira/TrAIveler/issues/142 | |
+| 008-T017 | Create migration 007_create_suggestions.sql: suggestions table with id, trip_id (FK CASCADE), collaborator_id (FK CASCADE), suggestion_type, content, details (jsonb), status (pending/approved/rejected), approved_at, rejected_at, created_at | G-008-MIGRATIONS | 5 | P1 | Backlog | 008-T010 | yes | https://github.com/JosemaPereira/TrAIveler/issues/142 | |
+| 008-T018 | Create environment config loader in backend/pkg/config/config.go: load DATABASE_URL, JWT_SIGNING_KEY_SECRET_ARN, ANTHROPIC_API_KEY_SECRET_ARN from environment | | 5 | P1 | Backlog | 008-T001 | no | https://github.com/JosemaPereira/TrAIveler/issues/143 | Sprint 5 planning (2026-07-13): kept standalone — critical blocker, gates JWT/password/ratelimit/logger groups below |
+| 008-T019 | Implement JWT generator with RS256 in backend/internal/auth/jwt/generator.go: GenerateAccessToken(userID, hasSubscription) returns signed JWT with 24h expiration | G-008-JWT | 5 | P1 | Backlog | 008-T018 | yes | https://github.com/JosemaPereira/TrAIveler/issues/144 | |
+| 008-T020 | Implement JWT validator in backend/internal/auth/jwt/validator.go: ValidateToken(token) returns claims, supports multi-key validation for zero-downtime rotation | G-008-JWT | 5 | P1 | Backlog | 008-T018 | yes | https://github.com/JosemaPereira/TrAIveler/issues/144 | |
+| 008-T021 | Implement JWT refresher in backend/internal/auth/jwt/refresher.go: RefreshToken(refreshToken) validates, revokes old token, issues new access+refresh tokens | G-008-JWT | 5 | P1 | Backlog | 008-T020 | yes | https://github.com/JosemaPereira/TrAIveler/issues/144 | |
+| 008-T022 | Implement bcrypt password hasher in backend/internal/auth/password/hasher.go: HashPassword(password) with cost 12, ComparePassword(hash, password) for validation | G-008-PASSWORD | 5 | P1 | Backlog | 008-T018 | yes | https://github.com/JosemaPereira/TrAIveler/issues/145 | |
+| 008-T023 | Implement password validator in backend/internal/auth/password/validator.go: ValidatePassword(password) checks 8-72 chars, uppercase, lowercase, digit | G-008-PASSWORD | 5 | P1 | Backlog | 008-T018 | yes | https://github.com/JosemaPereira/TrAIveler/issues/145 | |
+| 008-T024 | Implement progressive delay rate limiter in backend/internal/auth/ratelimit/limiter.go: CheckRateLimit(email) tracks failed attempts, returns delay seconds (exponential backoff after 5 failures) | G-008-RATELIMIT | 5 | P1 | Backlog | 008-T018 | yes | https://github.com/JosemaPereira/TrAIveler/issues/146 | |
+| 008-T025 | Implement rate limiter storage in backend/internal/auth/ratelimit/store.go: in-memory map with 15-minute TTL for failed attempt tracking (user_id, count, first_attempt_at) | G-008-RATELIMIT | 5 | P1 | Backlog | 008-T024 | yes | https://github.com/JosemaPereira/TrAIveler/issues/146 | |
+| 008-T026 | Implement security event logger in backend/internal/security/logger.go: LogSecurityEvent(correlationID, eventType, userID, email, severity, ipAddress, userAgent, details) writes to CloudWatch Logs as structured JSON | G-008-SECURITY-PKG | 5 | P1 | Backlog | 008-T018 | yes | https://github.com/JosemaPereira/TrAIveler/issues/147 | Sprint 5 planning (2026-07-13): merged with the former G-008-MIDDLEWARE (T027-T029) into G-008-SECURITY-PKG — same `backend/internal/security/` package (logger.go + middleware.go), 4 tasks |
+| 008-T027 | Implement auth middleware in backend/internal/security/middleware.go: ValidateJWTCookie() extracts token from cookie, validates with JWT validator, attaches user context to request | G-008-SECURITY-PKG | 5 | P1 | Backlog | 008-T020 | yes | https://github.com/JosemaPereira/TrAIveler/issues/147 | |
+| 008-T028 | Implement request ID middleware in backend/internal/security/middleware.go: GenerateRequestID() creates correlation ID, adds to context and response header X-Request-ID | G-008-SECURITY-PKG | 5 | P1 | Backlog | 008-T001 | yes | https://github.com/JosemaPereira/TrAIveler/issues/147 | |
+| 008-T029 | Implement rate limit middleware in backend/internal/security/middleware.go: RateLimitMiddleware() checks X-RateLimit headers, returns 429 with Retry-After if exceeded | G-008-SECURITY-PKG | 5 | P1 | Backlog | 008-T024 | yes | https://github.com/JosemaPereira/TrAIveler/issues/147 | |
+| 008-T030 | Setup Chi router with middleware chain in backend/cmd/api/main.go: request ID → logging → CORS → rate limit → recovery | | 5 | P1 | Backlog | 008-T027, 008-T028, 008-T029 | no | https://github.com/JosemaPereira/TrAIveler/issues/148 | Sprint 5 planning (2026-07-13): kept standalone — capstone integration task for Sprint 5's backend track, single file |
+| 008-T031 | Create Axios instance in frontend/src/services/api.ts: base URL, withCredentials=true, request/response interceptors (correlation ID, 401 refresh, error mapping) | G-008-FRONTEND-INFRA | 5 | P1 | Backlog | 008-T003 | yes | https://github.com/JosemaPereira/TrAIveler/issues/149 | Sprint 5 planning (2026-07-13): merged the former G-008-FRONTEND-API (T031-T032) with T033/T036 into G-008-FRONTEND-INFRA — shared "frontend app-shell infra" context, mirrors Sprint 2's G-SPRINT2-FRONTEND-APP-SHELL precedent, 4 tasks |
+| 008-T032 | Create error handler utility in frontend/src/services/errorHandler.ts: mapApiError(error) converts API errors to user-friendly messages per FR-019 | G-008-FRONTEND-INFRA | 5 | P1 | Backlog | 008-T031 | yes | https://github.com/JosemaPereira/TrAIveler/issues/149 | |
+| 008-T033 | Create auth store in frontend/src/stores/authStore.ts: Zustand store with user state (id, email, full_name, has_subscription), isAuthenticated boolean, login/logout/setUser actions | G-008-FRONTEND-INFRA | 5 | P1 | Backlog | 008-T003 | yes | https://github.com/JosemaPereira/TrAIveler/issues/149 | |
+| 008-T034 | Create CSS design tokens in frontend/src/styles/tokens.css: CSS custom properties for colors (primary, secondary, error, warning with WCAG AA contrast), spacing scale (4/8/12/16/24/32/48px), typography (font sizes, weights, line heights), focus indicators (outline-width, outline-color, outline-offset) | G-008-FRONTEND-STYLES | 5 | P1 | Backlog | 008-T003 | yes | https://github.com/JosemaPereira/TrAIveler/issues/150 | Sprint 5 planning (2026-07-13): new group pairing T034/T035 (design tokens + global styles), same `frontend/src/styles/` area |
+| 008-T035 | Create global styles in frontend/src/styles/global.css: CSS reset, base typography, box-sizing border-box, accessible focus styles using tokens | G-008-FRONTEND-STYLES | 5 | P1 | Backlog | 008-T034 | yes | https://github.com/JosemaPereira/TrAIveler/issues/150 | |
+| 008-T036 | Create React Router configuration in frontend/src/routes/router.tsx: routes for /register, /login, /dashboard, /trips/:id, /settings, /password-reset, with protected route wrapper checking authStore.isAuthenticated | G-008-FRONTEND-INFRA | 5 | P1 | Backlog | 008-T033 | no | https://github.com/JosemaPereira/TrAIveler/issues/149 | |
 
 #### Phase 3 — User Story 1: Paid User Registration & First Trip Creation (Priority: P1) 🎯 MVP → **Sprints 6-7**
 
@@ -1292,20 +1292,20 @@ _Checkpoint: All polish tasks complete, authentication & collaboration UX featur
 
 | ID | Task | Group | Sprint | Priority | Status | Depends on | Parallel | Issue | Notes |
 |----|------|-------|--------|----------|--------|------------|----------|-------|-------|
-| 009-T018 | Add a `swagger-drift` step to `.github/workflows/backend-ci.yml` running `make swagger` followed by `git diff --exit-code -- backend/docs`, gated by the existing `dorny/paths-filter` `backend` condition | G-SPEC009-CI-GATE | 5 | P2 | Backlog | 009-T010 | no | | Deferred from Sprint 4 to Sprint 5 at Sprint 4 planning (2026-07-12) — see Sprint 4/5 Sprint Plan entries |
-| 009-T019 | Add `swagger-drift` to the repository ruleset's list of required status checks (`gh api repos/.../rulesets`), following the same process used for the other Sprint 2 required checks | G-SPEC009-CI-GATE | 5 | P2 | Backlog | 009-T018 | no | | Deferred from Sprint 4 to Sprint 5 |
-| 009-T020 | Manually validate on a scratch branch: change an annotated handler without running `make swagger`, open a throwaway PR, confirm `swagger-drift` fails, then close/delete the scratch branch and PR | G-SPEC009-CI-GATE | 5 | P2 | Backlog | 009-T019 | no | | Deferred from Sprint 4 to Sprint 5 |
-| 009-T021 | Add a short note to `docs/testing-guidelines.md` documenting `swagger-drift` as a CI validation gate distinct from the three testing layers (unit/integration/E2E) | G-SPEC009-CI-GATE | 5 | P2 | Backlog | 009-T018 | yes | | Deferred from Sprint 4 to Sprint 5 |
+| 009-T018 | Add a `swagger-drift` step to `.github/workflows/backend-ci.yml` running `make swagger` followed by `git diff --exit-code -- backend/docs`, gated by the existing `dorny/paths-filter` `backend` condition | G-SPEC009-CI-GATE | 6 | P2 | Backlog | 009-T010 | no | | Deferred Sprint 4→5 at Sprint 4 planning (2026-07-12); deferred again 5→6 at Sprint 5 planning (2026-07-13) — no dependency on Sprint 5's auth/security scope, trailed further to keep Sprint 5 thematically focused per its own risk note |
+| 009-T019 | Add `swagger-drift` to the repository ruleset's list of required status checks (`gh api repos/.../rulesets`), following the same process used for the other Sprint 2 required checks | G-SPEC009-CI-GATE | 6 | P2 | Backlog | 009-T018 | no | | Deferred Sprint 4→5→6, see 009-T018 note |
+| 009-T020 | Manually validate on a scratch branch: change an annotated handler without running `make swagger`, open a throwaway PR, confirm `swagger-drift` fails, then close/delete the scratch branch and PR | G-SPEC009-CI-GATE | 6 | P2 | Backlog | 009-T019 | no | | Deferred Sprint 4→5→6, see 009-T018 note |
+| 009-T021 | Add a short note to `docs/testing-guidelines.md` documenting `swagger-drift` as a CI validation gate distinct from the three testing layers (unit/integration/E2E) | G-SPEC009-CI-GATE | 6 | P2 | Backlog | 009-T018 | yes | | Deferred Sprint 4→5→6, see 009-T018 note |
 
 #### Phase 6 — Polish & Cross-Cutting Concerns
 
 | ID | Task | Group | Sprint | Priority | Status | Depends on | Parallel | Issue | Notes |
 |----|------|-------|--------|----------|--------|------------|----------|-------|-------|
-| 009-T022 | Update `backend/README.md`'s API Overview table, moving `/swagger/doc.json` and `/swagger/index.html` from "Planned" to "Built today" | G-SPEC009-POLISH | 5 | P2 | Backlog | 009-T013, 009-T017, 009-T021 | yes | | Deferred from Sprint 4 to Sprint 5 — depends on 009-T021 (G-SPEC009-CI-GATE) |
-| 009-T023 | Add a short cross-reference note at the top of `docs/api-design-standards.md` pointing to the new machine-readable contract (`/swagger/doc.json`) as a derived, always-current artifact | G-SPEC009-POLISH | 5 | P2 | Backlog | 009-T013, 009-T017, 009-T021 | yes | | Deferred from Sprint 4 to Sprint 5 |
-| 009-T024 | Run all five `specs/009-api-documentation/quickstart.md` validation scenarios end-to-end and record results in this file's Notes section or a short results note | G-SPEC009-POLISH | 5 | P2 | Backlog | 009-T013, 009-T017, 009-T021 | no | | Deferred from Sprint 4 to Sprint 5 |
-| 009-T025 | Validate `golangci-lint` passes with zero errors across `backend/cmd/api/docs.go`, `backend/internal/example/handler.go`'s new annotations, and (excluded) `backend/docs/` | G-SPEC009-POLISH | 5 | P2 | Backlog | 009-T013, 009-T017, 009-T021 | yes | | Deferred from Sprint 4 to Sprint 5 |
-| 009-T026 | Run `make test-coverage` and confirm the new `backend/tests/integration/swagger_test.go` tests are included and passing | G-SPEC009-POLISH | 5 | P2 | Backlog | 009-T013, 009-T017, 009-T021 | no | | Deferred from Sprint 4 to Sprint 5 |
+| 009-T022 | Update `backend/README.md`'s API Overview table, moving `/swagger/doc.json` and `/swagger/index.html` from "Planned" to "Built today" | G-SPEC009-POLISH | 6 | P2 | Backlog | 009-T013, 009-T017, 009-T021 | yes | | Deferred Sprint 4→5→6, see 009-T018 note — depends on 009-T021 (G-SPEC009-CI-GATE) |
+| 009-T023 | Add a short cross-reference note at the top of `docs/api-design-standards.md` pointing to the new machine-readable contract (`/swagger/doc.json`) as a derived, always-current artifact | G-SPEC009-POLISH | 6 | P2 | Backlog | 009-T013, 009-T017, 009-T021 | yes | | Deferred Sprint 4→5→6, see 009-T018 note |
+| 009-T024 | Run all five `specs/009-api-documentation/quickstart.md` validation scenarios end-to-end and record results in this file's Notes section or a short results note | G-SPEC009-POLISH | 6 | P2 | Backlog | 009-T013, 009-T017, 009-T021 | no | | Deferred Sprint 4→5→6, see 009-T018 note |
+| 009-T025 | Validate `golangci-lint` passes with zero errors across `backend/cmd/api/docs.go`, `backend/internal/example/handler.go`'s new annotations, and (excluded) `backend/docs/` | G-SPEC009-POLISH | 6 | P2 | Backlog | 009-T013, 009-T017, 009-T021 | yes | | Deferred Sprint 4→5→6, see 009-T018 note |
+| 009-T026 | Run `make test-coverage` and confirm the new `backend/tests/integration/swagger_test.go` tests are included and passing | G-SPEC009-POLISH | 6 | P2 | Backlog | 009-T013, 009-T017, 009-T021 | no | | Deferred Sprint 4→5→6, see 009-T018 note |
 
 _Checkpoint: All three user stories independently functional — contract drift is now impossible to merge unnoticed_
 
@@ -1388,6 +1388,11 @@ The minimum sequential chain to reach a fully functional, security-hardened, dem
 > **Post-MVP**: Sprints 11+ for P2-P3 features (collaboration, password reset, design system, observability).
 > 
 > **GitHub Workflow**: Uses native sub-issues (parent with `- [ ] #N` tasklists), GitHub Projects for organization, and epic labels (`epic:name`) instead of separate epic issues. See [ISSUE-CREATION-GUIDELINES.md](../.github/ISSUE-CREATION-GUIDELINES.md) for details.
+>
+> **Standing Open Items** (project-wide constraints/watches not owned by a single sprint or task —
+> full history in `.github/memory/session-notes.md`): AWS-cost-avoidance constraint (no real
+> `terraform apply`/`aws` resource creation against real AWS) remains in force until the user lifts
+> it; `postgres:15.4-alpine` CVE staleness watch remains unresolved, no target sprint yet.
 
 ### 🏗️ Sprint 1: Architecture Foundation (Weeks 1-2) ✅ **COMPLETE**
 
@@ -1447,21 +1452,15 @@ accessibility CI gate forward so it isn't sitting unenforced for 6+ sprints afte
 started shipping in Sprint 2, and pull the Terraform remote-state bootstrap script forward so
 `terraform init` in CI has a real backend to initialize against.
 
-**Scope**: Spec 005 Phase 5 (Infrastructure completion) + accessibility-CI pull-forward from Spec 002 + Terraform state bootstrap pull-forward from Spec 003 (003-T009)
+**Scope**: Spec 005 Phase 5 (Infrastructure completion — corrected during planning from an original
+24-task estimate to 49 tasks, 005-T061–T109) + accessibility-CI pull-forward from Spec 002 (follow-up
+open: 002-T023 must tag E2E specs `@accessibility` before `accessibility.yml` can become a required
+check, deferred to Sprint 9) + Terraform state bootstrap pull-forward from Spec 003 (003-T009)
 
 **Status**: ✅ **Complete** (2026-07-12) — All 54 tasks done across 11 work items (10 PRs)
 
-**Planning decisions made during the sprint** (full rationale in `.github/memory/session-notes.md`
-Sprint 3 Compacted section and `MEMORY.md`; kept here only as short pointers):
-
-- Accessibility CI (`G-SPRINT3-A11Y-CI`) pulled forward from Sprint 9 so the gate wouldn't sit
-  unenforced for 6+ sprints. Follow-up open: 002-T023 (Sprint 9) must tag E2E specs `@accessibility`
-  before `accessibility.yml` can become a required check — see Sprint 4's carry-forward note below.
-- 003-T009 (Terraform state bootstrap) pulled forward as a standalone item and made an explicit
-  dependency of 005-T107; sibling 003-T010 stays Superseded (covered by Sprint 1's `infra/backend.tf`).
-- Scope correction: Spec 005 Phase 5 is 49 tasks (005-T061–T109), not the originally-drafted 24.
-- AWS-cost-avoidance constraint held for the whole sprint (no real `terraform apply`/AWS resource
-  creation) and remains in force project-wide until the user lifts it.
+**Planning notes**: pull-forward rationale and dependency wiring (003-T009 → 005-T107) — see
+`.github/memory/session-notes.md` (Sprint 3 Compacted section).
 
 | Work Items | Task Count | Status | Key PRs |
 |------------|------------|--------|---------|
@@ -1491,83 +1490,39 @@ deps); 003-T001/005-T004 (infra/ directory structure, Done Sprint 1) for 003-T00
 
 ### 🔗 Sprint 4: Integration & Observability (Weeks 7-8) ✅ **COMPLETE**
 
-**Planning decisions made during the sprint** (full rationale in `.github/memory/session-notes.md`
-Sprint 4 Compacted section and `MEMORY.md`; kept here only as short pointers):
-
-- **RESOLVED — Spec 009 sizing risk**: split at planning time (Setup+Foundational+US1+US2 in Sprint
-  4, US3+Polish — 009-T018–T026 — deferred to Sprint 5). See Scope/table below and the Sprint 5 entry.
-- **Spec 002 Phase 2 partial supersession**: 3 of 7 tasks (002-T006/T007/T012) were found functionally
-  satisfied by Sprint 2 deliverables (005-T024/T025/T035/T037) and marked **Superseded**, not
-  scheduled; the remaining 4 (002-T008/009/010/011, the genuine `Logger`/`/healthz` schema gaps) are
-  this sprint's actual Observability-core scope. 001-T023 was flagged as an independent, still-
-  unscheduled duplicate of the same router/middleware bootstrap — a future Spec 001 reconciliation
-  pass, not actioned this sprint.
-- Carried from Sprint 3, still standing (unaffected by this sprint's scope): AWS-cost-avoidance
-  constraint remains in force; `internal/example/` deletion still waits on the first real domain
-  package (Sprint 8, Trip) — Spec 009 (this sprint) still annotates it, so it must survive until then;
-  `postgres:15.4-alpine` CVE staleness watch unresolved, no target sprint; 002-T023 (tag E2E specs
-  `@accessibility`) still deferred to Sprint 9.
-
 **Epic Label**: `epic:integration-observability`
 
 **Goal**: Unify architecture layers with error correlation and retry logic, close the real
 observability gaps left after Sprint 2 (structured log fields, `/healthz` schema), and ship the
 OpenAPI/Swagger MVP contract deferred from Sprint 3.
 
-**Scope**: Spec 005 Phases 6-7 + Spec 002 Phase 2 (4 of 7 tasks actionable — 3 superseded by Sprint 2) +
-Spec 009 Setup+Foundational+US1+US2 (009-T001–T017; US3+Polish, 009-T018–T026, deferred to Sprint 5)
+**Scope**: Spec 005 Phases 6-7 + Spec 002 Phase 2 (4 of 7 tasks actionable — 002-T006/T007/T012
+superseded by Sprint 2 deliverables, see Spec 002 catalog rows above) + Spec 009
+Setup+Foundational+US1+US2 (009-T001–T017; US3+Polish, 009-T018–T026, deferred to Sprint 5)
 
 **Status**: ✅ **Complete** (2026-07-14) — All 43 tasks done across 15 work items (10 PRs), 15/15
 issues closed (#109–#123)
 
-**Consolidation (mandatory analysis performed at this planning pass)**:
+**Planning notes**: Spec 009 sizing split and Spec 002 supersession rationale — see
+`.github/memory/session-notes.md` (Sprint 4 Compacted section).
 
-- **Spec 005 Phase 6** (Integration patterns): folded the 2 previously-standalone tasks into their
-  natural groups — G-ARCH-INTEGRATION-BACKEND now includes 005-T113 (direct sequential extension of
-  005-T112), G-ARCH-INTEGRATION-FRONTEND now includes 005-T116 (direct sequential extension of
-  005-T115). 005-T119 stays standalone — it spans both `backend/` and `frontend/` READMEs, a
-  mixed-tech-stack task excluded from grouping by policy. Result: 10 tasks → 4 work items (was 6).
-- **Spec 005 Phase 7** (Architecture polish): pre-existing grouping confirmed as-is —
-  G-ARCH-POLISH-DOCS (4 tasks) + G-ARCH-POLISH-VALIDATION (7 near-zero-LOC validation-run tasks, safe
-  as one PR despite exceeding the 2-4 optimal size) + 005-T131 standalone. 12 tasks → 3 work items.
-- **Spec 002 Phase 2** (Observability core): G-OBS-LOGGER (002-T008/009) + G-OBS-HEALTHZ
-  (002-T010/011). 4 actionable tasks → 2 work items (3 more tasks superseded, see callout above).
-- **Spec 009 MVP slice** (009-T001–T017): newly grouped this pass — G-SPEC009-SETUP (T001-T003,
-  tooling/dependency setup), G-SPEC009-FOUNDATIONAL (T004-T006, generated-docs bootstrap),
-  G-SPEC009-CONTRACT-TESTS (T007-T008, share one test file — confirmed per the Sprint 3
-  carry-forward candidate), G-SPEC009-ANNOTATIONS (T009/T010/T013 — annotate, regenerate, update
-  README pointer, one GREEN-phase change), G-SPEC009-SWAGGER-UI (T011-T012), and
-  G-SPEC009-INTERACTIVE (T014-T017, US2 phase). 17 tasks → 6 work items (-65%).
-
-**Issue creation order**: The table below is sorted in strict dependency order (verified against the
-"Dependencies & Execution Order" sections of `specs/005-system-architecture/tasks.md`,
-`specs/002-nfr-system-constraints/tasks.md`, and `specs/009-api-documentation/tasks.md`, not just the
-per-task `Depends on` columns — see the `Depends On` column below for the specific rationale per
-item). When these work items are turned into GitHub issues, create them **top-to-bottom** so that
-every "Blocked by #N" cross-reference points at an issue that already exists — no forward references.
-Where two items have no dependency relationship, they're ordered by priority (P1 before P2 before P3),
-then by spec number, then by ascending task ID, so the order is deterministic.
-
-All 15 work items were created as GitHub issues on 2026-07-13, strictly in the Order below, so every
-"Depends On" reference below already points at a real, existing issue (no forward references).
-
-| Order | Work Items | Task Count | Key Deliverables | Issue | PR | Depends On |
-|-------|------------|------------|-------------------|-------|----|------------|
-| 1 | G-OBS-LOGGER | 2 | Logger middleware extended with `service`/`msg`/`user_id` StructuredLogEntry fields + tests | [#109](https://github.com/JosemaPereira/TrAIveler/issues/109) | #125 | — (only Sprint 2 Done work: 005-T025) |
-| 2 | G-OBS-HEALTHZ | 2 | `/healthz` reconciled to HealthCheckResponse schema (`status`/`version`/`uptime_seconds`) + tests | [#110](https://github.com/JosemaPereira/TrAIveler/issues/110) | #126 | — (only Sprint 2 Done work: 005-T037; independent of #109 — spec 002's own parallel-streams diagram runs Logger and Health as separate tracks) |
-| 3 | G-SPEC009-SETUP | 3 | swaggo/swag + swag CLI dependency, `swagger` Makefile target | [#111](https://github.com/JosemaPereira/TrAIveler/issues/111) | #127 | — (Phase 1 Setup, no dependencies) |
-| 4 | G-SPEC009-FOUNDATIONAL | 3 | `cmd/api/docs.go` annotation skeleton, zero-endpoint generated baseline, lint exclusion confirmed | [#112](https://github.com/JosemaPereira/TrAIveler/issues/112) | #127 | [#111](https://github.com/JosemaPereira/TrAIveler/issues/111) — spec 009: "Foundational depends on Setup — BLOCKS all user stories"; needs SETUP's swaggo deps + swag CLI installed first |
-| 5 | G-SPEC009-CONTRACT-TESTS | 2 | RED-phase integration tests for the `/swagger/doc.json` contract | [#113](https://github.com/JosemaPereira/TrAIveler/issues/113) | #127 | [#112](https://github.com/JosemaPereira/TrAIveler/issues/112) — 009-T007 depends on 009-T006 (lint-exclusion confirmed on the generated baseline) |
-| 6 | G-SPEC009-ANNOTATIONS | 3 | `swag` annotations on all `internal/example` handlers, regenerated docs, README pointer updated | [#114](https://github.com/JosemaPereira/TrAIveler/issues/114) | #127 | [#113](https://github.com/JosemaPereira/TrAIveler/issues/113) — GREEN phase; 009-T009 depends on 009-T008 (RED tests must exist and fail first) |
-| 7 | G-SPEC009-SWAGGER-UI | 2 | Swagger UI mounted at `/swagger/*`, RED-phase contract tests confirmed GREEN | [#115](https://github.com/JosemaPereira/TrAIveler/issues/115) | #127 | [#114](https://github.com/JosemaPereira/TrAIveler/issues/114) — 009-T011 depends on 009-T010 (mounts routes serving the docs #114 regenerated) |
-| 8 | G-SPEC009-INTERACTIVE | 4 | `/swagger/index.html` served, DocURL wired to the live contract, "Try the API" README section | [#116](https://github.com/JosemaPereira/TrAIveler/issues/116) | #127 | [#115](https://github.com/JosemaPereira/TrAIveler/issues/115) — spec 009: "US2 depends on Foundational AND on US1's route mount (T011)" |
-| 9 | G-ARCH-INTEGRATION-BACKEND | 4 | Correlation ID in error responses, 5xx stack-trace logging, Anthropic SDK client + retry/backoff, AI client Retry-After wiring | [#117](https://github.com/JosemaPereira/TrAIveler/issues/117) | #128 | — (only Sprint 2 Done work: 005-T033/T025/T030) |
-| 10 | G-ARCH-INTEGRATION-FRONTEND | 3 | X-Request-ID on all frontend requests, useErrorHandler hook, correlation ID surfaced in ErrorMessage | [#118](https://github.com/JosemaPereira/TrAIveler/issues/118) | #129 | — (only Sprint 2 Done work: 005-T044/T053; independent of #117 — spec 005: "Backend enhancements... sequential within backend" / "Frontend enhancements... sequential within frontend" are two separate tracks) |
-| 11 | G-ARCH-INTEGRATION-TESTS | 2 | Integration tests: healthz correlation ID header, DB-timeout error response | [#119](https://github.com/JosemaPereira/TrAIveler/issues/119) | #131 | [#117](https://github.com/JosemaPereira/TrAIveler/issues/117), [#118](https://github.com/JosemaPereira/TrAIveler/issues/118) — spec 005: "Integration tests (T117-T119) depend on backend/frontend enhancements" |
-| 12 | 005-T119 (standalone) | 1 | Error-handling patterns documented in backend/ + frontend/ READMEs | [#120](https://github.com/JosemaPereira/TrAIveler/issues/120) | #132 | [#117](https://github.com/JosemaPereira/TrAIveler/issues/117), [#118](https://github.com/JosemaPereira/TrAIveler/issues/118) — same spec 005 grouping as #119 (T117-T119 documented together); it documents both layers' patterns |
-| 13 | G-ARCH-POLISH-DOCS | 4 | architecture.md, coding-guidelines.md, testing-guidelines.md, root README updated for spec 005 | [#121](https://github.com/JosemaPereira/TrAIveler/issues/121) | #134 | [#117](https://github.com/JosemaPereira/TrAIveler/issues/117), [#118](https://github.com/JosemaPereira/TrAIveler/issues/118), [#119](https://github.com/JosemaPereira/TrAIveler/issues/119), [#120](https://github.com/JosemaPereira/TrAIveler/issues/120) — spec 005: "Polish (Phase 7): Depends on all user stories complete", i.e. all of US4/T110-T119 |
-| 14 | G-ARCH-POLISH-VALIDATION | 7 | Quickstart scenarios, lint/test/coverage/axe-core validation runs across spec 005 | [#122](https://github.com/JosemaPereira/TrAIveler/issues/122) | #133 | [#117](https://github.com/JosemaPereira/TrAIveler/issues/117), [#118](https://github.com/JosemaPereira/TrAIveler/issues/118), [#119](https://github.com/JosemaPereira/TrAIveler/issues/119), [#120](https://github.com/JosemaPereira/TrAIveler/issues/120) — same phase-dependency rule as #121 |
-| 15 | 005-T131 (standalone) | 1 | specs/005-system-architecture/tasks.md marked complete | [#123](https://github.com/JosemaPereira/TrAIveler/issues/123) | #134 | [#122](https://github.com/JosemaPereira/TrAIveler/issues/122) — 005-T131 depends on 005-T124 (G-ARCH-POLISH-VALIDATION) directly |
+| Work Items | Task Count | Status | Issue | PR |
+|------------|------------|--------|-------|----|
+| G-OBS-LOGGER | 2 | ✅ Done | #109 | #125 |
+| G-OBS-HEALTHZ | 2 | ✅ Done | #110 | #126 |
+| G-SPEC009-SETUP | 3 | ✅ Done | #111 | #127 |
+| G-SPEC009-FOUNDATIONAL | 3 | ✅ Done | #112 | #127 |
+| G-SPEC009-CONTRACT-TESTS | 2 | ✅ Done | #113 | #127 |
+| G-SPEC009-ANNOTATIONS | 3 | ✅ Done | #114 | #127 |
+| G-SPEC009-SWAGGER-UI | 2 | ✅ Done | #115 | #127 |
+| G-SPEC009-INTERACTIVE | 4 | ✅ Done | #116 | #127 |
+| G-ARCH-INTEGRATION-BACKEND | 4 | ✅ Done | #117 | #128 |
+| G-ARCH-INTEGRATION-FRONTEND | 3 | ✅ Done | #118 | #129 |
+| G-ARCH-INTEGRATION-TESTS | 2 | ✅ Done | #119 | #131 |
+| 005-T119 (standalone) | 1 | ✅ Done | #120 | #132 |
+| G-ARCH-POLISH-DOCS | 4 | ✅ Done | #121 | #134 |
+| G-ARCH-POLISH-VALIDATION | 7 | ✅ Done | #122 | #133 |
+| 005-T131 (standalone) | 1 | ✅ Done | #123 | #134 |
 
 **Total**: 43 tasks → **15 work items** (-65%) (all complete)  
 **PRs**: #125 (Logger fields), #126 (`/healthz` reconciliation), #127 (Spec 009 Swagger/OpenAPI MVP —
@@ -1576,14 +1531,6 @@ All 15 work items were created as GitHub issues on 2026-07-13, strictly in the O
 (error-handling docs), #133 (Spec 005 validation sweep), #134 (architecture docs polish + tasks.md
 closure)  
 **Actual completion**: 2026-07-14 (PR #134, merged 2026-07-14T04:00:28Z)  
-**Risks (materialized/retired)**: Cross-layer integration complexity (backend error-correlation +
-frontend hook touch many files) — did not cause slippage. `005-T111` and `002-T008` both edited
-`backend/internal/middleware/logger.go`; sequenced as PR #125 then #128, no merge conflict.
-G-SPEC009-ANNOTATIONS was flagged pre-sprint as the largest single diff and most likely to slip — it
-shipped as part of the single consolidated PR #127 (all 6 Spec 009 issues, #111-#116) with no
-observed slip. One process gap surfaced mid-sprint (not a scope risk): roadmap Backlog→Done flips
-lagged PR merges by one ticket-cycle for #109/#110/#117/#118 before being caught and fixed (PR #130);
-corrected going forward per the workflow notes in `.github/memory/session-notes.md`.  
 **Dependencies**: Sprint 3 complete (005-T109 for Phase 7 polish tasks; 005-T033/T025/T030/T044 from
 Sprint 2 for Phase 6 integration tasks; 005-T024/T025/T035/T037 from Sprint 2 for the Spec 002
 Observability tasks that build on them)
@@ -1592,53 +1539,201 @@ Observability tasks that build on them)
 
 ### 🔐 Sprint 5: Authentication & Security Foundation (Weeks 9-10)
 
-> **Carried forward from Sprint 4 planning (2026-07-12)**: Spec 009's US3+Polish slice
-> (009-T018–T026, 9 tasks, P2 — CI-gate + doc/validation polish) was split out of Sprint 4 for sizing
-> reasons (see Sprint 4 entry above) and lands here as G-SPEC009-CI-GATE (4 tasks) and
-> G-SPEC009-POLISH (5 tasks). It has no dependency on this sprint's auth/security work and can run
-> fully in parallel. This pushes Sprint 5 to 73 tasks, itself above observed velocity — flagged for
-> reassessment (e.g. re-splitting Security foundations/Auth infrastructure, or trailing the Spec 009
-> slice further into Sprint 6) at Sprint 5's own planning pass; not resolved here, since Sprint 4 was
-> this pass's scope.
+**Re-planning pass (2026-07-13) — findings and decisions** (supersedes the 73-task Sprint 4 draft
+above; full rationale kept here since this is where the reassessment was explicitly deferred to):
+
+1. **Re-verified roadmap Status vs. GitHub**: Sprint 4 is fully closed (issues #109-#123, 15/15
+   `CLOSED`, confirmed via `gh issue list --label sprint:4 --state all`). Spec 004 Phase 2 and Spec
+   008 Phase 2 rows (this sprint's scope) all still show `Status: Backlog` with no `Issue` URL —
+   `gh issue list --label "sprint:5"` returns empty, so nothing has been created yet and this really
+   is a clean planning pass, not a reconciliation of drift.
+2. **The "36 tasks" figure for "Security foundations" was a miscount, now corrected**: Spec 004's
+   actual `#### Phase 2 — Foundational (Blocking Prerequisites)` (per `specs/004-security-auth-model/
+   tasks.md`) is only **9 tasks** (004-T006–T014: 6 DB migrations + 3 core utilities — password
+   hashing, correlation ID generator, structured logger). The JWT/RBAC/validation/logging deliverables
+   the old draft described actually live in Spec 004's **Phase 3** (004-T015–T075, 61 tasks) — which
+   already carries its own `→ **Sprint 9**` header annotation set at an earlier planning pass. Moving
+   Phase 3 into Sprint 5 now would conflict with that existing commitment and was rejected; Phase 3
+   stays targeted at Sprint 9 (see the flag at the bottom of this entry). Spec 004's **Phase 1 —
+   Setup** (5 tasks, T001-T005) had never been assigned to any sprint despite being a direct
+   prerequisite for Phase 2's files — it is pulled into Sprint 5 alongside Phase 2, mirroring how
+   Spec 008's own Phase 1 pairs with its Phase 2 below. **Corrected Spec 004 scope: 14 tasks**
+   (Phase 1 + Phase 2), not 36.
+3. **Spec 008 Phase 2 ("Auth infrastructure": 28 tasks) was already correct** — verified against
+   `specs/008-auth-collaboration-ux/tasks.md`, T009–T036. Its Phase 1 — Setup (8 tasks, T001-T008)
+   was likewise unassigned to any sprint; pulled in alongside Phase 2 for the same "Setup blocks
+   Foundational" reason as Spec 004. **Corrected Spec 008 scope: 36 tasks** (Phase 1 + Phase 2).
+4. **Recommendation — trail the Spec 009 slice (009-T018–T026, 9 tasks) further into Sprint 6**:
+   with the miscount fixed, real Sprint 5 scope is 14 + 36 = **50 tasks** — already comfortably below
+   Sprint 3's 54-task peak and close to Sprint 4's 43, so the original velocity alarm is now mostly
+   resolved by the correction alone. The Spec 009 slice remains genuinely independent (no dependency
+   on this sprint's auth/security work, confirmed again this pass) and is thematically unrelated to
+   an "Authentication & Security Foundation" sprint goal. Rather than keep it here just because 50
+   tasks still has headroom, it is moved to Sprint 6 (see that entry below) — consistent with the
+   third option floated in the original Sprint 4 carry-forward note, and it keeps this sprint's issue
+   set focused on one theme for review purposes. This was chosen over re-splitting Security
+   foundations/Auth infrastructure across two sprints, since with the corrected counts there is no
+   longer a sizing reason to split them — Spec 004 Phase 1+2 and Spec 008 Phase 1+2 are tightly
+   coupled (Spec 008's JWT/password/rate-limit/security packages are the concrete implementation the
+   Spec 004 migrations and utilities exist to support) and splitting them would create an awkward
+   mid-foundation handoff.
+5. **Flagged, not resolved this pass**: Sprint 9's current Sprint Plan entry lists "Spec 004 Phase 3"
+   as in-scope but its own work-item table only sums to 56 tasks (4+8+12+32) alongside Spec 002 Phases
+   3-5, while Spec 004 Phase 3 alone is verified at 61 tasks (004-T015–T075) — Sprint 9's own planning
+   pass will need to reconcile that count, not fixed here since Sprint 9 is out of this pass's scope.
 
 **Epic Label**: `epic:auth-security`
 
-**Goal**: Implement secure authentication, JWT handling, and security middleware.
+**Goal**: Stand up the shared security/auth scaffolding, database migrations, JWT/password/rate-limit
+primitives, and security middleware chain that Spec 008's registration/login features (Sprint 6-7) and
+Spec 004's full security-control implementation (Sprint 9) both build on.
 
-**Scope**: Spec 004 Phase 2 + Spec 008 Phase 2 + Spec 009 US3+Polish (deferred from Sprint 4)
+**Scope**: Spec 004 Phase 1 + Phase 2 (Setup + Foundational) + Spec 008 Phase 1 + Phase 2 (Setup +
+Foundational). Spec 009 US3+Polish (009-T018–T026), previously drafted here, is now deferred to
+Sprint 6 (see finding #4 above).
 
-| Work Items | Task Count | Key Deliverables |
-|------------|------------|------------------|
-| Security foundations | 36 | JWT RS256 multi-key rotation, refresh tokens, RBAC middleware, security event logging |
-| Auth infrastructure | 28 | bcrypt password hashing (cost 12), rate limiting, validation, Chi router middleware chain |
-| G-SPEC009-CI-GATE (deferred from Sprint 4) | 4 | `swagger-drift` CI gate wired into `backend-ci.yml` + required-status-check, manually validated |
-| G-SPEC009-POLISH (deferred from Sprint 4) | 5 | Spec 009 README/docs cross-references, quickstart validation, lint/coverage checks |
+**Consolidation (mandatory analysis performed at this planning pass)**:
 
-**Total**: 73 tasks  
-**Risks**: JWT multi-key rotation complexity, rate limiter tuning; 73 tasks is well above this team's
-observed velocity (23→37→54 across Sprints 1-3) — flagged for reassessment at Sprint 5's own planning
-pass  
-**Dependencies**: Sprint 4 complete (Spec 009 slice depends on 009-T010/T018-adjacent work delivered
-in Sprint 4; the auth/security work has no Spec 009 dependency)
+- **Spec 004 Phase 1**: the 4 pre-existing single-task groups (`G-SEC-FRONTEND-STRUCTURE`,
+  `G-SEC-BACKEND-DEPS`, `G-SEC-FRONTEND-DEPS`, `G-SEC-TEST-STRUCTURE`) weren't real consolidation —
+  each was already its own issue. Merged all 5 Phase 1 tasks into one `G-SEC-SETUP` group, mirroring
+  Spec 001's own `G-SETUP-INIT` precedent (mixed backend/frontend/test scaffolding, one PR). 5 tasks
+  → 1 work item.
+- **Spec 004 Phase 2**: pre-existing grouping confirmed as-is — `G-SEC-DB-MIGRATIONS` (6 tasks, one
+  migrations-directory PR, same precedent as Sprint 3's 7-8 task infra groups) + `G-SEC-CORE-UTILITIES`
+  (3 tasks). 9 tasks → 2 work items.
+- **Spec 008 Phase 1**: pre-existing grouping confirmed as-is — `008-T001` standalone (root task,
+  sequential, others build on it) + `G-008-SETUP` (7 tasks: Go module init, frontend init, both lint
+  configs, e2e/infra dirs — mixed-stack setup, same precedent as Spec 001's `G-SETUP-INIT`). 8 tasks
+  → 2 work items.
+- **Spec 008 Phase 2**: refined from the pre-existing groups — `G-008-DATABASE` expanded to include
+  008-T009 (pgx pool) alongside 008-T010 (goose config), same file area, sequential (was 1 task, now
+  2). `G-008-MIDDLEWARE` renamed `G-008-SECURITY-PKG` and expanded to include 008-T026 (security event
+  logger) alongside T027-T029 (auth/request-ID/rate-limit middleware) — all four live in
+  `backend/internal/security/` (was 3 tasks, now 4). `G-008-FRONTEND-API` renamed
+  `G-008-FRONTEND-INFRA` and expanded to include 008-T033 (auth store) and 008-T036 (router config)
+  alongside T031-T032 (Axios instance + error handler) — shared "frontend app-shell infra" context,
+  same pattern as Sprint 2's `G-SPRINT2-FRONTEND-APP-SHELL` (was 2 tasks, now 4). New group
+  `G-008-FRONTEND-STYLES` pairs 008-T034/T035 (CSS tokens + global styles, same
+  `frontend/src/styles/` area, sequential) — previously 2 unlinked standalones. `008-T018` (config
+  loader) and `008-T030` (Chi router wiring) stay standalone — both are critical blockers/integration
+  points with several downstream dependents, kept visible per consolidation policy.
+  28 tasks → 10 work items (was 28 tasks → ~14 items under the pre-existing groups).
+
+**Prioritization**: no MoSCoW/RICE re-ranking needed — every task here is P1 and foundation-before-
+feature "Must Have" by definition (nothing here is user-facing scope that could be cut; it unblocks
+Sprint 6-9). The only ordering question is dependency sequencing, addressed below.
+
+**Sequential execution order** (topological, verified against each task's `Depends on` column in
+`specs/004-security-auth-model/tasks.md` / `specs/008-auth-collaboration-ux/tasks.md` — not just
+Group-column bucketing; items with no dependency relationship are ordered by spec number then
+ascending task ID).
+
+All 15 work items were created as GitHub issues on 2026-07-14, strictly in the Order below (and added
+to GitHub Project #2), so every "Depends On" reference below already points at a real, existing issue
+(no forward references). Status stays `Backlog` for every task row (per the Sprint 4 precedent —
+issue creation does not by itself move Status to `Ready`).
+
+| Order | Work Item | Tasks | Issue | Depends On | Key Deliverables |
+|-------|-----------|-------|-------|------------|------------------|
+| 1 | G-SEC-SETUP | 5 (004-T001–T005) | [#136](https://github.com/JosemaPereira/TrAIveler/issues/136) | — (independent; can start Day 1) | Spec 004 backend/frontend security package dirs, deps, test dirs |
+| 2 | 008-T001 (standalone) | 1 | [#137](https://github.com/JosemaPereira/TrAIveler/issues/137) | — (independent; can start Day 1, parallel to #136) | Spec 008 backend project structure (`cmd/api/`, `internal/{auth,subscription,collaboration,security}/`, `pkg/{database,config}/`) |
+| 3 | G-SEC-DB-MIGRATIONS | 6 (004-T006–T011) | [#138](https://github.com/JosemaPereira/TrAIveler/issues/138) | — (independent per tasks.md; parallel to #136/#137) | 6 migration files: users, refresh_tokens, jwt_signing_keys, security_events, trips.version, itinerary_items.version |
+| 4 | G-SEC-CORE-UTILITIES | 3 (004-T012–T014) | [#139](https://github.com/JosemaPereira/TrAIveler/issues/139) | [#136](https://github.com/JosemaPereira/TrAIveler/issues/136) (logically — password.go/logger.go live inside the `backend/internal/auth/` and `.../observability/` dirs #136 creates, though not a formally tracked dependency) | bcrypt password hashing utility, correlation ID generator, structured logger |
+| 5 | G-008-SETUP | 7 (008-T002–T008) | [#140](https://github.com/JosemaPereira/TrAIveler/issues/140) | [#137](https://github.com/JosemaPereira/TrAIveler/issues/137) (T002 go-module-init and T005 lint-config need T001's dirs; T003/T004/T006/T007/T008 are independent of #137 but bundled in the same issue) | Go module deps, frontend project init, backend+frontend lint configs, e2e test dirs, infra secrets dir |
+| 6 | G-008-DATABASE | 2 (008-T009–T010) | [#141](https://github.com/JosemaPereira/TrAIveler/issues/141) | [#137](https://github.com/JosemaPereira/TrAIveler/issues/137) (T001) | pgx/v5 connection pooling, goose migrations framework config |
+| 7 | G-008-MIGRATIONS | 7 (008-T011–T017) | [#142](https://github.com/JosemaPereira/TrAIveler/issues/142) | [#141](https://github.com/JosemaPereira/TrAIveler/issues/141) (T010 goose config) | 7 migration files: users, subscriptions, password_reset_tokens, security_events, trips, collaborators, suggestions |
+| 8 | 008-T018 (standalone) | 1 | [#143](https://github.com/JosemaPereira/TrAIveler/issues/143) | [#137](https://github.com/JosemaPereira/TrAIveler/issues/137) (T001) | Environment config loader (DATABASE_URL, JWT/AI secret ARNs) — gates #144/#145/#146/#147 below |
+| 9 | G-008-JWT | 3 (008-T019–T021) | [#144](https://github.com/JosemaPereira/TrAIveler/issues/144) | [#143](https://github.com/JosemaPereira/TrAIveler/issues/143) (T018) | JWT generator (RS256), validator (multi-key rotation), refresher |
+| 10 | G-008-PASSWORD | 2 (008-T022–T023) | [#145](https://github.com/JosemaPereira/TrAIveler/issues/145) | [#143](https://github.com/JosemaPereira/TrAIveler/issues/143) (T018); parallel to #144 | bcrypt hasher (cost 12), password strength validator |
+| 11 | G-008-RATELIMIT | 2 (008-T024–T025) | [#146](https://github.com/JosemaPereira/TrAIveler/issues/146) | [#143](https://github.com/JosemaPereira/TrAIveler/issues/143) (T018); parallel to #144/#145 | Progressive-delay rate limiter + in-memory TTL store |
+| 12 | G-008-SECURITY-PKG | 4 (008-T026–T029) | [#147](https://github.com/JosemaPereira/TrAIveler/issues/147) | [#143](https://github.com/JosemaPereira/TrAIveler/issues/143) (T026), [#144](https://github.com/JosemaPereira/TrAIveler/issues/144) (T027 needs the JWT validator), [#146](https://github.com/JosemaPereira/TrAIveler/issues/146) (T029 needs the rate limiter), [#137](https://github.com/JosemaPereira/TrAIveler/issues/137) (T028) | Security event logger, JWT-cookie auth middleware, request-ID middleware, rate-limit middleware |
+| 13 | 008-T030 (standalone) | 1 | [#148](https://github.com/JosemaPereira/TrAIveler/issues/148) | [#147](https://github.com/JosemaPereira/TrAIveler/issues/147) (all three middleware funcs) | Chi router wired with the full middleware chain (request ID → logging → CORS → rate limit → recovery) |
+| 14 | G-008-FRONTEND-INFRA | 4 (008-T031,T032,T033,T036) | [#149](https://github.com/JosemaPereira/TrAIveler/issues/149) | [#140](https://github.com/JosemaPereira/TrAIveler/issues/140) (T003 frontend structure); fully parallel to the entire backend track (#141-#148) | Axios instance + error handler, Zustand auth store, React Router config |
+| 15 | G-008-FRONTEND-STYLES | 2 (008-T034–T035) | [#150](https://github.com/JosemaPereira/TrAIveler/issues/150) | [#140](https://github.com/JosemaPereira/TrAIveler/issues/140) (T003); parallel to #149 | CSS design tokens, global styles |
+
+**Critical path**: #137 → #143 → (#144 or #146) → #147 → #148 (5-deep chain: backend project
+structure → config loader → JWT/rate-limit primitives → security middleware package → Chi router
+wiring). This is the longest sequential dependency chain gating Sprint 5's backend completion —
+front-load it if capacity allows. The frontend track (#140 → #149/#150) and all of Spec 004's track
+(#136, #138, #139) are fully parallel side branches that don't gate the critical path.
+
+**Deviations found during issue creation (2026-07-14), not previously flagged at planning**: a
+file-level drift check against the actual repository (not just `tasks.md`) surfaced several places
+where this sprint's literal task descriptions are already partially or fully satisfied by code from
+earlier sprints, or would introduce a real duplicate/competing implementation if followed literally.
+None of these were resolved unilaterally here (that requires engineering judgment, not a PM
+scheduling call) — each is documented in its issue's "Technical Approach"/"Deployment Notes" section
+so the implementer verifies against real code first, per this project's standing "issue-body/tasks.md
+text is lowest authority — real code wins" practice:
+- **#143** (008-T018, config loader): `backend/config/config.go` already loads `DATABASE_URL`/
+  `JWT_SIGNING_KEY`/`ANTHROPIC_API_KEY` as raw values; the task's literal `*_SECRET_ARN` naming
+  implies AWS Secrets Manager ARN resolution, which is not what exists today — needs an explicit
+  design decision before implementation, flagged as this issue's biggest open question.
+- **#141** (G-008-DATABASE, 008-T009): `backend/internal/database/client.go` (Sprint 2) already
+  implements the pgx/v5 connection pooling this task describes, at `internal/` not the task's literal
+  `pkg/database/connection.go` path — risk of a duplicate DB-client abstraction if not reconciled
+  first.
+- **#149** (G-008-FRONTEND-INFRA): `frontend/src/lib/api-client.ts` (fetch-based, Sprint 2/4) and
+  `frontend/src/hooks/useErrorHandler.ts` (Sprint 4) already cover 008-T031/T032's purpose; the task's
+  literal Axios-based description would introduce a second, competing HTTP client library if followed
+  as written. `frontend/src/stores/auth-store.ts` (Sprint 2) already exists with a
+  `docs/data-model.md`-sourced `User` shape that differs from 008-T033's literal field list
+  (`full_name`/`has_subscription` vs. the existing `role`/`subscription_id`) — needs reconciliation
+  against the current data model, not literal task wording.
+- **#136/#140** (G-SEC-SETUP/G-008-SETUP): `@tanstack/react-query`/`zustand` (Sprint 2),
+  `github.com/pressly/goose/v3` and Chi v5/pgx v5 (already in `go.mod`), and
+  `github.com/microcosm-cc/bluemonday` (Sprint 4, `internal/ai/sanitizer.go`) are already present —
+  several Setup subtasks in both issues are verification-only, not fresh installs.
+- **Users-table migration overlap** (flagged already during planning, reconfirmed here): #138
+  (004-T006) and #142 (008-T011) both create a `users` table under different filenames/schemas — real
+  engineering reconciliation still needed before either merges, called out in both issues' Deployment
+  Notes.
+- No label gaps found — `epic:auth-security`, `sprint:5`, `priority:P1`, `type:backend`,
+  `type:frontend`, `group`, `spec:004`, `spec:008` all already existed from prior sprints; no new
+  labels were created for this batch.
+
+**Total**: 50 tasks → **15 work items** (-70%)  
+**Risks**: JWT multi-key rotation logic (008-T020/T021) is the most novel/complex work in this sprint
+— consider a short spike if the multi-key validation approach isn't already clear from Spec 004's
+Phase 3 research notes. Migration-ordering risk across two specs' migration directories
+(004's `backend/migrations/` vs. 008's own numbered migration files) — worth a quick reconciliation
+check before Sprint 5 execution starts, since both specs appear to create overlapping tables (e.g.
+both 004-T006 and 008-T011 create a `users` table migration under slightly different filenames) that
+will need engineering-level de-duplication, not just PM-level scheduling; flagged here, not resolved.  
+**Dependencies**: Sprint 4 complete (no direct task dependency, but sequencing follows Sprint 4's
+close); Spec 005/002 setup work from Sprints 1-2 (005-T001–T004) already `Done`, satisfying the
+cross-spec `Depends on` references in Spec 008 Phase 1
 
 ---
 
 ### 📝 Sprint 6: Core Data Layer & Repositories (Weeks 11-12)
 
+> **Added at Sprint 5 planning (2026-07-13)**: Spec 009's US3+Polish slice (009-T018–T026, 9 tasks,
+> P2 — `swagger-drift` CI gate + doc/validation polish) is trailed here from Sprint 5, where it was
+> previously drafted. It has no dependency on Sprint 5's auth/security scope or this sprint's data-
+> layer scope and can run fully in parallel to both — moved here purely to keep Sprint 5's issue set
+> thematically focused (see Sprint 5's finding #4). Adds `G-SPEC009-CI-GATE` (4 tasks) and
+> `G-SPEC009-POLISH` (5 tasks) to this sprint's totals below.
+
 **Epic Label**: `epic:data-layer`
 
 **Goal**: Implement database migrations, repositories, and core domain models.
 
-**Scope**: Spec 001 Phase 2 (Data Layer) + Spec 008 Phase 3 Part 1
+**Scope**: Spec 001 Phase 2 (Data Layer) + Spec 008 Phase 3 Part 1 + Spec 009 US3+Polish (deferred
+from Sprint 5)
 
 | Work Items | Task Count | Key Deliverables |
 |------------|------------|------------------|
 | Database migrations | 7 | 8 migration files (users, plans, subscriptions, trips, days, activities, collaborators, suggestions) |
 | Backend repositories | 15 | User, Subscription, Trip repositories with optimistic locking; Payment provider stub |
+| G-SPEC009-CI-GATE (deferred from Sprint 5) | 4 | `swagger-drift` CI gate wired into `backend-ci.yml` + required-status-check, manually validated |
+| G-SPEC009-POLISH (deferred from Sprint 5) | 5 | Spec 009 README/docs cross-references, quickstart validation, lint/coverage checks |
 
-**Total**: 22 tasks  
+**Total**: 31 tasks  
 **Risks**: Migration ordering, foreign key constraints  
-**Dependencies**: Sprint 5 complete
+**Dependencies**: Sprint 5 complete (Spec 009 slice has no dependency on Sprint 5/6's own scope, only
+on Sprint 4's 009-T010/T013/T017/T021, already `Done`)
 
 ---
 
@@ -1727,18 +1822,23 @@ in Sprint 4; the auth/security work has no Spec 009 dependency)
 | Metric | Value |
 |--------|-------|
 | **MVP sprints** | 10 sprints (20 weeks) |
-| **Total MVP tasks** | 424 tasks (50% of 841 total project tasks) |
-| **Planned average velocity** | 42.4 tasks/sprint (424 ÷ 10, all sprints) |
-| **Actual velocity (Sprints 1-3, closed)** | 38 tasks/sprint (23, 37, 54) |
+| **Total MVP tasks** | 410 tasks (49% of 841 total project tasks) |
+| **Planned average velocity** | 41.0 tasks/sprint (410 ÷ 10, all sprints) |
+| **Actual velocity (Sprints 1-4, closed)** | 39.3 tasks/sprint (23, 37, 54, 43) |
 | **Epic labels** | 11 epics across all sprints (see each sprint header) |
 | **Team size assumption** | 2-3 full-stack developers |
 
-_Recomputed 2026-07-12 (Sprint 4 planning pass) from the per-sprint entries above (the source of
-truth); supersedes the 427-task/42.7-per-sprint figures set at Sprint 3 closure. Net -3 tasks:
-002-T006/T007/T012 marked Superseded (functionally delivered by Sprint 2's
-005-T024/T025/T035/T037) and removed from any sprint's committed count. Spec 009's 9-task
-US3+Polish slice moved from Sprint 4 to Sprint 5 with no net change to the MVP total (still
-scheduled, just in a different sprint)._
+_Recomputed 2026-07-13 (Sprint 5 planning pass) from the per-sprint entries above (the source of
+truth); supersedes the 424-task/42.4-per-sprint figures set at Sprint 4 planning. Net -14 tasks:
+Sprint 5's "Security foundations" work item was drafted at Sprint 4 planning as 36 tasks against
+Spec 004's `Phase 2`, but Spec 004 Phase 2 (per `specs/004-security-auth-model/tasks.md`) is verified
+at only 9 tasks (004-T006–T014) — that 36 figure did not correspond to any real, countable set of
+roadmap task rows and is corrected here. Sprint 5 now scopes Spec 004 Phase 1+2 (14 tasks, both
+previously unassigned to any sprint) + Spec 008 Phase 1+2 (36 tasks, Phase 1 previously unassigned),
+= 50 tasks total (was 73). Spec 009's 9-task US3+Polish slice moved from Sprint 5 to Sprint 6 (own
+net-zero to the MVP total, just relocated) — Sprint 6 grows from 22 to 31 tasks. Also updated actual
+velocity to include Sprint 4's close (43 tasks, #109-#123 all closed) — previously stale at
+"Sprints 1-3"._
 
 **GitHub Organization**:
 - **Epic tracking**: Filter by `epic:architecture-foundation`, `epic:auth-security`, etc. in GitHub Projects
