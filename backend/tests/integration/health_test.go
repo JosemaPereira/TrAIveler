@@ -9,26 +9,17 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// healthCheckResponse mirrors cmd/api/server.go's HealthCheckResponse wire
-// shape. Duplicated here rather than imported because cmd/api is `package
-// main` and cannot be imported from any other package — see this package's
-// doc comment in swagger_test.go for the same constraint applied there.
+// healthCheckResponse mirrors cmd/api/server.go's HealthCheckResponse;
+// duplicated because cmd/api is `package main` and can't be imported.
 type healthCheckResponse struct {
 	Status        string  `json:"status"`
 	Version       string  `json:"version"`
 	UptimeSeconds float64 `json:"uptime_seconds"`
 }
 
-// TestHealthz_NoIncomingRequestID_ReturnsOKWithGeneratedCorrelationID is
-// 005-T117. It asserts GET /healthz against a real running backend process
-// (real Chi router, real middleware.RequestID, real database.Client backed
-// by a genuinely healthy Postgres testcontainer):
-//   - always returns HTTP 200, per spec 002's validation rule that HTTP
-//     status never reflects DB health (only the body's "status" field does);
-//   - carries a non-empty X-Request-ID response header, proving
-//     middleware.RequestID actually ran ahead of the handler;
-//   - decodes into the real HealthCheckResponse shape with status "ok",
-//     since the container backing this test is healthy.
+// TestHealthz_NoIncomingRequestID_ReturnsOKWithGeneratedCorrelationID (005-T117)
+// asserts GET /healthz always returns 200 with a generated X-Request-ID and a
+// healthy body, against a real backend + Postgres testcontainer.
 func TestHealthz_NoIncomingRequestID_ReturnsOKWithGeneratedCorrelationID(t *testing.T) {
 	baseURL := setupSwaggerTestServer(t)
 
@@ -51,12 +42,9 @@ func TestHealthz_NoIncomingRequestID_ReturnsOKWithGeneratedCorrelationID(t *test
 	assert.GreaterOrEqual(t, body.UptimeSeconds, 0.0, "expected a non-negative uptime")
 }
 
-// TestHealthz_WithIncomingRequestIDHeader_EchoesSameValueBack is also
-// 005-T117. It proves genuine correlation-ID propagation through the real
-// middleware chain — not merely "a header exists" — by sending a request
-// with a pre-set X-Request-ID header and asserting the response echoes back
-// that exact same value, per middleware/request_id.go's documented
-// "reuse an incoming header when present" behavior.
+// TestHealthz_WithIncomingRequestIDHeader_EchoesSameValueBack (005-T117)
+// proves middleware.RequestID reuses an incoming X-Request-ID rather than
+// overwriting it with a freshly generated one.
 func TestHealthz_WithIncomingRequestIDHeader_EchoesSameValueBack(t *testing.T) {
 	baseURL := setupSwaggerTestServer(t)
 

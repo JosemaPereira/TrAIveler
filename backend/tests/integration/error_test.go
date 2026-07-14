@@ -20,27 +20,20 @@ import (
 	"github.com/JosemaPereira/TrAIveler/backend/internal/example"
 )
 
-// migrationsDir points at the shared goose migrations directory from this
-// package's location (backend/tests/integration -> backend/migrations),
-// mirroring internal/example/repository_integration_test.go's constant of
-// the same name in its own package (same depth: both packages live two
-// directories below backend/).
+// migrationsDir points at the shared goose migrations directory
+// (backend/tests/integration -> backend/migrations).
 const migrationsDir = "../../migrations"
 
-// lockHoldStatementTimeoutMillis is the statement_timeout (in milliseconds)
-// applied to the app's own Postgres connections for this test only. Short
-// enough to keep the test fast, long enough that the app's real startup
-// queries (pool warm-up, /healthz ping) aren't spuriously canceled before
-// the exclusive lock below is even acquired.
+// lockHoldStatementTimeoutMillis is the statement_timeout (ms) applied only
+// to the app's own Postgres connections: short enough to keep the test fast,
+// long enough that the app's startup queries aren't canceled before the
+// exclusive lock below is even acquired.
 const lockHoldStatementTimeoutMillis = 500
 
-// applyMigrations runs goose migrations against databaseURL so the real
-// examples table exists before the app or the lock-holding connection touch
-// it. Mirrors internal/example/repository_integration_test.go's
-// setupRepositoryTestDB migration step; factored out separately here (rather
-// than reused as one function) because this file's setup additionally needs
-// to start the app against a *different*, statement_timeout-appended
-// connection string, which that helper does not support.
+// applyMigrations runs goose migrations against databaseURL. Not reused from
+// repository_integration_test.go's setupRepositoryTestDB because this test
+// also needs to start the app against a separate, statement_timeout-appended
+// connection string, which that helper doesn't support.
 func applyMigrations(t *testing.T, databaseURL string) {
 	t.Helper()
 
@@ -52,9 +45,8 @@ func applyMigrations(t *testing.T, databaseURL string) {
 	require.NoError(t, goose.Up(sqlDB, migrationsDir), "failed to apply goose migrations")
 }
 
-// createExample POSTs a valid example to the running app and returns the
-// created resource's ID, so the DB-timeout scenario below has a real row to
-// GET.
+// createExample POSTs a row via the running app and returns its ID, so the
+// DB-timeout scenario below has something real to GET.
 func createExample(t *testing.T, baseURL string) string {
 	t.Helper()
 
@@ -76,15 +68,11 @@ func createExample(t *testing.T, baseURL string) string {
 	return created.ID
 }
 
-// holdExclusiveTableLock opens a database/sql connection independent of the
-// app's own connection pool, starts a transaction on it, and locks the
-// examples table in ACCESS EXCLUSIVE mode — Postgres's most restrictive lock
-// mode, which conflicts with even the plain SELECT the app's GET handler
-// issues. The lock is held (the transaction deliberately left open, neither
-// committed nor rolled back) until the returned release function runs.
-// statement_timeout counts time spent waiting to acquire a lock, so once
-// this lock is held, any other connection configured with a
-// statement_timeout — including the app's — has its blocked query canceled
+// holdExclusiveTableLock locks the examples table in ACCESS EXCLUSIVE mode
+// on a connection independent of the app's pool — blocking even a plain
+// SELECT — until the returned release func runs. statement_timeout counts
+// time spent waiting on a lock, so once this is held, any connection with a
+// statement_timeout (including the app's) gets its blocked query canceled
 // by Postgres once that timeout elapses.
 func holdExclusiveTableLock(ctx context.Context, t *testing.T, databaseURL string) (release func()) {
 	t.Helper()
@@ -115,25 +103,12 @@ func holdExclusiveTableLock(ctx context.Context, t *testing.T, databaseURL strin
 }
 
 // TestGetExample_DBQueryCanceledByStatementTimeout_ReturnsCorrelatedInternalError
-// is 005-T118. It exercises a realistic DB-timeout failure — a real
-// Postgres-enforced statement_timeout canceling the app's own blocked query
-// while waiting on a genuine table lock held by a second connection — rather
-// than an artificial short-circuit that would not occur in production.
-//
-// internal/example/repository.go's scanOne wraps any error that is not
-// pgx.ErrNoRows as a plain `fmt.Errorf("find example: %w", err)`, which is
-// NOT a *domainerrors.DomainError. errors.HandleError therefore maps it to
-// the unmapped "internal_error"/500 path. This test proves that path still
-// carries a correlation ID that matches between the response header and the
-// structured JSON body, exactly like the happy path does.
-//
-// The statement_timeout connection parameter approach worked as planned: pgx
-// (via pgconn.ParseConfig) forwards any key in the connection string/URL it
-// does not recognize as a native libpq option into the connection's startup
-// RuntimeParams, which Postgres applies exactly as `SET statement_timeout =
-// ...` would for every connection opened with that config — including every
-// pooled connection the app's pgxpool later opens, not just the first. No
-// fallback (options=-c ...) was needed.
+// (005-T118) uses a real Postgres-canceled query, not a short-circuited one,
+// to prove the resulting 500 internal_error carries a correlation ID
+// consistent between the response header and the structured error body.
+// scanOne wraps any non-ErrNoRows failure as a plain error (not a
+// *domainerrors.DomainError), so HandleError maps it to the unmapped
+// internal_error/500 path.
 func TestGetExample_DBQueryCanceledByStatementTimeout_ReturnsCorrelatedInternalError(t *testing.T) {
 	if testing.Short() {
 		t.Skip("skipping integration test requiring a container runtime in short mode")
@@ -143,9 +118,9 @@ func TestGetExample_DBQueryCanceledByStatementTimeout_ReturnsCorrelatedInternalE
 	databaseURL := startPostgresContainer(ctx, t)
 	applyMigrations(t, databaseURL)
 
-	// Only the app's own connection string gets the short statement_timeout;
-	// the migration and lock-holding connections above/below use the plain
-	// databaseURL so they are never themselves subject to it.
+	// Only the app gets the short statement_timeout; pgx forwards unrecognized
+	// connection-string keys into the connection's startup parameters, so this
+	// applies to every pooled connection the app opens, not just the first.
 	appDatabaseURL := fmt.Sprintf("%s&statement_timeout=%d", databaseURL, lockHoldStatementTimeoutMillis)
 
 	binPath := buildAPIBinary(t)
