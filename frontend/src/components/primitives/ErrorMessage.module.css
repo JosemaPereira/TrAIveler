@@ -38,3 +38,9 @@
   color: var(--color-neutral-900);
   margin: 0;
 }
+
+.requestId {
+  font-size: var(--font-size-sm);
+  color: var(--color-neutral-600);
+  margin: 0;
+}

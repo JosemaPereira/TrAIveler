@@ -47,11 +47,21 @@ typed API client, accessibility helpers, and unit/integration tests.
 > - ✅ Sprint 2 (005-T052–T054, issue #64): state display primitives — `LoadingSpinner`,
 >   `ErrorMessage`, `EmptyState` under `src/components/primitives/`, each with a token-driven CSS
 >   Module and a co-located Vitest/RTL test file
+> - ✅ Sprint 4 (005-T115/T116, issue #118): frontend integration patterns — `useErrorHandler`
+>   (`src/hooks/useErrorHandler.ts`), the **first hook** under `src/hooks/`, maps an `unknown` error
+>   (typically a TanStack Query `error` field) to render-ready `{ title, message, requestId?,
+>   isRetryable }`, redirecting to `/login` on a 401 as a `useEffect` side effect (React Router
+>   forbids navigating during render). `ErrorMessage` gained an optional `requestId` prop that
+>   renders a de-emphasized "Reference ID" line so a user can read a correlation ID off to support.
+>   005-T114 (sending `X-Request-ID` and parsing `requestId` out of error envelopes in
+>   `src/lib/api-client.ts`) shipped earlier, in Sprint 2 (issue #81). Not yet wired into any real
+>   page — no route consumes live API data yet, so nothing calls `useErrorHandler` or renders
+>   `ErrorMessage` with a live `requestId` today; that lands with the feature pages in later sprints.
 >
 > Spec 005 Phase 4 (frontend application structure) is now complete. The "Project Structure" and
 > "Tech Stack" sections below still contain a **Target** subsection for work planned in later
-> specs (e.g. `hooks/`, feature-scoped `routes/`, per-resource query hooks) — only what's marked
-> ✅ exists in the codebase today.
+> specs (e.g. feature-scoped `routes/`, per-resource query hooks, more `hooks/` entries) — only what's
+> marked ✅ exists in the codebase today.
 
 ---
 
@@ -119,6 +129,9 @@ frontend/
 │   │   └── auth-store.test.ts
 │   ├── features/                     # Feature-scoped components and logic (empty placeholder; see .gitkeep)
 │   │   └── .gitkeep
+│   ├── hooks/                        # Shared custom React hooks (prefix: use)
+│   │   ├── useErrorHandler.ts        # Maps an unknown error (e.g. TanStack Query's `error`) to { title, message, requestId?, isRetryable }; redirects to /login on 401
+│   │   └── useErrorHandler.test.tsx
 │   ├── lib/                          # Framework/infra wiring shared across the app
 │   │   ├── api-client.ts             # apiFetch base + api.get/post/put/patch/delete; APIError matching docs/api-design-standards.md §7
 │   │   ├── api-client.test.ts
@@ -152,8 +165,8 @@ frontend/
 
 Where the codebase is still headed. Everything in "Current" above (`components/primitives/`,
 `components/composites/`, `components/ErrorBoundary.tsx`, `routes/`, `stores/auth-store.ts`,
-`features/` placeholder, `lib/`, `tests/helpers/a11y.ts`, and the wired-up `App.tsx`) is already
-real — everything below is still aspirational.
+`features/` placeholder, `hooks/useErrorHandler.ts`, `lib/`, `tests/helpers/a11y.ts`, and the
+wired-up `App.tsx`) is already real — everything below is still aspirational.
 
 ```
 frontend/
@@ -166,11 +179,13 @@ frontend/
 │   │   └── features/                 # Feature-level UI blocks (ConversationPanel, ItineraryView, SuggestionQueue)
 │   ├── routes/                       # More routes to add: register/login/dashboard/generate/trip/privacy-policy pages
 │   ├── lib/                          # More TanStack Query hooks to add on top of api-client.ts: useTrips, useTrip, useSendMessage, etc.
-│   └── hooks/                        # Shared custom React hooks (prefix: use)
+│   └── hooks/                        # More shared hooks beyond useErrorHandler, as reusable non-query logic emerges
 └── public/
 ```
 
-Coverage thresholds (≥ 80% for `src/components/` and `src/hooks/`) will be enforced in `vitest.config.ts` once those directories exist (roadmap 002-T041).
+Coverage thresholds (≥ 80% for `src/components/` and `src/hooks/`) are not yet enforced in
+`vitest.config.ts` — both directories exist today, but configuring the thresholds themselves is
+still tracked separately as roadmap 002-T041.
 
 ---
 
