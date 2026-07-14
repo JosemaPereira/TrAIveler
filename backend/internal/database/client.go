@@ -16,7 +16,6 @@ import (
 )
 
 // Client defines the interface for database operations.
-// This interface allows for easy mocking in tests and swapping implementations.
 //
 // Example usage:
 //
@@ -67,19 +66,16 @@ func NewClient(ctx context.Context, databaseURL string) (Client, error) {
 		return nil, fmt.Errorf("database URL cannot be empty")
 	}
 
-	// Parse connection string and configure pool
 	config, err := pgxpool.ParseConfig(databaseURL)
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse database URL: %w", err)
 	}
 
-	// Configure connection pool limits
 	config.MinConns = 5
 	config.MaxConns = 25
 	config.MaxConnLifetime = 1 * time.Hour
 	config.MaxConnIdleTime = 30 * time.Minute
 
-	// Retry logic: 3 attempts with 2-second delays
 	const maxRetries = 3
 	const retryDelay = 2 * time.Second
 
@@ -101,17 +97,14 @@ func NewClient(ctx context.Context, databaseURL string) (Client, error) {
 				case <-ctx.Done():
 					return nil, fmt.Errorf("context canceled during connection retry: %w", ctx.Err())
 				case <-time.After(retryDelay):
-					// Continue to next retry
 				}
 			}
 			continue
 		}
 
-		// Verify connection is actually working (fail-fast)
 		client := &pgxClient{pool: pool}
 		err = client.Ping(ctx)
 		if err == nil {
-			// Connection successful
 			slog.InfoContext(ctx, "database connection established",
 				"attempt", attempt,
 				"min_conns", config.MinConns,
@@ -121,7 +114,6 @@ func NewClient(ctx context.Context, databaseURL string) (Client, error) {
 			return client, nil
 		}
 
-		// Ping failed, close pool and retry
 		pool.Close()
 		lastErr = err
 		slog.WarnContext(ctx, "database connection verification failed",
@@ -136,7 +128,6 @@ func NewClient(ctx context.Context, databaseURL string) (Client, error) {
 			case <-ctx.Done():
 				return nil, fmt.Errorf("context canceled during connection retry: %w", ctx.Err())
 			case <-time.After(retryDelay):
-				// Continue to next retry
 			}
 		}
 	}
@@ -151,7 +142,6 @@ func (c *pgxClient) Ping(ctx context.Context) error {
 		return fmt.Errorf("connection pool is closed")
 	}
 
-	// Execute simple query to verify connection
 	var result int
 	err := c.pool.QueryRow(ctx, "SELECT 1").Scan(&result)
 	if err != nil {
