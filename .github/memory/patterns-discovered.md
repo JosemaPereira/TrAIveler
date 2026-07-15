@@ -289,6 +289,31 @@ dropped — only prose and illustrative code were trimmed. Supersedes the 2026-0
 
 ---
 
+### Goose Migrations Must Not Reference Tables From a Later, Not-Yet-Landed Migration Set
+- **Discovered**: 2026-07-15 — **Tool**: Claude Code
+- **Context**: `backend/migrations/` (single flat goose directory, shared across specs); adding a
+  migration that `ALTER TABLE`s a table owned by a different, not-yet-implemented spec/issue (here,
+  004-T010/T011 adding `version` to `trips`/`itinerary_items`, which are created by Spec 008's own
+  not-yet-landed migration set, issue #142).
+- **Problem**: `goose.Up`/`.UpTo` applies every pending migration in one directory strictly in version
+  order and **stops at the first failure**. A single migration referencing a table that doesn't exist
+  yet doesn't just fail itself — it blocks every migration that sorts after it from ever applying,
+  including unrelated pre-existing ones. Confirmed by actually running the full suite: adding
+  `005_add_version_to_trips.sql` before any `trips`-creating migration existed broke all of
+  `internal/example`'s integration tests and `tests/integration/error_test.go`, because the
+  pre-existing `20260710120000_create_examples_table.sql` (which sorts after 005 by goose's version
+  ordering) never got applied.
+- **Solution**: Before adding a migration that touches a table outside the current issue's own scope,
+  grep `backend/migrations/` for a migration that actually creates that table. If none exists, defer
+  the dependent migration (don't add the file yet) rather than adding it "for completeness" — the SQL
+  is usually already finalized in the spec's `data-model.md`, so nothing is lost by waiting; land it
+  in the same PR as (or after) the migration that creates the base table.
+- **Related**: `backend/migrations/001-004_*.sql` (#138), `specs/004-security-auth-model/data-model.md`
+  Migration Strategy Phase 4, `backend/tests/integration/security_migrations_test.go`, issue #142
+  (G-008-MIGRATIONS, will create `trips`/`itinerary_items`)
+
+---
+
 ### Treat README Command Blocks as Executable Claims
 - **Context**: Any README with example commands (`frontend/README.md` vs `package.json`).
 - **Problem**: A documented command (`npm test`) can be stale/wrong if the underlying script doesn't
