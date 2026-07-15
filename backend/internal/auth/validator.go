@@ -8,24 +8,14 @@ import (
 )
 
 const (
-	// minPasswordLength is the mandated minimum password length
-	// (docs/security.md, "Password Security").
 	minPasswordLength = 8
-	// maxPasswordLength matches bcrypt's own 72-byte input limit, the same
-	// bound HashPassword (password.go) relies on implicitly.
+	// maxPasswordLength matches bcrypt's own 72-byte input limit.
 	maxPasswordLength = 72
 )
 
-// ValidatePassword checks password against this project's strength rules
-// (docs/security.md, "Password Security"): length between 8 and 72
-// characters inclusive, at least one uppercase letter, one lowercase
-// letter, and one digit. It returns nil when password satisfies every
-// rule.
-//
-// All failing rules are collected into a single combined error rather than
-// stopping at the first one, mirroring internal/example's Validate()
-// convention (see internal/example/model.go) so a caller can report every
-// issue to the user in one round trip.
+// ValidatePassword enforces docs/security.md's password strength rules:
+// 8-72 characters, at least one uppercase letter, one lowercase letter, and
+// one digit. Failing rules are collected into a single combined error.
 func ValidatePassword(password string) error {
 	var fields []domainerrors.ValidationError
 
