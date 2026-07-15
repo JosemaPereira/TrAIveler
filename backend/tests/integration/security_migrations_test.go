@@ -64,7 +64,7 @@ func openMigrationDB(ctx context.Context, t *testing.T) *sql.DB {
 type columnInfo struct {
 	dataType   string
 	isNullable string
-	default_   sql.NullString
+	defaultVal sql.NullString
 }
 
 func queryColumn(t *testing.T, db *sql.DB, table, column string) (columnInfo, bool) {
@@ -77,7 +77,7 @@ func queryColumn(t *testing.T, db *sql.DB, table, column string) (columnInfo, bo
 		 WHERE table_name = $1 AND column_name = $2`,
 		table, column,
 	)
-	err := row.Scan(&info.dataType, &info.isNullable, &info.default_)
+	err := row.Scan(&info.dataType, &info.isNullable, &info.defaultVal)
 	if err == sql.ErrNoRows {
 		return columnInfo{}, false
 	}
@@ -146,7 +146,7 @@ func TestSecurityMigrations_CoreTables_CreatesUsersRefreshTokensJWTKeysSecurityE
 		info, ok = queryColumn(t, db, "users", "role")
 		require.True(t, ok, "expected users.role column to exist")
 		assert.Equal(t, "NO", info.isNullable)
-		assert.Contains(t, info.default_.String, "admin")
+		assert.Contains(t, info.defaultVal.String, "admin")
 		assert.True(t, checkConstraintExists(t, db, "users", "role"), "expected a CHECK constraint on users.role")
 
 		_, ok = queryColumn(t, db, "users", "last_login_at")
@@ -192,7 +192,7 @@ func TestSecurityMigrations_CoreTables_CreatesUsersRefreshTokensJWTKeysSecurityE
 
 		info, ok = queryColumn(t, db, "jwt_signing_keys", "status")
 		require.True(t, ok, "expected jwt_signing_keys.status column to exist")
-		assert.Contains(t, info.default_.String, "active")
+		assert.Contains(t, info.defaultVal.String, "active")
 		assert.True(t, checkConstraintExists(t, db, "jwt_signing_keys", "status"))
 
 		_, ok = queryColumn(t, db, "jwt_signing_keys", "retire_at")
