@@ -10,11 +10,8 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// withCapturedDefaultLogger temporarily replaces slog's global default logger
-// with one writing to a buffer, restoring the original when the test ends.
-// LogSecurityEvent has no logger parameter (mirrors internal/errors.HandleError's
-// established precedent for signatures with no room for a constructor-injected
-// logger), so slog.Default() is the only way to observe its output.
+// withCapturedDefaultLogger swaps slog's default logger for a buffer-backed
+// one, restored via t.Cleanup.
 func withCapturedDefaultLogger(t *testing.T) *bytes.Buffer {
 	t.Helper()
 

@@ -72,9 +72,6 @@ func TestValidatePassword_MissingDigit_ReturnsError(t *testing.T) {
 	assert.Error(t, err)
 }
 
-// TestValidatePassword_MultipleFailures_ReturnsCombinedError verifies that
-// all failing rules are reported together, not just the first one found,
-// mirroring internal/example's Validate() collect-all convention.
 func TestValidatePassword_MultipleFailures_ReturnsCombinedError(t *testing.T) {
 	// Too short, no uppercase, no digit: three rules fail at once.
 	err := ValidatePassword("abc")
