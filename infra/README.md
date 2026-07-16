@@ -306,7 +306,8 @@ Infrastructure changes are (or will be) deployed via GitHub Actions:
   touches the remote backend) and `terraform fmt -check -recursive`. The `plan` job runs real
   `terraform init` + `terraform plan -var-file=environments/{staging,production}.tfvars` and posts
   both plans as a PR comment (AWS-gated — see the note above). Job names
-  (`Validate Terraform Configuration`, `Check Terraform Formatting`, `Terraform Plan (Staging)`) are
+  (`Validate Terraform Configuration` — which includes the `terraform fmt -check` step —
+and `Terraform Plan (Staging)`) are
   pinned as required status checks in the branch-protection ruleset and must not be renamed.
 - **`.github/workflows/infra-apply.yml`** (`005-T108`, issue #91) — triggers only on `push` to
   `main` touching `infra/**` (never on `pull_request` — this workflow is not a required PR status
