@@ -110,10 +110,6 @@ type ServerConfig struct {
     IdleTimeout  time.Duration // 8 bytes
     Port         int           // 8 bytes
 }
-    WriteTimeout time.Duration // 8 bytes
-    IdleTimeout  time.Duration // 8 bytes
-    Port         int           // 8 bytes
-}
 ```
 
 ### Function Parameters
@@ -154,6 +150,36 @@ _ = json.NewEncoder(w).Encode(payload)
 // ✅ Correct - checked and logged
 if err := json.NewEncoder(w).Encode(payload); err != nil {
     slog.Default().Error("failed to write response", "error", err)
+}
+```
+
+- **Log or Return — Never Both**: an error must either be handled (logged and mitigated/rendered)
+  or propagated (wrapped and returned to the caller), but never both. If you wrap and return an
+  error, do not also log it at that level — doing so produces duplicate noise in production logs,
+  since the caller (or its caller) will log it again. Log errors only at the application boundary,
+  where they stop propagating: the HTTP handler (via `errors.HandleError`), the background worker
+  runner, or `main`.
+
+**Example:**
+
+```go
+// ❌ Wrong - logs AND returns; the boundary will log it again
+func (s *service) GetTrip(ctx context.Context, id string) (*Trip, error) {
+    trip, err := s.repo.FindByID(ctx, id)
+    if err != nil {
+        slog.Default().Error("failed to find trip", "error", err)
+        return nil, fmt.Errorf("get trip %s: %w", id, err)
+    }
+    return trip, nil
+}
+
+// ✅ Correct - wrap and return only; the HTTP handler logs it once
+func (s *service) GetTrip(ctx context.Context, id string) (*Trip, error) {
+    trip, err := s.repo.FindByID(ctx, id)
+    if err != nil {
+        return nil, fmt.Errorf("get trip %s: %w", id, err)
+    }
+    return trip, nil
 }
 ```
 
@@ -381,20 +407,51 @@ backend/
     api/            # main entrypoint (main.go, server.go, routes.go) — not cmd/server/
   internal/
     middleware/      # RequestID, Logger, Recovery, CORS, BodySize
-    database/         # pgxpool client
+    database/         # pgxpool client (pool size from DB_MIN/MAX_CONNECTIONS)
+      migrations/     # shared goose config (Dir, SetDialect) — the .sql files do NOT live here
     errors/           # DomainError + HandleError
     ai/               # AIClient interface + OllamaClient/AnthropicClient
+    auth/             # flat security utilities: password.go (bcrypt cost 12), validator.go —
+                       # deliberately NOT an internal/auth/password/ subpackage
+    observability/    # GenerateCorrelationID, LogSecurityEvent (structured JSON)
+    subscription/     # doc.go scaffold only (Spec 008, unbuilt)
+    collaboration/    # doc.go scaffold only (Spec 008, unbuilt)
+    security/         # doc.go scaffold only (Spec 008, unbuilt)
     example/          # throwaway model→repository→service→handler reference pattern —
                        # copy this layering for a real <domain>/ package (handler.go,
                        # service.go, repository.go, model.go), then delete example/
-  pkg/                # packages safe to import from outside internal/ (currently empty)
+  pkg/                # deliberately empty (.gitkeep only) — dead by convention; new shared
+                       # backend code goes under internal/, even when a spec/task literally
+                       # names a pkg/... path
   config/
-  migrations/         # goose migrations
+  migrations/         # goose migrations, flat and shared across specs (001-004 security
+                       # tables + the throwaway timestamp-versioned examples migration)
 ```
 
 `internal/example/` is the reference for what a real `internal/<domain>/` package should look
 like — `handler.go`, `service.go`, `repository.go` (plus `model.go`) — until the first real domain
 (Trip) ships and it is deleted.
+
+### Testing Conventions (Backend)
+
+These are code-level conventions; the three-layer strategy (unit/integration/E2E), folder
+structure, and coverage targets live in [`testing-guidelines.md`](testing-guidelines.md).
+
+- **Table-Driven Tests (TDT)**: for complex or conditional logic (input validation, routing, state
+  mapping, error scenarios), ALWAYS prefer table-driven tests using structs and descriptive subtest
+  names via `t.Run`. Combine with an extracted assertion helper to keep cognitive complexity at 15
+  or below (see the [Code Complexity](#code-complexity) example above).
+- **Test Isolation & Hermeticity**: each database integration test must run in its own transaction
+  or use an isolated database schema within the container runtime, so tests can execute in parallel
+  safely and never depend on another test's leftover state.
+- **Clean Test APIs & Lifecycle**: prefer `t.Cleanup(func() { ... })` over deferred calls (`defer`)
+  inside test setup helpers when the lifecycle of a resource is bound to the helper itself —
+  cleanup then runs when the *test* finishes, not when the helper returns.
+- **Helper Parameters**: test helpers must accept `*testing.T` as the first parameter, before the
+  context parameter (e.g., `setupTestDB(t *testing.T, ctx context.Context)`), consistent with the
+  [Function Parameters](#function-parameters) rule above. Call `t.Helper()` at the top of every
+  helper so failures are reported at the caller's line, keeping test tracebacks clear and cognitive
+  complexity low.
 
 ---
 
@@ -484,6 +541,42 @@ per this file's DRY principle above.
 | Hook | `camelCase.ts`, `use`-prefixed | `useErrorHandler.ts` |
 | Library / infra module (`lib/`, `stores/`) | `kebab-case.ts` | `api-client.ts`, `query-client.ts`, `auth-store.ts` |
 | Route component | `PascalCase.tsx` under `routes/` | `HomePage.tsx`, `RootLayout.tsx` |
+
+### Testing Conventions & UI Selectors (Frontend)
+
+These are code-level conventions; the three-layer strategy, folder structure, and coverage targets
+live in [`testing-guidelines.md`](testing-guidelines.md).
+
+- **Behavior-First Testing**: test components based on user interactions and accessibility markers
+  rather than internal state, props, or mock-heavy React internals. If a test breaks when the
+  implementation is refactored but the behavior is unchanged, it was testing the wrong thing.
+- **AAA Pattern**: structure each test internally in three distinct phases separated by a single
+  blank line: **Arrange** (render and mock setup), **Act** (user interactions via `userEvent`),
+  and **Assert** (expectations).
+- **Hierarchical Contexts**: use nested `describe` blocks to represent behavior and context
+  cleanly (`describe('when [context]', ...)` or `describe('having [precondition]', ...)`),
+  followed by leaf-level `it('should [outcome]', ...)` assertions.
+- **A11y-First & E2E Preparation**: always write UI code that lets tests query elements via
+  standard ARIA roles (e.g., `<button>` instead of a styled generic `<div>` with an `onClick`) —
+  the same queries our upcoming Playwright E2E suite will rely on. If a unique element cannot be
+  safely queried by its role or accessible name, add a dedicated data attribute:
+  `data-testid="element-name"`. Never use styling classes (`.active-card`) or brittle DOM paths
+  for test selection.
+
+**Example:**
+
+```tsx
+describe('when the trip form is submitted', () => {
+  it('should disable the submit button while the request is in flight', async () => {
+    const user = userEvent.setup();
+    render(<TripForm onSubmit={slowSubmit} />);
+
+    await user.click(screen.getByRole('button', { name: /create trip/i }));
+
+    expect(screen.getByRole('button', { name: /create trip/i })).toBeDisabled();
+  });
+});
+```
 
 ---
 

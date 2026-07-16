@@ -273,11 +273,12 @@ graph TD
 
 <!-- PROMOTED:architecture END -->
 
-## Implementation Status (Spec 005 — System Architecture, Sprints 1–4)
+## Implementation Status (Spec 005 — System Architecture, Sprints 1–4; Sprint 5 partial update 2026-07-15)
 
 This section is an addendum outside the promoted architecture above — it does not change any
 component boundary agreed in specs 001-003, it documents what is actually built today (Sprint 4
-close, spec `specs/005-system-architecture/`) versus what remains target/planned. Component-level
+close plus the Sprint 5 security-foundation work merged so far — PRs #151, #153–#157 — spec
+`specs/005-system-architecture/` and specs 004/008) versus what remains target/planned. Component-level
 detail lives in each area's own README (`backend/README.md`, `frontend/README.md`,
 `infra/README.md`); this section is a cross-area summary kept in sync with them, not a duplicate
 source of truth — see those files for exhaustive project-structure trees, environment variables,
@@ -296,7 +297,7 @@ graph TD
 
     User -->|http://localhost:5173| FE
     FE -.->|VITE_API_BASE_URL configured; no route calls it yet| API
-    API -->|pgx pool, min 5 / max 25| DB
+    API -->|pgx pool, DB_MIN/MAX_CONNECTIONS defaults 5/25| DB
     API -->|AI_PROVIDER=ollama default in development| AI
     TF -.->|would provision; AWS-cost-avoidance policy in force| DB
 
@@ -315,7 +316,8 @@ single place new endpoints get mounted. The middleware chain runs in this exact 
 `RequestID → Logger → Recovery → CORS → BodySize` (`internal/middleware/`) — `RequestID` first so
 downstream middleware can correlate by request ID, `Recovery` wrapping everything so a panic
 anywhere still yields a clean `500`. `internal/database/client.go` wraps a `pgxpool` connection
-pool (min 5 / max 25 connections, configurable) behind a `database.Client` interface. `internal/errors/`
+pool behind a `database.Client` interface; since PR #157 its min/max size is genuinely driven by
+`DB_MIN_CONNECTIONS`/`DB_MAX_CONNECTIONS` (defaults 5/25) rather than hardcoded. `internal/errors/`
 defines `DomainError` (six constructors: `NotFound`, `Validation`, `Unauthorized`, `Forbidden`,
 `Conflict`, `ServiceUnavailable`) and `HandleError`, which maps a domain error to the standard JSON
 error envelope (`docs/api-design-standards.md` §7), including the correlation ID from context.
@@ -331,9 +333,31 @@ exhausted-retries 429/503 as a `service_unavailable` `DomainError` with a `Retry
 `internal/example/` is a throwaway model→repository→service→handler reference implementation
 (CRUD + optimistic locking via a `version` column, pagination, `swag` annotations for every
 handler) — it demonstrates the layering every future real domain package should copy, and must be
-deleted once the first one (Trip, targeted Sprint 8 per `docs/roadmap.md`) ships. **No real domain
-package exists yet**: `internal/{auth, trip, itinerary, conversation, suggestion, subscription}`
-from the original spec text are still unbuilt. `backend/docs/` (a generated Swagger 2.0/OpenAPI
+deleted once the first one (Trip, targeted Sprint 8 per `docs/roadmap.md`) ships.
+
+Sprint 5 (specs 004/008, PRs #153–#157) added the security foundation:
+
+- **`internal/auth/`** — a **flat package** (`password.go`: `HashPassword`/`ComparePassword`,
+  bcrypt cost 12; `validator.go`: `ValidatePassword`), deliberately *not* the
+  `internal/auth/password/` subpackage some earlier spec/task text describes. HTTP
+  handlers/services/repositories for auth are still unbuilt (Spec 008 Phase 3).
+- **`internal/observability/`** — `correlation.go` (`GenerateCorrelationID`) and `logger.go`
+  (`LogSecurityEvent(correlationID, eventType, userID, severity, ipAddress, userAgent, details)`,
+  structured JSON via `log/slog`; matches the migrated `security_events` table).
+- **`internal/{subscription, collaboration, security}/`** — `doc.go` scaffolding only, no
+  implementation yet.
+- **`internal/database/migrations/`** — shared goose migration config (`Dir`, `SetDialect()`)
+  used by all integration tests; the `.sql` files themselves live flat in `backend/migrations/`
+  (shared across specs — `001`–`004` create `users`/`refresh_tokens`/`jwt_signing_keys`/
+  `security_events`, plus the throwaway timestamp-versioned `examples` migration). `pkg/` remains
+  deliberately empty (`.gitkeep` only) — shared backend code goes under `internal/`, per the
+  established convention.
+- **Config-driven pool sizing** — `database.NewClient` now takes `minConns`/`maxConns` from
+  `DB_MIN_CONNECTIONS`/`DB_MAX_CONNECTIONS` (defaults 5/25) instead of hardcoding them.
+
+Beyond that, **no real domain package exists yet**: `internal/{trip, itinerary, conversation,
+suggestion}` from the original spec text are still unbuilt, and
+`internal/{subscription, collaboration, security}` are empty scaffolds. `backend/docs/` (a generated Swagger 2.0/OpenAPI
 contract, `swaggo/swag`) is produced from `internal/example/handler.go`'s doc-comment annotations
 and served at `/swagger/index.html` / `/swagger/doc.json`, unauthenticated for now (see the
 "Planned Addendum" section below, which predates this status update and remains accurate).

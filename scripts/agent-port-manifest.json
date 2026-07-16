@@ -38,11 +38,11 @@
         ".github/prompts/implement-feature.prompt.md"
       ],
       "hashes": {
-        ".claude/agents/tdd-developer.md": "46f2899aeac4185ca7db78f1c7a5ac2488c5fdbb421949c8bf14ce25e6127305",
-        ".github/agents/tdd-developer.agent.md": "bae7abdc6f5b51835bf2b3d595605dd6468424dce330cecd09a03537bb995e75",
+        ".claude/agents/tdd-developer.md": "cee04ebd0b1e4cbc31c2d932c35d6187c6338cac976769d076398d0f8322a368",
+        ".github/agents/tdd-developer.agent.md": "0125f05eb3a7afaf79fc2fe4c76eb907dc2f9e86bd6d0e975cab39f4d037cd8e",
         ".github/prompts/implement-feature.prompt.md": "3fd852476c5adb2c2fe452bf10e7ca402481703f8b52f123c864ff0855b122e7"
       },
-      "last_synced": "2026-07-10"
+      "last_synced": "2026-07-15"
     },
     {
       "name": "technical-writer",
