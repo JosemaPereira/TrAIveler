@@ -9,20 +9,25 @@ repositories, AI integration, observability middleware, and security primitives.
 
 ---
 
-> **Implementation Status**: ✅ Sprint 2 complete (closed 2026-07-11) — Configuration, linting,
-> environment templates, the PostgreSQL client (`internal/database/`, issue #53),
+> **Implementation Status**: 🔄 Sprint 5 in progress (as of 2026-07-15) — Sprints 1–4 delivered
+> configuration, linting, the PostgreSQL client (`internal/database/`, issue #53),
 > observability/security middleware (`internal/middleware/`, issue #54), domain error handling
 > (`internal/errors/`, issue #56), the HTTP server entry point (`cmd/api/`, issue #57), the AI
-> client foundation (`internal/ai/`, issue #55 — `AIClient` interface, prompt-validator/output-
-> sanitizer stubs, and a working `OllamaClient` for local dev/MVP testing), and the
-> model→repository→service→handler reference pattern (`internal/example/`, issue #58) are complete
-> and unit-tested. The Chi router exposes `GET /healthz` and, via the reference pattern, a demo
-> `/api/v1/examples` CRUD resource. **No real domain package exists yet**: `internal/{auth, trip,
-> itinerary, conversation, suggestion, subscription}` and `pkg/{health, middleware, response}`
-> shown below under "Target" are still unbuilt, and the Anthropic-backed `AIClient` implementation
-> is not yet written. `internal/example/` itself is throwaway reference code — it must be deleted
-> once the first real domain package ships (tracked in `.github/memory/patterns-discovered.md`),
-> not a permanent feature.
+> client foundation (`internal/ai/`, issue #55 — `AIClient` interface with **two** first-class
+> implementations, `OllamaClient` for local dev/MVP and `AnthropicClient` for staging/production,
+> issue #117), the model→repository→service→handler reference pattern (`internal/example/`, issue
+> #58), and the generated Swagger contract + UI (`backend/docs/`, `/swagger/*`, Spec 009). Sprint 5
+> (PRs #153–#157) added the security foundation: goose migrations `001`–`004`
+> (users/refresh_tokens/jwt_signing_keys/security_events), the **flat** `internal/auth/` package
+> (bcrypt password hashing + validation), `internal/observability/` (correlation IDs,
+> `LogSecurityEvent`), the shared `internal/database/migrations` config package, and config-driven
+> pool sizing. The Chi router exposes `GET /healthz`, the demo `/api/v1/examples` CRUD resource,
+> and `/swagger/*`. **No real domain HTTP package exists yet**: `internal/{trip, itinerary,
+> conversation, suggestion}` are unbuilt, `internal/{subscription, collaboration, security}` are
+> `doc.go` scaffolds, and `pkg/{health, middleware, response}` shown under "Target" were superseded
+> by the "everything under `internal/`" convention. `internal/example/` itself is throwaway
+> reference code — it must be deleted once the first real domain package ships (tracked in
+> `.github/memory/patterns-discovered.md`), not a permanent feature.
 
 ---
 
@@ -65,7 +70,7 @@ The backend exposes a RESTful JSON API consumed by the frontend SPA. Its primary
 
 ### Current
 
-Everything below is real, built, and unit-tested as of Sprint 2's close (2026-07-11):
+Everything below is real, built, and unit-tested as of mid-Sprint 5 (2026-07-15):
 
 ```
 backend/
@@ -94,17 +99,34 @@ backend/
 │   │   └── mocks/
 │   │       └── ai_client_mock.go     # Generated AIClient mock (vektra/mockery)
 │   ├── database/
-│   │   └── client.go                 # pgxpool pooling (min/max conns caller-provided), fail-fast retry, DI-friendly interface
+│   │   ├── client.go                 # pgxpool pooling (min/max conns from DB_MIN/MAX_CONNECTIONS via caller), fail-fast retry, DI-friendly interface
+│   │   ├── migrations/               # Shared goose config: Dir (absolute path to backend/migrations/) + SetDialect() — used by all integration tests
+│   │   └── mocks/                    # Generated database.Client mock (vektra/mockery)
+│   ├── auth/                         # FLAT security-utility package (Spec 004/008, PR #155) — deliberately no password/ subpackage
+│   │   ├── password.go               # HashPassword/ComparePassword (bcrypt cost 12, per docs/security.md)
+│   │   └── validator.go              # ValidatePassword: 8-72 chars, upper/lower/digit
+│   ├── observability/                # Correlation IDs + security event logging (Spec 004, PR #155)
+│   │   ├── correlation.go            # GenerateCorrelationID
+│   │   └── logger.go                 # LogSecurityEvent(correlationID, eventType, userID, severity, ipAddress, userAgent, details) — structured JSON, matches the security_events table
+│   ├── subscription/                 # doc.go scaffold only (Spec 008 Phase 3+, unbuilt)
+│   ├── collaboration/                # doc.go scaffold only (Spec 008 Phase 3+, unbuilt)
+│   ├── security/                     # doc.go scaffold only (Spec 008 Phase 3+, unbuilt)
 │   └── example/                      # Canonical model→repository→service→handler reference pattern (issue #58)
 │       ├── model.go                  # Example entity + validation
 │       ├── repository.go             # PostgresRepository: CRUD + optimistic-locking (version column)
 │       ├── service.go                # Business logic layer, calls repository
 │       ├── handler.go                # HTTP handlers mounted at /api/v1/examples (If-Match optimistic-locking header)
 │       └── mocks/                    # Generated repository/service mocks (vektra/mockery)
+├── pkg/                              # Deliberately empty (.gitkeep in database/ and config/) — dead by convention; shared code goes under internal/
 ├── config/
 │   ├── config.go                     # Env var loading with fail-fast validation on missing required vars
 │   └── config_test.go
-└── migrations/
+├── tests/                            # integration/ (testcontainers), fixtures/, security/, unit/, contract/ (last two are .gitkeep scaffolds)
+└── migrations/                       # Single FLAT goose directory shared across specs — do not create per-spec migration dirs
+    ├── 001_create_users_table.sql    # Spec 004 security tables (PR #154): users, refresh_tokens,
+    ├── 002_create_refresh_tokens_table.sql   # jwt_signing_keys, security_events
+    ├── 003_create_jwt_signing_keys_table.sql
+    ├── 004_create_security_events_table.sql
     └── 20260710120000_create_examples_table.sql  # Goose timestamp-versioned migration for the examples table
 ```
 
@@ -131,8 +153,13 @@ backend/
 > to regenerate `backend/docs/` after any annotation change. A handler with no annotations is
 > silently excluded from the generated contract (e.g. `/healthz`) — this is intentional, not a bug.
 >
-> `pkg/` and `config/prompt-rules.yml` / `alerts.yml` / `backup-policy.yml` referenced in earlier
-> planning docs do not exist yet — `pkg/` currently holds only a `.gitkeep` placeholder.
+> `pkg/` is **dead by convention**: it holds only `.gitkeep` placeholders
+> (`pkg/{database,config}/`), and every shared backend package so far has landed under
+> `internal/` instead — even where a spec/task literally names a `pkg/...` path (e.g. Spec 008's
+> `pkg/database/connection.go`, `pkg/config/config.go`, `pkg/database/migrations/` all resolved to
+> `internal/database/`, `config/`, and `internal/database/migrations/` respectively). Treat any
+> remaining `pkg/...` path in task text as stale. `config/prompt-rules.yml` / `alerts.yml` /
+> `backup-policy.yml` referenced in earlier planning docs do not exist yet either.
 >
 > **`/swagger/*` routes are mounted** (issue #115): `GET /swagger/index.html` (interactive Swagger
 > UI) and `GET /swagger/doc.json` (the generated Swagger 2.0 contract) are live, unauthenticated
@@ -144,7 +171,12 @@ backend/
 
 Not yet built. Listed here so contributors know where new domain code is expected to land, per the
 architecture in [`docs/architecture.md`](../docs/architecture.md) and the API contract in
-[`specs/001-product-vision-scope/contracts/api.md`](../specs/001-product-vision-scope/contracts/api.md):
+[`specs/001-product-vision-scope/contracts/api.md`](../specs/001-product-vision-scope/contracts/api.md).
+Two caveats vs. the tree below: `internal/auth/` already exists as a **flat** package holding the
+password utilities (see "Current" above) — its future handler/service/repository files land in that
+same flat package, not a subpackage; and the `pkg/{health, middleware, response}` block is
+superseded by the "everything under `internal/`" convention (health lives in `cmd/api/server.go`,
+middleware in `internal/middleware/`):
 
 ```
 backend/
@@ -252,7 +284,7 @@ a descriptive error if a required variable is missing or a value is out of range
 | `COOKIE_DOMAIN` | `localhost` | Domain attribute set on the auth cookie |
 | `JWT_EXPIRATION` | `24h` | Access token lifetime |
 | `REFRESH_TOKEN_EXPIRATION` | `7 days` | Refresh token lifetime |
-| `BCRYPT_COST` | `12` | bcrypt hashing cost factor for password storage |
+| `BCRYPT_COST` | `12` | Loaded/validated by `config.Load()`, but **not currently consumed**: `internal/auth/password.go` hardcodes `const bcryptCost = 12` per `docs/security.md` — a non-default value has no effect today |
 | `COOKIE_SECURE` | `false` (`true` in production) | Whether the auth cookie requires HTTPS |
 | `LOG_LEVEL` | `info` | Minimum log level (`debug`, `info`, `warn`, `error`) |
 | `LOG_FORMAT` | `json` | Structured log output format |

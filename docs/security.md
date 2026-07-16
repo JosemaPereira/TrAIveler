@@ -244,6 +244,31 @@ CloudWatch metrics are emitted for:
 
 <!-- PROMOTED:security END -->
 
+## Implementation Status Note: Core Security Utilities (Sprint 5)
+
+Addendum outside the promoted content above (2026-07-15). The first slice of this design is now
+implemented (PRs #154, #155, #157) — the target design itself is unchanged:
+
+- **Password security**: `backend/internal/auth/` — a flat package (`password.go`:
+  `HashPassword`/`ComparePassword` with bcrypt cost 12 as mandated above; `validator.go`:
+  `ValidatePassword`, 8–72 chars + upper/lower/digit). Note the spec-literal
+  `internal/auth/password/` subpackage path in some task text is stale — the flat package is the
+  established layout.
+- **Security event logging**: `backend/internal/observability/logger.go` —
+  `LogSecurityEvent(correlationID, eventType, userID, severity, ipAddress, userAgent, details)`
+  emits structured JSON via `log/slog` (CloudWatch transport is the ECS log driver in the target
+  deployment). Its signature matches the migrated `security_events` table.
+- **Security data model**: goose migrations `001`–`004` in `backend/migrations/` create
+  `users`, `refresh_tokens`, `jwt_signing_keys`, and `security_events`.
+- **Not yet built**: JWT generation/validation (multi-key rotation), auth/rate-limit middleware,
+  session management, and all auth HTTP endpoints — tracked in Sprint 5 issues #142–#148.
+- **Known doc-vs-code nuance**: `BCRYPT_COST` is loaded by `backend/config/config.go` (default 12)
+  but `internal/auth` currently hardcodes `const bcryptCost = 12` — a non-default env value would
+  have no effect today. Also, `ValidatePassword` counts the 8–72 length in runes while bcrypt's own
+  limit is 72 *bytes*; multi-byte passwords near the limit can pass validation yet fail loudly at
+  hash time. Both are flagged for whenever the registration handler wires these together (Spec 008
+  Phase 3).
+
 ## Implementation Status Note: Secrets Management
 
 The Secrets Management target design above (all secrets in AWS Secrets Manager, IAM role-based

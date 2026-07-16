@@ -732,3 +732,28 @@ Migrations are executed sequentially using goose. Foundational migrations (16 to
 26. **Rationale**: Immutable audit trail prevents data tampering and preserves decision history
 
 <!-- PROMOTED:data-model END -->
+
+## Implementation Status Note: As-Built Migration Numbering (Sprint 5)
+
+Addendum outside the promoted content above (2026-07-15). The "Database Migrations" list above is
+the target 16-migration catalog agreed at promotion time; the migrations actually applied so far
+(PR #154, Spec 004 security tables) landed in a different order, so **the literal filenames above
+no longer match the repository**:
+
+- `backend/migrations/` is a single flat goose directory shared across specs (config lives in
+  `backend/internal/database/migrations/` — `Dir` + `SetDialect()`; not `pkg/database/migrations/`).
+- As-built so far: `001_create_users_table.sql`, `002_create_refresh_tokens_table.sql`,
+  `003_create_jwt_signing_keys_table.sql`, `004_create_security_events_table.sql`, plus the
+  throwaway timestamp-versioned `20260710120000_create_examples_table.sql` (deleted with
+  `internal/example/` when the first real domain ships).
+- Consequently `plans` is **not** migration 001 and `users` is **not** 002 as listed above — the
+  remaining tables (plans, subscriptions, trips, destinations, days, activities, travel styles,
+  collaborators, suggestions, conversation tables) must take the next free sequential numbers when
+  they land (Spec 008's migration set, issue #142, is next).
+- The as-built `users` table (001) follows this document's User entity (`role` CHECK
+  admin/partner, `last_login_at`); Spec 008 task text (008-T011) describes a *different* users
+  scheme (`full_name`, `has_subscription`, `failed_login_attempts`, `version`, ...) — implementers
+  must reconcile by `ALTER`ing/extending the existing table in a new migration, never by creating a
+  second `users` table. Goose applies one directory strictly in version order and stops at the
+  first failure, so a migration must never reference a table created by a later, not-yet-landed
+  migration (see `.github/memory/patterns-discovered.md`).
