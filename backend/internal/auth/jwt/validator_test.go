@@ -26,8 +26,7 @@ func signWith(t *testing.T, method gojwt.SigningMethod, kid string, signingKey a
 	return signed
 }
 
-// validClaims returns registered claims that pass every non-signature check,
-// expiring at exp.
+// validClaims returns claims that pass every non-signature check, expiring at exp.
 func validClaims(exp time.Time) Claims {
 	now := time.Now()
 	return Claims{
@@ -57,9 +56,8 @@ func TestValidator_ValidateToken_RoundTrip(t *testing.T) {
 	assert.True(t, claims.HasSubscription)
 }
 
-// TestValidator_ValidateToken_MultiKeyRotation is the core rotation scenario:
-// while an old key is still active, tokens it signed keep validating even
-// though a new primary key now signs fresh tokens.
+// Core rotation: an old active key's tokens still validate after a new primary
+// takes over signing.
 func TestValidator_ValidateToken_MultiKeyRotation(t *testing.T) {
 	oldKey := testKey(t, "key-old")
 	newKey := testKey(t, "key-new")
@@ -79,8 +77,7 @@ func TestValidator_ValidateToken_MultiKeyRotation(t *testing.T) {
 	assert.NoError(t, err, "token from the new primary key must validate")
 }
 
-// TestValidator_ValidateToken_RejectsRetiredKey confirms retirement ends a
-// key's validity: once the old key is retired, tokens it signed are rejected.
+// Once a key is retired, tokens it signed are rejected.
 func TestValidator_ValidateToken_RejectsRetiredKey(t *testing.T) {
 	oldKey := testKey(t, "key-old")
 	newKey := testKey(t, "key-new")
@@ -148,8 +145,7 @@ func TestValidator_ValidateToken_Rejections(t *testing.T) {
 	})
 }
 
-// assertUnauthorized asserts err is the uniform authentication_required domain
-// error that ValidateToken returns for every rejection.
+// assertUnauthorized asserts err is the uniform authentication_required error.
 func assertUnauthorized(t *testing.T, err error) {
 	t.Helper()
 	require.Error(t, err)

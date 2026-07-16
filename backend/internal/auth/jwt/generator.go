@@ -9,39 +9,29 @@ import (
 	"github.com/google/uuid"
 )
 
-// defaultAccessTTL is the access-token lifetime mandated by docs/security.md
-// ("Access tokens: 24 hours maximum lifetime").
+// defaultAccessTTL is the 24h access-token lifetime from docs/security.md.
 const defaultAccessTTL = 24 * time.Hour
 
-// Generator issues signed RS256 access tokens. It signs with whichever key the
-// KeyProvider currently reports as primary and stamps that key's id into the
-// token's `kid` header so the Validator can select the matching public key
-// during rotation.
+// Generator issues signed RS256 access tokens using the KeyProvider's primary
+// key, stamping that key's id into the `kid` header for validation during
+// rotation.
 type Generator struct {
 	keys      KeyProvider
 	accessTTL time.Duration
-	// now is injectable so tests can pin token timestamps; production code
-	// leaves it as time.Now.
-	now func() time.Time
+	now       func() time.Time // injectable for tests
 }
 
-// NewGenerator builds a Generator that signs tokens with keys from provider.
-// A non-positive accessTTL falls back to the 24h default from docs/security.md.
+// NewGenerator builds a Generator. A non-positive accessTTL falls back to 24h.
 func NewGenerator(provider KeyProvider, accessTTL time.Duration) *Generator {
 	if accessTTL <= 0 {
 		accessTTL = defaultAccessTTL
 	}
-	return &Generator{
-		keys:      provider,
-		accessTTL: accessTTL,
-		now:       time.Now,
-	}
+	return &Generator{keys: provider, accessTTL: accessTTL, now: time.Now}
 }
 
-// GenerateAccessToken issues a signed access token for userID, embedding the
-// hasSubscription authorization claim. The token carries the standard
-// registered claims (sub, iss, iat, nbf, exp, jti) and expires after the
-// generator's configured TTL.
+// GenerateAccessToken issues a signed access token for userID with the
+// hasSubscription claim and the standard registered claims (sub, iss, iat, nbf,
+// exp, jti).
 func (g *Generator) GenerateAccessToken(ctx context.Context, userID uuid.UUID, hasSubscription bool) (string, error) {
 	if userID == uuid.Nil {
 		return "", fmt.Errorf("jwt: user id must not be empty")

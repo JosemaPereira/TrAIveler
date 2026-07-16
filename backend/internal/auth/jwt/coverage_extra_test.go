@@ -52,8 +52,7 @@ func TestRefresher_RefreshToken_CreateFailureIsInfraError(t *testing.T) {
 	assert.ErrorContains(t, err, "persist refresh token")
 }
 
-// createFailStore behaves like fakeStore but fails only on Create, so the
-// revoke-then-create ordering can be exercised past the revoke step.
+// createFailStore fails only on Create, exercising the path past the revoke step.
 type createFailStore struct {
 	*fakeStore
 }

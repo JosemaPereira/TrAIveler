@@ -124,8 +124,7 @@ func TestRefresher_RefreshToken_Success(t *testing.T) {
 	assert.True(t, claims.HasSubscription)
 }
 
-// mustProvider extracts the KeyProvider behind a Refresher's generator so the
-// test can validate the access token it produced.
+// mustProvider returns the KeyProvider behind a Refresher's generator.
 func mustProvider(t *testing.T, r *Refresher) KeyProvider {
 	t.Helper()
 	return r.generator.keys

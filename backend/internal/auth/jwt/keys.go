@@ -9,83 +9,57 @@ import (
 	"fmt"
 )
 
-// minRSABits is the minimum RSA modulus size accepted for signing keys. RS256
-// requires 2048 bits per specs/004-security-auth-model/data-model.md's
-// JWTSigningKey validation rules.
+// minRSABits is the RS256 minimum modulus size (data-model.md, JWTSigningKey).
 const minRSABits = 2048
 
-// Errors returned by KeyProvider implementations. Callers (the Validator)
-// translate these into a generic "invalid token" response so no key-management
-// detail leaks to clients.
+// KeyProvider errors. The Validator maps these to a generic "invalid token" so
+// no key-management detail leaks to clients.
 var (
-	// ErrUnknownKeyID is returned when a token's `kid` matches no key the
-	// provider knows about.
 	ErrUnknownKeyID = errors.New("jwt: unknown signing key id")
-	// ErrKeyRetired is returned when a token's `kid` matches a key that has
-	// been retired and is therefore no longer accepted for validation.
-	ErrKeyRetired = errors.New("jwt: signing key is retired")
-	// ErrNoSigningKey is returned when no primary key is available to sign new
-	// tokens.
+	ErrKeyRetired   = errors.New("jwt: signing key is retired")
 	ErrNoSigningKey = errors.New("jwt: no active signing key configured")
 )
 
-// SigningKey is the private half of a key pair used to sign new access tokens,
-// paired with its KeyID so the generator can stamp the token's `kid` header.
+// SigningKey is a private key plus its KeyID, used to sign new tokens and stamp
+// the `kid` header.
 type SigningKey struct {
 	KeyID   string
 	Private *rsa.PrivateKey
 }
 
-// ManagedKey is one entry in a KeyProvider's key set: an RSA key pair (the
-// private half may be absent for verify-only keys) plus the rotation status
-// that determines whether it may still validate tokens.
+// ManagedKey is one entry in a KeyProvider's key set.
 type ManagedKey struct {
 	KeyID string
-	// Private is the signing key; nil for keys retained only to validate
-	// tokens that others signed (e.g. a public key imported for verification).
+	// Private is nil for verify-only keys.
 	Private *rsa.PrivateKey
 	Public  *rsa.PublicKey
-	// Retired mirrors jwt_signing_keys.status = 'retired': the key is kept for
-	// audit but no longer accepted for validation. See docs/security.md.
+	// Retired mirrors jwt_signing_keys.status='retired': kept for audit, no
+	// longer accepted for validation.
 	Retired bool
 }
 
-// KeyProvider supplies the key material the Generator and Validator need. It is
-// the seam between this package's token logic and however keys are actually
-// stored — a static in-memory set today (StaticKeyProvider), an AWS Secrets
-// Manager-backed loader later (Spec 004 Phase 3). Implementations must be safe
-// for concurrent use.
+// KeyProvider supplies key material to the Generator and Validator — the seam
+// between token logic and key storage. Implementations must be concurrency-safe.
 type KeyProvider interface {
-	// SigningKey returns the current primary key used to sign new tokens, or
-	// ErrNoSigningKey if none is available.
+	// SigningKey returns the current primary key, or ErrNoSigningKey.
 	SigningKey(ctx context.Context) (SigningKey, error)
-
-	// VerificationKey returns the public key for the given `kid` if that key is
-	// currently accepted for validation. It returns ErrUnknownKeyID for an
-	// unrecognized id and ErrKeyRetired for a known-but-retired key.
+	// VerificationKey returns the public key for keyID, or ErrUnknownKeyID /
+	// ErrKeyRetired if it is unknown or retired.
 	VerificationKey(ctx context.Context, keyID string) (*rsa.PublicKey, error)
 }
 
-// StaticKeyProvider is an in-memory KeyProvider backed by a fixed set of keys,
-// with one designated as the primary signing key. It is the MVP/local-dev and
-// test implementation; production key loading (Secrets Manager + the
-// jwt_signing_keys table) will provide its own KeyProvider without any change
-// to the Generator/Validator/Refresher.
-//
-// A StaticKeyProvider is immutable after construction and therefore safe for
-// concurrent use.
+// StaticKeyProvider is an immutable, concurrency-safe in-memory KeyProvider with
+// one designated primary key. It is the MVP/test implementation; production key
+// loading provides its own KeyProvider without touching the token logic.
 type StaticKeyProvider struct {
 	keys      map[string]ManagedKey
 	primaryID string
 }
 
-// NewStaticKeyProvider builds a StaticKeyProvider from the given keys, treating
-// primaryKeyID as the signing key for new tokens. Every non-retired key remains
-// accepted for validation, which is what supports zero-downtime rotation: sign
-// with the new primary while the previous key is still active.
-//
-// It errors if keys is empty, contains duplicate IDs, or if primaryKeyID does
-// not name a usable (present, non-retired, private-key-bearing) signing key.
+// NewStaticKeyProvider builds a provider from keys, using primaryKeyID to sign
+// new tokens. Every non-retired key stays valid for verification, which is what
+// enables rotation. It errors on an empty set, duplicate IDs, or a primary that
+// is missing, retired, or lacks a private key.
 func NewStaticKeyProvider(primaryKeyID string, keys ...ManagedKey) (*StaticKeyProvider, error) {
 	if len(keys) == 0 {
 		return nil, errors.New("jwt: at least one key is required")
@@ -139,14 +113,12 @@ func (p *StaticKeyProvider) VerificationKey(_ context.Context, keyID string) (*r
 	return key.Public, nil
 }
 
-// LoadKeyFromPEM builds a ManagedKey from a PEM-encoded RSA private key,
-// deriving the public half from it. It enforces the RS256 2048-bit minimum.
+// LoadKeyFromPEM builds a ManagedKey from a PEM-encoded RSA private key, deriving
+// the public half and enforcing the 2048-bit minimum.
 //
-// This is the raw-value path for the current secrets model (issue #143): the
-// private key arrives as a raw PEM string via configuration (JWT_SIGNING_KEY),
-// whether supplied locally or injected by ECS from Secrets Manager. The ARN-
-// resolving loader that reads jwt_signing_keys.private_key_secret_arn at runtime
-// is a later task (Spec 004 Phase 3).
+// This is the raw-value path for the current secrets model (issue #143): the key
+// arrives as a raw PEM string via config, supplied locally or injected by ECS
+// from Secrets Manager. The ARN-resolving loader is a later task.
 func LoadKeyFromPEM(keyID, privateKeyPEM string) (ManagedKey, error) {
 	if keyID == "" {
 		return ManagedKey{}, errors.New("jwt: key id must not be empty")
@@ -165,16 +137,10 @@ func LoadKeyFromPEM(keyID, privateKeyPEM string) (ManagedKey, error) {
 		return ManagedKey{}, fmt.Errorf("jwt: RSA key is %d bits, minimum is %d", bits, minRSABits)
 	}
 
-	return ManagedKey{
-		KeyID:   keyID,
-		Private: private,
-		Public:  &private.PublicKey,
-	}, nil
+	return ManagedKey{KeyID: keyID, Private: private, Public: &private.PublicKey}, nil
 }
 
-// parseRSAPrivateKey decodes either PKCS#1 ("RSA PRIVATE KEY") or PKCS#8
-// ("PRIVATE KEY") PEM blocks, the two formats openssl emits, and rejects
-// anything that is not an RSA key.
+// parseRSAPrivateKey decodes a PKCS#1 or PKCS#8 RSA key, rejecting non-RSA keys.
 func parseRSAPrivateKey(block *pem.Block) (*rsa.PrivateKey, error) {
 	if key, err := x509.ParsePKCS1PrivateKey(block.Bytes); err == nil {
 		return key, nil
