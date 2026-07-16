@@ -106,15 +106,61 @@ CRITICAL SCOPE BOUNDARY for Scenario 2:
 ## Testing Constraints and Quality Standards
 
 Use the project testing infrastructure defined in `docs/testing-guidelines.md`
-(unit, integration, and end-to-end UI layers).
+(unit, integration, and end-to-end UI layers). Code-level testing conventions are
+canonical in `docs/coding-guidelines.md` (Testing Conventions sections) — the rules
+below apply them to this agent's TDD flow. This monorepo will eventually include
+end-to-end (E2E) tests, so unit/integration naming conventions must set a solid
+foundation for them.
 
-Selector and reliability guidance (for UI tests):
+### 1. React & Frontend Test Structure (BDD Style)
+
+For Jest/Vitest frontend tests, enforce a hierarchical, nested structure using
+`describe` and `it` blocks to represent behavior and context cleanly instead of
+flat, single-level test lists:
+
+- **Top-level**: `describe('<ComponentName />')` or `describe('useHookName')` to
+  define the unit under test.
+- **Mid-level Contexts**: `describe('when [context or action]', ...)` or
+  `describe('having [precondition]', ...)` to establish the state, environment,
+  or trigger conditions.
+- **Leaf-level Assertions**: `it('should [expected outcome]', ...)` to verify the
+  concrete expectation, strictly following the **AAA (Arrange-Act-Assert)**
+  pattern inside the test body.
+- Always use **US English spelling** in test names (e.g., use "canceled" instead
+  of "cancelled").
+
+### 2. Go & Backend Test Structure (Behavior-Focused & Idiomatic)
+
+For Go tests, maintain high technical robustness (e.g., using Testcontainers for
+DB integration, keeping cognitive complexity under 15, and proper parameter
+ordering) but improve readability and structure:
+
+- **Table-Driven Tests (TDT)**: for complex logic (input validation, routing,
+  state mapping, error handling), ALWAYS prefer table-driven tests using structs.
+- **Behavioral Naming in Subtests**: run cases using `t.Run(name, ...)` and name
+  the cases using descriptive behavioral scenarios (e.g., `"when the URL is
+  empty"`, `"having an expired context"`, `"should return a generic error"`).
+- **Integration vs. Unit Separation**: always check and skip heavy integration
+  tests gracefully using `if testing.Short() { t.Skip(...) }` if they require
+  container runtimes (like Colima/Docker).
+- **Assertion Framework**: prefer `"github.com/stretchr/testify/require"` for
+  assertions that must halt execution immediately (like checking `nil` before
+  accessing a pointer), and `"github.com/stretchr/testify/assert"` for non-fatal
+  checks.
+- **Helper Conventions**: test helpers must accept `*testing.T` as the first
+  parameter, before the context parameter (e.g.,
+  `setupTestDB(t *testing.T, ctx context.Context)`). Use `t.Helper()`
+  appropriately to keep test tracebacks clear and reduce cognitive complexity.
+
+### 3. Selector and Reliability Guidance (UI Tests)
+
 - Prefer accessibility-first selectors before test-id attributes.
 - Avoid brittle CSS selectors.
 - Use state-based waits instead of fixed delays.
 - Use Page Object Model patterns to separate interactions from assertions.
 
-Coverage expectations:
+### 4. Coverage Expectations
+
 - Focus on unit tests, integration tests, and critical-path UI tests.
 - For UI/component features, write component tests first for rendering,
   interactions, and conditional logic.
