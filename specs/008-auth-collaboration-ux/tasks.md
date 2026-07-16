@@ -44,9 +44,9 @@
 - [ ] T016 [P] Create migration 006_create_collaborators.sql: collaborators table with id, trip_id (FK CASCADE), user_id (FK CASCADE), email, status (pending/accepted/rejected), invited_at, accepted_at, created_at; indexes on trip_id, user_id, status
 - [ ] T017 [P] Create migration 007_create_suggestions.sql: suggestions table with id, trip_id (FK CASCADE), collaborator_id (FK CASCADE), suggestion_type, content, details (jsonb), status (pending/approved/rejected), approved_at, rejected_at, created_at
 - [ ] T018 Create environment config loader in backend/pkg/config/config.go: load DATABASE_URL, JWT_SIGNING_KEY_SECRET_ARN, ANTHROPIC_API_KEY_SECRET_ARN from environment
-- [ ] T019 [P] Implement JWT generator with RS256 in backend/internal/auth/jwt/generator.go: GenerateAccessToken(userID, hasSubscription) returns signed JWT with 24h expiration
-- [ ] T020 [P] Implement JWT validator in backend/internal/auth/jwt/validator.go: ValidateToken(token) returns claims, supports multi-key validation for zero-downtime rotation
-- [ ] T021 [P] Implement JWT refresher in backend/internal/auth/jwt/refresher.go: RefreshToken(refreshToken) validates, revokes old token, issues new access+refresh tokens
+- [x] T019 [P] Implement JWT generator with RS256 in backend/internal/auth/jwt/generator.go: GenerateAccessToken(userID, hasSubscription) returns signed JWT with 24h expiration
+- [x] T020 [P] Implement JWT validator in backend/internal/auth/jwt/validator.go: ValidateToken(token) returns claims, supports multi-key validation for zero-downtime rotation
+- [x] T021 [P] Implement JWT refresher in backend/internal/auth/jwt/refresher.go: RefreshToken(refreshToken) validates, revokes old token, issues new access+refresh tokens
 - [ ] T022 [P] Implement bcrypt password hasher in backend/internal/auth/password/hasher.go: HashPassword(password) with cost 12, ComparePassword(hash, password) for validation
 - [ ] T023 [P] Implement password validator in backend/internal/auth/password/validator.go: ValidatePassword(password) checks 8-72 chars, uppercase, lowercase, digit
 - [ ] T024 [P] Implement progressive delay rate limiter in backend/internal/auth/ratelimit/limiter.go: CheckRateLimit(email) tracks failed attempts, returns delay seconds (exponential backoff after 5 failures)
