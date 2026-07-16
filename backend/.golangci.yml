@@ -86,6 +86,12 @@ linters-settings:
 
   misspell:
     locale: US
+    # `cancelled` is the canonical DB spelling in docs/data-model.md
+    # (subscriptions.cancelled_at column, 'cancelled' status value) and its
+    # migrations; it is a domain term, not a typo, so it is exempt from the
+    # US-locale check wherever it appears in Go code referencing that schema.
+    ignore-words:
+      - cancelled
 
   gofmt:
     simplify: true
