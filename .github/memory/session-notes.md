@@ -191,3 +191,39 @@ Historical summaries of completed development sessions. Committed to git as a re
     AWS-cost-avoidance constraint still in force; `internal/example/` deletion still waits on Sprint 8
     (Trip); `postgres:15.4-alpine` staleness watch; 002-T023 (Sprint 9); 009-T018-T026 (Spec 009
     swagger-drift CI gate + polish, deferred to Sprint 5).
+
+## Sprint 5 Implementation (Detailed)
+
+### Session: G-008-DATABASE — PostgreSQL Pooling & Goose Migrations Config
+- **Date**: 2026-07-15
+- **Tool**: Claude Code
+- **What was accomplished**: Issue #141 (G-008-DATABASE, 008-T009/T010). Verified
+  `internal/database/client.go` already satisfied T009's pooling requirement — no new file created,
+  avoiding the duplicate-implementation risk the issue itself flagged. For T010, added
+  `internal/database/migrations` (`Dir`, `SetDialect()`), replacing three duplicated
+  `const migrationsDir = "../../migrations"` + `goose.SetDialect("postgres")` call sites
+  (`tests/integration/error_test.go`, `tests/integration/security_migrations_test.go`,
+  `internal/example/repository_integration_test.go`) with one `runtime.Caller`-resolved absolute
+  path. While verifying T009, found and fixed a real config-wiring gap (see
+  `patterns-discovered.md`, "A Config Value Can Be Loaded, Validated, and Logged, Yet Still Never
+  Reach the Code It Configures"): `NewClient` ignored `DB_MIN_CONNECTIONS`/`DB_MAX_CONNECTIONS`
+  entirely, hardcoding 5/25 despite `config.go` already loading/validating them and `main.go`
+  logging them as if applied. `NewClient` now takes `minConns, maxConns int`; all call sites
+  (`main.go`, `client_test.go`, `repository_integration_test.go`) updated; new
+  `TestNewClient_ConfigurablePoolSize` asserts the pool's real `Pool().Config()` against non-default
+  values (2/10) so the assertion can't pass by coincidence. No ticket existed for this gap; fixed in
+  the same branch/PR as #141 per explicit user instruction rather than filed separately.
+- **Key findings and decisions**: Migration `.sql` files stayed in `backend/migrations/`, not moved
+  to the task's literal `pkg/database/migrations/` path — `pkg/` remains dead per established
+  convention, and the new shared config package was placed under `internal/database/migrations/`
+  for the same reason. Confirmed no mockery regen needed: `database.Client`'s interface shape didn't
+  change, only the free-function `NewClient` constructor's parameters. Branch was initially created
+  as `feature/142-...` (wrong issue number — that name belongs to the separate, not-yet-started
+  G-008-MIGRATIONS ticket) and corrected mid-session: created the correctly-named
+  `feature/141-g-008-database-postgresql-pooling-goose-migrations-config` from the same commit and
+  deleted the local `feature/142-...` alias (had zero unique commits; remote `feature/142-...`
+  untouched).
+- **Outcomes**: `go build`/`go vet`/`gofmt`/`golangci-lint` clean; full test suite
+  (`internal/database`, `internal/database/migrations`, `internal/example`, `tests/integration`,
+  `config`, `cmd`) passes, including Colima-backed testcontainer tests. Not yet committed/pushed/
+  PR'd as of this entry.
