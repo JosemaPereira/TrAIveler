@@ -22,7 +22,9 @@ import (
 // newTestRouter mounts the handler's routes on a real chi.Router so
 // chi.URLParam(r, "id") resolves correctly, matching how it's actually
 // wired in cmd/api/routes.go.
-func newTestRouter(h *example.Handler) http.Handler {
+func newTestRouter(t *testing.T, h *example.Handler) http.Handler {
+	t.Helper()
+
 	r := chi.NewRouter()
 	h.RegisterRoutes(r)
 	return r
@@ -44,7 +46,7 @@ func TestUnitHandleCreate_ValidRequest_Returns201WithLocationHeader(t *testing.T
 		Once()
 
 	h := example.NewHandler(svc)
-	router := newTestRouter(h)
+	router := newTestRouter(t, h)
 
 	body := bytes.NewBufferString(`{"name":"Ada Lovelace","email":"ada@example.com"}`)
 	req := httptest.NewRequest(http.MethodPost, "/examples", body)
@@ -63,7 +65,7 @@ func TestUnitHandleCreate_MalformedJSON_Returns400(t *testing.T) {
 	svc := examplemocks.NewMockService(t) // no .EXPECT(): service must not be touched
 
 	h := example.NewHandler(svc)
-	router := newTestRouter(h)
+	router := newTestRouter(t, h)
 
 	req := httptest.NewRequest(http.MethodPost, "/examples", bytes.NewBufferString(`{not valid json`))
 	rec := httptest.NewRecorder()
@@ -82,7 +84,7 @@ func TestUnitHandleCreate_DuplicateEmail_Returns409(t *testing.T) {
 		Once()
 
 	h := example.NewHandler(svc)
-	router := newTestRouter(h)
+	router := newTestRouter(t, h)
 
 	req := httptest.NewRequest(http.MethodPost, "/examples", bytes.NewBufferString(`{"name":"Ada","email":"ada@example.com"}`))
 	rec := httptest.NewRecorder()
@@ -102,7 +104,7 @@ func TestUnitHandleCreate_ValidationFailure_Returns422(t *testing.T) {
 		Once()
 
 	h := example.NewHandler(svc)
-	router := newTestRouter(h)
+	router := newTestRouter(t, h)
 
 	req := httptest.NewRequest(http.MethodPost, "/examples", bytes.NewBufferString(`{"name":"","email":"ada@example.com"}`))
 	rec := httptest.NewRecorder()
@@ -119,7 +121,7 @@ func TestUnitHandleGet_ExistingID_Returns200(t *testing.T) {
 	svc.EXPECT().GetExample(mock.Anything, "abc-123").Return(want, nil).Once()
 
 	h := example.NewHandler(svc)
-	router := newTestRouter(h)
+	router := newTestRouter(t, h)
 
 	req := httptest.NewRequest(http.MethodGet, "/examples/abc-123", nil)
 	rec := httptest.NewRecorder()
@@ -139,7 +141,7 @@ func TestUnitHandleGet_MissingID_Returns404(t *testing.T) {
 		Once()
 
 	h := example.NewHandler(svc)
-	router := newTestRouter(h)
+	router := newTestRouter(t, h)
 
 	req := httptest.NewRequest(http.MethodGet, "/examples/missing", nil)
 	rec := httptest.NewRecorder()
@@ -159,7 +161,7 @@ func TestUnitHandleUpdate_ValidRequestWithIfMatch_Returns200(t *testing.T) {
 		Once()
 
 	h := example.NewHandler(svc)
-	router := newTestRouter(h)
+	router := newTestRouter(t, h)
 
 	req := httptest.NewRequest(http.MethodPut, "/examples/abc-123", bytes.NewBufferString(`{"name":"New Name","status":"active","count":5}`))
 	req.Header.Set("If-Match", "3")
@@ -176,7 +178,7 @@ func TestUnitHandleUpdate_MissingIfMatchHeader_Returns400(t *testing.T) {
 	svc := examplemocks.NewMockService(t) // no .EXPECT(): service must not be touched
 
 	h := example.NewHandler(svc)
-	router := newTestRouter(h)
+	router := newTestRouter(t, h)
 
 	req := httptest.NewRequest(http.MethodPut, "/examples/abc-123", bytes.NewBufferString(`{"name":"New Name","status":"active"}`))
 	rec := httptest.NewRecorder()
@@ -195,7 +197,7 @@ func TestUnitHandleUpdate_VersionConflict_Returns409(t *testing.T) {
 		Once()
 
 	h := example.NewHandler(svc)
-	router := newTestRouter(h)
+	router := newTestRouter(t, h)
 
 	req := httptest.NewRequest(http.MethodPut, "/examples/abc-123", bytes.NewBufferString(`{"name":"New Name","status":"active"}`))
 	req.Header.Set("If-Match", "3")
@@ -212,7 +214,7 @@ func TestUnitHandleDelete_ExistingID_Returns204NoBody(t *testing.T) {
 	svc.EXPECT().DeleteExample(mock.Anything, "abc-123").Return(nil).Once()
 
 	h := example.NewHandler(svc)
-	router := newTestRouter(h)
+	router := newTestRouter(t, h)
 
 	req := httptest.NewRequest(http.MethodDelete, "/examples/abc-123", nil)
 	rec := httptest.NewRecorder()
@@ -230,7 +232,7 @@ func TestUnitHandleDelete_MissingID_Returns404(t *testing.T) {
 		Once()
 
 	h := example.NewHandler(svc)
-	router := newTestRouter(h)
+	router := newTestRouter(t, h)
 
 	req := httptest.NewRequest(http.MethodDelete, "/examples/missing", nil)
 	rec := httptest.NewRecorder()
@@ -253,7 +255,7 @@ func TestUnitHandleList_DefaultPagination_Returns200WithEnvelope(t *testing.T) {
 		Once()
 
 	h := example.NewHandler(svc)
-	router := newTestRouter(h)
+	router := newTestRouter(t, h)
 
 	req := httptest.NewRequest(http.MethodGet, "/examples", nil)
 	rec := httptest.NewRecorder()
@@ -285,7 +287,7 @@ func TestUnitHandleList_PerPageAboveMax_Returns400(t *testing.T) {
 	svc := examplemocks.NewMockService(t) // no .EXPECT(): service must not be touched
 
 	h := example.NewHandler(svc)
-	router := newTestRouter(h)
+	router := newTestRouter(t, h)
 
 	req := httptest.NewRequest(http.MethodGet, "/examples?per_page=500", nil)
 	rec := httptest.NewRecorder()
@@ -304,7 +306,7 @@ func TestUnitHandleList_StatusFilter_PassedThroughToService(t *testing.T) {
 		Once()
 
 	h := example.NewHandler(svc)
-	router := newTestRouter(h)
+	router := newTestRouter(t, h)
 
 	req := httptest.NewRequest(http.MethodGet, "/examples?status=inactive", nil)
 	rec := httptest.NewRecorder()

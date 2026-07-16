@@ -10,66 +10,64 @@ import (
 	domainerrors "github.com/JosemaPereira/TrAIveler/backend/internal/errors"
 )
 
-func TestValidatePassword_ValidPassword_ReturnsNil(t *testing.T) {
-	err := ValidatePassword("Correct1Horse")
+func TestValidatePassword(t *testing.T) {
+	tests := []struct {
+		name     string
+		password string
+		wantErr  bool
+	}{
+		{
+			name:     "when the password satisfies every rule",
+			password: "Correct1Horse",
+			wantErr:  false,
+		},
+		{
+			name: "when the password is below the 8-char minimum",
+			// "Abcdef1" is 7 chars: below the 8-char minimum.
+			password: "Abcdef1",
+			wantErr:  true,
+		},
+		{
+			name: "when the password is exactly at the 8-char minimum",
+			// All other rules satisfied at the lower boundary.
+			password: "Abcdefg1",
+			wantErr:  false,
+		},
+		{
+			name: "when the password is exactly at the 72-char maximum",
+			// bcrypt's own input limit; all other rules satisfied.
+			password: "Aa1" + strings.Repeat("b", 69),
+			wantErr:  false,
+		},
+		{
+			name:     "when the password is one char past the 72-char maximum",
+			password: "Aa1" + strings.Repeat("b", 70),
+			wantErr:  true,
+		},
+		{
+			name:     "when the password is missing an uppercase letter",
+			password: "lowercase1",
+			wantErr:  true,
+		},
+		{
+			name:     "when the password is missing a lowercase letter",
+			password: "UPPERCASE1",
+			wantErr:  true,
+		},
+		{
+			name:     "when the password is missing a digit",
+			password: "NoDigitsHere",
+			wantErr:  true,
+		},
+	}
 
-	assert.NoError(t, err)
-}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := ValidatePassword(tt.password)
 
-func TestValidatePassword_SevenChars_ReturnsError(t *testing.T) {
-	// "Abcdef1" is 7 chars: below the 8-char minimum.
-	err := ValidatePassword("Abcdef1")
-
-	assert.Error(t, err)
-}
-
-func TestValidatePassword_EightChars_ReturnsNil(t *testing.T) {
-	// Exactly at the 8-char minimum boundary; all other rules satisfied.
-	pw := "Abcdefg1"
-	require.Len(t, pw, 8)
-
-	err := ValidatePassword(pw)
-
-	assert.NoError(t, err)
-}
-
-func TestValidatePassword_SeventyTwoChars_ReturnsNil(t *testing.T) {
-	// Exactly at the 72-char maximum boundary (bcrypt's own input limit);
-	// all other rules satisfied.
-	pw := "Aa1" + strings.Repeat("b", 69)
-	require.Len(t, pw, 72)
-
-	err := ValidatePassword(pw)
-
-	assert.NoError(t, err)
-}
-
-func TestValidatePassword_SeventyThreeChars_ReturnsError(t *testing.T) {
-	// One char past the 72-char maximum boundary.
-	pw := "Aa1" + strings.Repeat("b", 70)
-	require.Len(t, pw, 73)
-
-	err := ValidatePassword(pw)
-
-	assert.Error(t, err)
-}
-
-func TestValidatePassword_MissingUppercase_ReturnsError(t *testing.T) {
-	err := ValidatePassword("lowercase1")
-
-	assert.Error(t, err)
-}
-
-func TestValidatePassword_MissingLowercase_ReturnsError(t *testing.T) {
-	err := ValidatePassword("UPPERCASE1")
-
-	assert.Error(t, err)
-}
-
-func TestValidatePassword_MissingDigit_ReturnsError(t *testing.T) {
-	err := ValidatePassword("NoDigitsHere")
-
-	assert.Error(t, err)
+			assertValidationResult(t, err, tt.wantErr)
+		})
+	}
 }
 
 func TestValidatePassword_MultipleFailures_ReturnsCombinedError(t *testing.T) {
@@ -81,4 +79,14 @@ func TestValidatePassword_MultipleFailures_ReturnsCombinedError(t *testing.T) {
 	require.True(t, ok, "expected *domainerrors.DomainError, got %T", err)
 	assert.Equal(t, "validation_failed", domainErr.Code)
 	assert.Len(t, domainErr.Fields, 3)
+}
+
+func assertValidationResult(t *testing.T, err error, wantErr bool) {
+	t.Helper()
+
+	if wantErr {
+		assert.Error(t, err)
+		return
+	}
+	assert.NoError(t, err)
 }

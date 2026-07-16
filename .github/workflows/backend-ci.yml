@@ -4,14 +4,18 @@
 # It validates code quality, runs tests, and builds a Docker image for deployment.
 #
 # Workflow steps:
-# 1. Lint - Run golangci-lint to enforce code quality standards
-# 2. Test - Execute Go tests with race detection and coverage
-# 3. Build - Build Docker image for linux/arm64 (ECS Fargate)
-# 4. Push (main only) - Push image to ECR (placeholder for Sprint 3)
-# 5. Deploy (main only) - Update ECS service (placeholder for Sprint 10)
+# 1. Lint & Test - golangci-lint, then Go tests with race detection and
+#    coverage (one job: they shared identical checkout/setup-go, and lint
+#    finishing first fails fast before the slower test run)
+# 2. Build - Build Docker image for linux/arm64 (ECS Fargate) to validate the
+#    Dockerfile; the image is not pushed or persisted anywhere yet
+# 3. Push (main only) - Push image to ECR (placeholder for Sprint 3)
+# 4. Deploy (main only) - Update ECS service (placeholder for Sprint 10)
 #
-# Status: SKELETON - Jobs defined, deployment placeholders for future sprints
-# Sprint 1 deliverable: lint, test, and build jobs functional
+# Note: tests run via `make test-coverage`, which uses `-short` — every
+# DB-backed test is testcontainer-gated and skips in short mode, so this
+# workflow needs no PostgreSQL service container (one was configured here
+# until 2026-07-16, but nothing ever connected to it).
 
 name: Backend CI
 
@@ -55,8 +59,8 @@ jobs:
               - 'backend/**'
               - '.github/workflows/backend-ci.yml'
 
-  lint:
-    name: Lint Backend Code
+  lint-test:
+    name: Backend Lint & Test
     runs-on: ubuntu-latest
     needs: changes
     if: github.event_name == 'workflow_dispatch' || needs.changes.outputs.backend == 'true'
@@ -64,13 +68,13 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-      
+
       - name: Setup Go
         uses: actions/setup-go@v5
         with:
           go-version: '1.26'
           cache-dependency-path: backend/go.sum
-      
+
       - name: Run golangci-lint
         uses: golangci/golangci-lint-action@v6
         with:
@@ -79,46 +83,14 @@ jobs:
           working-directory: backend
           args: --timeout=5m
 
-  test:
-    name: Run Backend Tests
-    runs-on: ubuntu-latest
-    needs: changes
-    if: github.event_name == 'workflow_dispatch' || needs.changes.outputs.backend == 'true'
-
-    # PostgreSQL service container for integration tests
-    services:
-      postgres:
-        image: postgres:15.4-alpine
-        env:
-          POSTGRES_USER: testuser
-          POSTGRES_PASSWORD: testpass
-          POSTGRES_DB: traveler_test
-        options: >-
-          --health-cmd pg_isready
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
-        ports:
-          - 5432:5432
-    
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-      
-      - name: Setup Go
-        uses: actions/setup-go@v5
-        with:
-          go-version: '1.26'
-          cache-dependency-path: backend/go.sum
-      
       - name: Run tests with coverage
+        # Short mode: testcontainer-gated tests skip; no live database is
+        # needed here (see the note in this file's header).
         working-directory: backend
-        env:
-          DATABASE_URL: postgres://testuser:testpass@localhost:5432/traveler_test?sslmode=disable
         run: |
           make test-coverage
           go tool cover -func=coverage.out
-      
+
       - name: Upload coverage to artifact
         uses: actions/upload-artifact@v4
         with:
@@ -129,7 +101,7 @@ jobs:
   build:
     name: Build Docker Image
     runs-on: ubuntu-latest
-    needs: [changes, lint, test]
+    needs: [changes, lint-test]
     if: github.event_name == 'workflow_dispatch' || needs.changes.outputs.backend == 'true'
 
     steps:
@@ -159,18 +131,17 @@ jobs:
             traveler-backend:latest
           cache-from: type=gha
           cache-to: type=gha,mode=max
-          outputs: type=docker,dest=/tmp/backend-image.tar
-      
-      - name: Upload image artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: backend-docker-image
-          path: /tmp/backend-image.tar
-          retention-days: 1
+          # No `outputs:`/artifact upload: nothing consumes the image until
+          # the ECR push job (Sprint 3) exists — this job only validates that
+          # the Dockerfile builds. The push job below will rebuild from the
+          # warm GHA layer cache when it lands.
 
   # TODO Sprint 3: ECR Push Job
-  # Uncomment and configure when AWS infrastructure is provisioned
-  # 
+  # Uncomment and configure when AWS infrastructure is provisioned.
+  # Rebuilds with docker/build-push-action `push: true` — the build job above
+  # populates the GHA layer cache, so this is a cache hit, not a second full
+  # build (the old tar-artifact handoff was removed 2026-07-16 as unused).
+  #
   # push:
   #   name: Push to ECR
   #   runs-on: ubuntu-latest
@@ -178,14 +149,11 @@ jobs:
   #   if: github.ref == 'refs/heads/main' && github.event_name == 'push'
   #   
   #   steps:
-  #     - name: Download image artifact
-  #       uses: actions/download-artifact@v4
-  #       with:
-  #         name: backend-docker-image
-  #         path: /tmp
+  #     - name: Checkout code
+  #       uses: actions/checkout@v4
   #     
-  #     - name: Load Docker image
-  #       run: docker load --input /tmp/backend-image.tar
+  #     - name: Set up Docker Buildx
+  #       uses: docker/setup-buildx-action@v3
   #     
   #     - name: Configure AWS credentials
   #       uses: aws-actions/configure-aws-credentials@v4

@@ -184,7 +184,7 @@ run, these tests are gated behind Go's `testing.Short()`:
 `backend/internal/example/repository_integration_test.go` is the reference implementation: it
 starts a real `postgres:16-alpine` container via `testcontainers-go`, applies the goose migrations
 from `backend/migrations/`, and exercises the repository against it — see
-`setupRepositoryTestDB(ctx, t)` in that file, which mirrors `backend/internal/database/client_test.go`'s
+`setupRepositoryTestDB(t, ctx)` in that file, which mirrors `backend/internal/database/client_test.go`'s
 container-setup helper. See also `backend/TESTING.md` for the full command reference.
 
 ### Frontend (React / TypeScript)
@@ -240,7 +240,8 @@ the client itself, not a precedent to follow for feature-level integration tests
 - E2E tests run against a fully deployed (or locally running) instance of the application.
 - Do not use hard-coded timeouts. Use Playwright's built-in auto-wait and `expect` assertions.
 - Accessibility scanning (`@axe-core/playwright`, WCAG 2.1 AA) is a dedicated CI gate
-  (`.github/workflows/accessibility.yml`, issue #93) rather than a fourth testing layer — it reuses
+  (the `Accessibility Audit` job in `.github/workflows/frontend-ci.yml`, issue #93) rather than a
+fourth testing layer — it reuses
   Playwright specs tagged `@accessibility` in `e2e/` plus a Lighthouse CI audit. See
   [`e2e/README.md`](../e2e/README.md#accessibility-testing) for current wiring status and
   `docs/nfrs.md` (NFR-A11Y) for the validated thresholds.
@@ -294,8 +295,8 @@ e2e/
 
 | Layer | Minimum Coverage |
 |---|---|
-| Unit (backend) | 80% of business logic |
-| Unit (frontend) | 80% of shared components and hooks |
+| Unit (backend) | 90% of business logic |
+| Unit (frontend) | 90% of shared components and hooks |
 | Integration | All public API endpoints |
 | E2E | All primary user flows defined in functional requirements |
 
@@ -304,12 +305,15 @@ Coverage is a floor, not a goal. Prioritize meaningful tests over achieving a pe
 **Observed numbers (Spec 005 validation sweep, 2026-07-13 — see
 `specs/005-system-architecture/validation-results.md` for full detail)**: backend
 `internal/example` (service + repository combined) measured **89.1%** with the full,
-Colima-backed test run — comfortably over the 80% floor. The CI/`make test-coverage` lane alone
-(short mode, no testcontainers) reads a lower **64.1%** by design, since `repository.go`'s
-DB-backed methods are only exercised by the testcontainer-gated test (see "Repository Integration
-Tests with Optional Testcontainers" above) — not a real shortfall. Frontend has **no coverage
-threshold enforced yet** in `vitest.config.ts` (tracked separately as roadmap task `002-T041`);
-136/136 frontend tests pass across 15 files as of the same sweep.
+Colima-backed test run — marginally under the 90% floor adopted on 2026-07-16 (the floor was 80%
+at the time of that sweep), so the next backend change in that package should close the ~1-point
+gap. The CI/`make test-coverage` lane alone (short mode, no testcontainers) reads a lower
+**64.1%** by design, since `repository.go`'s DB-backed methods are only exercised by the
+testcontainer-gated test (see "Repository Integration Tests with Optional Testcontainers" above)
+— not a real shortfall. Frontend coverage **is enforced at 90%** (statements, branches, functions,
+lines) via `thresholds` in `vitest.config.ts`, so `npm run test:coverage` and the CI coverage step
+fail below that floor (this supersedes the enforcement gap formerly tracked as roadmap task
+`002-T041`); 136/136 frontend tests pass across 15 files as of the same sweep.
 
 ---
 

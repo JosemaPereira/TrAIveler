@@ -14,7 +14,8 @@ real user would.
 >
 > - ✅ Sprint 1 (2026-07-08) — Playwright installed, browsers configured, sample smoke test passing.
 > - ✅ Sprint 3 (2026-07-12, issue #93) — `@axe-core/playwright` added as a dependency and the
->   dedicated accessibility CI gate (`.github/workflows/accessibility.yml`) now runs
+>   dedicated accessibility CI gate (the `Accessibility Audit` job in
+>   `.github/workflows/frontend-ci.yml`) now runs
 >   `npx playwright test --grep @accessibility` from this directory on every pull request that
 >   touches `frontend/**` or `e2e/**`.
 > - 🔲 No spec in this directory is tagged `@accessibility` yet, so that CI step currently passes
@@ -242,7 +243,8 @@ scoped to the WCAG 2.1 AA tag set and throws (failing the test) if any violation
 it into every spec in this directory, tagged `@accessibility`, is task `002-T023` (Sprint 9) and
 has not happened yet, so today's `sample.spec.ts` does not call it.
 
-The CI accessibility gate (`.github/workflows/accessibility.yml`, issue #93) already runs against
+The CI accessibility gate (the `Accessibility Audit` job in `.github/workflows/frontend-ci.yml`,
+originally added as a standalone workflow in issue #93) already runs against
 this directory on every pull request touching `frontend/**` or `e2e/**`:
 
 1. Builds and serves the frontend production bundle.

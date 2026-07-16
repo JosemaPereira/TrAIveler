@@ -17,7 +17,7 @@ typed API client, accessibility helpers, and unit/integration tests.
 > dashboard, feature components) lands in later sprints per [`docs/roadmap.md`](../docs/roadmap.md).
 > - ✅ Sprint 3 (issue #93): accessibility CI gate — `@axe-core/playwright` + `@lhci/cli` dev
 >   dependencies, root `lighthouserc.yml`, `checkPageA11y(page)` helper (`frontend/tests/helpers/a11y.ts`),
->   dedicated `.github/workflows/accessibility.yml`. Not yet exercising real pages — no E2E spec is
+>   dedicated `Accessibility Audit` job in `.github/workflows/frontend-ci.yml`. Not yet exercising real pages — no E2E spec is
 >   tagged `@accessibility` (002-T023, Sprint 9); the workflow bridges the gap with
 >   `--pass-with-no-tests` in the meantime.
 > - ✅ Sprint 1 (2026-07-07): project scaffolding — Vite + React 19 + TypeScript strict mode, Atomic
@@ -453,7 +453,7 @@ will be flagged by code review.
 - All images must have meaningful `alt` attributes. All form fields must have associated labels.
 - Touch targets must be ≥ 44 × 44 px on mobile.
 - Automated scanning via `@axe-core/playwright` (`checkPageA11y(page)`, `frontend/tests/helpers/a11y.ts`) is designed to run in every E2E test tagged `@accessibility` — no spec is tagged yet (002-T023, Sprint 9), so the CI gate below is not yet exercising real pages.
-- Lighthouse CI asserts accessibility score ≥ 90 and Core Web Vitals thresholds on every PR via [`.github/workflows/accessibility.yml`](../.github/workflows/accessibility.yml) — see "Continuous Integration" below for its current bridge state.
+- Lighthouse CI asserts accessibility score ≥ 90 and Core Web Vitals thresholds on every PR via the `Accessibility Audit` job in [`.github/workflows/frontend-ci.yml`](../.github/workflows/frontend-ci.yml) — see "Continuous Integration" below for its current bridge state.
 
 See [`specs/002-nfr-system-constraints/spec.md`](../specs/002-nfr-system-constraints/spec.md)
 (NFR-A11Y section) for full accessibility targets.
@@ -473,7 +473,8 @@ See [`specs/002-nfr-system-constraints/spec.md`](../specs/002-nfr-system-constra
 ## Continuous Integration
 
 Two workflows cover the frontend: `frontend-ci.yml` (lint/test/build, every PR) and the dedicated
-`accessibility.yml` (WCAG 2.1 AA + Core Web Vitals gate, issue #93).
+the `Accessibility Audit` job in `frontend-ci.yml` (WCAG 2.1 AA + Core Web Vitals gate, issue #93;
+folded in from the former standalone `accessibility.yml` on 2026-07-16).
 
 **Workflow**: [`.github/workflows/frontend-ci.yml`](../.github/workflows/frontend-ci.yml)
 
@@ -495,7 +496,7 @@ Two workflows cover the frontend: `frontend-ci.yml` (lint/test/build, every PR) 
 
 ---
 
-**Workflow**: [`.github/workflows/accessibility.yml`](../.github/workflows/accessibility.yml) (issue #93, `docs/roadmap.md` tasks 002-T002/T004/T022/T024)
+**Workflow**: the `Accessibility Audit` job in [`.github/workflows/frontend-ci.yml`](../.github/workflows/frontend-ci.yml) (issue #93, `docs/roadmap.md` tasks 002-T002/T004/T022/T024; standalone `accessibility.yml` until 2026-07-16)
 
 **Triggers**: Pull requests (any); manual workflow dispatch. Job itself gates on `frontend/**`, `e2e/**`, or `lighthouserc.yml` changing, via the same always-running/`dorny/paths-filter` pattern as `frontend-ci.yml`.
 

@@ -227,3 +227,44 @@ Historical summaries of completed development sessions. Committed to git as a re
   (`internal/database`, `internal/database/migrations`, `internal/example`, `tests/integration`,
   `config`, `cmd`) passes, including Colima-backed testcontainer tests. Not yet committed/pushed/
   PR'd as of this entry.
+
+## 2026-07-16 — Test-suite BDD/TDT alignment + 90% coverage floor (ad-hoc)
+
+**Tool**: Claude Code
+
+**Key Outcomes**
+- All 15 frontend test files restructured into the mandated BDD hierarchy
+  (`describe('<Component />')` → `describe('when/having …')` → `it('should …')`, AAA with blank
+  lines); the legacy `unit:` describe prefix dropped. 136/136 tests green; ESLint + Prettier clean.
+- Coverage floor raised 80%→90%: enforced in `frontend/vitest.config.ts` (`coverage.thresholds`,
+  actual 98/92.2/100/97.9 — passes; supersedes roadmap `002-T041`'s enforcement gap), documented in
+  `docs/testing-guidelines.md` (with an honest note that the last observed backend number, 89.1%
+  full-suite for `internal/example`, now sits ~1pt under the new floor), mirrored in `CLAUDE.md` +
+  `.github/copilot-instructions.md`.
+- 19 Go test files aligned: TDT consolidations (auth/ValidatePassword, observability/
+  LogSecurityEvent, ai sanitizer/validator/NewAIClient, errors constructors, config helpers);
+  behavioral `t.Run` names ("when … it should …"); 13 helpers normalized to t-first +
+  `t.Helper()` (incl. `setupPostgresContainer`, `setupRepositoryTestDB`, `startPostgresContainer`,
+  `startAPIServer`, `holdExclusiveTableLock`, `openMigrationDB`); repeated
+  `defer pgContainer.Terminate` blocks folded into helpers via `t.Cleanup`; hand-rolled
+  `contains`/`findSubstring` in config_test.go replaced with `strings.Contains`.
+- Verified for real, not assumed: backend `make lint` clean, `go test -tags=test ./... -short`
+  all `ok`, AND the full Colima-backed suite (`go test -tags=test ./...` with `DOCKER_HOST` +
+  `TESTCONTAINERS_DOCKER_SOCKET_OVERRIDE`) all `ok`.
+
+**Key Decisions**
+- revive `context-as-argument` vs the documented t-first helper convention resolved in favor of the
+  docs: new `_test\.go`-scoped exclude-rule in `backend/.golangci.yml` (pattern captured in
+  `patterns-discovered.md`, 2026-07-16). Production code keeps ctx-first enforcement.
+- `writeAnthropicError`/`writeAnthropicSuccess` deliberately stay t-free — they run inside fake-server
+  handler goroutines where `t.Helper()` has no effect.
+- `service_test.go`, `ollama_client_test.go`, middleware tests left as flat behavioral test funcs —
+  distinct per-test setups make TDT a net readability loss there; the standard's TDT mandate is for
+  repetitive/conditional cases.
+- Nothing committed/pushed per explicit instruction; ~42 files modified in the working tree.
+
+**Open Follow-Ups**
+- Backend `internal/example` coverage (89.1% full-suite) is now marginally under the new 90% floor.
+- `.golangci.yml` `run.build-tags` only lists `integration`, not `test` — files behind
+  `//go:build test` (ai, example handler/service, cmd/api tests) are invisible to golangci-lint;
+  pre-existing gap, worth a deliberate fix.

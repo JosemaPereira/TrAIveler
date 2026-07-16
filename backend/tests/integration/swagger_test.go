@@ -48,7 +48,7 @@ var swaggerUIBundleURLPattern = regexp.MustCompile(`url:\s*"([^"]+)"`)
 // No migrations are applied here: the backend binary only needs a reachable
 // Postgres to start (database.NewClient's startup check is a bare `SELECT
 // 1`), and none of the assertions below touch persisted data.
-func startPostgresContainer(ctx context.Context, t *testing.T) string {
+func startPostgresContainer(t *testing.T, ctx context.Context) string {
 	t.Helper()
 
 	pgContainer, err := postgres.Run(ctx,
@@ -136,7 +136,7 @@ func waitForHealthy(t *testing.T, url string, timeout time.Duration) {
 // startAPIServer starts binPath as a child process wired to databaseURL on a
 // freshly-allocated port, waits for it to report healthy via /healthz, and
 // registers a t.Cleanup to terminate it. Returns the server's base URL.
-func startAPIServer(ctx context.Context, t *testing.T, binPath, databaseURL string) string {
+func startAPIServer(t *testing.T, ctx context.Context, binPath, databaseURL string) string {
 	t.Helper()
 
 	port := freeTCPPort(t)
@@ -193,10 +193,10 @@ func setupSwaggerTestServer(t *testing.T) string {
 	}
 
 	ctx := context.Background()
-	databaseURL := startPostgresContainer(ctx, t)
+	databaseURL := startPostgresContainer(t, ctx)
 	binPath := buildAPIBinary(t)
 
-	return startAPIServer(ctx, t, binPath, databaseURL)
+	return startAPIServer(t, ctx, binPath, databaseURL)
 }
 
 // TestSwaggerDocJSON_RouteMounted_ReturnsValidSwagger2Document is 009-T007

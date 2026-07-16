@@ -29,7 +29,9 @@ import (
 
 // testConfig returns a minimal, valid *config.Config for tests that don't
 // need config.Load()'s environment-variable plumbing.
-func testConfig() *config.Config {
+func testConfig(t *testing.T) *config.Config {
+	t.Helper()
+
 	return &config.Config{
 		Server: config.ServerConfig{
 			Port:         8080,
@@ -43,7 +45,9 @@ func testConfig() *config.Config {
 
 // testLogger returns a *slog.Logger that discards output, keeping test runs
 // quiet while still exercising the real Logger/Recovery middleware.
-func testLogger() *slog.Logger {
+func testLogger(t *testing.T) *slog.Logger {
+	t.Helper()
+
 	return slog.New(slog.NewJSONHandler(io.Discard, nil))
 }
 
@@ -51,7 +55,7 @@ func TestHTTPServer_Healthz_DatabasePingSucceeds_Returns200OkBody(t *testing.T) 
 	mockDB := dbmocks.NewMockClient(t)
 	mockDB.EXPECT().Ping(mock.Anything).Return(nil)
 
-	srv := NewHTTPServer(mockDB, testConfig(), testLogger())
+	srv := NewHTTPServer(mockDB, testConfig(t), testLogger(t))
 
 	req := httptest.NewRequest(http.MethodGet, "/healthz", nil)
 	rec := httptest.NewRecorder()
@@ -72,7 +76,7 @@ func TestHTTPServer_Healthz_DatabasePingFails_Returns200DegradedBody(t *testing.
 	mockDB := dbmocks.NewMockClient(t)
 	mockDB.EXPECT().Ping(mock.Anything).Return(errors.New("connection refused"))
 
-	srv := NewHTTPServer(mockDB, testConfig(), testLogger())
+	srv := NewHTTPServer(mockDB, testConfig(t), testLogger(t))
 
 	req := httptest.NewRequest(http.MethodGet, "/healthz", nil)
 	rec := httptest.NewRecorder()
@@ -96,7 +100,7 @@ func TestHTTPServer_Healthz_DatabasePingExceedsTwoSecondTimeout_Returns200Degrad
 		return ctx.Err()
 	})
 
-	srv := NewHTTPServer(mockDB, testConfig(), testLogger())
+	srv := NewHTTPServer(mockDB, testConfig(t), testLogger(t))
 
 	req := httptest.NewRequest(http.MethodGet, "/healthz", nil)
 	rec := httptest.NewRecorder()
@@ -117,7 +121,7 @@ func TestHTTPServer_MiddlewareChain_SetsRequestIDHeaderOnResponse(t *testing.T) 
 	mockDB := dbmocks.NewMockClient(t)
 	mockDB.EXPECT().Ping(mock.Anything).Return(nil)
 
-	srv := NewHTTPServer(mockDB, testConfig(), testLogger())
+	srv := NewHTTPServer(mockDB, testConfig(t), testLogger(t))
 
 	req := httptest.NewRequest(http.MethodGet, "/healthz", nil)
 	rec := httptest.NewRecorder()
@@ -131,7 +135,7 @@ func TestHTTPServer_MiddlewareChain_IncomingRequestIDIsEchoedBack(t *testing.T) 
 	mockDB := dbmocks.NewMockClient(t)
 	mockDB.EXPECT().Ping(mock.Anything).Return(nil)
 
-	srv := NewHTTPServer(mockDB, testConfig(), testLogger())
+	srv := NewHTTPServer(mockDB, testConfig(t), testLogger(t))
 
 	req := httptest.NewRequest(http.MethodGet, "/healthz", nil)
 	req.Header.Set("X-Request-ID", "incoming-id-123")
@@ -145,7 +149,7 @@ func TestHTTPServer_MiddlewareChain_IncomingRequestIDIsEchoedBack(t *testing.T) 
 func TestHTTPServer_MiddlewareChain_PanicInHandler_Returns500WithoutCrashingProcess(t *testing.T) {
 	mockDB := dbmocks.NewMockClient(t)
 
-	srv := NewHTTPServer(mockDB, testConfig(), testLogger())
+	srv := NewHTTPServer(mockDB, testConfig(t), testLogger(t))
 	srv.router.Get("/panic-test", func(_ http.ResponseWriter, _ *http.Request) {
 		panic("boom: simulated handler panic")
 	})
@@ -164,7 +168,7 @@ func TestHTTPServer_MiddlewareChain_DisallowedOrigin_NoAccessControlHeaders(t *t
 	mockDB := dbmocks.NewMockClient(t)
 	mockDB.EXPECT().Ping(mock.Anything).Return(nil)
 
-	srv := NewHTTPServer(mockDB, testConfig(), testLogger())
+	srv := NewHTTPServer(mockDB, testConfig(t), testLogger(t))
 
 	req := httptest.NewRequest(http.MethodGet, "/healthz", nil)
 	req.Header.Set("Origin", "https://evil.example.com")
@@ -180,7 +184,7 @@ func TestHTTPServer_Lifecycle_StartServeShutdownGracefully(t *testing.T) {
 	mockDB := dbmocks.NewMockClient(t)
 	mockDB.EXPECT().Ping(mock.Anything).Return(nil)
 
-	srv := NewHTTPServer(mockDB, testConfig(), testLogger())
+	srv := NewHTTPServer(mockDB, testConfig(t), testLogger(t))
 
 	httpServer := &http.Server{
 		Addr:    "127.0.0.1:0",
@@ -210,7 +214,7 @@ func TestHTTPServer_Lifecycle_StartServeShutdownGracefully(t *testing.T) {
 func TestHTTPServer_Shutdown_WaitsForInFlightRequestToCompleteBeforeReturning(t *testing.T) {
 	mockDB := dbmocks.NewMockClient(t)
 
-	srv := NewHTTPServer(mockDB, testConfig(), testLogger())
+	srv := NewHTTPServer(mockDB, testConfig(t), testLogger(t))
 
 	requestStarted := make(chan struct{})
 	srv.router.Get("/slow", func(w http.ResponseWriter, _ *http.Request) {

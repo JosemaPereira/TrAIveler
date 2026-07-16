@@ -87,7 +87,7 @@ func TestAnthropicGenerateItinerary_Success_ReturnsParsedItinerary(t *testing.T)
 	client := ai.NewAnthropicClient("test-key", "claude-3-5-sonnet-20241022", 5*time.Second, 3,
 		option.WithBaseURL(server.URL), option.WithHTTPClient(server.Client()))
 
-	resp, err := client.GenerateItinerary(context.Background(), newTestRequest())
+	resp, err := client.GenerateItinerary(context.Background(), newTestRequest(t))
 
 	require.NoError(t, err)
 	require.NotNil(t, resp)
@@ -116,7 +116,7 @@ func TestAnthropicGenerateItinerary_RateLimitedThenSucceeds_RetriesAndReturnsIti
 	client := ai.NewAnthropicClient("test-key", "claude-3-5-sonnet-20241022", 5*time.Second, 3,
 		option.WithBaseURL(server.URL), option.WithHTTPClient(server.Client()))
 
-	resp, err := client.GenerateItinerary(context.Background(), newTestRequest())
+	resp, err := client.GenerateItinerary(context.Background(), newTestRequest(t))
 
 	require.NoError(t, err)
 	require.NotNil(t, resp)
@@ -134,7 +134,7 @@ func TestAnthropicGenerateItinerary_ServiceUnavailableExhaustsRetries_ReturnsPro
 	client := ai.NewAnthropicClient("test-key", "claude-3-5-sonnet-20241022", 5*time.Second, 2,
 		option.WithBaseURL(server.URL), option.WithHTTPClient(server.Client()))
 
-	resp, err := client.GenerateItinerary(context.Background(), newTestRequest())
+	resp, err := client.GenerateItinerary(context.Background(), newTestRequest(t))
 
 	require.Error(t, err)
 	assert.Nil(t, resp)
@@ -168,7 +168,7 @@ func TestAnthropicGenerateItinerary_ClientTimeoutExceeded_ReturnsPromptContextDe
 	var resp *ai.ItineraryResponse
 	var err error
 	go func() {
-		resp, err = client.GenerateItinerary(context.Background(), newTestRequest())
+		resp, err = client.GenerateItinerary(context.Background(), newTestRequest(t))
 		close(done)
 	}()
 
@@ -214,7 +214,7 @@ func TestAnthropicStreamItinerary_HappyPath_CollectsChunksUntilDone(t *testing.T
 	client := ai.NewAnthropicClient("test-key", "claude-3-5-sonnet-20241022", 5*time.Second, 3,
 		option.WithBaseURL(server.URL), option.WithHTTPClient(server.Client()))
 
-	chunkCh, errCh := client.StreamItinerary(context.Background(), newTestRequest())
+	chunkCh, errCh := client.StreamItinerary(context.Background(), newTestRequest(t))
 
 	var content string
 	var sawDone bool

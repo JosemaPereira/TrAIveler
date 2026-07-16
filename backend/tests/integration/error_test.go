@@ -71,7 +71,7 @@ func createExample(t *testing.T, baseURL string) string {
 // time spent waiting on a lock, so once this is held, any connection with a
 // statement_timeout (including the app's) gets its blocked query canceled
 // by Postgres once that timeout elapses.
-func holdExclusiveTableLock(ctx context.Context, t *testing.T, databaseURL string) (release func()) {
+func holdExclusiveTableLock(t *testing.T, ctx context.Context, databaseURL string) (release func()) {
 	t.Helper()
 
 	db, err := sql.Open("pgx", databaseURL)
@@ -112,7 +112,7 @@ func TestGetExample_DBQueryCanceledByStatementTimeout_ReturnsCorrelatedInternalE
 	}
 
 	ctx := context.Background()
-	databaseURL := startPostgresContainer(ctx, t)
+	databaseURL := startPostgresContainer(t, ctx)
 	applyMigrations(t, databaseURL)
 
 	// Only the app gets the short statement_timeout; pgx forwards unrecognized
@@ -121,11 +121,11 @@ func TestGetExample_DBQueryCanceledByStatementTimeout_ReturnsCorrelatedInternalE
 	appDatabaseURL := fmt.Sprintf("%s&statement_timeout=%d", databaseURL, lockHoldStatementTimeoutMillis)
 
 	binPath := buildAPIBinary(t)
-	baseURL := startAPIServer(ctx, t, binPath, appDatabaseURL)
+	baseURL := startAPIServer(t, ctx, binPath, appDatabaseURL)
 
 	exampleID := createExample(t, baseURL)
 
-	release := holdExclusiveTableLock(ctx, t, databaseURL)
+	release := holdExclusiveTableLock(t, ctx, databaseURL)
 	defer release()
 
 	// Bounded client-side timeout: if the statement_timeout wiring were ever
