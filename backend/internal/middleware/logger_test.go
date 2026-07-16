@@ -13,7 +13,9 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func newTestLogger(buf *bytes.Buffer) *slog.Logger {
+func newTestLogger(t *testing.T, buf *bytes.Buffer) *slog.Logger {
+	t.Helper()
+
 	return slog.New(slog.NewJSONHandler(buf, &slog.HandlerOptions{Level: slog.LevelDebug}))
 }
 
@@ -34,16 +36,16 @@ func TestLogger_StatusCode_DeterminesLogLevel(t *testing.T) {
 		wantLevel  string
 		statusCode int
 	}{
-		{name: "2xx logs at INFO", statusCode: http.StatusOK, wantLevel: "INFO"},
-		{name: "3xx logs at INFO", statusCode: http.StatusFound, wantLevel: "INFO"},
-		{name: "4xx logs at WARN", statusCode: http.StatusNotFound, wantLevel: "WARN"},
-		{name: "5xx logs at ERROR", statusCode: http.StatusInternalServerError, wantLevel: "ERROR"},
+		{name: "when the response is 2xx it should log at INFO", statusCode: http.StatusOK, wantLevel: "INFO"},
+		{name: "when the response is 3xx it should log at INFO", statusCode: http.StatusFound, wantLevel: "INFO"},
+		{name: "when the response is 4xx it should log at WARN", statusCode: http.StatusNotFound, wantLevel: "WARN"},
+		{name: "when the response is 5xx it should log at ERROR", statusCode: http.StatusInternalServerError, wantLevel: "ERROR"},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			var buf bytes.Buffer
-			logger := newTestLogger(&buf)
+			logger := newTestLogger(t, &buf)
 
 			next := http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 				w.WriteHeader(tt.statusCode)
@@ -62,7 +64,7 @@ func TestLogger_StatusCode_DeterminesLogLevel(t *testing.T) {
 
 func TestLogger_RequestCompletes_LogsExpectedFields(t *testing.T) {
 	var buf bytes.Buffer
-	logger := newTestLogger(&buf)
+	logger := newTestLogger(t, &buf)
 
 	next := http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		w.WriteHeader(http.StatusCreated)
@@ -88,7 +90,7 @@ func TestLogger_RequestCompletes_LogsExpectedFields(t *testing.T) {
 
 func TestLogger_NoRequestIDInContext_LogsEmptyString(t *testing.T) {
 	var buf bytes.Buffer
-	logger := newTestLogger(&buf)
+	logger := newTestLogger(t, &buf)
 
 	next := http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		w.WriteHeader(http.StatusOK)
@@ -107,7 +109,7 @@ func TestLogger_NoRequestIDInContext_LogsEmptyString(t *testing.T) {
 
 func TestLogger_UserIDInContext_LogsUserID(t *testing.T) {
 	var buf bytes.Buffer
-	logger := newTestLogger(&buf)
+	logger := newTestLogger(t, &buf)
 
 	next := http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		w.WriteHeader(http.StatusOK)
@@ -126,7 +128,7 @@ func TestLogger_UserIDInContext_LogsUserID(t *testing.T) {
 
 func TestLogger_NoUserIDInContext_OmitsUserIDField(t *testing.T) {
 	var buf bytes.Buffer
-	logger := newTestLogger(&buf)
+	logger := newTestLogger(t, &buf)
 
 	next := http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		w.WriteHeader(http.StatusOK)
@@ -144,7 +146,7 @@ func TestLogger_NoUserIDInContext_OmitsUserIDField(t *testing.T) {
 
 func TestLogger_ResponseStatus5xx_IncludesStackField(t *testing.T) {
 	var buf bytes.Buffer
-	logger := newTestLogger(&buf)
+	logger := newTestLogger(t, &buf)
 
 	next := http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		w.WriteHeader(http.StatusInternalServerError)
@@ -167,14 +169,14 @@ func TestLogger_ResponseStatusBelow5xx_OmitsStackField(t *testing.T) {
 		name       string
 		statusCode int
 	}{
-		{name: "2xx omits stack", statusCode: http.StatusOK},
-		{name: "4xx omits stack", statusCode: http.StatusNotFound},
+		{name: "when the response is 2xx it should omit the stack field", statusCode: http.StatusOK},
+		{name: "when the response is 4xx it should omit the stack field", statusCode: http.StatusNotFound},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			var buf bytes.Buffer
-			logger := newTestLogger(&buf)
+			logger := newTestLogger(t, &buf)
 
 			next := http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 				w.WriteHeader(tt.statusCode)

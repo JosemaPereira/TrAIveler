@@ -46,7 +46,7 @@ Read the following files before generating code, tests, or UI for this project:
 
 - **docs/api-design-standards.md** — comprehensive API design conventions covering resource naming (plural nouns, lowercase, hyphens), URL structure (max 2-level nesting), versioning (/api/v1), HTTP methods (GET/POST/PUT/PATCH/DELETE), request/response formats (snake_case JSON, ISO 8601 timestamps), standardized error format (error code, message, request_id, fields array), HTTP status codes (semantic 2xx/4xx/5xx), pagination (page/per_page with metadata envelope), filtering (query operators: [gte], [lte], [like]), sorting (minus prefix for descending), rate limiting (100/min authenticated, headers in all responses), and 7 endpoint patterns (list, get, create, update full/partial, delete, action). All new endpoints must follow these standards verified through code review checklist and integration tests.
 - **docs/coding-guidelines.md** — formatting rules, import organization, naming conventions, and KISS/DRY principles for Go (backend) and React/TypeScript (frontend).
-- **docs/testing-guidelines.md** — three-layer testing strategy (unit, integration, E2E), folder structure, naming conventions, and coverage targets (80% business logic, 80% shared components).
+- **docs/testing-guidelines.md** — three-layer testing strategy (unit, integration, E2E), folder structure, naming conventions, and coverage targets (90% business logic, 90% shared components).
 - **docs/ui-guidelines.md** — design tokens (color, spacing, typography), component layers (Atomic Design), responsive breakpoints, accessibility rules (WCAG 2.1 AA), and loading/error/empty state requirements.
 
 <!-- PROMOTED:doc-references END -->

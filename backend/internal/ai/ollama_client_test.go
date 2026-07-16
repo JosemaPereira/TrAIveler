@@ -31,7 +31,9 @@ type ollamaChatWireRequest struct {
 	Stream bool `json:"stream"`
 }
 
-func newTestRequest() ai.ItineraryRequest {
+func newTestRequest(t *testing.T) ai.ItineraryRequest {
+	t.Helper()
+
 	return ai.ItineraryRequest{
 		TripID: "trip-123",
 		ConversationHistory: []ai.Message{
@@ -65,7 +67,7 @@ func TestGenerateItinerary_Success_ReturnsParsedItinerary(t *testing.T) {
 
 	client := ai.NewOllamaClient(server.URL, "gemma3:4b", 5*time.Second, 3, nil)
 
-	resp, err := client.GenerateItinerary(context.Background(), newTestRequest())
+	resp, err := client.GenerateItinerary(context.Background(), newTestRequest(t))
 
 	require.NoError(t, err)
 	require.NotNil(t, resp)
@@ -92,7 +94,7 @@ func TestGenerateItinerary_MalformedContentJSON_ReturnsWrappedError(t *testing.T
 
 	client := ai.NewOllamaClient(server.URL, "gemma3:4b", 5*time.Second, 3, nil)
 
-	resp, err := client.GenerateItinerary(context.Background(), newTestRequest())
+	resp, err := client.GenerateItinerary(context.Background(), newTestRequest(t))
 
 	require.Error(t, err)
 	assert.Nil(t, resp)
@@ -122,7 +124,7 @@ func TestGenerateItinerary_ServerErrorThenSuccess_RetriesAndReturnsItinerary(t *
 
 	client := ai.NewOllamaClient(server.URL, "gemma3:4b", 5*time.Second, 3, nil)
 
-	resp, err := client.GenerateItinerary(context.Background(), newTestRequest())
+	resp, err := client.GenerateItinerary(context.Background(), newTestRequest(t))
 
 	require.NoError(t, err)
 	require.NotNil(t, resp)
@@ -139,7 +141,7 @@ func TestGenerateItinerary_ServerErrorExhaustsRetries_ReturnsWrappedError(t *tes
 
 	client := ai.NewOllamaClient(server.URL, "gemma3:4b", 5*time.Second, 2, nil)
 
-	resp, err := client.GenerateItinerary(context.Background(), newTestRequest())
+	resp, err := client.GenerateItinerary(context.Background(), newTestRequest(t))
 
 	require.Error(t, err)
 	assert.Nil(t, resp)
@@ -159,7 +161,7 @@ func TestGenerateItinerary_ConnectionRefused_ExhaustsRetriesReturnsWrappedError(
 	var resp *ai.ItineraryResponse
 	var err error
 	go func() {
-		resp, err = client.GenerateItinerary(context.Background(), newTestRequest())
+		resp, err = client.GenerateItinerary(context.Background(), newTestRequest(t))
 		close(done)
 	}()
 
@@ -191,7 +193,7 @@ func TestGenerateItinerary_ContextCanceled_ReturnsPromptlyWithContextError(t *te
 	done := make(chan struct{})
 	var err error
 	go func() {
-		_, err = client.GenerateItinerary(ctx, newTestRequest())
+		_, err = client.GenerateItinerary(ctx, newTestRequest(t))
 		close(done)
 	}()
 
@@ -224,7 +226,7 @@ func TestStreamItinerary_HappyPath_CollectsChunksUntilDone(t *testing.T) {
 
 	client := ai.NewOllamaClient(server.URL, "gemma3:4b", 5*time.Second, 3, nil)
 
-	chunkCh, errCh := client.StreamItinerary(context.Background(), newTestRequest())
+	chunkCh, errCh := client.StreamItinerary(context.Background(), newTestRequest(t))
 
 	var content strings.Builder
 	var sawDone bool
@@ -258,7 +260,7 @@ func TestStreamItinerary_MidStreamError_DeliversErrorAndClosesChannels(t *testin
 
 	client := ai.NewOllamaClient(server.URL, "gemma3:4b", 5*time.Second, 3, nil)
 
-	chunkCh, errCh := client.StreamItinerary(context.Background(), newTestRequest())
+	chunkCh, errCh := client.StreamItinerary(context.Background(), newTestRequest(t))
 
 	var chunks []ai.StreamChunk
 	for chunk := range chunkCh {
@@ -300,7 +302,7 @@ func TestStreamItinerary_ContextCanceled_ClosesChannelsPromptly(t *testing.T) {
 	client := ai.NewOllamaClient(server.URL, "gemma3:4b", 5*time.Second, 3, nil)
 
 	ctx, cancel := context.WithCancel(context.Background())
-	chunkCh, errCh := client.StreamItinerary(ctx, newTestRequest())
+	chunkCh, errCh := client.StreamItinerary(ctx, newTestRequest(t))
 
 	// Read the first chunk, then cancel and make sure both channels close promptly.
 	<-chunkCh

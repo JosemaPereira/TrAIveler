@@ -14,7 +14,7 @@ import (
 
 func TestRecovery_NextPanics_Returns500WithErrorEnvelope(t *testing.T) {
 	var buf bytes.Buffer
-	logger := newTestLogger(&buf)
+	logger := newTestLogger(t, &buf)
 
 	next := http.HandlerFunc(func(_ http.ResponseWriter, _ *http.Request) {
 		panic("boom: unexpected nil pointer")
@@ -41,7 +41,7 @@ func TestRecovery_NextPanics_Returns500WithErrorEnvelope(t *testing.T) {
 
 func TestRecovery_NextPanics_DoesNotLeakPanicDetailsInResponseBody(t *testing.T) {
 	var buf bytes.Buffer
-	logger := newTestLogger(&buf)
+	logger := newTestLogger(t, &buf)
 
 	next := http.HandlerFunc(func(_ http.ResponseWriter, _ *http.Request) {
 		panic("sensitive stack trace detail: db_password=secret")
@@ -58,7 +58,7 @@ func TestRecovery_NextPanics_DoesNotLeakPanicDetailsInResponseBody(t *testing.T)
 
 func TestRecovery_NextPanics_LogsPanicAndStackAtErrorLevel(t *testing.T) {
 	var buf bytes.Buffer
-	logger := newTestLogger(&buf)
+	logger := newTestLogger(t, &buf)
 
 	next := http.HandlerFunc(func(_ http.ResponseWriter, _ *http.Request) {
 		panic("boom")
@@ -80,7 +80,7 @@ func TestRecovery_NextPanics_LogsPanicAndStackAtErrorLevel(t *testing.T) {
 
 func TestRecovery_NextDoesNotPanic_PassesThroughUnchanged(t *testing.T) {
 	var buf bytes.Buffer
-	logger := newTestLogger(&buf)
+	logger := newTestLogger(t, &buf)
 
 	next := http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		w.WriteHeader(http.StatusOK)
@@ -99,7 +99,7 @@ func TestRecovery_NextDoesNotPanic_PassesThroughUnchanged(t *testing.T) {
 
 func TestRecovery_NoRequestIDInContext_UsesEmptyStringWithoutPanicking(t *testing.T) {
 	var buf bytes.Buffer
-	logger := newTestLogger(&buf)
+	logger := newTestLogger(t, &buf)
 
 	next := http.HandlerFunc(func(_ http.ResponseWriter, _ *http.Request) {
 		panic("boom")

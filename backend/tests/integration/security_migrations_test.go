@@ -46,10 +46,10 @@ const coreVersion = 4
 // testcontainer and configures goose's dialect, without applying any
 // migrations. Reuses startPostgresContainer (swagger_test.go) rather than
 // duplicating the container setup a third time in this package.
-func openMigrationDB(ctx context.Context, t *testing.T) *sql.DB {
+func openMigrationDB(t *testing.T, ctx context.Context) *sql.DB {
 	t.Helper()
 
-	connStr := startPostgresContainer(ctx, t)
+	connStr := startPostgresContainer(t, ctx)
 
 	sqlDB, err := sql.Open("pgx", connStr)
 	require.NoError(t, err, "failed to open database/sql connection for migrations")
@@ -126,11 +126,11 @@ func TestSecurityMigrations_CoreTables_CreatesUsersRefreshTokensJWTKeysSecurityE
 		t.Skip("skipping testcontainer test in short mode")
 	}
 	ctx := context.Background()
-	db := openMigrationDB(ctx, t)
+	db := openMigrationDB(t, ctx)
 
 	require.NoError(t, goose.UpTo(db, migrations.Dir, coreVersion), "failed to apply migrations up to version %d", coreVersion)
 
-	t.Run("users table", func(t *testing.T) {
+	t.Run("when core migrations apply the users table should match the spec", func(t *testing.T) {
 		info, ok := queryColumn(t, db, "users", "id")
 		require.True(t, ok, "expected users.id column to exist")
 		assert.Equal(t, "uuid", info.dataType)
@@ -157,7 +157,7 @@ func TestSecurityMigrations_CoreTables_CreatesUsersRefreshTokensJWTKeysSecurityE
 		assert.True(t, indexExists(t, db, "idx_users_email"), "expected idx_users_email index to exist")
 	})
 
-	t.Run("refresh_tokens table", func(t *testing.T) {
+	t.Run("when core migrations apply the refresh_tokens table should match the spec", func(t *testing.T) {
 		info, ok := queryColumn(t, db, "refresh_tokens", "user_id")
 		require.True(t, ok, "expected refresh_tokens.user_id column to exist")
 		assert.Equal(t, "uuid", info.dataType)
@@ -178,7 +178,7 @@ func TestSecurityMigrations_CoreTables_CreatesUsersRefreshTokensJWTKeysSecurityE
 		assert.True(t, indexExists(t, db, "idx_refresh_tokens_expires_at"))
 	})
 
-	t.Run("jwt_signing_keys table", func(t *testing.T) {
+	t.Run("when core migrations apply the jwt_signing_keys table should match the spec", func(t *testing.T) {
 		info, ok := queryColumn(t, db, "jwt_signing_keys", "key_id")
 		require.True(t, ok, "expected jwt_signing_keys.key_id column to exist")
 		assert.Equal(t, "character varying", info.dataType)
@@ -201,7 +201,7 @@ func TestSecurityMigrations_CoreTables_CreatesUsersRefreshTokensJWTKeysSecurityE
 		assert.True(t, ok, "expected jwt_signing_keys.retire_at column to exist")
 	})
 
-	t.Run("security_events table", func(t *testing.T) {
+	t.Run("when core migrations apply the security_events table should match the spec", func(t *testing.T) {
 		info, ok := queryColumn(t, db, "security_events", "correlation_id")
 		require.True(t, ok, "expected security_events.correlation_id column to exist")
 		assert.Equal(t, "uuid", info.dataType)
@@ -237,7 +237,7 @@ func TestSecurityMigrations_CoreTables_CreatesUsersRefreshTokensJWTKeysSecurityE
 		assert.True(t, indexExists(t, db, "idx_security_events_timestamp"))
 	})
 
-	t.Run("down migrations reverse cleanly", func(t *testing.T) {
+	t.Run("when migrations roll back to zero they should drop all four tables", func(t *testing.T) {
 		require.NoError(t, goose.DownTo(db, migrations.Dir, 0), "failed to roll back migrations to version 0")
 
 		for _, table := range []string{"security_events", "jwt_signing_keys", "refresh_tokens", "users"} {

@@ -24,8 +24,8 @@ func TestUnitValidate_MissingName_ReturnsValidationError(t *testing.T) {
 		name string
 		in   string
 	}{
-		{"empty string", ""},
-		{"whitespace only", "   "},
+		{"when the name is an empty string it should reject it", ""},
+		{"when the name is whitespace only it should reject it", "   "},
 	}
 
 	for _, tt := range tests {

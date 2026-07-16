@@ -12,37 +12,37 @@ import (
 	"github.com/JosemaPereira/TrAIveler/backend/internal/ai"
 )
 
-// TestSanitize_ScriptTag_PassesThrough documents the current stub behavior:
-// real HTML/script stripping (bluemonday UGCPolicy, deny <script>/<iframe>/
-// <object>, strip javascript: URLs) lands in a future spec 002 (NFR-SEC-008)
-// ticket — see docs/security.md.
-func TestSanitize_ScriptTag_PassesThrough(t *testing.T) {
-	sanitizer := ai.NewOutputSanitizer()
-	input := `<script>alert('XSS')</script>`
+// TestSanitize documents the current stub behavior: real HTML/script
+// stripping (bluemonday UGCPolicy, deny <script>/<iframe>/<object>, strip
+// javascript: URLs) lands in a future spec 002 (NFR-SEC-008) ticket — see
+// docs/security.md. Until then every input passes through unchanged.
+func TestSanitize(t *testing.T) {
+	tests := []struct {
+		name  string
+		input string
+	}{
+		{
+			name:  "when the output contains a script tag it should currently pass through unchanged (stub)",
+			input: `<script>alert('XSS')</script>`,
+		},
+		{
+			name:  "when the output is an empty string it should return an empty string",
+			input: "",
+		},
+		{
+			name:  "when the output is plain text it should pass through unchanged",
+			input: "Visit the Belém Tower on day 1.",
+		},
+	}
 
-	output, err := sanitizer.Sanitize(context.Background(), input)
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			sanitizer := ai.NewOutputSanitizer()
 
-	require.NoError(t, err)
-	assert.Equal(t, input, output)
-}
+			output, err := sanitizer.Sanitize(context.Background(), tt.input)
 
-// TestSanitize_EmptyString_ReturnsEmptyString covers the empty-input edge case.
-func TestSanitize_EmptyString_ReturnsEmptyString(t *testing.T) {
-	sanitizer := ai.NewOutputSanitizer()
-
-	output, err := sanitizer.Sanitize(context.Background(), "")
-
-	require.NoError(t, err)
-	assert.Equal(t, "", output)
-}
-
-// TestSanitize_PlainText_PassesThrough covers the everyday, non-adversarial path.
-func TestSanitize_PlainText_PassesThrough(t *testing.T) {
-	sanitizer := ai.NewOutputSanitizer()
-	input := "Visit the Belém Tower on day 1."
-
-	output, err := sanitizer.Sanitize(context.Background(), input)
-
-	require.NoError(t, err)
-	assert.Equal(t, input, output)
+			require.NoError(t, err)
+			assert.Equal(t, tt.input, output)
+		})
+	}
 }

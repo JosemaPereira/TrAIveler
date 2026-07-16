@@ -36,7 +36,9 @@ func withCapturedDefaultLogger(t *testing.T) *bytes.Buffer {
 // requestWithID builds a request whose context carries requestID, using the
 // real middleware.RequestID chain (its context key is unexported and cannot
 // be set directly from outside the middleware package).
-func requestWithID(method, target, requestID string) *http.Request {
+func requestWithID(t *testing.T, method, target, requestID string) *http.Request {
+	t.Helper()
+
 	req := httptest.NewRequest(method, target, nil)
 	if requestID != "" {
 		req.Header.Set("X-Request-ID", requestID)
@@ -47,6 +49,7 @@ func requestWithID(method, target, requestID string) *http.Request {
 		captured = r
 	})
 	middleware.RequestID(next).ServeHTTP(httptest.NewRecorder(), req)
+	require.NotNil(t, captured, "middleware.RequestID must invoke the next handler")
 	return captured
 }
 
@@ -57,13 +60,13 @@ func TestHandleError_DomainErrorCodes_MapToExpectedStatus(t *testing.T) {
 		wantStatus int
 		wantCode   string
 	}{
-		{"not found", domainerrors.NotFound("trip", "trip-123"), http.StatusNotFound, "not_found"},
-		{"validation failed", domainerrors.Validation("bad input"), http.StatusUnprocessableEntity, "validation_failed"},
-		{"unauthorized", domainerrors.Unauthorized("no token"), http.StatusUnauthorized, "authentication_required"},
-		{"forbidden", domainerrors.Forbidden("not allowed"), http.StatusForbidden, "forbidden"},
-		{"conflict", domainerrors.Conflict("version mismatch"), http.StatusConflict, "conflict"},
-		{"service unavailable", domainerrors.ServiceUnavailable(30), http.StatusServiceUnavailable, "service_unavailable"},
-		{"unmapped plain error falls back to internal_error", stderrors.New("boom"), http.StatusInternalServerError, "internal_error"},
+		{"when the error is NotFound it should respond 404 not_found", domainerrors.NotFound("trip", "trip-123"), http.StatusNotFound, "not_found"},
+		{"when the error is Validation it should respond 422 validation_failed", domainerrors.Validation("bad input"), http.StatusUnprocessableEntity, "validation_failed"},
+		{"when the error is Unauthorized it should respond 401 authentication_required", domainerrors.Unauthorized("no token"), http.StatusUnauthorized, "authentication_required"},
+		{"when the error is Forbidden it should respond 403 forbidden", domainerrors.Forbidden("not allowed"), http.StatusForbidden, "forbidden"},
+		{"when the error is Conflict it should respond 409 conflict", domainerrors.Conflict("version mismatch"), http.StatusConflict, "conflict"},
+		{"when the error is ServiceUnavailable it should respond 503 service_unavailable", domainerrors.ServiceUnavailable(30), http.StatusServiceUnavailable, "service_unavailable"},
+		{"when the error is an unmapped plain error it should fall back to 500 internal_error", stderrors.New("boom"), http.StatusInternalServerError, "internal_error"},
 	}
 
 	for _, tt := range tests {
@@ -71,7 +74,7 @@ func TestHandleError_DomainErrorCodes_MapToExpectedStatus(t *testing.T) {
 			withCapturedDefaultLogger(t)
 
 			rec := httptest.NewRecorder()
-			req := requestWithID(http.MethodGet, "/trips/trip-123", "")
+			req := requestWithID(t, http.MethodGet, "/trips/trip-123", "")
 
 			domainerrors.HandleError(rec, req, tt.err)
 
@@ -93,7 +96,7 @@ func TestHandleError_ValidationError_IncludesFieldsInResponse(t *testing.T) {
 	)
 
 	rec := httptest.NewRecorder()
-	req := requestWithID(http.MethodPost, "/trips", "")
+	req := requestWithID(t, http.MethodPost, "/trips", "")
 
 	domainerrors.HandleError(rec, req, err)
 
@@ -114,7 +117,7 @@ func TestHandleError_NonValidationError_OmitsFieldsFromResponse(t *testing.T) {
 	withCapturedDefaultLogger(t)
 
 	rec := httptest.NewRecorder()
-	req := requestWithID(http.MethodGet, "/trips/trip-123", "")
+	req := requestWithID(t, http.MethodGet, "/trips/trip-123", "")
 
 	domainerrors.HandleError(rec, req, domainerrors.NotFound("trip", "trip-123"))
 
@@ -129,7 +132,7 @@ func TestHandleError_NonDomainError_DoesNotLeakRawMessageToClient(t *testing.T) 
 	withCapturedDefaultLogger(t)
 
 	rec := httptest.NewRecorder()
-	req := requestWithID(http.MethodGet, "/trips/trip-123", "")
+	req := requestWithID(t, http.MethodGet, "/trips/trip-123", "")
 
 	domainerrors.HandleError(rec, req, stderrors.New("pq: connection refused to db_password=secret host"))
 
@@ -146,7 +149,7 @@ func TestHandleError_NonDomainError_LogsRawErrorViaDefaultLogger(t *testing.T) {
 	buf := withCapturedDefaultLogger(t)
 
 	rec := httptest.NewRecorder()
-	req := requestWithID(http.MethodGet, "/trips/trip-123", "logging-test-id")
+	req := requestWithID(t, http.MethodGet, "/trips/trip-123", "logging-test-id")
 
 	domainerrors.HandleError(rec, req, stderrors.New("pq: connection refused"))
 
@@ -161,7 +164,7 @@ func TestHandleError_WrappedDomainError_StillResolvesViaErrorsAs(t *testing.T) {
 	wrapped := fmt.Errorf("repository lookup failed: %w", domainerrors.NotFound("trip", "trip-123"))
 
 	rec := httptest.NewRecorder()
-	req := requestWithID(http.MethodGet, "/trips/trip-123", "")
+	req := requestWithID(t, http.MethodGet, "/trips/trip-123", "")
 
 	domainerrors.HandleError(rec, req, wrapped)
 
@@ -176,7 +179,7 @@ func TestHandleError_RequestIDPresentInContext_PopulatesResponseField(t *testing
 	withCapturedDefaultLogger(t)
 
 	rec := httptest.NewRecorder()
-	req := requestWithID(http.MethodGet, "/trips/trip-123", "req-abc123")
+	req := requestWithID(t, http.MethodGet, "/trips/trip-123", "req-abc123")
 
 	domainerrors.HandleError(rec, req, domainerrors.NotFound("trip", "trip-123"))
 
@@ -204,7 +207,7 @@ func TestHandleError_ServiceUnavailable_SetsRetryAfterHeaderAndDetails(t *testin
 	withCapturedDefaultLogger(t)
 
 	rec := httptest.NewRecorder()
-	req := requestWithID(http.MethodPost, "/ai/itineraries", "")
+	req := requestWithID(t, http.MethodPost, "/ai/itineraries", "")
 
 	domainerrors.HandleError(rec, req, domainerrors.ServiceUnavailable(30))
 
@@ -224,7 +227,7 @@ func TestHandleError_NonServiceUnavailableError_OmitsRetryAfterHeader(t *testing
 	withCapturedDefaultLogger(t)
 
 	rec := httptest.NewRecorder()
-	req := requestWithID(http.MethodGet, "/trips/trip-123", "")
+	req := requestWithID(t, http.MethodGet, "/trips/trip-123", "")
 
 	domainerrors.HandleError(rec, req, domainerrors.NotFound("trip", "trip-123"))
 
@@ -235,7 +238,7 @@ func TestHandleError_ResponseBody_IncludesMessageField(t *testing.T) {
 	withCapturedDefaultLogger(t)
 
 	rec := httptest.NewRecorder()
-	req := requestWithID(http.MethodGet, "/trips/trip-123", "")
+	req := requestWithID(t, http.MethodGet, "/trips/trip-123", "")
 
 	domainerrors.HandleError(rec, req, domainerrors.Conflict("version mismatch"))
 
