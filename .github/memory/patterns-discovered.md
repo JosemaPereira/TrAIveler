@@ -527,3 +527,25 @@ dropped — only prose and illustrative code were trimmed. Supersedes the 2026-0
   done. Keep the timeout short (hundreds of ms) so the test stays fast, and use a bounded
   client-side HTTP timeout on the request so a wiring mistake fails fast instead of hanging.
 - **Related**: `backend/tests/integration/error_test.go`, `backend/internal/example/repository.go`
+
+---
+
+### A Config Value Can Be Loaded, Validated, and Logged, Yet Still Never Reach the Code It Configures
+- **Discovered**: 2026-07-15 — **Tool**: Claude Code
+- **Context**: `backend/internal/database/client.go`'s `NewClient`, called from `cmd/api/main.go`
+  (issue #141, G-008-DATABASE).
+- **Problem**: `config/config.go` loaded and validated `DB_MIN_CONNECTIONS`/`DB_MAX_CONNECTIONS`
+  (with its own min-cannot-exceed-max check), and `main.go` logged
+  `cfg.Database.MinConnections`/`MaxConnections` right after connecting — every visible signal said
+  the values were live. But `NewClient` only accepted the connection URL and hardcoded
+  `MinConns=5`/`MaxConns=25` internally, so the env vars had zero effect and the log line actively
+  lied about the real pool size. Every existing test passed regardless, since none exercised a
+  non-default value. Only surfaced by cross-checking `backend/README.md`'s claim ("pool sizing is
+  driven by `DB_MAX_CONNECTIONS`/`DB_MIN_CONNECTIONS`") against `NewClient`'s actual parameter list.
+- **Solution**: "Loaded and validated" is not "forwarded" — when a doc says a config value drives
+  behavior, grep the consuming function's real signature, not just where the env var is parsed.
+  Fixed by adding `minConns, maxConns int32` params to `NewClient` and updating the one real caller
+  plus every test call site; added a test asserting the pool's actual `Pool().Config()` reflects
+  non-default values (2/10), so the assertion can't pass by coincidence against the old hardcoded
+  5/25.
+- **Related**: `backend/internal/database/client.go`, `backend/cmd/api/main.go`, `backend/config/config.go`
