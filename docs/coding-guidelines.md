@@ -381,15 +381,25 @@ backend/
     api/            # main entrypoint (main.go, server.go, routes.go) — not cmd/server/
   internal/
     middleware/      # RequestID, Logger, Recovery, CORS, BodySize
-    database/         # pgxpool client
+    database/         # pgxpool client (pool size from DB_MIN/MAX_CONNECTIONS)
+      migrations/     # shared goose config (Dir, SetDialect) — the .sql files do NOT live here
     errors/           # DomainError + HandleError
     ai/               # AIClient interface + OllamaClient/AnthropicClient
+    auth/             # flat security utilities: password.go (bcrypt cost 12), validator.go —
+                       # deliberately NOT an internal/auth/password/ subpackage
+    observability/    # GenerateCorrelationID, LogSecurityEvent (structured JSON)
+    subscription/     # doc.go scaffold only (Spec 008, unbuilt)
+    collaboration/    # doc.go scaffold only (Spec 008, unbuilt)
+    security/         # doc.go scaffold only (Spec 008, unbuilt)
     example/          # throwaway model→repository→service→handler reference pattern —
                        # copy this layering for a real <domain>/ package (handler.go,
                        # service.go, repository.go, model.go), then delete example/
-  pkg/                # packages safe to import from outside internal/ (currently empty)
+  pkg/                # deliberately empty (.gitkeep only) — dead by convention; new shared
+                       # backend code goes under internal/, even when a spec/task literally
+                       # names a pkg/... path
   config/
-  migrations/         # goose migrations
+  migrations/         # goose migrations, flat and shared across specs (001-004 security
+                       # tables + the throwaway timestamp-versioned examples migration)
 ```
 
 `internal/example/` is the reference for what a real `internal/<domain>/` package should look

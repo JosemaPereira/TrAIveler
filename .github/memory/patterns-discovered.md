@@ -549,3 +549,25 @@ dropped — only prose and illustrative code were trimmed. Supersedes the 2026-0
   non-default values (2/10), so the assertion can't pass by coincidence against the old hardcoded
   5/25.
 - **Related**: `backend/internal/database/client.go`, `backend/cmd/api/main.go`, `backend/config/config.go`
+
+---
+
+### Roadmap Row Notes Are the Only Channel Future Issue Bodies Inherit Context Through
+- **Discovered**: 2026-07-15 — **Tool**: Claude Code
+- **Context**: Mid-sprint reconciliation after implementation decisions invalidate spec/tasks.md
+  literal text (flat `internal/auth` vs `internal/auth/password/`, dead `pkg/`, no Axios,
+  pre-existing `users` table, `LogSecurityEvent` superset).
+- **Problem**: A decision documented only in docs/ addenda, closed-PR descriptions, or comments on
+  already-created issues does NOT reach tickets that don't exist yet — future issue bodies are
+  drafted from `docs/roadmap.md` rows, so a stale row Description (e.g. "calls axios",
+  "pkg/secrets/manager.go", "create users table") reproduces the drift in every future sprint's
+  issue batch, forcing the same reconciliation again.
+- **Solution**: Propagate on three surfaces, each with a different audience: (1) docs/ —
+  post-`PROMOTED:...END` addenda for humans/agents reading target design; (2) `docs/roadmap.md` —
+  a dated callout in the sprint-plan block PLUS per-row Notes on every affected future row (this is
+  the load-bearing one for future issues); (3) already-created open issues — a dated "Scope
+  reconciliation (YYYY-MM-DD)" section appended to the body (original text preserved), stating only
+  code-verified facts. Never rely on surface (1) or (3) alone to reach not-yet-created tickets.
+- **Related**: `docs/roadmap.md` (Sprint 5 "Implementation decisions locked in mid-sprint"
+  callout + 008-T059/T064/T150/T160/T192/T193/T206, 004-T065/T070, 001-T033, 002-T023, 008-T040
+  row Notes), issues #142–#150

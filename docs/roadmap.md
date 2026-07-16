@@ -85,7 +85,7 @@
 
 | ID | Task | Group | Sprint | Priority | Status | Depends on | Parallel | Issue | Notes |
 |----|------|-------|--------|----------|--------|------------|----------|-------|-------|
-| 001-T033 | Implement Trip + Destination + Day + Activity repository (CreateTrip, UpsertDay, UpsertActivity) | G-US1-REPOS | 8 | P1 | Backlog | 001-T009 | yes | | |
+| 001-T033 | Implement Trip + Destination + Day + Activity repository (CreateTrip, UpsertDay, UpsertActivity) | G-US1-REPOS | 8 | P1 | Backlog | 001-T009 | yes | | Reconciliation note (2026-07-15): this is the first real domain repository — per the standing convention (`.github/memory/patterns-discovered.md`) its PR must also DELETE `internal/example/` entirely (all files, mocks, `.mockery.yaml` entries, route mount, and the timestamp-versioned `20260710120000_create_examples_table.sql` migration + its integration tests). Migrations live flat in `backend/migrations/` (goose config: `internal/database/migrations`); `trips` may already exist by then via #142 — verify before creating. |
 | 001-T034 | Implement ConversationSession + ConversationMessage repository (CreateSession, AppendMessage, ListMessages) | G-US1-REPOS | 8 | P1 | Backlog | 001-T009 | yes | | |
 | 001-T035 | Implement Trip service (Create, List, Get, Update, Delete; admin-only writes) | | 8 | P1 | Backlog | 001-T033 | no | | |
 | 001-T036 | Implement Conversation service (SendMessage, GetHistory; detects itinerary_ready) | | 8 | P1 | Backlog | 001-T034 | no | | |
@@ -203,7 +203,7 @@
 | 002-T020 | Write Vitest unit test for `PrivacyPolicyLink` (correct href, accessible text present) | G-A11Y-PRIVACY-LINK | 9 | P1 | Backlog | 002-T019 | yes | | |
 | 002-T021 | Add `/privacy-policy` route to React Router; add `PrivacyPolicyLink` to registration form footer | | 9 | P1 | Backlog | 002-T017, 002-T019 | no | | |
 | 002-T022 | Create accessibility E2E helper `checkPageA11y(page)` wrapping `@axe-core/playwright` | G-SPRINT3-A11Y-CI | 3 | P1 | Done | 002-T002 | yes | https://github.com/JosemaPereira/TrAIveler/issues/93 | PR #103 - Accessibility CI gate (Lighthouse + axe-core): checkPageA11y helper, lighthouserc.yml, accessibility.yml PR gate. Closes #93. |
-| 002-T023 | Add `checkPageA11y(page)` call to every existing Playwright E2E spec; tag with `@accessibility` | | 9 | P1 | Backlog | 002-T022 | no | | |
+| 002-T023 | Add `checkPageA11y(page)` call to every existing Playwright E2E spec; tag with `@accessibility` | | 9 | P1 | Backlog | 002-T022 | no | | Reminder (2026-07-15): `accessibility.yml` has bridged on `--pass-with-no-tests` since Sprint 3 (#93) — this task removes that bridge; do not let it slip past Sprint 9. |
 | 002-T024 | Create `accessibility.yml` GitHub Actions workflow (axe-core Playwright run + lhci autorun; PR gate) | G-SPRINT3-A11Y-CI | 3 | P1 | Done | 002-T022, 002-T004 | no | https://github.com/JosemaPereira/TrAIveler/issues/93 | PR #103 - Accessibility CI gate (Lighthouse + axe-core): checkPageA11y helper, lighthouserc.yml, accessibility.yml PR gate. Closes #93. |
 
 #### Phase 5 — User Story 3: Security Reviewer Confirms Security Posture (Priority: P1) → **Sprint 9**
@@ -454,12 +454,12 @@
 | 004-T062 | Apply versioning middleware to trip routes in `backend/cmd/server/main.go` (PUT/DELETE trips, items) | | | P1 | Backlog | 004-T061 | no | | GREEN phase |
 | 004-T063 | Write integration test for security logging in `backend/tests/integration/observability_test.go` (CloudWatch structure) | G-SEC-LOGGING-TESTS | | P1 | Backlog | 004-T061 | yes | | RED phase |
 | 004-T064 | Write integration test for CloudWatch metrics in `backend/tests/integration/observability_test.go` (metric increments) | G-SEC-LOGGING-TESTS | | P1 | Backlog | 004-T061 | yes | | RED phase |
-| 004-T065 | Implement CloudWatch logger in `backend/internal/observability/logger.go` (LogSecurityEvent, JSON) | G-SEC-LOGGING-IMPL | | P1 | Backlog | 004-T063 | no | | GREEN phase |
+| 004-T065 | Implement CloudWatch logger in `backend/internal/observability/logger.go` (LogSecurityEvent, JSON) | G-SEC-LOGGING-IMPL | | P1 | Backlog | 004-T063 | no | | GREEN phase. Reconciliation note (2026-07-15): `LogSecurityEvent` ALREADY EXISTS (PR #155, 004-T014) in `internal/observability/logger.go` with the full superset signature (correlationID, eventType, userID, severity, ipAddress, userAgent, details) emitting structured JSON via `log/slog` — this task is verify/extend (e.g. CloudWatch-specific transport if any beyond the ECS log driver), NOT create-from-scratch. Do not add a second logger in `internal/security/`. |
 | 004-T066 | Implement CloudWatch metrics emitter in `backend/internal/observability/metrics.go` (EmitMetric) | G-SEC-LOGGING-IMPL | | P1 | Backlog | 004-T064 | no | | GREEN phase |
 | 004-T067 | Integrate logging into all handlers (auth, authz, validation) per FR-047–049 | | | P1 | Backlog | 004-T065 | no | | GREEN phase |
 | 004-T068 | Integrate metrics into all handlers (call EmitMetric after LogSecurityEvent) | | | P1 | Backlog | 004-T066 | no | | GREEN phase |
 | 004-T069 | Write unit test for secrets retrieval in `backend/internal/observability/secrets_test.go` (5-min cache, no fallback) | G-SEC-SECRETS-TESTS | | P1 | Backlog | 004-T066 | yes | | RED phase |
-| 004-T070 | Implement AWS Secrets Manager client in `backend/pkg/secrets/manager.go` (IAM role auth, cache) | G-SEC-SECRETS-IMPL | | P1 | Backlog | 004-T069, 003-T045 | no | | GREEN phase, needs 003 |
+| 004-T070 | Implement AWS Secrets Manager client in `backend/pkg/secrets/manager.go` (IAM role auth, cache) | G-SEC-SECRETS-IMPL | | P1 | Backlog | 004-T069, 003-T045 | no | | GREEN phase, needs 003. Path note (2026-07-15): `pkg/` is dead by convention (`.gitkeep` only) — every Sprint 5 task with a literal `pkg/...` path landed under `internal/` instead; this belongs at `internal/secrets/` (or similar), not `pkg/secrets/`. |
 | 004-T071 | Integrate secrets manager in JWT key loader (fetch private keys from Secrets Manager by ARN) | | | P1 | Backlog | 004-T070 | no | | GREEN phase |
 | 004-T072 | Add secret refresh timer in `backend/cmd/server/main.go` (5-min goroutine) | | | P1 | Backlog | 004-T071 | no | | GREEN phase |
 | 004-T073 | Create CloudWatch Logs retention policy via Terraform (30 days) for `/traivelr/staging/security` | | | P1 | Backlog | 003-T059 | no | | Infra integration |
@@ -1022,7 +1022,7 @@
 | 008-T037 | Create User model in backend/internal/auth/models.go: User struct with ID, Email, PasswordHash, FullName, HasSubscription, FailedLoginAttempts, LastFailedLoginAt, EmailVerified, CreatedAt, UpdatedAt, Version | G-008-US1-MODELS | 6 | P1 | Backlog | 008-T001 | yes | | |
 | 008-T038 | Create RegisterRequest/RegisterResponse models in backend/internal/auth/models.go: RegisterRequest{Email, Password, FullName, PaymentMethodToken}, RegisterResponse{User, Subscription} | G-008-US1-MODELS | | P1 | Backlog | 008-T037 | yes | | |
 | 008-T039 | Create Subscription model in backend/internal/subscription/models.go: Subscription struct with ID, UserID, PlanID, Status, CurrentPeriodStart, CurrentPeriodEnd, GracePeriodEndsAt, CancelledAt, CreatedAt, UpdatedAt, Version | G-008-US1-MODELS | | P1 | Backlog | 008-T001 | yes | | |
-| 008-T040 | Create User repository in backend/internal/auth/repository.go: CreateUser(user), GetUserByEmail(email), UpdateUser(user) with optimistic locking check | | | P1 | Backlog | 008-T037, 008-T011 | no | | |
+| 008-T040 | Create User repository in backend/internal/auth/repository.go: CreateUser(user), GetUserByEmail(email), UpdateUser(user) with optimistic locking check | | | P1 | Backlog | 008-T037, 008-T011 | no | | Reconciliation note (2026-07-15): `internal/auth` already exists as a FLAT package (password.go/validator.go, PR #155) — repository.go joins it flat, no subpackage. The `users` table already exists (`backend/migrations/001_create_users_table.sql`, PR #154, Spec 004 scheme: role/last_login_at, NO version column yet) — the repository's optimistic-locking check depends on #142's reconciliation ALTER, verify the real schema first. |
 | 008-T041 | Create Subscription repository in backend/internal/subscription/repository.go: CreateSubscription(sub), GetSubscriptionByUserID(userID), UpdateSubscription(sub), CancelSubscription(id) | G-008-US1-REPOS | | P1 | Backlog | 008-T039, 008-T012 | yes | | |
 | 008-T042 | Create stub payment provider interface in backend/internal/subscription/payment/provider.go: PaymentProvider interface with ProcessPayment(token, planID) method | G-008-US1-REPOS | | P1 | Backlog | 008-T001 | yes | | |
 | 008-T043 | Implement stub payment provider in backend/internal/subscription/payment/stub.go: StubPaymentProvider always returns success, logs to console "[DEMO] Payment processed: [token]" | G-008-US1-REPOS | | P1 | Backlog | 008-T042 | yes | | |
@@ -1041,12 +1041,12 @@
 | 008-T056 | Create Form composite in frontend/src/components/composites/Form.tsx: <Form> with onSubmit, children; prevents default, handles loading state, disables submit during loading | | | P1 | Backlog | 008-T052, 008-T053 | no | | |
 | 008-T057 | Create LoadingSpinner feature in frontend/src/components/features/LoadingSpinner.tsx: <LoadingSpinner> with message prop; uses primary color token; aria-busy for screen readers | G-008-US1-COMPONENTS | | P1 | Backlog | 008-T034 | yes | | |
 | 008-T058 | Create useRegister hook in frontend/src/features/auth/hooks/useRegister.ts: TanStack Query mutation for POST /auth/register, updates authStore on success, handles errors via errorHandler | | | P1 | Backlog | 008-T031, 008-T033 | no | | |
-| 008-T059 | Create authApi service in frontend/src/features/auth/services/authApi.ts: register(email, password, fullName, paymentMethodToken) calls axios POST /api/v1/auth/register with withCredentials | G-008-US1-API | | P1 | Backlog | 008-T031 | yes | | |
+| 008-T059 | Create authApi service in frontend/src/features/auth/services/authApi.ts: register(email, password, fullName, paymentMethodToken) calls axios POST /api/v1/auth/register with withCredentials | G-008-US1-API | | P1 | Backlog | 008-T031 | yes | | Reconciliation note (2026-07-15): there is NO Axios in this repo — the HTTP client is the fetch-based `frontend/src/lib/api-client.ts` (`api.*` helpers, `APIError`, per-request X-Request-ID); build authApi on it, do not add axios (see #149). |
 | 008-T060 | Create RegisterForm component in frontend/src/features/auth/components/RegisterForm.tsx: form with email, password, fullName inputs, "Continue to Payment" checkbox, "Create Free Account" button; uses useRegister hook, validates client-side, shows loading/error states | | | P1 | Backlog | 008-T056, 008-T058 | no | | |
 | 008-T061 | Create RegisterPage in frontend/src/features/auth/pages/RegisterPage.tsx: renders RegisterForm, heading "Create Your Account", links to /login; redirects to /dashboard on success | | | P1 | Backlog | 008-T060, 008-T036 | no | | |
 | 008-T062 | Create useTrips hook in frontend/src/features/trips/hooks/useTrips.ts: TanStack Query query for GET /trips, returns user's owned trips and collaborations | G-008-US1-TRIP-HOOKS | | P1 | Backlog | 008-T031 | yes | | |
 | 008-T063 | Create useCreateTrip hook in frontend/src/features/trips/hooks/useCreateTrip.ts: TanStack Query mutation for POST /trips, invalidates trips query on success | G-008-US1-TRIP-HOOKS | | P1 | Backlog | 008-T031 | yes | | |
-| 008-T064 | Create tripsApi service in frontend/src/features/trips/services/tripsApi.ts: getTrips(), createTrip(destination, startDate, endDate) calls axios | G-008-US1-API | | P1 | Backlog | 008-T031 | yes | | |
+| 008-T064 | Create tripsApi service in frontend/src/features/trips/services/tripsApi.ts: getTrips(), createTrip(destination, startDate, endDate) calls axios | G-008-US1-API | | P1 | Backlog | 008-T031 | yes | | Reconciliation note (2026-07-15): no Axios in this repo — use the fetch-based `frontend/src/lib/api-client.ts` (see 008-T059 note / #149). |
 | 008-T065 | Create TripCard component in frontend/src/features/trips/components/TripCard.tsx: displays trip destination, dates, "View Details" link; uses Card composite; keyboard accessible | | | P1 | Backlog | 008-T052, 008-T034 | no | | |
 | 008-T066 | Create Card composite in frontend/src/components/composites/Card.tsx: <Card> with heading, children; uses design tokens for border, padding, shadow | G-008-US1-COMPOSITES | | P1 | Backlog | 008-T034 | yes | | |
 | 008-T067 | Create TripDashboard component in frontend/src/features/trips/components/TripDashboard.tsx: renders "My Trips" section (if hasSubscription), "Shared with Me" section, "Create Trip" button (enabled if hasSubscription, disabled with tooltip if Free User), uses useTrips hook, displays LoadingSpinner/ErrorMessage/EmptyState | | | P1 | Backlog | 008-T062, 008-T065, 008-T057 | no | | |
@@ -1160,7 +1160,7 @@ _Checkpoint: Collaborators can suggest changes, creators can approve/reject, sug
 | 008-T147 | Register POST /api/v1/auth/password-change route in backend/cmd/api/main.go: attach password change handler with auth middleware | G-008-US5-HANDLERS | | P2 | Backlog | 008-T146, 008-T030 | yes | | |
 | 008-T148 | Implement POST /auth/refresh handler in backend/internal/auth/handler.go: extracts refresh_token from cookie, validates refresh token via JWT validator, checks token not revoked in RefreshToken table (returns 401 "Invalid refresh token" if revoked or expired), generates new access token (24h), optionally rotates refresh token (generate new 30d, revoke old one), sets new cookies, logs auth_token_refresh security event, returns 200 with message "Token refreshed" | G-008-US5-HANDLERS | | P2 | Backlog | 008-T020, 008-T141, 008-T026 | yes | | |
 | 008-T149 | Register POST /api/v1/auth/refresh route in backend/cmd/api/main.go: attach token refresh handler (no auth middleware, uses refresh token from cookie) | G-008-US5-HANDLERS | | P2 | Backlog | 008-T148, 008-T030 | yes | | |
-| 008-T150 | Modify auth middleware in backend/internal/security/middleware.go: on 401 Unauthorized (expired access token), return 401 with error="TOKEN_EXPIRED"; frontend will detect and call /auth/refresh | | | P2 | Backlog | 008-T027 | no | | |
+| 008-T150 | Modify auth middleware in backend/internal/security/middleware.go: on 401 Unauthorized (expired access token), return 401 with error="TOKEN_EXPIRED"; frontend will detect and call /auth/refresh | | | P2 | Backlog | 008-T027 | no | | Path note (2026-07-15): existing middleware lives in `internal/middleware/` (Sprint 2: RequestID/Logger/Recovery/CORS/BodySize); where 008-T027's auth middleware actually lands is decided in #147's reconciliation — verify the real location before editing, `internal/security/` is only a doc.go scaffold today. |
 | 008-T151 | Create usePasswordResetRequest hook in frontend/src/features/auth/hooks/usePasswordResetRequest.ts: TanStack Query mutation for POST /auth/password-reset-request, shows success message "Link sent" | G-008-US5-HOOKS | | P2 | Backlog | 008-T031 | yes | | |
 | 008-T152 | Create usePasswordResetComplete hook in frontend/src/features/auth/hooks/usePasswordResetComplete.ts: TanStack Query mutation for POST /auth/password-reset-complete, redirects to /login on success with success banner "Password reset successfully" | G-008-US5-HOOKS | | P2 | Backlog | 008-T031 | yes | | |
 | 008-T153 | Create usePasswordChange hook in frontend/src/features/auth/hooks/usePasswordChange.ts: TanStack Query mutation for POST /auth/password-change, shows success message, optionally logs out other devices | G-008-US5-HOOKS | | P2 | Backlog | 008-T031 | yes | | |
@@ -1170,7 +1170,7 @@ _Checkpoint: Collaborators can suggest changes, creators can approve/reject, sug
 | 008-T157 | Create PasswordResetCompletePage in frontend/src/features/auth/pages/PasswordResetCompletePage.tsx: renders PasswordResetCompleteForm, heading "Set New Password" | G-008-US5-COMPONENTS | | P2 | Backlog | 008-T156, 008-T036 | yes | | |
 | 008-T158 | Create PasswordChangeForm component in frontend/src/features/auth/components/PasswordChangeForm.tsx: form with current_password, new_password, confirm_password inputs, "Log out all other devices" checkbox, "Change Password" button, uses usePasswordChange hook, shows success message | G-008-US5-COMPONENTS | | P2 | Backlog | 008-T056, 008-T153 | yes | | |
 | 008-T159 | Create AccountSettingsPage in frontend/src/features/auth/pages/AccountSettingsPage.tsx: renders PasswordChangeForm, heading "Account Settings", protected route | G-008-US5-COMPONENTS | | P2 | Backlog | 008-T158, 008-T036 | yes | | |
-| 008-T160 | Modify axios interceptor in frontend/src/services/api.ts: on 401 response with error="TOKEN_EXPIRED", call POST /auth/refresh, retry original request with new access token; if refresh fails (401 "Invalid refresh token"), clear authStore, redirect to /login?redirect=<original-path> with message "Session expired. Please log in again." | | | P2 | Backlog | 008-T031, 008-T033 | no | | |
+| 008-T160 | Modify axios interceptor in frontend/src/services/api.ts: on 401 response with error="TOKEN_EXPIRED", call POST /auth/refresh, retry original request with new access token; if refresh fails (401 "Invalid refresh token"), clear authStore, redirect to /login?redirect=<original-path> with message "Session expired. Please log in again." | | | P2 | Backlog | 008-T031, 008-T033 | no | | Reconciliation note (2026-07-15): no Axios and no `src/services/api.ts` — the real client is the fetch-based `frontend/src/lib/api-client.ts`; implement the 401→refresh→retry flow there (see #149). |
 
 _Checkpoint: Password reset and password change flows complete, session management with automatic refresh (US5 complete and independently testable)_
 
@@ -1223,8 +1223,8 @@ _Checkpoint: Subscription lifecycle complete with grace period, archival, and re
 | ID | Task | Group | Sprint | Priority | Status | Depends on | Parallel | Issue | Notes |
 |----|------|-------|--------|----------|--------|------------|----------|-------|-------|
 | 008-T191 | Add comprehensive error logging to backend: wrap all errors with context using fmt.Errorf, log to CloudWatch Logs with correlation ID, structured JSON format | G-008-POLISH-LOGGING | | P2 | Backlog | 008-T026 | yes | | |
-| 008-T192 | Add request logging middleware in backend/internal/security/middleware.go: log all requests with method, path, status, duration, correlation ID to CloudWatch | G-008-POLISH-LOGGING | | P2 | Backlog | 008-T028 | yes | | |
-| 008-T193 | Add security headers middleware in backend/internal/security/middleware.go: set Content-Security-Policy, X-Frame-Options, X-Content-Type-Options, Strict-Transport-Security headers | G-008-POLISH-SECURITY | | P2 | Backlog | 008-T027 | yes | | |
+| 008-T192 | Add request logging middleware in backend/internal/security/middleware.go: log all requests with method, path, status, duration, correlation ID to CloudWatch | G-008-POLISH-LOGGING | | P2 | Backlog | 008-T028 | yes | | Reconciliation note (2026-07-15): request logging ALREADY EXISTS — `internal/middleware.Logger` (Sprint 2) logs method/path/status/duration/request ID as structured JSON; this task is verify/extend, not a new middleware. 008-T028 itself is satisfied by `internal/middleware.RequestID` (see #147). |
+| 008-T193 | Add security headers middleware in backend/internal/security/middleware.go: set Content-Security-Policy, X-Frame-Options, X-Content-Type-Options, Strict-Transport-Security headers | G-008-POLISH-SECURITY | | P2 | Backlog | 008-T027 | yes | | Path note (2026-07-15): the established middleware home is `internal/middleware/` (see 008-T150 note); verify against real code before creating anything in `internal/security/`. |
 | 008-T194 | Run quickstart.md validation: execute all 6 scenarios (Paid User registration, Free User registration, Login, Password reset, Collaboration, Free User upgrade), verify all acceptance criteria met, document any deviations | G-008-POLISH-VALIDATION | | P2 | Backlog | 008-T190 | yes | | |
 | 008-T195 | Backend code cleanup: remove unused imports, remove commented code, run gofmt on all files, run golangci-lint and fix all errors | G-008-POLISH-CLEANUP | | P2 | Backlog | 008-T005 | yes | | |
 | 008-T196 | Frontend code cleanup: remove unused imports, remove commented code, run Prettier on all files, run ESLint and fix all errors | G-008-POLISH-CLEANUP | | P2 | Backlog | 008-T006 | yes | | |
@@ -1237,7 +1237,7 @@ _Checkpoint: Subscription lifecycle complete with grace period, archival, and re
 | 008-T203 | Create E2E test for US5 in e2e/specs/auth/password-management.spec.ts: Playwright test for password reset request, complete reset via link, login with new password, change password in settings | G-008-POLISH-E2E | | P2 | Backlog | 008-T007 | yes | | |
 | 008-T204 | Create E2E accessibility test in e2e/specs/accessibility/wcag-compliance.spec.ts: Playwright test with axe-core integration, verify all pages pass WCAG AA checks for color contrast, keyboard navigation, ARIA attributes | G-008-POLISH-E2E | | P2 | Backlog | 008-T007 | yes | | |
 | 008-T205 | Security audit: review all authentication endpoints for vulnerabilities (SQL injection, XSS, CSRF), verify secrets in environment variables, verify no sensitive data in logs, verify rate limiting on all public endpoints | | | P2 | Backlog | 008-T193 | no | | |
-| 008-T206 | Performance optimization: add indexes to frequently queried columns (email, user_id, trip_id, status), optimize N+1 queries with joins/batch loading, add caching headers to static assets | | | P2 | Backlog | 008-T011 | no | | |
+| 008-T206 | Performance optimization: add indexes to frequently queried columns (email, user_id, trip_id, status), optimize N+1 queries with joins/batch loading, add caching headers to static assets | | | P2 | Backlog | 008-T011 | no | | Note (2026-07-15): several of these indexes already exist from the Spec 004 migrations (e.g. `idx_users_email` in `001_create_users_table.sql`, plus refresh_tokens/security_events indexes) — audit `backend/migrations/` before adding duplicates. |
 
 _Checkpoint: All polish tasks complete, authentication & collaboration UX feature fully implemented and validated_
 
@@ -1692,6 +1692,41 @@ text is lowest authority — real code wins" practice:
 - No label gaps found — `epic:auth-security`, `sprint:5`, `priority:P1`, `type:backend`,
   `type:frontend`, `group`, `spec:004`, `spec:008` all already existed from prior sprints; no new
   labels were created for this batch.
+
+**Implementation decisions locked in mid-sprint (2026-07-15 reconciliation — future issue bodies
+must inherit these; verified against merged code on `main`, PRs #151/#153–#157)**:
+
+- **Flat `internal/auth` package** (PR #155): `password.go` (HashPassword/ComparePassword, bcrypt
+  cost 12) and `validator.go` (ValidatePassword) live flat in `backend/internal/auth/` — the
+  `internal/auth/password/` subpackage in Spec 008's tasks.md and older issue text is stale. All
+  future auth files (repository/service/handler, Spec 008 Phase 3) join the same flat package.
+- **`pkg/` is dead by convention**: every Sprint 5 task with a literal `pkg/...` path landed under
+  `internal/` (or `config/`) instead — `pkg/database/connection.go` → `internal/database/client.go`,
+  `pkg/database/migrations/` → `internal/database/migrations` (config pkg: `Dir` + `SetDialect()`),
+  `pkg/config/config.go` → `config/config.go`. Migration `.sql` files stay flat in
+  `backend/migrations/`, one shared directory across specs.
+- **`users` table already exists** (`001_create_users_table.sql`, PR #154, Spec 004 scheme):
+  008-T011's "create users table" must be reconciled as an `ALTER`/extend migration, never a second
+  `CREATE TABLE users`. 004-T010/T011 (`version` columns on `trips`/`itinerary_items`) were
+  deferred INTO #142 because goose stops at the first failing migration — a migration must never
+  reference a table created by a later, not-yet-landed set (`patterns-discovered.md`).
+- **`LogSecurityEvent` already built as the superset** (PR #155,
+  `internal/observability/logger.go`: correlationID/eventType/userID/severity/ipAddress/userAgent/
+  details) — satisfies both 004-T014 and 008-T026. `internal/middleware.RequestID` (Sprint 2)
+  satisfies 008-T028. #147's remaining real scope is only 008-T027 (auth middleware, blocked on
+  #144) + 008-T029 (rate-limit middleware, blocked on #146).
+- **DB pool sizing genuinely wired** (PR #157): `database.NewClient` now takes minConns/maxConns
+  from `DB_MIN_CONNECTIONS`/`DB_MAX_CONNECTIONS` — 008-T009 satisfied at `internal/database/`, not
+  `pkg/database/`. (`BCRYPT_COST` remains loaded-but-unconsumed; `internal/auth` hardcodes 12.)
+- **No Axios, despite Spec 008's literal task text**: the frontend HTTP client is the fetch-based
+  `frontend/src/lib/api-client.ts` (+ `useErrorHandler.ts`); future rows citing
+  `src/services/api.ts`/axios interceptors map to that module (see 008-T059/T064/T160 row notes).
+- **AI provider framing**: `NewAIClient(cfg)` treats `OllamaClient` and `AnthropicClient` as
+  equally first-class (selected by `AI_PROVIDER`) — never describe Ollama as a dev-only fallback in
+  issue text.
+- **Swagger/JWT hook**: `/swagger/*` shares the `/api/v1` Chi middleware group with a
+  `TODO(sprint-5)` marker so #144/#148's JWT middleware automatically covers it; `/healthz` is
+  spec-literal always-200 (status field degrades, HTTP code does not).
 
 **Total**: 50 tasks → **15 work items** (-70%)  
 **Risks**: JWT multi-key rotation logic (008-T020/T021) is the most novel/complex work in this sprint
