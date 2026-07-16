@@ -260,8 +260,19 @@ implemented (PRs #154, #155, #157) — the target design itself is unchanged:
   deployment). Its signature matches the migrated `security_events` table.
 - **Security data model**: goose migrations `001`–`004` in `backend/migrations/` create
   `users`, `refresh_tokens`, `jwt_signing_keys`, and `security_events`.
-- **Not yet built**: JWT generation/validation (multi-key rotation), auth/rate-limit middleware,
-  session management, and all auth HTTP endpoints — tracked in Sprint 5 issues #142–#148.
+- **JWT token primitives**: `backend/internal/auth/jwt/` (issue #144, 008-T019/T020/T021) — a
+  `Generator` (RS256 access tokens, 24h default, `has_subscription` claim + `kid` header), a
+  `Validator` with multi-key rotation (per-token key selection by `kid`; accepts any active key,
+  rejects retired/unknown keys and is locked to RS256 to defend against alg-confusion), and a
+  `Refresher` that rotates refresh tokens one-time-use (validate → revoke old → issue new
+  access/refresh pair). Key material is abstracted behind `KeyProvider` (a static in-memory
+  implementation ships now; the Secrets Manager-backed loader is Spec 004 Phase 3) and refresh-token
+  persistence behind `RefreshTokenStore` (the PostgreSQL-backed store lands with the login flow,
+  Sprint 6-7). Opaque refresh tokens are 32-byte random values stored only as SHA-256 hashes, per
+  the `refresh_tokens` data model.
+- **Not yet built**: auth/rate-limit middleware, session management, and all auth HTTP endpoints —
+  tracked in Sprint 5 issues #142, #145–#148. The JWT `Validator` above feeds the auth middleware
+  (#147); wiring it removes the `TODO(sprint-5)` Swagger-gating marker in `cmd/api/routes.go`.
 - **Known doc-vs-code nuance**: `BCRYPT_COST` is loaded by `backend/config/config.go` (default 12)
   but `internal/auth` currently hardcodes `const bcryptCost = 12` — a non-default env value would
   have no effect today. Also, `ValidatePassword` counts the 8–72 length in runes while bcrypt's own

@@ -268,3 +268,35 @@ Historical summaries of completed development sessions. Committed to git as a re
 - `.golangci.yml` `run.build-tags` only lists `integration`, not `test` — files behind
   `//go:build test` (ai, example handler/service, cmd/api tests) are invisible to golangci-lint;
   pre-existing gap, worth a deliberate fix.
+
+### Session: G-008-JWT — JWT Generator, Validator (Multi-Key Rotation), Refresher
+- **Date**: 2026-07-16
+- **Tool**: Claude Code
+- **What was accomplished**: Issue #144 (008-T019/T020/T021). New subpackage
+  `backend/internal/auth/jwt/`: `Generator` (RS256 access tokens, 24h default, `has_subscription`
+  claim + `kid` header), `Validator` (multi-key rotation via per-token `kid` selection; RS256-locked
+  parser; issuer+expiry required), `Refresher` (one-time-use refresh-token rotation: validate →
+  revoke old → issue new access/refresh pair). Support: `KeyProvider` interface + `StaticKeyProvider`
+  + `LoadKeyFromPEM` (PKCS#1/#8, 2048-bit min); `RefreshTokenStore` + `SubscriptionResolver`
+  interfaces (impls deferred); opaque 32-byte refresh tokens stored as SHA-256 hashes. 92.4% coverage,
+  lint clean, full backend short suite green. Docs updated: `docs/security.md` status note,
+  `specs/008-auth-collaboration-ux/tasks.md` T019-T021 checked, roadmap rows Backlog→Done.
+- **Key findings and decisions**:
+  - **Chose a subpackage `internal/auth/jwt` over the flat-package precedent** (scope note leaned
+    flat): cohesive sub-domain with many exported types, matches the original tasks.md path, sidesteps
+    the `validator.go` filename clash with the password validator. Cost: `golang-jwt/jwt/v5` imported
+    as `gojwt` to avoid the package-name collision.
+  - Secrets model follows #143's raw-now decision: private key arrives as raw PEM via config
+    (`JWT_SIGNING_KEY`); `LoadKeyFromPEM` is the raw path. ARN-resolving loader + DB-backed
+    `RefreshTokenStore` are Spec 004 Phase 3 / Sprint 6-7 — this issue ships the interfaces + logic +
+    static/in-memory impls only, so it's fully testable without AWS or a DB.
+  - Refresher resolves `has_subscription` fresh at refresh time via `SubscriptionResolver` rather than
+    copying the stale claim from the old token.
+  - Security-hardening tests included: alg-confusion (`alg:none` and wrong-key signature) rejection,
+    retired-key rejection, revoked-token-reuse rejection — all collapse to a uniform
+    `authentication_required` domain error (cause wrapped for logs, not leaked).
+  - Test timestamp gotcha: parse round-trip tokens with `gojwt.WithTimeFunc` pinned to the generator's
+    injected `now`, and compare `time.Time` with `.Equal` not `assert.Equal` (NumericDate decodes to
+    Local zone).
+- **Outcomes**: JWT token primitives exist and are unit-tested; they feed the auth middleware (#147)
+  whose wiring (#148) will remove the `TODO(sprint-5)` Swagger-gating marker in `cmd/api/routes.go`.
