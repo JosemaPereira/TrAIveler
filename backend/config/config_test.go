@@ -341,6 +341,13 @@ func TestLoad_RequiredValues(t *testing.T) {
 	if cfg.AI.Anthropic.APIKey != "test-key" {
 		t.Errorf("ANTHROPIC_API_KEY: got %q, want %q", cfg.AI.Anthropic.APIKey, "test-key")
 	}
+
+	// The JWT signing key is the third secret named by 008-T018; assert it is
+	// forwarded into the struct as a raw value, guarding against the
+	// "loaded-but-never-forwarded" regression class.
+	if cfg.Auth.JWTSigningKey != "test-signing-key" {
+		t.Errorf("JWT_SIGNING_KEY: got %q, want %q", cfg.Auth.JWTSigningKey, "test-signing-key")
+	}
 }
 
 func TestValidLogLevels(t *testing.T) {
