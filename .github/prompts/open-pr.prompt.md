@@ -19,9 +19,15 @@ Instructions:
    stop and tell the user to run `gh auth login`.
 6. Analyze the commits and diff of the current branch against the base branch to
    understand the change set.
-7. **Read the PR template** from `.github/PULL_REQUEST_TEMPLATE.md` to understand the
+7. **Verify code comments (pre-step, before creating the PR)**: review the added/changed code
+   comments in this branch's diff and reduce any that are verbose or redundant to direct, concise
+   statements. Comments should explain the *why*, not restate what the code already shows, and match
+   the surrounding code's comment density. Only touch files authored in this branch. If you tighten
+   any comments, commit that change on the feature branch (and re-run the relevant build/tests/lint)
+   before proceeding, so the PR reflects the cleaned-up state.
+8. **Read the PR template** from `.github/PULL_REQUEST_TEMPLATE.md` to understand the
    required structure.
-8. Generate PR content in English following the template structure:
+9. Generate PR content in English following the template structure:
    - **Title**: Concise conventional format (feat:, fix:, chore:, docs:, etc.)
    - **Description**: Brief summary of what this PR accomplishes
    - **Stable IDs**: Extract from commit messages or branch name if available (e.g., 005-T024)
@@ -36,13 +42,13 @@ Instructions:
    - **Deployment Notes**: Note breaking changes, migrations, env vars
    - **Closes**: Reference GitHub issues this PR closes (if applicable)
    - **Review focus**: Highlight what reviewers should pay special attention to
-9. Create the PR using the structured body:
+10. Create the PR using the structured body:
    `gh pr create --base <base-branch> --head <current-branch> --title "<title>" --body "<body>"`
    
    **Note**: The body should be formatted as valid Markdown following the template structure.
    Use `\n` for line breaks in the `--body` argument.
-10. Return the resulting PR URL.
-11. Do NOT merge the PR. Leave it open for review.
+11. Return the resulting PR URL.
+12. Do NOT merge the PR. Leave it open for review.
 
 ## Template Compliance
 
