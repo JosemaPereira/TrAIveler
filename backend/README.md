@@ -94,7 +94,7 @@ backend/
 │   │   └── mocks/
 │   │       └── ai_client_mock.go     # Generated AIClient mock (vektra/mockery)
 │   ├── database/
-│   │   └── client.go                 # pgxpool connection pooling, fail-fast retry, DI-friendly interface
+│   │   └── client.go                 # pgxpool pooling (min/max conns caller-provided), fail-fast retry, DI-friendly interface
 │   └── example/                      # Canonical model→repository→service→handler reference pattern (issue #58)
 │       ├── model.go                  # Example entity + validation
 │       ├── repository.go             # PostgresRepository: CRUD + optimistic-locking (version column)

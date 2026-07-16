@@ -20,7 +20,7 @@ import (
 // Example usage:
 //
 //	var dbClient database.Client
-//	dbClient, err := database.NewClient(ctx, databaseURL)
+//	dbClient, err := database.NewClient(ctx, databaseURL, minConns, maxConns)
 //	if err != nil {
 //	    log.Fatal(err)
 //	}
@@ -54,14 +54,19 @@ type pgxClient struct {
 // NewClient creates a new database client with connection pooling.
 // It attempts to connect with retry logic (3 attempts, 2-second delays).
 // Connection pool settings:
-//   - MinConns: 5 (minimum idle connections)
-//   - MaxConns: 25 (maximum concurrent connections)
+//   - MinConns/MaxConns: caller-provided (see minConns/maxConns parameters below;
+//     callers typically source these from config.DatabaseConfig's
+//     DB_MIN_CONNECTIONS/DB_MAX_CONNECTIONS)
 //   - MaxConnLifetime: 1 hour (connection reuse limit)
 //   - MaxConnIdleTime: 30 minutes (idle connection timeout)
 //
+// minConns/maxConns are declared as int (matching config.DatabaseConfig's
+// field types) rather than pgxpool's native int32, so callers don't need to
+// cast; they are narrowed to int32 below.
+//
 // Returns an error if connection fails after all retries.
 // The returned Client interface allows for easy mocking and implementation swapping.
-func NewClient(ctx context.Context, databaseURL string) (Client, error) {
+func NewClient(ctx context.Context, databaseURL string, minConns, maxConns int) (Client, error) {
 	if databaseURL == "" {
 		return nil, fmt.Errorf("database URL cannot be empty")
 	}
@@ -71,8 +76,11 @@ func NewClient(ctx context.Context, databaseURL string) (Client, error) {
 		return nil, fmt.Errorf("failed to parse database URL: %w", err)
 	}
 
-	config.MinConns = 5
-	config.MaxConns = 25
+	// Pool sizes are small operator-configured values (config.validate already
+	// enforces MinConnections <= MaxConnections), never large enough to
+	// overflow int32; narrowing here is safe.
+	config.MinConns = int32(minConns) // #nosec G115 -- bounded, validated pool size, not user/network input
+	config.MaxConns = int32(maxConns) // #nosec G115 -- bounded, validated pool size, not user/network input
 	config.MaxConnLifetime = 1 * time.Hour
 	config.MaxConnIdleTime = 30 * time.Minute
 
