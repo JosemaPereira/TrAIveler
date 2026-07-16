@@ -5,20 +5,21 @@
 // verify the schema is by applying goose migrations against a real Postgres
 // testcontainer and inspecting information_schema directly.
 //
-// 004-T010/T011 (trips.version / itinerary_items.version, migrations
-// 005/006) are deliberately deferred out of this migration set: neither
-// `trips` nor `itinerary_items` has a migration yet in backend/migrations/
-// (that is Spec 006/008's job, tracked separately as G-008-MIGRATIONS,
-// issue #142). An earlier version of this file included those two
-// migrations plus a test that stood up minimal placeholder trips/
-// itinerary_items tables to validate them in isolation; that empirically
-// proved goose.Up applies migrations in strict version order and stops at
-// the first failure, so shipping 005/006 before trips/itinerary_items exist
-// would break every goose.Up(sqlDB, migrations.Dir) call in the repo,
-// including internal/example's and tests/integration/error_test.go's --
-// not just this package's own assertions. Decision: hold 005/006 until
-// issue #142 lands trips/itinerary_items; see docs/roadmap.md rows
-// 004-T010/T011 for the tracking note.
+// 004-T010 (trips.version) is no longer deferred: as of issue #142
+// (G-008-MIGRATIONS) it lands inside the trips CREATE migration (010), and is
+// covered by spec008_migrations_test.go in this same package. 004-T011
+// (itinerary_items.version) STAYS deferred — no migration in either spec's
+// Sprint 5 set creates an `itinerary_items` table, so its version column
+// cannot be added yet. An earlier version of this file included placeholder
+// trips/itinerary_items migrations plus a test standing up minimal tables to
+// validate them in isolation; that empirically proved goose.Up applies
+// migrations in strict version order and stops at the first failure, so
+// shipping a migration that references a not-yet-created table would break
+// every goose.Up(sqlDB, migrations.Dir) call in the repo — including
+// internal/example's and tests/integration/error_test.go's — not just this
+// package's own assertions. That regression guard is why 004-T011 remains
+// held until a migration creates `itinerary_items`; see docs/roadmap.md row
+// 004-T011 for the tracking note.
 package integration
 
 import (
