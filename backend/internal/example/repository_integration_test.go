@@ -17,12 +17,9 @@ import (
 	"github.com/pressly/goose/v3"
 
 	"github.com/JosemaPereira/TrAIveler/backend/internal/database"
+	"github.com/JosemaPereira/TrAIveler/backend/internal/database/migrations"
 	domainerrors "github.com/JosemaPereira/TrAIveler/backend/internal/errors"
 )
-
-// migrationsDir points at the shared goose migrations directory from this
-// package's location (backend/internal/example -> backend/migrations).
-const migrationsDir = "../../migrations"
 
 // setupRepositoryTestDB starts a PostgreSQL testcontainer, applies goose
 // migrations against it, and returns a ready-to-use database.Client. Mirrors
@@ -57,10 +54,10 @@ func setupRepositoryTestDB(ctx context.Context, t *testing.T) database.Client {
 	require.NoError(t, err, "failed to open database/sql connection for migrations")
 	defer sqlDB.Close()
 
-	require.NoError(t, goose.SetDialect("postgres"))
-	require.NoError(t, goose.Up(sqlDB, migrationsDir), "failed to apply goose migrations")
+	require.NoError(t, migrations.SetDialect())
+	require.NoError(t, goose.Up(sqlDB, migrations.Dir), "failed to apply goose migrations")
 
-	client, err := database.NewClient(ctx, connStr)
+	client, err := database.NewClient(ctx, connStr, 5, 25)
 	require.NoError(t, err, "failed to create database client")
 	t.Cleanup(func() {
 		_ = client.Close()
