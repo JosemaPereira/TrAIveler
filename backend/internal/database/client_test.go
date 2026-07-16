@@ -12,6 +12,14 @@ import (
 	"github.com/testcontainers/testcontainers-go/wait"
 )
 
+// Default pool-size values used by tests that don't care about a specific
+// configuration, mirroring config.DatabaseConfig's documented defaults
+// (DB_MIN_CONNECTIONS=5, DB_MAX_CONNECTIONS=25).
+const (
+	testDefaultMinConns = 5
+	testDefaultMaxConns = 25
+)
+
 func TestNewClient_Success(t *testing.T) {
 	if testing.Short() {
 		t.Skip("skipping testcontainer test in short mode")
@@ -25,7 +33,7 @@ func TestNewClient_Success(t *testing.T) {
 		}
 	}()
 
-	client, err := NewClient(ctx, connStr)
+	client, err := NewClient(ctx, connStr, testDefaultMinConns, testDefaultMaxConns)
 	require.NoError(t, err, "NewClient should succeed with valid connection string")
 	require.NotNil(t, client, "client should not be nil")
 	defer client.Close()
@@ -36,6 +44,36 @@ func TestNewClient_Success(t *testing.T) {
 	stats := pool.Stat()
 	assert.GreaterOrEqual(t, stats.TotalConns(), int32(5), "should have at least MinConns (5) connections")
 	assert.LessOrEqual(t, stats.MaxConns(), int32(25), "MaxConns should be 25")
+}
+
+// TestNewClient_ConfigurablePoolSize asserts that NewClient applies the
+// min/max connection values it is given, rather than a hardcoded pool size.
+// Uses non-default values (2/10) so the assertion cannot pass by coincidence
+// against the old hardcoded 5/25 behavior.
+func TestNewClient_ConfigurablePoolSize(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping testcontainer test in short mode")
+	}
+	ctx := context.Background()
+
+	pgContainer, connStr := setupPostgresContainer(ctx, t)
+	defer func() {
+		if err := pgContainer.Terminate(ctx); err != nil {
+			t.Logf("failed to terminate container: %v", err)
+		}
+	}()
+
+	const wantMinConns = 2
+	const wantMaxConns = 10
+
+	client, err := NewClient(ctx, connStr, wantMinConns, wantMaxConns)
+	require.NoError(t, err, "NewClient should succeed with valid connection string")
+	require.NotNil(t, client, "client should not be nil")
+	defer client.Close()
+
+	poolConfig := client.Pool().Config()
+	assert.Equal(t, int32(wantMinConns), poolConfig.MinConns, "pool should apply the caller-provided MinConns")
+	assert.Equal(t, int32(wantMaxConns), poolConfig.MaxConns, "pool should apply the caller-provided MaxConns")
 }
 
 func TestNewClient_InvalidURL(t *testing.T) {
@@ -49,7 +87,7 @@ func TestNewClient_InvalidURL(t *testing.T) {
 
 	for _, url := range invalidURLs {
 		t.Run(url, func(t *testing.T) {
-			client, err := NewClient(ctx, url)
+			client, err := NewClient(ctx, url, testDefaultMinConns, testDefaultMaxConns)
 			assert.Error(t, err, "NewClient should fail with invalid URL")
 			assert.Nil(t, client, "client should be nil on error")
 		})
@@ -60,7 +98,7 @@ func TestNewClient_ContextCancellation(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel()
 
-	client, err := NewClient(ctx, "postgresql://user:pass@localhost:5432/db?sslmode=disable")
+	client, err := NewClient(ctx, "postgresql://user:pass@localhost:5432/db?sslmode=disable", testDefaultMinConns, testDefaultMaxConns)
 	assert.Error(t, err, "NewClient should fail with canceled context")
 	assert.Nil(t, client, "client should be nil on error")
 }
@@ -78,7 +116,7 @@ func TestPing_Success(t *testing.T) {
 		}
 	}()
 
-	client, err := NewClient(ctx, connStr)
+	client, err := NewClient(ctx, connStr, testDefaultMinConns, testDefaultMaxConns)
 	require.NoError(t, err)
 	defer client.Close()
 
@@ -99,7 +137,7 @@ func TestPing_ClosedConnection(t *testing.T) {
 		}
 	}()
 
-	client, err := NewClient(ctx, connStr)
+	client, err := NewClient(ctx, connStr, testDefaultMinConns, testDefaultMaxConns)
 	require.NoError(t, err)
 
 	err = client.Close()
@@ -122,7 +160,7 @@ func TestPing_ContextTimeout(t *testing.T) {
 		}
 	}()
 
-	client, err := NewClient(ctx, connStr)
+	client, err := NewClient(ctx, connStr, testDefaultMinConns, testDefaultMaxConns)
 	require.NoError(t, err)
 	defer client.Close()
 
@@ -148,7 +186,7 @@ func TestClose_GracefulShutdown(t *testing.T) {
 		}
 	}()
 
-	client, err := NewClient(ctx, connStr)
+	client, err := NewClient(ctx, connStr, testDefaultMinConns, testDefaultMaxConns)
 	require.NoError(t, err)
 
 	stats := client.Pool().Stat()
@@ -176,7 +214,7 @@ func TestConnectionPoolLimits(t *testing.T) {
 		}
 	}()
 
-	client, err := NewClient(ctx, connStr)
+	client, err := NewClient(ctx, connStr, testDefaultMinConns, testDefaultMaxConns)
 	require.NoError(t, err)
 	defer client.Close()
 
@@ -191,7 +229,7 @@ func TestNewClient_RetryLogic(t *testing.T) {
 	invalidURL := "postgresql://postgres:postgres@localhost:9999/db?sslmode=disable"
 
 	start := time.Now()
-	client, err := NewClient(ctx, invalidURL)
+	client, err := NewClient(ctx, invalidURL, testDefaultMinConns, testDefaultMaxConns)
 	elapsed := time.Since(start)
 
 	assert.Error(t, err, "NewClient should fail after retries")
@@ -242,7 +280,7 @@ func TestPool_ConcurrentOperations(t *testing.T) {
 		}
 	}()
 
-	client, err := NewClient(ctx, connStr)
+	client, err := NewClient(ctx, connStr, testDefaultMinConns, testDefaultMaxConns)
 	require.NoError(t, err)
 	defer client.Close()
 
@@ -274,7 +312,7 @@ func TestPool_AcquireReleaseCycle(t *testing.T) {
 		}
 	}()
 
-	client, err := NewClient(ctx, connStr)
+	client, err := NewClient(ctx, connStr, testDefaultMinConns, testDefaultMaxConns)
 	require.NoError(t, err)
 	defer client.Close()
 

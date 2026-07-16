@@ -14,7 +14,7 @@
 // itinerary_items tables to validate them in isolation; that empirically
 // proved goose.Up applies migrations in strict version order and stops at
 // the first failure, so shipping 005/006 before trips/itinerary_items exist
-// would break every goose.Up(sqlDB, migrationsDir) call in the repo,
+// would break every goose.Up(sqlDB, migrations.Dir) call in the repo,
 // including internal/example's and tests/integration/error_test.go's --
 // not just this package's own assertions. Decision: hold 005/006 until
 // issue #142 lands trips/itinerary_items; see docs/roadmap.md rows
@@ -31,6 +31,8 @@ import (
 
 	_ "github.com/jackc/pgx/v5/stdlib" // registers the "pgx" database/sql driver, used only to run goose migrations
 	"github.com/pressly/goose/v3"
+
+	"github.com/JosemaPereira/TrAIveler/backend/internal/database/migrations"
 )
 
 // coreVersion is the goose version of the last Phase-1/2/3 security table
@@ -55,7 +57,7 @@ func openMigrationDB(ctx context.Context, t *testing.T) *sql.DB {
 		_ = sqlDB.Close()
 	})
 
-	require.NoError(t, goose.SetDialect("postgres"))
+	require.NoError(t, migrations.SetDialect())
 	return sqlDB
 }
 
@@ -126,7 +128,7 @@ func TestSecurityMigrations_CoreTables_CreatesUsersRefreshTokensJWTKeysSecurityE
 	ctx := context.Background()
 	db := openMigrationDB(ctx, t)
 
-	require.NoError(t, goose.UpTo(db, migrationsDir, coreVersion), "failed to apply migrations up to version %d", coreVersion)
+	require.NoError(t, goose.UpTo(db, migrations.Dir, coreVersion), "failed to apply migrations up to version %d", coreVersion)
 
 	t.Run("users table", func(t *testing.T) {
 		info, ok := queryColumn(t, db, "users", "id")
@@ -236,7 +238,7 @@ func TestSecurityMigrations_CoreTables_CreatesUsersRefreshTokensJWTKeysSecurityE
 	})
 
 	t.Run("down migrations reverse cleanly", func(t *testing.T) {
-		require.NoError(t, goose.DownTo(db, migrationsDir, 0), "failed to roll back migrations to version 0")
+		require.NoError(t, goose.DownTo(db, migrations.Dir, 0), "failed to roll back migrations to version 0")
 
 		for _, table := range []string{"security_events", "jwt_signing_keys", "refresh_tokens", "users"} {
 			var exists bool

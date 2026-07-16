@@ -16,13 +16,10 @@ import (
 	_ "github.com/jackc/pgx/v5/stdlib" // registers the "pgx" database/sql driver, used for goose migrations and the lock-holding connection below
 	"github.com/pressly/goose/v3"
 
+	"github.com/JosemaPereira/TrAIveler/backend/internal/database/migrations"
 	domainerrors "github.com/JosemaPereira/TrAIveler/backend/internal/errors"
 	"github.com/JosemaPereira/TrAIveler/backend/internal/example"
 )
-
-// migrationsDir points at the shared goose migrations directory
-// (backend/tests/integration -> backend/migrations).
-const migrationsDir = "../../migrations"
 
 // lockHoldStatementTimeoutMillis is the statement_timeout (ms) applied only
 // to the app's own Postgres connections: short enough to keep the test fast,
@@ -41,8 +38,8 @@ func applyMigrations(t *testing.T, databaseURL string) {
 	require.NoError(t, err, "failed to open database/sql connection for migrations")
 	defer sqlDB.Close()
 
-	require.NoError(t, goose.SetDialect("postgres"))
-	require.NoError(t, goose.Up(sqlDB, migrationsDir), "failed to apply goose migrations")
+	require.NoError(t, migrations.SetDialect())
+	require.NoError(t, goose.Up(sqlDB, migrations.Dir), "failed to apply goose migrations")
 }
 
 // createExample POSTs a row via the running app and returns its ID, so the

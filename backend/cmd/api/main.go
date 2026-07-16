@@ -47,7 +47,8 @@ func main() {
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 
-	dbClient, err := database.NewClient(ctx, cfg.Database.URL)
+	dbClient, err := database.NewClient(ctx, cfg.Database.URL,
+		cfg.Database.MinConnections, cfg.Database.MaxConnections)
 	if err != nil {
 		log.Fatalf("failed to initialize database client: %v", err)
 	}
