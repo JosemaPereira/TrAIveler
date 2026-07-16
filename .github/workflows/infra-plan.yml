@@ -5,22 +5,24 @@
 # for review before infrastructure changes are applied.
 #
 # Workflow steps:
-# 1. Validate - Check HCL syntax and configuration validity (real, no AWS
-#    credentials needed: `terraform init -backend=false` skips the remote
-#    S3/DynamoDB backend entirely, so this runs unconditionally)
-# 2. Format Check - Ensure consistent code formatting
-# 3. Plan - Generate execution plans for staging and production, posted as
+# 1. Validate - Format check (`terraform fmt -check`) plus HCL syntax and
+#    configuration validity (real, no AWS credentials needed:
+#    `terraform init -backend=false` skips the remote S3/DynamoDB backend
+#    entirely, so this runs unconditionally). Formatting was a separate job
+#    until 2026-07-16; it shared the exact checkout/setup-terraform setup, so
+#    it is now a step here.
+# 2. Plan - Generate execution plans for staging and production, posted as
 #    a PR comment (needs the real S3/DynamoDB remote-state backend, issue
 #    #96/003-T009, and real AWS credentials via OIDC, issue #92/005-T109 —
 #    neither exists yet, so the AWS-touching steps are gated behind the
 #    `AWS_ROLE_ARN` repository secret and are a no-op until both are
 #    provisioned; see "AWS-cost-avoidance constraint" in docs/roadmap.md)
 #
-# Status: 005-T107 (issue #91) — validate/format-check are fully real;
-# plan is real but gated inert pending AWS credentials + remote-state
-# backend. Do not rename the `validate`/`format-check`/`plan` job `name:`
-# fields — they are the exact strings pinned as required status checks in
-# this repo's branch-protection ruleset
+# Status: 005-T107 (issue #91) — validate (incl. format check) is fully
+# real; plan is real but gated inert pending AWS credentials + remote-state
+# backend. Do not rename the `validate`/`plan` job `name:` fields — they
+# are the exact strings pinned as required status checks in this repo's
+# branch-protection ruleset
 # (.github/memory/patterns-discovered.md, "New Workflow's Required Status
 # Check Stuck at 'Expected' — Verify the Job `name:` Against the Live
 # Ruleset").
@@ -84,6 +86,12 @@ jobs:
           cd infra
           terraform init -backend=false
 
+      - name: Terraform Format Check
+        # Fails if any .tf file needs formatting.
+        run: |
+          cd infra
+          terraform fmt -check -recursive
+
       - name: Terraform Validate
         # Validates the root module and, transitively, every module it
         # calls (vpc, alb, ecs, rds, cloudfront, secrets) — one command
@@ -94,32 +102,10 @@ jobs:
           cd infra
           terraform validate
 
-  format-check:
-    name: Check Terraform Formatting
-    runs-on: ubuntu-latest
-    needs: changes
-    if: github.event_name == 'workflow_dispatch' || needs.changes.outputs.infra == 'true'
-
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-      
-      - name: Setup Terraform
-        uses: hashicorp/setup-terraform@v3
-        with:
-          terraform_version: "~> 1.5"
-      
-      - name: Terraform Format Check
-        run: |
-          cd infra
-          # Check if all .tf files are formatted correctly
-          # Fails if any files need formatting
-          terraform fmt -check -recursive
-
   plan:
     name: Terraform Plan (Staging)
     runs-on: ubuntu-latest
-    needs: [changes, validate, format-check]
+    needs: [changes, validate]
     if: github.event_name == 'workflow_dispatch' || needs.changes.outputs.infra == 'true'
 
     # id-token: write is required by aws-actions/configure-aws-credentials

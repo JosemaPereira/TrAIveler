@@ -101,6 +101,14 @@ issues:
         - gosec
         - goconst
 
+    # revive's context-as-argument conflicts with the documented test-helper
+    # convention: `t *testing.T` comes first, before ctx (see
+    # docs/coding-guidelines.md "Function Parameters" / "Helper Parameters").
+    - path: _test\.go
+      text: "context-as-argument"
+      linters:
+        - revive
+
     # Exclude linters for generated files
     - path: ".*\\.pb\\.go$"
       linters:

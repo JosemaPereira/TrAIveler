@@ -1,18 +1,28 @@
-# Frontend CI Workflow - Lint, Test, and Build
+# Frontend CI Workflow - Lint, Test, Build, and Accessibility Audit
 #
 # This workflow runs on pull requests and pushes that modify frontend code.
-# It validates code quality, runs tests, and builds the production bundle.
-# Accessibility auditing (Lighthouse CI + axe-core/Playwright) is a separate
-# required check — see .github/workflows/accessibility.yml.
+# It validates code quality, runs tests, builds the production bundle, and —
+# on pull requests — runs the accessibility gate (Playwright @accessibility
+# specs + Lighthouse CI) against that same bundle.
+#
+# Consolidation note (2026-07-16): the former separate lint/test/build jobs
+# were merged into one `quality` job (they shared identical checkout +
+# setup-node + npm ci setup, tripling it per PR), and the former standalone
+# accessibility.yml workflow was folded in as the `accessibility` job below.
+# The a11y job reuses the `frontend-dist` artifact produced by `quality`
+# instead of rebuilding the same bundle a second time. The `Accessibility
+# Audit` job name is pinned as a required status check in the "Protect main"
+# ruleset — do not rename it.
 #
 # Workflow steps:
-# 1. Lint - Run ESLint and Prettier to enforce code style
-# 2. Test - Execute Vitest unit and component tests
-# 3. Build - Build production bundle with Vite
-# 4. Deploy (main only) - Sync to S3 and invalidate CloudFront (placeholder for Sprint 10)
-#
-# Status: SKELETON - Jobs defined, deployment placeholder for future sprints
-# Sprint 1 deliverable: lint, test, and build jobs functional
+# 1. Quality - ESLint + Prettier, Vitest (with the 90% coverage gate from
+#    vitest.config.ts), and the Vite production build
+# 2. Accessibility (PRs only) - Serve the built bundle, run Playwright
+#    accessibility specs (`--grep @accessibility`) from e2e/, then Lighthouse
+#    CI. Thresholds live in lighthouserc.yml (repo root) and mirror
+#    docs/nfrs.md NFR-PERF-003 / NFR-A11Y-004 exactly.
+# 3. Deploy (main only) - Sync to S3 and invalidate CloudFront (placeholder
+#    for Sprint 10)
 
 name: Frontend CI
 
@@ -42,7 +52,11 @@ jobs:
     name: Detect Changed Areas
     runs-on: ubuntu-latest
     outputs:
-      frontend: ${{ steps.filter.outputs.frontend }}
+      # `a11y` is a superset of the frontend paths: the accessibility job also
+      # cares about e2e/ specs and the Lighthouse config. The quality job is
+      # gated on `a11y` too, because the accessibility job consumes its
+      # frontend-dist artifact and must be able to depend on it existing.
+      a11y: ${{ steps.filter.outputs.a11y }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -52,64 +66,45 @@ jobs:
         uses: dorny/paths-filter@v3
         with:
           filters: |
-            frontend:
+            a11y:
               - 'frontend/**'
+              - 'e2e/**'
+              - 'lighthouserc.yml'
               - '.github/workflows/frontend-ci.yml'
 
-  lint:
-    name: Lint Frontend Code
+  quality:
+    name: Frontend Lint, Test & Build
     runs-on: ubuntu-latest
     needs: changes
-    if: github.event_name == 'workflow_dispatch' || needs.changes.outputs.frontend == 'true'
+    if: github.event_name == 'workflow_dispatch' || needs.changes.outputs.a11y == 'true'
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-      
+
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: '20'
           cache: 'npm'
           cache-dependency-path: frontend/package-lock.json
-      
+
       - name: Install dependencies
         working-directory: frontend
         run: npm ci
-      
+
       - name: Run ESLint
         working-directory: frontend
         run: npm run lint
-      
+
       - name: Check Prettier formatting
         working-directory: frontend
         run: npx prettier --check "src/**/*.{ts,tsx,css}"
 
-  test:
-    name: Run Frontend Tests
-    runs-on: ubuntu-latest
-    needs: changes
-    if: github.event_name == 'workflow_dispatch' || needs.changes.outputs.frontend == 'true'
-
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-      
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-          cache: 'npm'
-          cache-dependency-path: frontend/package-lock.json
-      
-      - name: Install dependencies
-        working-directory: frontend
-        run: npm ci
-      
       - name: Run tests with coverage
         working-directory: frontend
         run: npm test -- --coverage --run
-      
+
       - name: Upload coverage to artifact
         uses: actions/upload-artifact@v4
         with:
@@ -117,27 +112,6 @@ jobs:
           path: frontend/coverage
           retention-days: 7
 
-  build:
-    name: Build Production Bundle
-    runs-on: ubuntu-latest
-    needs: [changes, lint, test]
-    if: github.event_name == 'workflow_dispatch' || needs.changes.outputs.frontend == 'true'
-
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-      
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-          cache: 'npm'
-          cache-dependency-path: frontend/package-lock.json
-      
-      - name: Install dependencies
-        working-directory: frontend
-        run: npm ci
-      
       - name: Build production bundle
         working-directory: frontend
         env:
@@ -145,13 +119,13 @@ jobs:
           # Actual deployment will use environment-specific URLs
           VITE_API_BASE_URL: https://api.example.com
         run: npm run build
-      
+
       - name: Check bundle size
         working-directory: frontend
         run: |
           BUNDLE_SIZE=$(du -sh dist | cut -f1)
           echo "Production bundle size: $BUNDLE_SIZE"
-      
+
       - name: Upload build artifact
         uses: actions/upload-artifact@v4
         with:
@@ -159,34 +133,102 @@ jobs:
           path: frontend/dist
           retention-days: 7
 
-  # Accessibility auditing (Lighthouse CI + axe-core/Playwright) now lives in its own
-  # dedicated workflow: .github/workflows/accessibility.yml (issue #93, 002-T002/T004/
-  # T022/T024). This avoids a duplicate/confusing second "Accessibility" check here.
+  accessibility:
+    name: Accessibility Audit
+    runs-on: ubuntu-latest
+    needs: [changes, quality]
+    # PRs only, matching the former standalone accessibility.yml (it had no
+    # push trigger). Reuses quality's frontend-dist artifact instead of
+    # rebuilding the bundle.
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      (github.event_name == 'pull_request' && needs.changes.outputs.a11y == 'true')
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          # Only frontend/package-lock.json exists — e2e/package-lock.json is
+          # deliberately gitignored (e2e/.gitignore), so e2e installs below use
+          # `npm install` rather than `npm ci` and are not cached here.
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install frontend dependencies
+        # Still needed even though the bundle comes from the artifact: this
+        # job runs `vite preview`, `wait-on`, and `lhci` from frontend's
+        # devDependencies.
+        working-directory: frontend
+        run: npm ci
+
+      - name: Download production bundle from quality job
+        uses: actions/download-artifact@v4
+        with:
+          name: frontend-dist
+          path: frontend/dist
+
+      - name: Serve frontend production build
+        working-directory: frontend
+        # Port 5173 matches frontend/vite.config.ts's dev server port and
+        # e2e/playwright.config.ts's baseURL, so both the Playwright specs and
+        # Lighthouse CI (lighthouserc.yml) hit the same URL.
+        run: npx vite preview --port 5173 --strictPort &
+
+      - name: Wait for frontend to be ready
+        run: npx wait-on http://localhost:5173 --timeout 60000
+
+      - name: Install e2e dependencies
+        working-directory: e2e
+        # Not `npm ci`: e2e/package-lock.json is deliberately gitignored
+        # (e2e/.gitignore), so there is no lockfile to install from.
+        run: npm install
+
+      - name: Install Playwright browsers
+        working-directory: e2e
+        run: npx playwright install --with-deps chromium
+
+      - name: Run Playwright accessibility specs
+        working-directory: e2e
+        # --pass-with-no-tests: no e2e spec is tagged `@accessibility` yet —
+        # that's task 002-T023 (Sprint 9), which wires checkPageA11y(page)
+        # into every e2e/*.spec.ts. Until then this step is a no-op pass
+        # rather than a hard failure; once T023 lands, it starts actually
+        # running (and gating on) those specs.
+        run: npx playwright test --grep @accessibility --pass-with-no-tests
+
+      - name: Run Lighthouse CI
+        # Uses the @lhci/cli devDependency installed in frontend/ (T002) rather
+        # than a version pinned separately here, so the CI version always
+        # matches frontend/package.json's declared range.
+        working-directory: frontend
+        run: npx lhci autorun --config=../lighthouserc.yml
 
   # TODO Sprint 10: S3 + CloudFront Deployment Job
   # Uncomment and configure when AWS infrastructure is provisioned
-  # 
+  #
   # deploy:
   #   name: Deploy to S3 + CloudFront
   #   runs-on: ubuntu-latest
-  #   needs: [build]
-  #   # Accessibility is now a separate required check (accessibility.yml);
-  #   # branch protection can require it independently of this `needs` list.
+  #   needs: [quality]
   #   if: github.ref == 'refs/heads/main' && github.event_name == 'push'
-  #   
+  #
   #   steps:
   #     - name: Download build artifact
   #       uses: actions/download-artifact@v4
   #       with:
   #         name: frontend-dist
   #         path: dist
-  #     
+  #
   #     - name: Configure AWS credentials
   #       uses: aws-actions/configure-aws-credentials@v4
   #       with:
   #         role-to-assume: ${{ secrets.AWS_ROLE_ARN_STAGING }}
   #         aws-region: us-east-1
-  #     
+  #
   #     - name: Sync to S3
   #       env:
   #         S3_BUCKET: ${{ vars.S3_BUCKET_NAME_STAGING }}
@@ -196,11 +238,11 @@ jobs:
   #           --cache-control "public,max-age=31536000,immutable" \
   #           --exclude "index.html" \
   #           --exclude "*.map"
-  #         
+  #
   #         # index.html should not be cached (always fresh)
   #         aws s3 cp dist/index.html s3://$S3_BUCKET/index.html \
   #           --cache-control "public,max-age=0,must-revalidate"
-  #     
+  #
   #     - name: Invalidate CloudFront cache
   #       env:
   #         CLOUDFRONT_DISTRIBUTION_ID: ${{ vars.CLOUDFRONT_DISTRIBUTION_ID_STAGING }}
@@ -208,7 +250,7 @@ jobs:
   #         aws cloudfront create-invalidation \
   #           --distribution-id $CLOUDFRONT_DISTRIBUTION_ID \
   #           --paths "/*"
-  #     
+  #
   #     - name: Wait for invalidation
   #       env:
   #         CLOUDFRONT_DISTRIBUTION_ID: ${{ vars.CLOUDFRONT_DISTRIBUTION_ID_STAGING }}
@@ -217,7 +259,7 @@ jobs:
   #           --distribution-id $CLOUDFRONT_DISTRIBUTION_ID \
   #           --query 'InvalidationList.Items[0].Id' \
   #           --output text)
-  #         
+  #
   #         aws cloudfront wait invalidation-completed \
   #           --distribution-id $CLOUDFRONT_DISTRIBUTION_ID \
   #           --id $INVALIDATION_ID

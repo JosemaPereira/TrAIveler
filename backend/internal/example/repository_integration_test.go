@@ -26,7 +26,7 @@ import (
 // internal/database/client_test.go's setupPostgresContainer helper and skip
 // convention (testing.Short()) so `make test` stays fast and `make test-all`
 // (Colima) covers this.
-func setupRepositoryTestDB(ctx context.Context, t *testing.T) database.Client {
+func setupRepositoryTestDB(t *testing.T, ctx context.Context) database.Client {
 	t.Helper()
 
 	pgContainer, err := postgres.Run(ctx,
@@ -85,7 +85,7 @@ func TestIntegrationCreate_ValidExample_PopulatesGeneratedFields(t *testing.T) {
 		t.Skip("skipping testcontainer test in short mode")
 	}
 	ctx := context.Background()
-	db := setupRepositoryTestDB(ctx, t)
+	db := setupRepositoryTestDB(t, ctx)
 	repo := NewPostgresRepository(db)
 
 	ex := newTestExample(t, "create-1")
@@ -103,7 +103,7 @@ func TestIntegrationCreate_DuplicateEmail_ReturnsConflict(t *testing.T) {
 		t.Skip("skipping testcontainer test in short mode")
 	}
 	ctx := context.Background()
-	db := setupRepositoryTestDB(ctx, t)
+	db := setupRepositoryTestDB(t, ctx)
 	repo := NewPostgresRepository(db)
 
 	first := newTestExample(t, "dup")
@@ -123,7 +123,7 @@ func TestIntegrationFindByID_ExistingID_ReturnsExample(t *testing.T) {
 		t.Skip("skipping testcontainer test in short mode")
 	}
 	ctx := context.Background()
-	db := setupRepositoryTestDB(ctx, t)
+	db := setupRepositoryTestDB(t, ctx)
 	repo := NewPostgresRepository(db)
 
 	created := newTestExample(t, "find-1")
@@ -142,7 +142,7 @@ func TestIntegrationFindByID_MissingID_ReturnsNotFound(t *testing.T) {
 		t.Skip("skipping testcontainer test in short mode")
 	}
 	ctx := context.Background()
-	db := setupRepositoryTestDB(ctx, t)
+	db := setupRepositoryTestDB(t, ctx)
 	repo := NewPostgresRepository(db)
 
 	_, err := repo.FindByID(ctx, "00000000-0000-0000-0000-000000000000")
@@ -158,7 +158,7 @@ func TestIntegrationFindByEmail_MissingEmail_ReturnsNotFound(t *testing.T) {
 		t.Skip("skipping testcontainer test in short mode")
 	}
 	ctx := context.Background()
-	db := setupRepositoryTestDB(ctx, t)
+	db := setupRepositoryTestDB(t, ctx)
 	repo := NewPostgresRepository(db)
 
 	_, err := repo.FindByEmail(ctx, "nobody@example.com")
@@ -174,7 +174,7 @@ func TestIntegrationUpdate_MatchingVersion_AppliesChangesAndIncrementsVersion(t 
 		t.Skip("skipping testcontainer test in short mode")
 	}
 	ctx := context.Background()
-	db := setupRepositoryTestDB(ctx, t)
+	db := setupRepositoryTestDB(t, ctx)
 	repo := NewPostgresRepository(db)
 
 	created := newTestExample(t, "update-1")
@@ -198,7 +198,7 @@ func TestIntegrationUpdate_StaleVersion_ReturnsConflict(t *testing.T) {
 		t.Skip("skipping testcontainer test in short mode")
 	}
 	ctx := context.Background()
-	db := setupRepositoryTestDB(ctx, t)
+	db := setupRepositoryTestDB(t, ctx)
 	repo := NewPostgresRepository(db)
 
 	created := newTestExample(t, "update-conflict")
@@ -220,7 +220,7 @@ func TestIntegrationDelete_ExistingID_RemovesRow(t *testing.T) {
 		t.Skip("skipping testcontainer test in short mode")
 	}
 	ctx := context.Background()
-	db := setupRepositoryTestDB(ctx, t)
+	db := setupRepositoryTestDB(t, ctx)
 	repo := NewPostgresRepository(db)
 
 	created := newTestExample(t, "delete-1")
@@ -241,7 +241,7 @@ func TestIntegrationDelete_MissingID_ReturnsNotFound(t *testing.T) {
 		t.Skip("skipping testcontainer test in short mode")
 	}
 	ctx := context.Background()
-	db := setupRepositoryTestDB(ctx, t)
+	db := setupRepositoryTestDB(t, ctx)
 	repo := NewPostgresRepository(db)
 
 	err := repo.Delete(ctx, "00000000-0000-0000-0000-000000000000")
@@ -257,7 +257,7 @@ func TestIntegrationList_PaginatesAndFiltersByStatus(t *testing.T) {
 		t.Skip("skipping testcontainer test in short mode")
 	}
 	ctx := context.Background()
-	db := setupRepositoryTestDB(ctx, t)
+	db := setupRepositoryTestDB(t, ctx)
 	repo := NewPostgresRepository(db)
 
 	for i := 0; i < 3; i++ {
@@ -268,7 +268,7 @@ func TestIntegrationList_PaginatesAndFiltersByStatus(t *testing.T) {
 	inactive.Status = StatusInactive
 	require.NoError(t, repo.Create(ctx, inactive))
 
-	t.Run("filters by status", func(t *testing.T) {
+	t.Run("when filtering by status it should return only matching rows", func(t *testing.T) {
 		result, err := repo.List(ctx, ListFilters{Status: StatusInactive, Page: 1, PerPage: 20})
 		require.NoError(t, err)
 		assert.Equal(t, 1, result.Total)
@@ -276,7 +276,7 @@ func TestIntegrationList_PaginatesAndFiltersByStatus(t *testing.T) {
 		assert.Equal(t, inactive.ID, result.Items[0].ID)
 	})
 
-	t.Run("paginates results", func(t *testing.T) {
+	t.Run("when paginating it should split rows across pages with a stable total", func(t *testing.T) {
 		firstPage, err := repo.List(ctx, ListFilters{Page: 1, PerPage: 2})
 		require.NoError(t, err)
 		assert.Equal(t, 4, firstPage.Total)
@@ -288,7 +288,7 @@ func TestIntegrationList_PaginatesAndFiltersByStatus(t *testing.T) {
 		assert.Len(t, secondPage.Items, 2)
 	})
 
-	t.Run("empty result set for out-of-range page", func(t *testing.T) {
+	t.Run("when the page is out of range it should return an empty result set", func(t *testing.T) {
 		result, err := repo.List(ctx, ListFilters{Page: 99, PerPage: 20})
 		require.NoError(t, err)
 		assert.Equal(t, 4, result.Total)

@@ -2,6 +2,7 @@ package config
 
 import (
 	"os"
+	"strings"
 	"testing"
 	"time"
 )
@@ -10,12 +11,13 @@ func TestLoad_RequiredVariables(t *testing.T) {
 	tests := []struct {
 		name        string
 		errContains string
-		setup       func()
+		setup       func(t *testing.T)
 		wantErr     bool
 	}{
 		{
-			name: "missing DATABASE_URL",
-			setup: func() {
+			name: "when DATABASE_URL is missing it should return an error",
+			setup: func(t *testing.T) {
+				t.Helper()
 				os.Clearenv()
 				os.Setenv("ANTHROPIC_API_KEY", "test-key")
 			},
@@ -23,8 +25,9 @@ func TestLoad_RequiredVariables(t *testing.T) {
 			errContains: "DATABASE_URL is required",
 		},
 		{
-			name: "missing ANTHROPIC_API_KEY with AI_PROVIDER=anthropic",
-			setup: func() {
+			name: "when ANTHROPIC_API_KEY is missing with AI_PROVIDER=anthropic it should return an error",
+			setup: func(t *testing.T) {
+				t.Helper()
 				os.Clearenv()
 				os.Setenv("DATABASE_URL", "postgres://localhost/test")
 				os.Setenv("AI_PROVIDER", "anthropic")
@@ -33,8 +36,9 @@ func TestLoad_RequiredVariables(t *testing.T) {
 			errContains: "ANTHROPIC_API_KEY is required",
 		},
 		{
-			name: "missing JWT_SIGNING_KEY in production",
-			setup: func() {
+			name: "when JWT_SIGNING_KEY is missing in production it should return an error",
+			setup: func(t *testing.T) {
+				t.Helper()
 				os.Clearenv()
 				os.Setenv("DATABASE_URL", "postgres://localhost/test")
 				os.Setenv("ANTHROPIC_API_KEY", "test-key")
@@ -45,8 +49,9 @@ func TestLoad_RequiredVariables(t *testing.T) {
 			errContains: "JWT_SIGNING_KEY is required in production",
 		},
 		{
-			name: "all required variables present",
-			setup: func() {
+			name: "when all required variables are present it should load successfully",
+			setup: func(t *testing.T) {
+				t.Helper()
 				os.Clearenv()
 				os.Setenv("DATABASE_URL", "postgres://localhost/test")
 				os.Setenv("ANTHROPIC_API_KEY", "test-key")
@@ -55,16 +60,18 @@ func TestLoad_RequiredVariables(t *testing.T) {
 			wantErr: false,
 		},
 		{
-			name: "ollama default provider requires no AI env vars",
-			setup: func() {
+			name: "when no AI variables are set it should default to the ollama provider and load",
+			setup: func(t *testing.T) {
+				t.Helper()
 				os.Clearenv()
 				os.Setenv("DATABASE_URL", "postgres://localhost/test")
 			},
 			wantErr: false,
 		},
 		{
-			name: "explicit AI_PROVIDER=ollama requires no AI env vars",
-			setup: func() {
+			name: "when AI_PROVIDER=ollama is explicit it should require no other AI variables",
+			setup: func(t *testing.T) {
+				t.Helper()
 				os.Clearenv()
 				os.Setenv("DATABASE_URL", "postgres://localhost/test")
 				os.Setenv("AI_PROVIDER", "ollama")
@@ -72,8 +79,9 @@ func TestLoad_RequiredVariables(t *testing.T) {
 			wantErr: false,
 		},
 		{
-			name: "explicit AI_PROVIDER=anthropic with key present",
-			setup: func() {
+			name: "when AI_PROVIDER=anthropic has its key present it should load successfully",
+			setup: func(t *testing.T) {
+				t.Helper()
 				os.Clearenv()
 				os.Setenv("DATABASE_URL", "postgres://localhost/test")
 				os.Setenv("AI_PROVIDER", "anthropic")
@@ -82,8 +90,9 @@ func TestLoad_RequiredVariables(t *testing.T) {
 			wantErr: false,
 		},
 		{
-			name: "invalid AI_PROVIDER value is rejected",
-			setup: func() {
+			name: "when AI_PROVIDER has an unknown value it should be rejected",
+			setup: func(t *testing.T) {
+				t.Helper()
 				os.Clearenv()
 				os.Setenv("DATABASE_URL", "postgres://localhost/test")
 				os.Setenv("AI_PROVIDER", "invalid-value")
@@ -95,25 +104,13 @@ func TestLoad_RequiredVariables(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			tt.setup()
+			tt.setup(t)
+
 			cfg, err := Load()
 
-			if tt.wantErr {
-				if err == nil {
-					t.Errorf("Load() expected error containing %q, got nil", tt.errContains)
-					return
-				}
-				if tt.errContains != "" && !contains(err.Error(), tt.errContains) {
-					t.Errorf("Load() error = %v, want error containing %q", err, tt.errContains)
-				}
-			} else {
-				if err != nil {
-					t.Errorf("Load() unexpected error = %v", err)
-					return
-				}
-				if cfg == nil {
-					t.Error("Load() returned nil config")
-				}
+			assertValidationError(t, err, tt.wantErr, tt.errContains)
+			if !tt.wantErr && err == nil && cfg == nil {
+				t.Error("Load() returned nil config")
 			}
 		})
 	}
@@ -123,40 +120,44 @@ func TestLoad_Validation(t *testing.T) {
 	tests := []struct {
 		name        string
 		errContains string
-		setup       func()
+		setup       func(t *testing.T)
 		wantErr     bool
 	}{
 		{
-			name: "invalid port - too high",
-			setup: func() {
-				setValidEnv()
+			name: "when HTTP_PORT is above 65535 it should be rejected",
+			setup: func(t *testing.T) {
+				t.Helper()
+				setValidEnv(t)
 				os.Setenv("HTTP_PORT", "99999")
 			},
 			wantErr:     true,
 			errContains: "HTTP_PORT must be between 1 and 65535",
 		},
 		{
-			name: "invalid port - zero",
-			setup: func() {
-				setValidEnv()
+			name: "when HTTP_PORT is zero it should be rejected",
+			setup: func(t *testing.T) {
+				t.Helper()
+				setValidEnv(t)
 				os.Setenv("HTTP_PORT", "0")
 			},
 			wantErr:     true,
 			errContains: "HTTP_PORT must be between 1 and 65535",
 		},
 		{
-			name: "invalid log level",
-			setup: func() {
-				setValidEnv()
+			name: "when LOG_LEVEL is unknown it should be rejected",
+			setup: func(t *testing.T) {
+				t.Helper()
+				setValidEnv(t)
 				os.Setenv("LOG_LEVEL", "verbose")
 			},
 			wantErr:     true,
 			errContains: "LOG_LEVEL must be one of: debug, info, warn, error",
 		},
 		{
-			name: "min connections exceeds max connections",
-			setup: func() {
-				setValidEnv()
+			name: "when DB_MIN_CONNECTIONS exceeds DB_MAX_CONNECTIONS it should be rejected",
+			setup: func(t *testing.T) {
+				t.Helper()
+				setValidEnv(t)
 				os.Setenv("DB_MIN_CONNECTIONS", "30")
 				os.Setenv("DB_MAX_CONNECTIONS", "20")
 			},
@@ -167,7 +168,8 @@ func TestLoad_Validation(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			tt.setup()
+			tt.setup(t)
+
 			_, err := Load()
 
 			assertValidationError(t, err, tt.wantErr, tt.errContains)
@@ -185,7 +187,7 @@ func assertValidationError(t *testing.T, err error, wantErr bool, errContains st
 			t.Errorf("Load() expected error containing %q, got nil", errContains)
 			return
 		}
-		if !contains(err.Error(), errContains) {
+		if !strings.Contains(err.Error(), errContains) {
 			t.Errorf("Load() error = %v, want error containing %q", err, errContains)
 		}
 		return
@@ -197,7 +199,7 @@ func assertValidationError(t *testing.T, err error, wantErr bool, errContains st
 }
 
 func TestLoad_Defaults(t *testing.T) {
-	setValidEnv()
+	setValidEnv(t)
 
 	cfg, err := Load()
 	if err != nil {
@@ -245,7 +247,7 @@ func TestLoad_Defaults(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
+		t.Run("when "+tt.name+" is unset it should use the documented default", func(t *testing.T) {
 			if tt.got != tt.want {
 				t.Errorf("%s default: got %v, want %v", tt.name, tt.got, tt.want)
 			}
@@ -254,7 +256,7 @@ func TestLoad_Defaults(t *testing.T) {
 }
 
 func TestLoad_CustomValues(t *testing.T) {
-	setValidEnv()
+	setValidEnv(t)
 	os.Setenv("HTTP_PORT", "3000")
 	os.Setenv("LOG_LEVEL", "debug")
 	os.Setenv("DB_MAX_CONNECTIONS", "50")
@@ -281,7 +283,7 @@ func TestLoad_CustomValues(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
+		t.Run("when "+tt.name+" is set it should override the default", func(t *testing.T) {
 			if tt.got != tt.want {
 				t.Errorf("%s: got %v, want %v", tt.name, tt.got, tt.want)
 			}
@@ -325,7 +327,7 @@ func TestLoad_CookieSecure_ProductionEnvExplicitFalse_OverridesDefault(t *testin
 }
 
 func TestLoad_RequiredValues(t *testing.T) {
-	setValidEnv()
+	setValidEnv(t)
 
 	cfg, err := Load()
 	if err != nil {
@@ -345,16 +347,16 @@ func TestValidLogLevels(t *testing.T) {
 	validLevels := []string{"debug", "info", "warn", "error"}
 
 	for _, level := range validLevels {
-		t.Run(level, func(t *testing.T) {
-			setValidEnv()
+		t.Run("when LOG_LEVEL is "+level+" it should be accepted", func(t *testing.T) {
+			setValidEnv(t)
 			os.Setenv("LOG_LEVEL", level)
 
 			cfg, err := Load()
+
 			if err != nil {
 				t.Errorf("Load() with LOG_LEVEL=%q unexpected error = %v", level, err)
 				return
 			}
-
 			if cfg.Log.Level != level {
 				t.Errorf("LOG_LEVEL: got %q, want %q", cfg.Log.Level, level)
 			}
@@ -363,114 +365,100 @@ func TestValidLogLevels(t *testing.T) {
 }
 
 func TestGetEnvHelpers(t *testing.T) {
-	t.Run("getEnv with default", func(t *testing.T) {
-		os.Clearenv()
-		got := getEnv("MISSING_VAR", "default-value")
-		if got != "default-value" {
-			t.Errorf("getEnv() = %q, want %q", got, "default-value")
-		}
-	})
+	tests := []struct {
+		name  string
+		setup func(t *testing.T)
+		load  func() interface{}
+		want  interface{}
+	}{
+		{
+			name:  "when the variable is missing getEnv should return the default",
+			setup: func(t *testing.T) { t.Helper(); os.Clearenv() },
+			load:  func() interface{} { return getEnv("MISSING_VAR", "default-value") },
+			want:  "default-value",
+		},
+		{
+			name:  "when the variable is set getEnv should return its value",
+			setup: func(t *testing.T) { t.Helper(); os.Setenv("PRESENT_VAR", "actual-value") },
+			load:  func() interface{} { return getEnv("PRESENT_VAR", "default-value") },
+			want:  "actual-value",
+		},
+		{
+			name:  "when the variable is missing getEnvInt should return the default",
+			setup: func(t *testing.T) { t.Helper(); os.Clearenv() },
+			load:  func() interface{} { return getEnvInt("MISSING_VAR", 42) },
+			want:  42,
+		},
+		{
+			name:  "when the variable is a valid integer getEnvInt should parse it",
+			setup: func(t *testing.T) { t.Helper(); os.Setenv("INT_VAR", "100") },
+			load:  func() interface{} { return getEnvInt("INT_VAR", 42) },
+			want:  100,
+		},
+		{
+			name:  "when the variable is not an integer getEnvInt should fall back to the default",
+			setup: func(t *testing.T) { t.Helper(); os.Setenv("BAD_INT", "not-a-number") },
+			load:  func() interface{} { return getEnvInt("BAD_INT", 42) },
+			want:  42,
+		},
+		{
+			name:  "when the variable is missing getEnvBool should return the default",
+			setup: func(t *testing.T) { t.Helper(); os.Clearenv() },
+			load:  func() interface{} { return getEnvBool("MISSING_VAR", true) },
+			want:  true,
+		},
+		{
+			name:  "when the variable is true getEnvBool should return true",
+			setup: func(t *testing.T) { t.Helper(); os.Setenv("BOOL_VAR", "true") },
+			load:  func() interface{} { return getEnvBool("BOOL_VAR", false) },
+			want:  true,
+		},
+		{
+			name:  "when the variable is false getEnvBool should return false",
+			setup: func(t *testing.T) { t.Helper(); os.Setenv("BOOL_VAR", "false") },
+			load:  func() interface{} { return getEnvBool("BOOL_VAR", true) },
+			want:  false,
+		},
+		{
+			name:  "when the variable is missing getEnvDuration should return the default",
+			setup: func(t *testing.T) { t.Helper(); os.Clearenv() },
+			load:  func() interface{} { return getEnvDuration("MISSING_VAR", 5*time.Second) },
+			want:  5 * time.Second,
+		},
+		{
+			name:  "when the variable is a valid duration getEnvDuration should parse it",
+			setup: func(t *testing.T) { t.Helper(); os.Setenv("DURATION_VAR", "30s") },
+			load:  func() interface{} { return getEnvDuration("DURATION_VAR", 5*time.Second) },
+			want:  30 * time.Second,
+		},
+		{
+			name:  "when the variable is not a duration getEnvDuration should fall back to the default",
+			setup: func(t *testing.T) { t.Helper(); os.Setenv("BAD_DURATION", "not-a-duration") },
+			load:  func() interface{} { return getEnvDuration("BAD_DURATION", 5*time.Second) },
+			want:  5 * time.Second,
+		},
+	}
 
-	t.Run("getEnv with value", func(t *testing.T) {
-		os.Setenv("PRESENT_VAR", "actual-value")
-		got := getEnv("PRESENT_VAR", "default-value")
-		if got != "actual-value" {
-			t.Errorf("getEnv() = %q, want %q", got, "actual-value")
-		}
-	})
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			tt.setup(t)
 
-	t.Run("getEnvInt with default", func(t *testing.T) {
-		os.Clearenv()
-		got := getEnvInt("MISSING_VAR", 42)
-		if got != 42 {
-			t.Errorf("getEnvInt() = %d, want %d", got, 42)
-		}
-	})
+			got := tt.load()
 
-	t.Run("getEnvInt with value", func(t *testing.T) {
-		os.Setenv("INT_VAR", "100")
-		got := getEnvInt("INT_VAR", 42)
-		if got != 100 {
-			t.Errorf("getEnvInt() = %d, want %d", got, 100)
-		}
-	})
-
-	t.Run("getEnvInt with invalid value uses default", func(t *testing.T) {
-		os.Setenv("BAD_INT", "not-a-number")
-		got := getEnvInt("BAD_INT", 42)
-		if got != 42 {
-			t.Errorf("getEnvInt() with invalid value = %d, want default %d", got, 42)
-		}
-	})
-
-	t.Run("getEnvBool with default", func(t *testing.T) {
-		os.Clearenv()
-		got := getEnvBool("MISSING_VAR", true)
-		if got != true {
-			t.Errorf("getEnvBool() = %v, want %v", got, true)
-		}
-	})
-
-	t.Run("getEnvBool with true", func(t *testing.T) {
-		os.Setenv("BOOL_VAR", "true")
-		got := getEnvBool("BOOL_VAR", false)
-		if got != true {
-			t.Errorf("getEnvBool() = %v, want %v", got, true)
-		}
-	})
-
-	t.Run("getEnvBool with false", func(t *testing.T) {
-		os.Setenv("BOOL_VAR", "false")
-		got := getEnvBool("BOOL_VAR", true)
-		if got != false {
-			t.Errorf("getEnvBool() = %v, want %v", got, false)
-		}
-	})
-
-	t.Run("getEnvDuration with default", func(t *testing.T) {
-		os.Clearenv()
-		got := getEnvDuration("MISSING_VAR", 5*time.Second)
-		if got != 5*time.Second {
-			t.Errorf("getEnvDuration() = %v, want %v", got, 5*time.Second)
-		}
-	})
-
-	t.Run("getEnvDuration with value", func(t *testing.T) {
-		os.Setenv("DURATION_VAR", "30s")
-		got := getEnvDuration("DURATION_VAR", 5*time.Second)
-		if got != 30*time.Second {
-			t.Errorf("getEnvDuration() = %v, want %v", got, 30*time.Second)
-		}
-	})
-
-	t.Run("getEnvDuration with invalid value uses default", func(t *testing.T) {
-		os.Setenv("BAD_DURATION", "not-a-duration")
-		got := getEnvDuration("BAD_DURATION", 5*time.Second)
-		if got != 5*time.Second {
-			t.Errorf("getEnvDuration() with invalid value = %v, want default %v", got, 5*time.Second)
-		}
-	})
+			if got != tt.want {
+				t.Errorf("got %v, want %v", got, tt.want)
+			}
+		})
+	}
 }
 
 // Helper functions
 
-func setValidEnv() {
+func setValidEnv(t *testing.T) {
+	t.Helper()
+
 	os.Clearenv()
 	os.Setenv("DATABASE_URL", "postgres://localhost/test")
 	os.Setenv("ANTHROPIC_API_KEY", "test-key")
 	os.Setenv("JWT_SIGNING_KEY", "test-signing-key")
-}
-
-func contains(s, substr string) bool {
-	return len(s) >= len(substr) && (s == substr || len(substr) == 0 ||
-		(len(s) > 0 && len(substr) > 0 && findSubstring(s, substr)))
-}
-
-func findSubstring(s, substr string) bool {
-	for i := 0; i <= len(s)-len(substr); i++ {
-		if s[i:i+len(substr)] == substr {
-			return true
-		}
-	}
-	return false
 }

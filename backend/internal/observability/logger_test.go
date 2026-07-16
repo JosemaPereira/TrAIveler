@@ -35,74 +35,99 @@ func decodeLastLogLine(t *testing.T, buf *bytes.Buffer) map[string]any {
 	return entry
 }
 
-func TestLogSecurityEvent_AuthLoginFailure_LogsAllSecurityEventFields(t *testing.T) {
-	buf := withCapturedDefaultLogger(t)
+func TestLogSecurityEvent(t *testing.T) {
+	tests := []struct {
+		name          string
+		correlationID string
+		eventType     EventType
+		userID        string
+		severity      Severity
+		ipAddress     string
+		userAgent     string
+		details       map[string]any
+		wantEventType string
+		wantLevel     string
+	}{
+		{
+			name:          "when a login failure is logged it should record every security event field at WARN level",
+			correlationID: "c1a1e2b3-4d5e-6f7a-8b9c-0d1e2f3a4b5c",
+			eventType:     EventAuthLoginFailure,
+			userID:        "9f1c1a1e-2b3d-4c5e-8f6a-1234567890ab",
+			severity:      SeverityWarning,
+			ipAddress:     "203.0.113.42",
+			userAgent:     "Mozilla/5.0",
+			details:       map[string]any{"user_email": "user@example.com", "failure_reason": "invalid_credentials"},
+			wantEventType: "auth_login_failure",
+			wantLevel:     "WARN",
+		},
+		{
+			name:          "when a SQL injection attempt is logged without a user it should record an empty user_id at ERROR level",
+			correlationID: "a2b2f3c4-5d6e-7f8a-9b0c-1d2e3f4a5b6c",
+			eventType:     EventValidationSQLInjection,
+			userID:        "",
+			severity:      SeverityError,
+			ipAddress:     "198.51.100.7",
+			userAgent:     "curl/8.0",
+			details:       map[string]any{"endpoint": "/api/v1/trips", "payload_preview": "' OR 1=1--"},
+			wantEventType: "validation_sql_injection",
+			wantLevel:     "ERROR",
+		},
+		{
+			name:          "when a login success is logged it should record the event at INFO level",
+			correlationID: "b3c3a4d5-6e7f-8a9b-0c1d-2e3f4a5b6c7d",
+			eventType:     EventAuthLoginSuccess,
+			userID:        "9f1c1a1e-2b3d-4c5e-8f6a-1234567890ab",
+			severity:      SeverityInfo,
+			ipAddress:     "203.0.113.42",
+			userAgent:     "Mozilla/5.0",
+			details:       map[string]any{"user_email": "user@example.com"},
+			wantEventType: "auth_login_success",
+			wantLevel:     "INFO",
+		},
+	}
 
-	LogSecurityEvent(
-		"c1a1e2b3-4d5e-6f7a-8b9c-0d1e2f3a4b5c",
-		EventAuthLoginFailure,
-		"9f1c1a1e-2b3d-4c5e-8f6a-1234567890ab",
-		SeverityWarning,
-		"203.0.113.42",
-		"Mozilla/5.0",
-		map[string]any{"user_email": "user@example.com", "failure_reason": "invalid_credentials"},
-	)
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			buf := withCapturedDefaultLogger(t)
 
-	entry := decodeLastLogLine(t, buf)
-	assert.Equal(t, "c1a1e2b3-4d5e-6f7a-8b9c-0d1e2f3a4b5c", entry["correlation_id"])
-	assert.Equal(t, "auth_login_failure", entry["event_type"])
-	assert.Equal(t, "9f1c1a1e-2b3d-4c5e-8f6a-1234567890ab", entry["user_id"])
-	assert.Equal(t, "WARN", entry["level"])
-	assert.Equal(t, "203.0.113.42", entry["ip_address"])
-	assert.Equal(t, "Mozilla/5.0", entry["user_agent"])
-	require.Contains(t, entry, "details")
-	details, ok := entry["details"].(map[string]any)
-	require.True(t, ok)
-	assert.Equal(t, "user@example.com", details["user_email"])
-	assert.Equal(t, "invalid_credentials", details["failure_reason"])
+			LogSecurityEvent(
+				tt.correlationID,
+				tt.eventType,
+				tt.userID,
+				tt.severity,
+				tt.ipAddress,
+				tt.userAgent,
+				tt.details,
+			)
+
+			entry := decodeLastLogLine(t, buf)
+			assertSecurityEventEntry(t, entry, tt.correlationID, tt.wantEventType, tt.userID, tt.wantLevel, tt.ipAddress, tt.userAgent, tt.details)
+		})
+	}
+}
+
+// assertSecurityEventEntry verifies the shared field contract of a decoded
+// security event log line, including a subset match on details.
+func assertSecurityEventEntry(
+	t *testing.T,
+	entry map[string]any,
+	correlationID, eventType, userID, level, ipAddress, userAgent string,
+	details map[string]any,
+) {
+	t.Helper()
+
+	assert.Equal(t, correlationID, entry["correlation_id"])
+	assert.Equal(t, eventType, entry["event_type"])
+	assert.Equal(t, userID, entry["user_id"])
+	assert.Equal(t, level, entry["level"])
+	assert.Equal(t, ipAddress, entry["ip_address"])
+	assert.Equal(t, userAgent, entry["user_agent"])
 	require.Contains(t, entry, "time")
-}
 
-func TestLogSecurityEvent_ValidationSQLInjection_LogsAllSecurityEventFields(t *testing.T) {
-	buf := withCapturedDefaultLogger(t)
-
-	LogSecurityEvent(
-		"a2b2f3c4-5d6e-7f8a-9b0c-1d2e3f4a5b6c",
-		EventValidationSQLInjection,
-		"",
-		SeverityError,
-		"198.51.100.7",
-		"curl/8.0",
-		map[string]any{"endpoint": "/api/v1/trips", "payload_preview": "' OR 1=1--"},
-	)
-
-	entry := decodeLastLogLine(t, buf)
-	assert.Equal(t, "a2b2f3c4-5d6e-7f8a-9b0c-1d2e3f4a5b6c", entry["correlation_id"])
-	assert.Equal(t, "validation_sql_injection", entry["event_type"])
-	assert.Equal(t, "", entry["user_id"])
-	assert.Equal(t, "ERROR", entry["level"])
-	assert.Equal(t, "198.51.100.7", entry["ip_address"])
-	assert.Equal(t, "curl/8.0", entry["user_agent"])
 	require.Contains(t, entry, "details")
-	details, ok := entry["details"].(map[string]any)
+	loggedDetails, ok := entry["details"].(map[string]any)
 	require.True(t, ok)
-	assert.Equal(t, "/api/v1/trips", details["endpoint"])
-}
-
-func TestLogSecurityEvent_AuthLoginSuccess_LogsInfoLevel(t *testing.T) {
-	buf := withCapturedDefaultLogger(t)
-
-	LogSecurityEvent(
-		"b3c3a4d5-6e7f-8a9b-0c1d-2e3f4a5b6c7d",
-		EventAuthLoginSuccess,
-		"9f1c1a1e-2b3d-4c5e-8f6a-1234567890ab",
-		SeverityInfo,
-		"203.0.113.42",
-		"Mozilla/5.0",
-		map[string]any{"user_email": "user@example.com"},
-	)
-
-	entry := decodeLastLogLine(t, buf)
-	assert.Equal(t, "auth_login_success", entry["event_type"])
-	assert.Equal(t, "INFO", entry["level"])
+	for key, want := range details {
+		assert.Equal(t, want, loggedDetails[key])
+	}
 }

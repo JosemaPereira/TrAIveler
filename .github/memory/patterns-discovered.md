@@ -571,3 +571,20 @@ dropped — only prose and illustrative code were trimmed. Supersedes the 2026-0
 - **Related**: `docs/roadmap.md` (Sprint 5 "Implementation decisions locked in mid-sprint"
   callout + 008-T059/T064/T150/T160/T192/T193/T206, 004-T065/T070, 001-T033, 002-T023, 008-T040
   row Notes), issues #142–#150
+
+---
+
+### revive's `context-as-argument` Conflicts with the t-First Test-Helper Convention
+- **Discovered**: 2026-07-16 — **Tool**: Claude Code
+- **Context**: Any Go test helper taking both `*testing.T` and `context.Context`, with revive's
+  `context-as-argument` rule enabled (it is, repo-wide, in `backend/.golangci.yml`).
+- **Problem**: `docs/coding-guidelines.md` ("Function Parameters" / "Helper Parameters") mandates
+  `t *testing.T` as the FIRST parameter, before ctx (`setupTestDB(t *testing.T, ctx context.Context)`),
+  but revive's `context-as-argument` demands ctx first — so a guideline-compliant helper fails
+  `make lint`. Historically helpers were written `(ctx, t)` to appease the linter, silently violating
+  the documented convention.
+- **Solution**: Keep the documented convention (t first) and carve out the linter instead: a
+  `.golangci.yml` `issues.exclude-rules` entry with `path: _test\.go`, `text: "context-as-argument"`,
+  `linters: [revive]`. Production code keeps ctx-first enforcement untouched.
+- **Related**: `backend/.golangci.yml`, `docs/coding-guidelines.md`,
+  `backend/internal/database/client_test.go`, `backend/tests/integration/swagger_test.go`

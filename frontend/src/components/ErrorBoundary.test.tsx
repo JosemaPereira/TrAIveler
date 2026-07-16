@@ -16,102 +16,111 @@ afterEach(() => {
   vi.restoreAllMocks()
 })
 
-describe('ErrorBoundary', () => {
-  it('renders children normally when no error is thrown', () => {
-    render(
-      <ErrorBoundary>
-        <p>Safe content</p>
-      </ErrorBoundary>
-    )
+describe('<ErrorBoundary />', () => {
+  describe('when no error is thrown', () => {
+    it('should render children normally', () => {
+      render(
+        <ErrorBoundary>
+          <p>Safe content</p>
+        </ErrorBoundary>
+      )
 
-    expect(screen.getByText('Safe content')).toBeInTheDocument()
+      expect(screen.getByText('Safe content')).toBeInTheDocument()
+    })
   })
 
-  it('renders the fallback UI instead of children when a child throws during render', () => {
-    vi.spyOn(console, 'error').mockImplementation(() => {})
+  describe('when a child throws during render', () => {
+    it('should render the fallback UI instead of children', () => {
+      vi.spyOn(console, 'error').mockImplementation(() => {})
 
-    render(
-      <ErrorBoundary>
-        <ThrowError />
-      </ErrorBoundary>
-    )
+      render(
+        <ErrorBoundary>
+          <ThrowError />
+        </ErrorBoundary>
+      )
 
-    expect(screen.queryByText('Safe content')).not.toBeInTheDocument()
-    expect(
-      screen.getByRole('heading', { name: 'Something went wrong' })
-    ).toBeInTheDocument()
+      expect(screen.queryByText('Safe content')).not.toBeInTheDocument()
+      expect(
+        screen.getByRole('heading', { name: 'Something went wrong' })
+      ).toBeInTheDocument()
+    })
+
+    it('should show a "Go Home" actionable element in the fallback UI', () => {
+      vi.spyOn(console, 'error').mockImplementation(() => {})
+
+      render(
+        <ErrorBoundary>
+          <ThrowError />
+        </ErrorBoundary>
+      )
+
+      expect(
+        screen.getByRole('button', { name: 'Go Home' })
+      ).toBeInTheDocument()
+    })
+
+    it('should navigate to / when "Go Home" is clicked', async () => {
+      const user = userEvent.setup()
+      const assign = vi.fn()
+      vi.stubGlobal('location', { assign })
+      vi.spyOn(console, 'error').mockImplementation(() => {})
+      render(
+        <ErrorBoundary>
+          <ThrowError />
+        </ErrorBoundary>
+      )
+
+      await user.click(screen.getByRole('button', { name: 'Go Home' }))
+
+      expect(assign).toHaveBeenCalledWith('/')
+    })
+
+    it('should log the caught error via console.error', () => {
+      const consoleErrorSpy = vi
+        .spyOn(console, 'error')
+        .mockImplementation(() => {})
+
+      render(
+        <ErrorBoundary>
+          <ThrowError />
+        </ErrorBoundary>
+      )
+
+      expect(consoleErrorSpy).toHaveBeenCalledWith(
+        'ErrorBoundary caught an error:',
+        expect.any(Error),
+        expect.anything()
+      )
+    })
   })
 
-  it('shows a "Go Home" actionable element in the fallback UI', () => {
-    vi.spyOn(console, 'error').mockImplementation(() => {})
+  describe('having a development build', () => {
+    it('should show the raw error message', () => {
+      vi.stubEnv('DEV', true)
+      vi.spyOn(console, 'error').mockImplementation(() => {})
 
-    render(
-      <ErrorBoundary>
-        <ThrowError />
-      </ErrorBoundary>
-    )
+      render(
+        <ErrorBoundary>
+          <ThrowError />
+        </ErrorBoundary>
+      )
 
-    expect(screen.getByRole('button', { name: 'Go Home' })).toBeInTheDocument()
+      expect(screen.getByText(ERROR_MESSAGE)).toBeInTheDocument()
+    })
   })
 
-  it('navigates to / when "Go Home" is clicked', async () => {
-    const user = userEvent.setup()
-    const assign = vi.fn()
-    vi.stubGlobal('location', { assign })
-    vi.spyOn(console, 'error').mockImplementation(() => {})
+  describe('having a non-development build', () => {
+    it('should hide the raw error message', () => {
+      vi.stubEnv('DEV', false)
+      vi.spyOn(console, 'error').mockImplementation(() => {})
 
-    render(
-      <ErrorBoundary>
-        <ThrowError />
-      </ErrorBoundary>
-    )
+      render(
+        <ErrorBoundary>
+          <ThrowError />
+        </ErrorBoundary>
+      )
 
-    await user.click(screen.getByRole('button', { name: 'Go Home' }))
-
-    expect(assign).toHaveBeenCalledWith('/')
-  })
-
-  it('logs the caught error via console.error', () => {
-    const consoleErrorSpy = vi
-      .spyOn(console, 'error')
-      .mockImplementation(() => {})
-
-    render(
-      <ErrorBoundary>
-        <ThrowError />
-      </ErrorBoundary>
-    )
-
-    expect(consoleErrorSpy).toHaveBeenCalledWith(
-      'ErrorBoundary caught an error:',
-      expect.any(Error),
-      expect.anything()
-    )
-  })
-
-  it('shows the raw error message in development builds', () => {
-    vi.stubEnv('DEV', true)
-    vi.spyOn(console, 'error').mockImplementation(() => {})
-
-    render(
-      <ErrorBoundary>
-        <ThrowError />
-      </ErrorBoundary>
-    )
-
-    expect(screen.getByText(ERROR_MESSAGE)).toBeInTheDocument()
-  })
-
-  it('hides the raw error message outside development builds', () => {
-    vi.stubEnv('DEV', false)
-    vi.spyOn(console, 'error').mockImplementation(() => {})
-
-    render(
-      <ErrorBoundary>
-        <ThrowError />
-      </ErrorBoundary>
-    )
-
-    expect(screen.queryByText(ERROR_MESSAGE)).not.toBeInTheDocument()
+      expect(screen.queryByText(ERROR_MESSAGE)).not.toBeInTheDocument()
+    })
   })
 })

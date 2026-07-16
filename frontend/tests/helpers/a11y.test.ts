@@ -54,30 +54,36 @@ describe('checkPageA11y', () => {
     withTagsMock.mockReturnValue({ analyze: analyzeMock })
   })
 
-  it('throws when the scan reports a WCAG 2.1 AA violation', async () => {
-    analyzeMock.mockResolvedValue({
-      violations: [buildViolation()],
-    } as AxeResults)
+  describe('when the scan reports a WCAG 2.1 AA violation', () => {
+    it('should throw an error naming the violated rule', async () => {
+      analyzeMock.mockResolvedValue({
+        violations: [buildViolation()],
+      } as AxeResults)
 
-    await expect(checkPageA11y(fakePage)).rejects.toThrow(/image-alt/)
+      await expect(checkPageA11y(fakePage)).rejects.toThrow(/image-alt/)
+    })
   })
 
-  it('resolves without throwing when the scan reports no violations', async () => {
-    analyzeMock.mockResolvedValue({ violations: [] } as unknown as AxeResults)
+  describe('when the scan reports no violations', () => {
+    it('should resolve without throwing', async () => {
+      analyzeMock.mockResolvedValue({ violations: [] } as unknown as AxeResults)
 
-    await expect(checkPageA11y(fakePage)).resolves.toBeUndefined()
+      await expect(checkPageA11y(fakePage)).resolves.toBeUndefined()
+    })
   })
 
-  it('scopes the scan to WCAG 2.1 AA tags', async () => {
-    analyzeMock.mockResolvedValue({ violations: [] } as unknown as AxeResults)
+  describe('when configuring the scanner', () => {
+    it('should scope the scan to WCAG 2.1 AA tags', async () => {
+      analyzeMock.mockResolvedValue({ violations: [] } as unknown as AxeResults)
 
-    await checkPageA11y(fakePage)
+      await checkPageA11y(fakePage)
 
-    expect(withTagsMock).toHaveBeenCalledWith([
-      'wcag2a',
-      'wcag2aa',
-      'wcag21a',
-      'wcag21aa',
-    ])
+      expect(withTagsMock).toHaveBeenCalledWith([
+        'wcag2a',
+        'wcag2aa',
+        'wcag21a',
+        'wcag21aa',
+      ])
+    })
   })
 })

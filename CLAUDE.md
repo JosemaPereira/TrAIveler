@@ -71,7 +71,7 @@ Read the following files before generating code, tests, or UI for this project:
 - **docs/coding-guidelines.md** — formatting rules, import organization, naming conventions, and
   KISS/DRY principles for Go (backend) and React/TypeScript (frontend).
 - **docs/testing-guidelines.md** — three-layer testing strategy (unit, integration, E2E), folder
-  structure, naming conventions, and coverage targets (80% business logic, 80% shared components).
+  structure, naming conventions, and coverage targets (90% business logic, 90% shared components).
 - **docs/ui-guidelines.md** — design tokens (color, spacing, typography), component layers (Atomic
   Design), responsive breakpoints, accessibility rules (WCAG 2.1 AA), and loading/error/empty state
   requirements.
