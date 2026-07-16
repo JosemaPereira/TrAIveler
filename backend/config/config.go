@@ -7,6 +7,22 @@
 // provide required values (DATABASE_URL, JWT_SIGNING_KEY, and ANTHROPIC_API_KEY when
 // AI_PROVIDER=anthropic).
 //
+// Secrets loading model (spec 008-T018): the sensitive values — DATABASE_URL,
+// JWT_SIGNING_KEY, and ANTHROPIC_API_KEY — are read as raw secret values directly
+// from the environment. This works both for local development (values supplied
+// via .env / shell) and for the ECS `secrets`/valueFrom injection path, where ECS
+// resolves an AWS Secrets Manager ARN and injects the resolved value under these
+// same variable names before the process starts.
+//
+// App-side resolution of Secrets Manager ARNs (reading JWT_SIGNING_KEY_SECRET_ARN /
+// ANTHROPIC_API_KEY_SECRET_ARN and fetching their values at runtime via IAM, which
+// is what enables rotation without redeployment per docs/security.md) is deliberately
+// NOT done here. That machinery — an internal/secrets Secrets Manager client with
+// caching, a JWT key loader that fetches by ARN, and a periodic refresh timer — is
+// owned by the later roadmap tasks 004-T070/004-T071/004-T072 (Sprint 6+, gated on
+// 003-T045). Adding ARN env vars here now, with no resolver behind them, would create
+// config fields no code consumes and would break local development. See issue #143.
+//
 // Usage:
 //
 //	cfg, err := config.Load()
