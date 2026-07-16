@@ -1,6 +1,7 @@
 -- +goose Up
 -- suggestions (008-T017): partner-proposed trip change, pending admin approval.
--- Authority: docs/data-model.md Suggestion (issue sketch's shape is wrong, unused).
+-- Authority: docs/data-model.md Suggestion + spec.md US3 (suggest-then-approve
+-- flow); issue sketch's shape is wrong, unused.
 --   - target_id has NO FK: target day/activity may be deleted; suggestion kept
 --     for audit history.
 --   - reviewed_by ON DELETE SET NULL: keep the review record if the admin is
