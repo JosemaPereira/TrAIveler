@@ -9,6 +9,83 @@ causes; the DI pattern + its payment-provider example), and cut narrative/step-b
 long code examples down to the minimum needed to reuse each lesson. No decision-relevant fact was
 dropped — only prose and illustrative code were trimmed. Supersedes the 2026-07-11 cleanup note.
 
+## Index
+
+Scan this first and jump to the entries that touch your task — the full file is long and most of it
+will not apply. Grep the exact title to jump. Entries are append-only; add new ones at the end of
+the file **and** add a line here.
+
+### Go backend — code
+
+- *Dependency Injection with Interface-First Design (Go)* — constructor-injected deps, no globals.
+- *Two-Query Pagination, Not `COUNT(*) OVER()`* — the window-function version is a footgun.
+- *Prefer an Official SDK's Built-In Retry Over Hand-Rolling One* — SDK-native retry/timeout wins.
+- *A Config Value Can Be Loaded, Validated, and Logged, Yet Still Never Reach the Code It Configures*
+  — "loaded" ≠ "forwarded"; grep the consuming signature. Bit us twice (DB pool, `BCRYPT_COST`).
+- *`internal/example/` Is Throwaway — Delete on First Real Domain* — still pending (Sprint 8, Trip).
+- *Goose Migrations Must Not Reference Tables From a Later, Not-Yet-Landed Migration Set*.
+
+### Go backend — testing
+
+- *Colima for testcontainers-go (Free Runtime + Required Env Vars)* — needs **both** env vars.
+- *Layered Testing Strategy with Optional Testcontainers (Go)* — `testing.Short()` gating.
+- *Mockery: Generation + Scope* — mocks are for **external-system interfaces only**.
+- *Mockery Mock Self-Import → External Test Package + Interface Ports Break Cycles*.
+- *revive's `context-as-argument` Conflicts with the t-First Test-Helper Convention* — docs win;
+  linter carve-out for `_test.go`.
+- *Simulating a Realistic DB Timeout in an Integration Test*.
+
+### Frontend
+
+- *Vitest Needs Explicit `afterEach(cleanup)` Without `test.globals: true`*.
+- *Remove `baseUrl` When Only Used to Support `paths` (tsconfig)*.
+
+### Infra, CI & GitHub
+
+- *Required Status Check Stuck at "Expected" — Two Root Causes* — `paths:` filters and job-name
+  mismatch. Job names are pinned in the ruleset — renaming one silently breaks the gate.
+- *Native Cross-Compilation to Avoid QEMU Emulation (Docker Multi-Platform)* — 8.5min → ~56s.
+- *A Version Pin Can Be Deliberate Architecture, Not Drift* — e.g. `postgres:15.4-alpine` = RDS match.
+- *A Hardcoded Env-Var Fallback Can Hide a CI Wiring Gap*.
+- *Lighthouse CI Can't Assert Real INP in a Standard `autorun` — Use Total Blocking Time*.
+- *GitHub Rulesets/Branch Protection Require Public Repo or Pro (Personal Accounts)*.
+- *ECS Fargate for AI Workloads (Compute Platform Choice)*.
+- *Hash-Manifest Drift Detection for Hand-Ported Config Pairs* — `scripts/check-agent-drift.py`.
+- *Prefer the Official Multi-Agent Integration Over Hand-Porting* — why the SpecKit hand-port died.
+- *Claude Code's Shell Snapshot Drops Single-Underscore Shell Functions*.
+
+### Authority, docs & process
+
+Read these before trusting any spec/issue text.
+
+- *Issue-Body Snippets Are Lowest-Authority — Verify Against Real Source* — the ranking that keeps
+  recurring: real code > `tasks.md` > root docs > issue body. Applies to prose hand-offs too.
+- *Roadmap Row Notes Are the Only Channel Future Issue Bodies Inherit Context Through* — a decision
+  recorded only in docs/PRs/closed issues will **not** reach tickets that don't exist yet.
+- *A Spec's Data-Model Validation Rule Can Override Normal REST Convention — Read It Literally* —
+  e.g. `/healthz` always-200.
+- *Append Local-Dev-Only Doc Overrides After `PROMOTED:...END`, Don't Edit Inside It*.
+- *Treat README Command Blocks as Executable Claims*.
+- *What "Keep docs/ Updated" Means for an Infra Module PR* — the two-tier docs rule.
+- *README Documentation Consistency*, *Mermaid Diagrams for Documentation*,
+  *GitHub Documentation URL Formatting*.
+- *Targeted (Grep-First) Memory Loading in Subagent Prompts*.
+
+### Planning & workflow
+
+- *Consolidation-First Issue Creation* — mandatory since Sprint 2; groups of 2-4 tasks.
+- *Simplified GitHub Issue Workflow (Flat Issues, No Sub-Issues)*.
+- *Idempotent Roadmap Reconciliation*, *Existing Sprints as Refinement Evidence (Idempotency)*.
+- *Foundation Promotion Workflow*, *Documentation-Centric SpecKit Workflow*.
+- *NFR Observability Primitives Must Precede Feature Work*.
+
+### Product & security domain
+
+- *Suggest-Then-Approve Collaboration Workflow*.
+- *Server-Side Prompt Validation Deny-List (AI Security)* — pattern-based, not LLM-based.
+
+---
+
 ## Pattern Template
 
 ### Pattern Name

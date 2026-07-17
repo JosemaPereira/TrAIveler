@@ -17,14 +17,14 @@
 
 **Purpose**: Project initialization and basic structure per plan.md
 
-- [ ] T001 Create backend project structure: backend/cmd/api/, backend/internal/{auth,subscription,collaboration,security}/, backend/pkg/{database,config}/, backend/tests/{unit,integration,contract}/
-- [ ] T002 [P] Initialize Go module with Chi v5, pgx/v5, goose, golang-jwt/jwt v5, bcrypt dependencies in backend/go.mod
-- [ ] T003 [P] Create frontend project structure: frontend/src/{features,components,stores,styles,services,routes}/, frontend/tests/{unit,integration,e2e}/
-- [ ] T004 [P] Initialize Vite React TypeScript project with TanStack Query v5, Zustand, React Router v7, Vitest, Playwright in frontend/package.json
-- [ ] T005 [P] Configure backend linting: golangci-lint.yml with errcheck, govet, staticcheck, revive, gosec in backend/.golangci.yml
-- [ ] T006 [P] Configure frontend linting: ESLint + Prettier with TypeScript strict mode in frontend/.eslintrc.json and frontend/.prettierrc
-- [ ] T007 [P] Create E2E test structure: e2e/specs/{auth,collaboration,accessibility}/ directories
-- [ ] T008 [P] Create infrastructure directory: infra/terraform/modules/secrets/ for JWT key rotation
+- [x] T001 Create backend project structure: backend/cmd/api/, backend/internal/{auth,subscription,collaboration,security}/, backend/pkg/{database,config}/, backend/tests/{unit,integration,contract}/
+- [x] T002 [P] Initialize Go module with Chi v5, pgx/v5, goose, golang-jwt/jwt v5, bcrypt dependencies in backend/go.mod
+- [x] T003 [P] Create frontend project structure: frontend/src/{features,components,stores,styles,services,routes}/, frontend/tests/{unit,integration,e2e}/
+- [x] T004 [P] Initialize Vite React TypeScript project with TanStack Query v5, Zustand, React Router v7, Vitest, Playwright in frontend/package.json
+- [x] T005 [P] Configure backend linting: golangci-lint.yml with errcheck, govet, staticcheck, revive, gosec in backend/.golangci.yml
+- [x] T006 [P] Configure frontend linting: ESLint + Prettier with TypeScript strict mode in frontend/.eslintrc.json and frontend/.prettierrc
+- [x] T007 [P] Create E2E test structure: e2e/specs/{auth,collaboration,accessibility}/ directories
+- [x] T008 [P] Create infrastructure directory: infra/terraform/modules/secrets/ for JWT key rotation
 
 ---
 
@@ -34,28 +34,28 @@
 
 **⚠️ CRITICAL**: No user story work can begin until this phase is complete
 
-- [ ] T009 Setup PostgreSQL connection pooling with pgx/v5 in backend/pkg/database/connection.go
-- [ ] T010 [P] Configure goose migrations framework in backend/pkg/database/migrations/ directory
-- [ ] T011 [P] Create migration 001_create_users.sql: users table with id, email (unique), password_hash, full_name, has_subscription (boolean), failed_login_attempts (integer default 0), last_failed_login_at (timestamp), email_verified (boolean default false), created_at, updated_at, version (integer for optimistic locking)
-- [ ] T012 [P] Create migration 002_create_subscriptions.sql: subscriptions table with id, user_id (FK), plan_id (FK), status, current_period_start, current_period_end, grace_period_ends_at (nullable), cancelled_at (nullable), created_at, updated_at, version
-- [ ] T013 [P] Create migration 003_create_password_reset_tokens.sql: password_reset_tokens table with id, user_id (FK CASCADE), token_hash (unique), expires_at, used_at (nullable), created_at; indexes on user_id, token_hash, expires_at
-- [ ] T014 [P] Create migration 004_create_security_events.sql: security_events table with id, correlation_id (index), event_type (check constraint), user_id (FK SET NULL), email, severity, ip_address, user_agent, details (jsonb), created_at; indexes on correlation_id, user_id, email, created_at, event_type
-- [ ] T015 [P] Create migration 005_create_trips.sql: trips table with id, creator_id (FK), destination, start_date, end_date, archived (boolean default false), created_at, updated_at, version; index on creator_id, archived
-- [ ] T016 [P] Create migration 006_create_collaborators.sql: collaborators table with id, trip_id (FK CASCADE), user_id (FK CASCADE), email, status (pending/accepted/rejected), invited_at, accepted_at, created_at; indexes on trip_id, user_id, status
-- [ ] T017 [P] Create migration 007_create_suggestions.sql: suggestions table with id, trip_id (FK CASCADE), collaborator_id (FK CASCADE), suggestion_type, content, details (jsonb), status (pending/approved/rejected), approved_at, rejected_at, created_at
-- [ ] T018 Create environment config loader in backend/pkg/config/config.go: load DATABASE_URL, JWT_SIGNING_KEY_SECRET_ARN, ANTHROPIC_API_KEY_SECRET_ARN from environment
+- [x] T009 Setup PostgreSQL connection pooling with pgx/v5 in backend/pkg/database/connection.go
+- [x] T010 [P] Configure goose migrations framework in backend/pkg/database/migrations/ directory
+- [x] T011 [P] Create migration 001_create_users.sql: users table with id, email (unique), password_hash, full_name, has_subscription (boolean), failed_login_attempts (integer default 0), last_failed_login_at (timestamp), email_verified (boolean default false), created_at, updated_at, version (integer for optimistic locking)
+- [x] T012 [P] Create migration 002_create_subscriptions.sql: subscriptions table with id, user_id (FK), plan_id (FK), status, current_period_start, current_period_end, grace_period_ends_at (nullable), cancelled_at (nullable), created_at, updated_at, version
+- [x] T013 [P] Create migration 003_create_password_reset_tokens.sql: password_reset_tokens table with id, user_id (FK CASCADE), token_hash (unique), expires_at, used_at (nullable), created_at; indexes on user_id, token_hash, expires_at
+- [x] T014 [P] Create migration 004_create_security_events.sql: security_events table with id, correlation_id (index), event_type (check constraint), user_id (FK SET NULL), email, severity, ip_address, user_agent, details (jsonb), created_at; indexes on correlation_id, user_id, email, created_at, event_type
+- [x] T015 [P] Create migration 005_create_trips.sql: trips table with id, creator_id (FK), destination, start_date, end_date, archived (boolean default false), created_at, updated_at, version; index on creator_id, archived
+- [x] T016 [P] Create migration 006_create_collaborators.sql: collaborators table with id, trip_id (FK CASCADE), user_id (FK CASCADE), email, status (pending/accepted/rejected), invited_at, accepted_at, created_at; indexes on trip_id, user_id, status
+- [x] T017 [P] Create migration 007_create_suggestions.sql: suggestions table with id, trip_id (FK CASCADE), collaborator_id (FK CASCADE), suggestion_type, content, details (jsonb), status (pending/approved/rejected), approved_at, rejected_at, created_at
+- [x] T018 Create environment config loader in backend/pkg/config/config.go: load DATABASE_URL, JWT_SIGNING_KEY_SECRET_ARN, ANTHROPIC_API_KEY_SECRET_ARN from environment
 - [x] T019 [P] Implement JWT generator with RS256 in backend/internal/auth/jwt/generator.go: GenerateAccessToken(userID, hasSubscription) returns signed JWT with 24h expiration
 - [x] T020 [P] Implement JWT validator in backend/internal/auth/jwt/validator.go: ValidateToken(token) returns claims, supports multi-key validation for zero-downtime rotation
 - [x] T021 [P] Implement JWT refresher in backend/internal/auth/jwt/refresher.go: RefreshToken(refreshToken) validates, revokes old token, issues new access+refresh tokens
-- [ ] T022 [P] Implement bcrypt password hasher in backend/internal/auth/password/hasher.go: HashPassword(password) with cost 12, ComparePassword(hash, password) for validation
-- [ ] T023 [P] Implement password validator in backend/internal/auth/password/validator.go: ValidatePassword(password) checks 8-72 chars, uppercase, lowercase, digit
-- [ ] T024 [P] Implement progressive delay rate limiter in backend/internal/auth/ratelimit/limiter.go: CheckRateLimit(email) tracks failed attempts, returns delay seconds (exponential backoff after 5 failures)
-- [ ] T025 [P] Implement rate limiter storage in backend/internal/auth/ratelimit/store.go: in-memory map with 15-minute TTL for failed attempt tracking (user_id, count, first_attempt_at)
-- [ ] T026 [P] Implement security event logger in backend/internal/security/logger.go: LogSecurityEvent(correlationID, eventType, userID, email, severity, ipAddress, userAgent, details) writes to CloudWatch Logs as structured JSON
-- [ ] T027 [P] Implement auth middleware in backend/internal/security/middleware.go: ValidateJWTCookie() extracts token from cookie, validates with JWT validator, attaches user context to request
-- [ ] T028 [P] Implement request ID middleware in backend/internal/security/middleware.go: GenerateRequestID() creates correlation ID, adds to context and response header X-Request-ID
-- [ ] T029 [P] Implement rate limit middleware in backend/internal/security/middleware.go: RateLimitMiddleware() checks X-RateLimit headers, returns 429 with Retry-After if exceeded
-- [ ] T030 Setup Chi router with middleware chain in backend/cmd/api/main.go: request ID → logging → CORS → rate limit → recovery
+- [x] T022 [P] Implement bcrypt password hasher in backend/internal/auth/password/hasher.go: HashPassword(password) with cost 12, ComparePassword(hash, password) for validation
+- [x] T023 [P] Implement password validator in backend/internal/auth/password/validator.go: ValidatePassword(password) checks 8-72 chars, uppercase, lowercase, digit
+- [x] T024 [P] Implement progressive delay rate limiter in backend/internal/auth/ratelimit/limiter.go: CheckRateLimit(email) tracks failed attempts, returns delay seconds (exponential backoff after 5 failures)
+- [x] T025 [P] Implement rate limiter storage in backend/internal/auth/ratelimit/store.go: in-memory map with 15-minute TTL for failed attempt tracking (user_id, count, first_attempt_at)
+- [x] T026 [P] Implement security event logger in backend/internal/security/logger.go: LogSecurityEvent(correlationID, eventType, userID, email, severity, ipAddress, userAgent, details) writes to CloudWatch Logs as structured JSON
+- [x] T027 [P] Implement auth middleware in backend/internal/security/middleware.go: ValidateJWTCookie() extracts token from cookie, validates with JWT validator, attaches user context to request
+- [x] T028 [P] Implement request ID middleware in backend/internal/security/middleware.go: GenerateRequestID() creates correlation ID, adds to context and response header X-Request-ID
+- [x] T029 [P] Implement rate limit middleware in backend/internal/security/middleware.go: RateLimitMiddleware() checks X-RateLimit headers, returns 429 with Retry-After if exceeded
+- [x] T030 Setup Chi router with middleware chain in backend/cmd/api/main.go: request ID → logging → CORS → rate limit → recovery
 - [x] T031 [P] Create Axios instance in frontend/src/services/api.ts: base URL, withCredentials=true, request/response interceptors (correlation ID, 401 refresh, error mapping)
 - [x] T032 [P] Create error handler utility in frontend/src/services/errorHandler.ts: mapApiError(error) converts API errors to user-friendly messages per FR-019
 - [x] T033 [P] Create auth store in frontend/src/stores/authStore.ts: Zustand store with user state (id, email, full_name, has_subscription), isAuthenticated boolean, login/logout/setUser actions
