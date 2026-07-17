@@ -37,17 +37,24 @@ type HTTPServer struct {
 }
 
 // NewHTTPServer builds an HTTPServer with the standard middleware chain
-// registered, in order: RequestID -> Logger -> Recovery -> CORS -> BodySize.
-// The order is deliberate: RequestID runs first so every later middleware
-// (and the access log) can correlate by request ID, and Recovery wraps
-// CORS/BodySize/handlers so a downstream panic still yields a clean
-// response instead of crashing the server.
+// registered, in order: RequestID -> Logger -> Recovery -> [RateLimit] ->
+// CORS -> BodySize. The order is deliberate: RequestID runs first so every
+// later middleware (and the access log) can correlate by request ID; Recovery
+// wraps everything downstream so a panic still yields a clean response; and
+// RateLimit sits just inside Recovery so throttled requests are still logged
+// and correlated but are rejected before any CORS/body handling work. The
+// global rate limit is a coarse per-IP abuse guard, engaged only when
+// cfg.RateLimit.Requests > 0 (disabled by default); stricter per-endpoint
+// limits are added as route-level middleware in later work.
 func NewHTTPServer(db database.Client, cfg *config.Config, logger *slog.Logger) *HTTPServer {
 	router := chi.NewRouter()
 
 	router.Use(middleware.RequestID)
 	router.Use(middleware.Logger(logger))
 	router.Use(middleware.Recovery(logger))
+	if cfg.RateLimit.Requests > 0 {
+		router.Use(middleware.RateLimit(cfg.RateLimit.Requests, cfg.RateLimit.Window))
+	}
 	router.Use(middleware.CORS(cfg.Server.AllowedCORS))
 	router.Use(middleware.BodySize)
 
