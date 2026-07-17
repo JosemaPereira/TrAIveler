@@ -342,3 +342,55 @@ Historical summaries of completed development sessions. Committed to git as a re
 - **Outcomes**: Sprint-5 backend middleware chain complete. Remaining open Sprint-5 issues are the
   frontend pair (#149 + #150). Sprint-6 handlers will construct a `jwt.Validator`→`AuthClaims`
   adapter, apply `Authenticate` to protected route groups, and remove the swagger `TODO(sprint-5)`.
+
+### Session: G-008 Sprint-5 Frontend Infra (#149) + Styles (#150)
+
+- **Date**: 2026-07-17 (implementation started 2026-07-16)
+- **Tool**: Claude Code
+- **What was accomplished**: Both remaining Sprint-5 frontend issues on one branch
+  (`feature/008-sprint5-frontend-infra-and-styles`), commit `18c695c`, PR #164 (open). 17 files,
+  +458/-71. Mostly reconciliation — most tasks were already partly satisfied by Sprint 2/4 code,
+  verified against the real files first.
+  - **#150 G-008-FRONTEND-STYLES (T034/T035)**: color/spacing/typography tokens already existed
+    (Sprint 2, PR #79). Genuinely-new scope = 3 focus-indicator tokens
+    (`--focus-outline-width`/`-offset`/`-color`) added to `frontend/src/styles/tokens.css`;
+    `global.css` `:focus-visible` rewired from hardcoded `2px`/`--color-primary`/`2px` onto them.
+  - **#149 G-008-FRONTEND-INFRA (T031/T032/T033/T036)**:
+    - **T031** (HTTP client): satisfied as-is — **NO Axios added**; the existing fetch-based
+      `lib/api-client.ts` already meets it (adding Axios would fragment the HTTP layer). No code.
+    - **T032** (error handler): extracted a pure `mapApiError()` into new `lib/error-handler.ts`
+      (placed in `lib/`, where error/HTTP utils live — NOT the `.gitkeep`-only `services/`);
+      refactored `hooks/useErrorHandler.ts` to consume it, hook keeps the 401→`/login` side effect.
+    - **T033** (auth store): satisfied as-is by `stores/auth-store.ts` (Sprint 2) — kept the
+      `role`/`subscription_id` shape from `docs/data-model.md`'s User entity (canonical, higher
+      authority than the row's literal `full_name`/`has_subscription`, which is the not-yet-landed
+      008-T011 alt users scheme, data-model.md:753). No field change.
+    - **T036** (router): the real new work — 6 routes added to the existing `routes/index.tsx`
+      (NOT a competing `router.tsx`: `App.tsx` already imports `router` from `./routes`, real code
+      wins over the literal path). 6 placeholder page components under `routes/`.
+      `components/ProtectedRoute.tsx` now genuinely gates on `useIsAuthenticated()` (redirect
+      `/login`, `replace`), replacing the unconditional `<Outlet/>` scaffold — single wrapper
+      shared with Spec 004 per issue #149.
+- **Key findings and decisions**:
+  - Implemented inline (not via the `tdd-developer` agent) but followed the coding/testing
+    conventions upfront: BDD test hierarchy (`describe('<Component />')`→`describe('when …')`→
+    `it('should …')`), Zustand `setState` reset in `beforeEach`, kebab-case filenames. The
+    `use-tdd-developer-for-implementation` memory allows this "read docs upfront" alternative; the
+    frontend rework risk (no mockery, RTL-only) was low.
+  - Followed the "Issue-Body Snippets Are Lowest-Authority" pattern throughout — every literal
+    task path/field (`services/api.ts`, `router.tsx`, `full_name`/`has_subscription`) was
+    overridden by real code + `data-model.md`, and the override recorded in each roadmap row's
+    Notes (the "Roadmap Row Notes are the only channel future issue bodies inherit context
+    through" pattern).
+  - Status-flip convention: `tasks.md` T031-T036 → `[x]` and roadmap Status Backlog→Done applied
+    in the implementing change set (the one that became PR #164), consistent with the Sprint-4
+    "flip as part of the closing PR" convention and the JWT #144 precedent.
+  - Delegated commit-and-push and open-pr to their subagents (user-invoked); commit footer carries
+    `Closes #149`/`Closes #150`.
+- **Outcomes**: Sprint-5 frontend track complete (#149 + #150), all 15 Sprint-5 work items now
+  implemented. Frontend verified for real: `type-check`/`lint`/`prettier --check`/`build` clean,
+  `test:coverage` 152/152 pass (was 136; +16), coverage 98.15/92.45/100/98.1 (>90% floor). PR #164
+  open, awaiting review — not merged.
+- **Open follow-up flagged (not mine, pre-existing)**: `tasks.md`/roadmap rows 008-T022–T030
+  (backend middleware) still `Backlog`/`[ ]` despite PR #163 merged — status drift to reconcile at
+  Sprint-5 closure (`sprint-closure-status-drift-check` memory).

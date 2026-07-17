@@ -56,12 +56,12 @@
 - [ ] T028 [P] Implement request ID middleware in backend/internal/security/middleware.go: GenerateRequestID() creates correlation ID, adds to context and response header X-Request-ID
 - [ ] T029 [P] Implement rate limit middleware in backend/internal/security/middleware.go: RateLimitMiddleware() checks X-RateLimit headers, returns 429 with Retry-After if exceeded
 - [ ] T030 Setup Chi router with middleware chain in backend/cmd/api/main.go: request ID → logging → CORS → rate limit → recovery
-- [ ] T031 [P] Create Axios instance in frontend/src/services/api.ts: base URL, withCredentials=true, request/response interceptors (correlation ID, 401 refresh, error mapping)
-- [ ] T032 [P] Create error handler utility in frontend/src/services/errorHandler.ts: mapApiError(error) converts API errors to user-friendly messages per FR-019
-- [ ] T033 [P] Create auth store in frontend/src/stores/authStore.ts: Zustand store with user state (id, email, full_name, has_subscription), isAuthenticated boolean, login/logout/setUser actions
-- [ ] T034 [P] Create CSS design tokens in frontend/src/styles/tokens.css: CSS custom properties for colors (primary, secondary, error, warning with WCAG AA contrast), spacing scale (4/8/12/16/24/32/48px), typography (font sizes, weights, line heights), focus indicators (outline-width, outline-color, outline-offset)
-- [ ] T035 [P] Create global styles in frontend/src/styles/global.css: CSS reset, base typography, box-sizing border-box, accessible focus styles using tokens
-- [ ] T036 [P] Create React Router configuration in frontend/src/routes/router.tsx: routes for /register, /login, /dashboard, /trips/:id, /settings, /password-reset, with protected route wrapper checking authStore.isAuthenticated
+- [x] T031 [P] Create Axios instance in frontend/src/services/api.ts: base URL, withCredentials=true, request/response interceptors (correlation ID, 401 refresh, error mapping)
+- [x] T032 [P] Create error handler utility in frontend/src/services/errorHandler.ts: mapApiError(error) converts API errors to user-friendly messages per FR-019
+- [x] T033 [P] Create auth store in frontend/src/stores/authStore.ts: Zustand store with user state (id, email, full_name, has_subscription), isAuthenticated boolean, login/logout/setUser actions
+- [x] T034 [P] Create CSS design tokens in frontend/src/styles/tokens.css: CSS custom properties for colors (primary, secondary, error, warning with WCAG AA contrast), spacing scale (4/8/12/16/24/32/48px), typography (font sizes, weights, line heights), focus indicators (outline-width, outline-color, outline-offset)
+- [x] T035 [P] Create global styles in frontend/src/styles/global.css: CSS reset, base typography, box-sizing border-box, accessible focus styles using tokens
+- [x] T036 [P] Create React Router configuration in frontend/src/routes/router.tsx: routes for /register, /login, /dashboard, /trips/:id, /settings, /password-reset, with protected route wrapper checking authStore.isAuthenticated
 
 **Checkpoint**: Foundation ready - user story implementation can now begin in parallel
 
