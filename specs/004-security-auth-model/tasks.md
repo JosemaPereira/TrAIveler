@@ -22,11 +22,11 @@
 
 **Purpose**: Project initialization and basic structure before any security work can begin
 
-- [ ] T001 Create backend security package structure: `backend/internal/auth/`, `backend/internal/authorization/`, `backend/internal/validation/`, `backend/internal/concurrency/`, `backend/internal/observability/`
-- [ ] T002 [P] Create frontend security structure: `frontend/src/lib/auth.ts`, `frontend/src/lib/authContext.tsx`, `frontend/src/hooks/`, `frontend/src/components/ProtectedRoute.tsx`
-- [ ] T003 [P] Add backend dependencies: `go get github.com/golang-jwt/jwt/v5`, `go get golang.org/x/crypto/bcrypt`, `go get github.com/microcosm-cc/bluemonday` (HTML sanitization)
-- [ ] T004 [P] Add frontend dependencies: `npm install @tanstack/react-query zustand` (if not already present)
-- [ ] T005 [P] Create test directory structure: `backend/tests/integration/`, `backend/tests/security/`, `e2e/tests/`
+- [x] T001 Create backend security package structure: `backend/internal/auth/`, `backend/internal/authorization/`, `backend/internal/validation/`, `backend/internal/concurrency/`, `backend/internal/observability/`
+- [x] T002 [P] Create frontend security structure: `frontend/src/lib/auth.ts`, `frontend/src/lib/authContext.tsx`, `frontend/src/hooks/`, `frontend/src/components/ProtectedRoute.tsx`
+- [x] T003 [P] Add backend dependencies: `go get github.com/golang-jwt/jwt/v5`, `go get golang.org/x/crypto/bcrypt`, `go get github.com/microcosm-cc/bluemonday` (HTML sanitization)
+- [x] T004 [P] Add frontend dependencies: `npm install @tanstack/react-query zustand` (if not already present)
+- [x] T005 [P] Create test directory structure: `backend/tests/integration/`, `backend/tests/security/`, `e2e/tests/`
 
 **Checkpoint**: Project structure ready for foundational security implementation
 
@@ -40,18 +40,18 @@
 
 ### Database Migrations
 
-- [ ] T006 Create `users` table migration: `backend/migrations/001_create_users_table.sql` with columns (id UUID PK, email VARCHAR UNIQUE, password_hash VARCHAR, role ENUM, created_at, updated_at, last_login_at) per data-model.md
-- [ ] T007 Create `refresh_tokens` table migration: `backend/migrations/002_create_refresh_tokens_table.sql` with columns (id UUID PK, user_id FK, token_hash VARCHAR UNIQUE, expires_at, created_at, revoked_at) and indexes per data-model.md
-- [ ] T008 Create `jwt_signing_keys` table migration: `backend/migrations/003_create_jwt_signing_keys_table.sql` with columns (key_id VARCHAR PK, public_key TEXT, private_key_secret_arn VARCHAR, status ENUM, created_at, retire_at)
-- [ ] T009 Create `security_events` table migration: `backend/migrations/004_create_security_events_table.sql` with columns (id UUID PK, correlation_id UUID, event_type ENUM, user_id FK, severity ENUM, ip_address VARCHAR, user_agent VARCHAR, details JSONB, timestamp) and indexes
-- [ ] T010 Create `trips.version` column migration: `backend/migrations/005_add_version_to_trips.sql` (ALTER TABLE trips ADD COLUMN version BIGINT NOT NULL DEFAULT 1)
+- [x] T006 Create `users` table migration: `backend/migrations/001_create_users_table.sql` with columns (id UUID PK, email VARCHAR UNIQUE, password_hash VARCHAR, role ENUM, created_at, updated_at, last_login_at) per data-model.md
+- [x] T007 Create `refresh_tokens` table migration: `backend/migrations/002_create_refresh_tokens_table.sql` with columns (id UUID PK, user_id FK, token_hash VARCHAR UNIQUE, expires_at, created_at, revoked_at) and indexes per data-model.md
+- [x] T008 Create `jwt_signing_keys` table migration: `backend/migrations/003_create_jwt_signing_keys_table.sql` with columns (key_id VARCHAR PK, public_key TEXT, private_key_secret_arn VARCHAR, status ENUM, created_at, retire_at)
+- [x] T009 Create `security_events` table migration: `backend/migrations/004_create_security_events_table.sql` with columns (id UUID PK, correlation_id UUID, event_type ENUM, user_id FK, severity ENUM, ip_address VARCHAR, user_agent VARCHAR, details JSONB, timestamp) and indexes
+- [x] T010 Create `trips.version` column migration: `backend/migrations/005_add_version_to_trips.sql` (ALTER TABLE trips ADD COLUMN version BIGINT NOT NULL DEFAULT 1)
 - [ ] T011 Create `itinerary_items.version` column migration: `backend/migrations/006_add_version_to_itinerary_items.sql` (ALTER TABLE itinerary_items ADD COLUMN version BIGINT NOT NULL DEFAULT 1)
 
 ### Core Security Utilities (No DB/HTTP dependencies)
 
-- [ ] T012 [P] Implement password hashing utility in `backend/internal/auth/password.go`: `HashPassword(password string) (string, error)` using bcrypt cost factor 12; `ComparePassword(hash, password string) error`
-- [ ] T013 [P] Implement correlation ID generator in `backend/internal/observability/correlation.go`: `GenerateCorrelationID() string` returns UUID
-- [ ] T014 [P] Implement structured logger in `backend/internal/observability/logger.go`: `LogSecurityEvent(eventType, severity, userID, details)` with JSON output to CloudWatch
+- [x] T012 [P] Implement password hashing utility in `backend/internal/auth/password.go`: `HashPassword(password string) (string, error)` using bcrypt cost factor 12; `ComparePassword(hash, password string) error`
+- [x] T013 [P] Implement correlation ID generator in `backend/internal/observability/correlation.go`: `GenerateCorrelationID() string` returns UUID
+- [x] T014 [P] Implement structured logger in `backend/internal/observability/logger.go`: `LogSecurityEvent(eventType, severity, userID, details)` with JSON output to CloudWatch
 
 **Checkpoint**: Foundation ready - user story implementation can now begin in parallel
 

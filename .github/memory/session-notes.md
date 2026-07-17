@@ -2,7 +2,7 @@
 
 Historical summaries of completed development sessions. Committed to git as a record.
 
-**Note**: Older sessions (specs 001-007, sprint infrastructure setup) are compacted to save tokens. Policy: each sprint's implementation sessions are compacted into a `(Compacted)` summary immediately at that sprint's own closure — the same pass that updates the sprint-closure documentation. At any given time, only the sprint currently in progress (not yet closed) has a `(Detailed)` section; the moment it closes, it gets compacted, no rolling window. Compacted sections favor brevity over completeness: PR/issue/Group IDs, decisions with lasting effect, and still-open follow-ups only — narrative process detail is cut, and duplicates of `patterns-discovered.md` entries are referenced by name instead of re-explained. Sprint 1 and Sprint 2 were compacted together on 2026-07-11; Sprint 3 was compacted at its own closure on 2026-07-12 (and re-tightened for conciseness the same day, which also lightly trimmed the Sprint 1/2 sections); Sprint 4 was compacted at its own closure on 2026-07-14.
+**Note**: Older sessions (specs 001-007, sprint infrastructure setup) are compacted to save tokens. Policy: each sprint's implementation sessions are compacted into a `(Compacted)` summary immediately at that sprint's own closure — the same pass that updates the sprint-closure documentation. At any given time, only the sprint currently in progress (not yet closed) has a `(Detailed)` section; the moment it closes, it gets compacted, no rolling window. Compacted sections favor brevity over completeness: PR/issue/Group IDs, decisions with lasting effect, and still-open follow-ups only — narrative process detail is cut, and duplicates of `patterns-discovered.md` entries are referenced by name instead of re-explained. Sprint 1 and Sprint 2 were compacted together on 2026-07-11; Sprint 3 was compacted at its own closure on 2026-07-12 (and re-tightened for conciseness the same day, which also lightly trimmed the Sprint 1/2 sections); Sprint 4 was compacted at its own closure on 2026-07-14; Sprint 5 was compacted at its own closure on 2026-07-17 (264 lines → 97; the pre-compaction full text is kept, uncommitted, at `scratch/session-notes-pre-sprint5-compaction-2026-07-17.md`). No sprint currently has a `(Detailed)` section — Sprint 6 opens the next one.
 
 ## Template
 
@@ -192,205 +192,114 @@ Historical summaries of completed development sessions. Committed to git as a re
     (Trip); `postgres:15.4-alpine` staleness watch; 002-T023 (Sprint 9); 009-T018-T026 (Spec 009
     swagger-drift CI gate + polish, deferred to Sprint 5).
 
-## Sprint 5 Implementation (Detailed)
+---
 
-### Session: G-008-DATABASE — PostgreSQL Pooling & Goose Migrations Config
-- **Date**: 2026-07-15
-- **Tool**: Claude Code
-- **What was accomplished**: Issue #141 (G-008-DATABASE, 008-T009/T010). Verified
-  `internal/database/client.go` already satisfied T009's pooling requirement — no new file created,
-  avoiding the duplicate-implementation risk the issue itself flagged. For T010, added
-  `internal/database/migrations` (`Dir`, `SetDialect()`), replacing three duplicated
-  `const migrationsDir = "../../migrations"` + `goose.SetDialect("postgres")` call sites
-  (`tests/integration/error_test.go`, `tests/integration/security_migrations_test.go`,
-  `internal/example/repository_integration_test.go`) with one `runtime.Caller`-resolved absolute
-  path. While verifying T009, found and fixed a real config-wiring gap (see
-  `patterns-discovered.md`, "A Config Value Can Be Loaded, Validated, and Logged, Yet Still Never
-  Reach the Code It Configures"): `NewClient` ignored `DB_MIN_CONNECTIONS`/`DB_MAX_CONNECTIONS`
-  entirely, hardcoding 5/25 despite `config.go` already loading/validating them and `main.go`
-  logging them as if applied. `NewClient` now takes `minConns, maxConns int`; all call sites
-  (`main.go`, `client_test.go`, `repository_integration_test.go`) updated; new
-  `TestNewClient_ConfigurablePoolSize` asserts the pool's real `Pool().Config()` against non-default
-  values (2/10) so the assertion can't pass by coincidence. No ticket existed for this gap; fixed in
-  the same branch/PR as #141 per explicit user instruction rather than filed separately.
-- **Key findings and decisions**: Migration `.sql` files stayed in `backend/migrations/`, not moved
-  to the task's literal `pkg/database/migrations/` path — `pkg/` remains dead per established
-  convention, and the new shared config package was placed under `internal/database/migrations/`
-  for the same reason. Confirmed no mockery regen needed: `database.Client`'s interface shape didn't
-  change, only the free-function `NewClient` constructor's parameters. Branch was initially created
-  as `feature/142-...` (wrong issue number — that name belongs to the separate, not-yet-started
-  G-008-MIGRATIONS ticket) and corrected mid-session: created the correctly-named
-  `feature/141-g-008-database-postgresql-pooling-goose-migrations-config` from the same commit and
-  deleted the local `feature/142-...` alias (had zero unique commits; remote `feature/142-...`
-  untouched).
-- **Outcomes**: `go build`/`go vet`/`gofmt`/`golangci-lint` clean; full test suite
-  (`internal/database`, `internal/database/migrations`, `internal/example`, `tests/integration`,
-  `config`, `cmd`) passes, including Colima-backed testcontainer tests. Not yet committed/pushed/
-  PR'd as of this entry.
+## Sprint 5 Implementation (Compacted)
 
-## 2026-07-16 — Test-suite BDD/TDT alignment + 90% coverage floor (ad-hoc)
-
-**Tool**: Claude Code
-
-**Key Outcomes**
-- All 15 frontend test files restructured into the mandated BDD hierarchy
-  (`describe('<Component />')` → `describe('when/having …')` → `it('should …')`, AAA with blank
-  lines); the legacy `unit:` describe prefix dropped. 136/136 tests green; ESLint + Prettier clean.
-- Coverage floor raised 80%→90%: enforced in `frontend/vitest.config.ts` (`coverage.thresholds`,
-  actual 98/92.2/100/97.9 — passes; supersedes roadmap `002-T041`'s enforcement gap), documented in
-  `docs/testing-guidelines.md` (with an honest note that the last observed backend number, 89.1%
-  full-suite for `internal/example`, now sits ~1pt under the new floor), mirrored in `CLAUDE.md` +
-  `.github/copilot-instructions.md`.
-- 19 Go test files aligned: TDT consolidations (auth/ValidatePassword, observability/
-  LogSecurityEvent, ai sanitizer/validator/NewAIClient, errors constructors, config helpers);
-  behavioral `t.Run` names ("when … it should …"); 13 helpers normalized to t-first +
-  `t.Helper()` (incl. `setupPostgresContainer`, `setupRepositoryTestDB`, `startPostgresContainer`,
-  `startAPIServer`, `holdExclusiveTableLock`, `openMigrationDB`); repeated
-  `defer pgContainer.Terminate` blocks folded into helpers via `t.Cleanup`; hand-rolled
-  `contains`/`findSubstring` in config_test.go replaced with `strings.Contains`.
-- Verified for real, not assumed: backend `make lint` clean, `go test -tags=test ./... -short`
-  all `ok`, AND the full Colima-backed suite (`go test -tags=test ./...` with `DOCKER_HOST` +
-  `TESTCONTAINERS_DOCKER_SOCKET_OVERRIDE`) all `ok`.
-
-**Key Decisions**
-- revive `context-as-argument` vs the documented t-first helper convention resolved in favor of the
-  docs: new `_test\.go`-scoped exclude-rule in `backend/.golangci.yml` (pattern captured in
-  `patterns-discovered.md`, 2026-07-16). Production code keeps ctx-first enforcement.
-- `writeAnthropicError`/`writeAnthropicSuccess` deliberately stay t-free — they run inside fake-server
-  handler goroutines where `t.Helper()` has no effect.
-- `service_test.go`, `ollama_client_test.go`, middleware tests left as flat behavioral test funcs —
-  distinct per-test setups make TDT a net readability loss there; the standard's TDT mandate is for
-  repetitive/conditional cases.
-- Nothing committed/pushed per explicit instruction; ~42 files modified in the working tree.
-
-**Open Follow-Ups**
-- Backend `internal/example` coverage (89.1% full-suite) is now marginally under the new 90% floor.
-- `.golangci.yml` `run.build-tags` only lists `integration`, not `test` — files behind
-  `//go:build test` (ai, example handler/service, cmd/api tests) are invisible to golangci-lint;
-  pre-existing gap, worth a deliberate fix.
-
-### Session: G-008-JWT — JWT Generator, Validator (Multi-Key Rotation), Refresher
-- **Date**: 2026-07-16
-- **Tool**: Claude Code
-- **What was accomplished**: Issue #144 (008-T019/T020/T021). New subpackage
-  `backend/internal/auth/jwt/`: `Generator` (RS256 access tokens, 24h default, `has_subscription`
-  claim + `kid` header), `Validator` (multi-key rotation via per-token `kid` selection; RS256-locked
-  parser; issuer+expiry required), `Refresher` (one-time-use refresh-token rotation: validate →
-  revoke old → issue new access/refresh pair). Support: `KeyProvider` interface + `StaticKeyProvider`
-  + `LoadKeyFromPEM` (PKCS#1/#8, 2048-bit min); `RefreshTokenStore` + `SubscriptionResolver`
-  interfaces (impls deferred); opaque 32-byte refresh tokens stored as SHA-256 hashes. 92.4% coverage,
-  lint clean, full backend short suite green. Docs updated: `docs/security.md` status note,
-  `specs/008-auth-collaboration-ux/tasks.md` T019-T021 checked, roadmap rows Backlog→Done.
-- **Key findings and decisions**:
-  - **Chose a subpackage `internal/auth/jwt` over the flat-package precedent** (scope note leaned
-    flat): cohesive sub-domain with many exported types, matches the original tasks.md path, sidesteps
-    the `validator.go` filename clash with the password validator. Cost: `golang-jwt/jwt/v5` imported
-    as `gojwt` to avoid the package-name collision.
-  - Secrets model follows #143's raw-now decision: private key arrives as raw PEM via config
-    (`JWT_SIGNING_KEY`); `LoadKeyFromPEM` is the raw path. ARN-resolving loader + DB-backed
-    `RefreshTokenStore` are Spec 004 Phase 3 / Sprint 6-7 — this issue ships the interfaces + logic +
-    static/in-memory impls only, so it's fully testable without AWS or a DB.
-  - Refresher resolves `has_subscription` fresh at refresh time via `SubscriptionResolver` rather than
-    copying the stale claim from the old token.
-  - Security-hardening tests included: alg-confusion (`alg:none` and wrong-key signature) rejection,
-    retired-key rejection, revoked-token-reuse rejection — all collapse to a uniform
-    `authentication_required` domain error (cause wrapped for logs, not leaked).
-  - Test timestamp gotcha: parse round-trip tokens with `gojwt.WithTimeFunc` pinned to the generator's
-    injected `now`, and compare `time.Time` with `.Equal` not `assert.Equal` (NumericDate decodes to
-    Local zone).
-- **Outcomes**: JWT token primitives exist and are unit-tested; they feed the auth middleware (#147)
-  whose wiring (#148) will remove the `TODO(sprint-5)` Swagger-gating marker in `cmd/api/routes.go`.
-
-### Session: G-008 Sprint-5 Backend Middleware Chain (#146 + #147 + #148)
-
-- **Date**: 2026-07-16
-- **Tool**: Claude Code
-- **What was accomplished**: Three grouped issues on one branch
-  (`feature/008-sprint5-backend-middleware-chain`).
-  - **#146 (T024/T025)** — new subpackage `internal/auth/ratelimit`: `Limiter` (progressive delay
-    `2^(attempts-5)`s after 5 failures, clamped to the 15-min window per data-model.md:128) over an
-    in-memory, concurrency-safe TTL `store` keyed by email. `store.go`/`limiter.go` split matches the
-    two task IDs. Consumer is the future login service (T098), not middleware.
-  - **#147 (T027 + T029)** — in `internal/middleware`: `Authenticate` (validates `access_token`
-    cookie, attaches user id + `has_subscription` to context, 401 `authentication_required`
-    otherwise) and `RateLimit(limit, window)` (per-IP fixed window, `X-RateLimit-*` headers,
-    429 + `Retry-After`). T026/T028 confirmed already-satisfied (skipped).
-  - **#148 (T030)** — `RateLimit` inserted into the chain in `cmd/api/server.go` after Recovery,
-    gated on new `config.RateLimitConfig` (`RATE_LIMIT_REQUESTS`/`_WINDOW`, **default disabled**).
-  - Full backend short suite green, `-race` clean on both stores, lint clean.
-- **Key findings and decisions**:
-  - **Two design forks resolved with the user** (both "recommended" options taken): (1) auth
-    middleware is shipped **available but NOT globally gated** — no login endpoint exists yet to mint
-    a cookie, so gating `/api/v1`+swagger now would break existing tests and lock out staging;
-    `cmd/api/routes.go`'s `TODO(sprint-5)` swagger marker intentionally **stays** until Sprint 6.
-    (2) Rate limiting is **two mechanisms**: per-IP `RateLimit` middleware (this issue) + email-based
-    progressive-delay `Limiter` for login (#146). #146's "consumer is T029" reconciliation note does
-    NOT hold — an email-keyed limiter can't be global HTTP middleware; its real consumer is T098.
-  - **Auth middleware lives in `internal/middleware`, not `internal/security`** — reuses the existing
-    `ctxKeyUserID`/`UserIDFromContext` (`user_context.go`) written for "a future JWT auth middleware".
-    Added `ctxKeyHasSubscription`/`HasSubscriptionFromContext` alongside it.
-  - **Import-cycle avoidance**: `middleware` can't import `auth/jwt` (jwt→errors→middleware cycle).
-    Solved with a middleware-local `AuthClaims` port + `TokenValidator` interface; the real
-    `*jwt.Validator`→`AuthClaims` adapter is written in `package main` at Sprint-6 wiring time.
-  - **Global rate limit ships disabled** (`Requests: 0`): no spec mandates a global number, and a
-    non-zero default would risk throttling the `startAPIServer` integration tests. Per-endpoint
-    limits (10/min login etc.) come later as route-level middleware.
-- **Process note**: implemented inline and had to correct tests mid-task to TDT + mockery
-  (`MockTokenValidator` in `internal/middleware/mocks`, external `middleware_test` package to dodge
-  the mock's self-import cycle). Lesson: use the `tdd-developer` agent (reads coding/testing/mock
-  docs first) for implementation work to avoid this rework.
-- **Outcomes**: Sprint-5 backend middleware chain complete. Remaining open Sprint-5 issues are the
-  frontend pair (#149 + #150). Sprint-6 handlers will construct a `jwt.Validator`→`AuthClaims`
-  adapter, apply `Authenticate` to protected route groups, and remove the swagger `TODO(sprint-5)`.
-
-### Session: G-008 Sprint-5 Frontend Infra (#149) + Styles (#150)
-
-- **Date**: 2026-07-17 (implementation started 2026-07-16)
-- **Tool**: Claude Code
-- **What was accomplished**: Both remaining Sprint-5 frontend issues on one branch
-  (`feature/008-sprint5-frontend-infra-and-styles`), commit `18c695c`, PR #164 (open). 17 files,
-  +458/-71. Mostly reconciliation — most tasks were already partly satisfied by Sprint 2/4 code,
-  verified against the real files first.
-  - **#150 G-008-FRONTEND-STYLES (T034/T035)**: color/spacing/typography tokens already existed
-    (Sprint 2, PR #79). Genuinely-new scope = 3 focus-indicator tokens
-    (`--focus-outline-width`/`-offset`/`-color`) added to `frontend/src/styles/tokens.css`;
-    `global.css` `:focus-visible` rewired from hardcoded `2px`/`--color-primary`/`2px` onto them.
-  - **#149 G-008-FRONTEND-INFRA (T031/T032/T033/T036)**:
-    - **T031** (HTTP client): satisfied as-is — **NO Axios added**; the existing fetch-based
-      `lib/api-client.ts` already meets it (adding Axios would fragment the HTTP layer). No code.
-    - **T032** (error handler): extracted a pure `mapApiError()` into new `lib/error-handler.ts`
-      (placed in `lib/`, where error/HTTP utils live — NOT the `.gitkeep`-only `services/`);
-      refactored `hooks/useErrorHandler.ts` to consume it, hook keeps the 401→`/login` side effect.
-    - **T033** (auth store): satisfied as-is by `stores/auth-store.ts` (Sprint 2) — kept the
-      `role`/`subscription_id` shape from `docs/data-model.md`'s User entity (canonical, higher
-      authority than the row's literal `full_name`/`has_subscription`, which is the not-yet-landed
-      008-T011 alt users scheme, data-model.md:753). No field change.
-    - **T036** (router): the real new work — 6 routes added to the existing `routes/index.tsx`
-      (NOT a competing `router.tsx`: `App.tsx` already imports `router` from `./routes`, real code
-      wins over the literal path). 6 placeholder page components under `routes/`.
-      `components/ProtectedRoute.tsx` now genuinely gates on `useIsAuthenticated()` (redirect
-      `/login`, `replace`), replacing the unconditional `<Outlet/>` scaffold — single wrapper
-      shared with Spec 004 per issue #149.
-- **Key findings and decisions**:
-  - Implemented inline (not via the `tdd-developer` agent) but followed the coding/testing
-    conventions upfront: BDD test hierarchy (`describe('<Component />')`→`describe('when …')`→
-    `it('should …')`), Zustand `setState` reset in `beforeEach`, kebab-case filenames. The
-    `use-tdd-developer-for-implementation` memory allows this "read docs upfront" alternative; the
-    frontend rework risk (no mockery, RTL-only) was low.
-  - Followed the "Issue-Body Snippets Are Lowest-Authority" pattern throughout — every literal
-    task path/field (`services/api.ts`, `router.tsx`, `full_name`/`has_subscription`) was
-    overridden by real code + `data-model.md`, and the override recorded in each roadmap row's
-    Notes (the "Roadmap Row Notes are the only channel future issue bodies inherit context
-    through" pattern).
-  - Status-flip convention: `tasks.md` T031-T036 → `[x]` and roadmap Status Backlog→Done applied
-    in the implementing change set (the one that became PR #164), consistent with the Sprint-4
-    "flip as part of the closing PR" convention and the JWT #144 precedent.
-  - Delegated commit-and-push and open-pr to their subagents (user-invoked); commit footer carries
-    `Closes #149`/`Closes #150`.
-- **Outcomes**: Sprint-5 frontend track complete (#149 + #150), all 15 Sprint-5 work items now
-  implemented. Frontend verified for real: `type-check`/`lint`/`prettier --check`/`build` clean,
-  `test:coverage` 152/152 pass (was 136; +16), coverage 98.15/92.45/100/98.1 (>90% floor). PR #164
-  open, awaiting review — not merged.
-- **Open follow-up flagged (not mine, pre-existing)**: `tasks.md`/roadmap rows 008-T022–T030
-  (backend middleware) still `Backlog`/`[ ]` despite PR #163 merged — status drift to reconcile at
-  Sprint-5 closure (`sprint-closure-status-drift-check` memory).
+### Sessions: Spec 008 Setup/Database/Migrations, Config Loader, JWT, Password, RateLimit, Security Middleware Chain, Frontend Infra/Styles, Test-Suite BDD/TDT Alignment + CI Consolidation, Sprint 5 Closure
+- **Date Range**: 2026-07-14 to 2026-07-17 (closed 2026-07-17 — 49/50 tasks, 15 work items
+  #136–#150, PRs #151–#164; 004-T011 the one genuine miss, see below)
+- **Key Outcomes**:
+  - **#143 008-T018 config loader** (PR #161): **"raw now, ARN later"** secrets model, confirmed with
+    the user. `backend/config/config.go` already loaded DATABASE_URL/JWT_SIGNING_KEY/ANTHROPIC_API_KEY
+    as raw values — that IS T018's deliverable. App-side `*_SECRET_ARN` resolution deferred to
+    004-T070/T071/T072 (Sprint 6+); raw values cover both local dev and the ECS `valueFrom` path.
+  - **#141 G-008-DATABASE** (008-T009/T010): T009 already satisfied — no new file. T010 added
+    `internal/database/migrations` (`Dir`/`SetDialect`), replacing 3 duplicated call sites. Fixed a
+    real gap found while verifying: `NewClient` ignored `DB_MIN/MAX_CONNECTIONS` (see
+    `patterns-discovered.md`, "A Config Value Can Be Loaded, Validated, and Logged, Yet Still Never
+    Reach the Code It Configures").
+  - **#142 G-008-MIGRATIONS** (PR #160): 7 tables. **One `users` table** — Spec 008's delta shipped as
+    `005_alter_users_add_auth_fields.sql` on top of Spec 004's `001_create_users_table.sql`, resolving
+    the duplicate-`users` risk flagged at planning. Spec 008's tables landed at repo-global numbers
+    **006–012**, not the 001–007 its task text names.
+  - **#144 G-008-JWT** (PR #162, T019–T021): subpackage `internal/auth/jwt/` — `Generator` (RS256, 24h,
+    `has_subscription` claim + `kid` header), `Validator` (multi-key rotation via per-token `kid`;
+    RS256-locked), `Refresher` (one-time-use rotation; resolves `has_subscription` fresh, not from the
+    stale claim). `golang-jwt/jwt/v5` imported as `gojwt` to dodge the package-name collision.
+    `RefreshTokenStore`/`SubscriptionResolver` interfaces only — impls deferred to Sprint 6-7.
+    Hardened against alg-confusion, retired-key, and revoked-token reuse; all collapse to a uniform
+    `authentication_required` error.
+  - **#145 G-008-PASSWORD** (T022/T023): flat `internal/auth/password.go` + `validator.go` — there is
+    **no `internal/auth/password/` subpackage**; this is the *same* deliverable as 004-T012.
+  - **#146 G-008-RATELIMIT** (T024/T025, PR #163): `internal/auth/ratelimit` — email-keyed progressive
+    delay (`2^(attempts-5)`s after 5 failures, clamped to the 15-min window). Real consumer is
+    **008-T098 (login, Sprint 6), NOT T029**.
+  - **#147 G-008-SECURITY-PKG** (T026–T029, PR #163): T026 already satisfied by
+    `observability.LogSecurityEvent` (004-T014), T028 by `middleware.RequestID` (Sprint 2) — both
+    no-new-code. T027 `Authenticate` + T029 per-IP `RateLimit` landed in **`internal/middleware/`, not
+    `internal/security/`** (repo precedent beat the literal path; reuses `ctxKeyUserID`). Import cycle
+    (`middleware`→`jwt`→`errors`→`middleware`) broken with a local `AuthClaims` port +
+    `TokenValidator` interface — see "Mockery Mock Self-Import → External Test Package + Interface
+    Ports Break Cycles".
+  - **#148 008-T030** (PR #163): chain wired in **`cmd/api/server.go`** (not `main.go`); RateLimit
+    **off by default** (`RATE_LIMIT_REQUESTS=0`) — no spec mandates a global number and a non-zero
+    default would throttle the `startAPIServer` integration tests.
+  - **#149/#150 frontend** (PR #164, T031–T036): **no Axios** — the existing fetch-based
+    `lib/api-client.ts` meets T031; pure `mapApiError()` extracted to `lib/error-handler.ts` (not the
+    `.gitkeep`-only `services/`); `stores/auth-store.ts` kept as-is (`role`/`subscription_id` per
+    `docs/data-model.md`, which outranks the row's literal `full_name`/`has_subscription`); 6 routes
+    added to the existing `routes/index.tsx` (not a competing `router.tsx`) and `ProtectedRoute` now
+    really gates on `useIsAuthenticated()`; 3 focus-indicator tokens added to `tokens.css` with
+    `global.css` `:focus-visible` rewired onto them.
+  - **Ad-hoc PR #159**: 15 frontend test files restructured to the mandated BDD hierarchy; 19 Go test
+    files aligned to TDT + t-first helpers; coverage floor raised 80%→90% (enforced in
+    `vitest.config.ts`). CI consolidated 14→9 per-PR jobs; `accessibility.yml` **deleted and folded
+    into `frontend-ci.yml`** (job name "Accessibility Audit" preserved — it is pinned in the ruleset).
+    See "revive's `context-as-argument` Conflicts with the t-First Test-Helper Convention".
+  - **Ad-hoc PR #158**: documentation and test-standards reconciliation with as-built state.
+- **Key Decisions**:
+  - **Auth middleware shipped available but NOT globally gated**: no login endpoint mints a cookie
+    yet, so gating `/api/v1`+swagger now would break tests and lock out staging. `cmd/api/routes.go`'s
+    `TODO(sprint-5)` swagger marker **deliberately stays** until Sprint 6.
+  - **Two rate limiters is deliberate, not duplication**: email-keyed progressive delay (login) vs.
+    per-IP HTTP throttle (middleware). An email-keyed limiter cannot be global HTTP middleware.
+  - `pkg/` stays dead by convention — real homes are `internal/database/`, `config/`,
+    `backend/migrations/`.
+  - **Closure found 36 rows of status drift** (004-T001–T005/T010/T012–T014, 008-T001–T018/T022–T030
+    still `Backlog` despite merged PRs) — far wider than the 11 flagged mid-sprint. Every row was
+    grep/ls-verified against real code before flipping. Reinforces the `sprint-closure-status-drift-check`
+    discipline: the per-PR "flip as part of the closing PR" convention did **not** hold in practice.
+  - **"Issue-Body Snippets Are Lowest-Authority" applies to prose hand-off summaries too** — two claims
+    in the closure hand-off (a `password/` subpackage; logger/middleware in `internal/security/`) did
+    not survive verification against the tree.
+  - Path overrides recorded per-row in roadmap Notes (the only channel future issue bodies inherit
+    context through): `e2e/tests/` not `e2e/specs/`; `infra/modules/secrets/` not
+    `infra/terraform/modules/secrets/`; `eslint.config.js`/`.prettierrc.json` not
+    `.eslintrc.json`/`.prettierrc`.
+  - Process lesson (recurred): use the `tdd-developer` agent for implementation — inline work needed
+    mid-task rework to TDT + mockery conventions (`use-tdd-developer-for-implementation` memory).
+- **Verification at closure (re-run, not trusted)**: backend `go build ./...` clean, `go test -short
+  ./...` exit 0 (11 pkgs), `golangci-lint` (v1.64.8) exit 0; frontend `type-check`/`lint` clean,
+  `test:coverage` 152/152 across 17 files (98.15/92.45/100/98.1), `build` succeeds.
+- **Open follow-ups carried into Sprint 6+**:
+  1. **004-T011 is genuinely incomplete** — its blocker never resolved: `itinerary_items` exists in no
+     migration and no planned task creates it; **#138 was closed with this task unfinished**. Schedule
+     the CREATE in Sprint 6+ with `version` folded in inline (as `010_create_trips_table.sql` did),
+     not a standalone ALTER. Sibling 004-T010 *is* satisfied (`trips.version` shipped inline).
+  2. **`TODO(sprint-5)` in `cmd/api/routes.go`** — Sprint 6 builds the `jwt.Validator`→`AuthClaims`
+     adapter in `package main`, applies `Authenticate` to protected groups, removes the marker.
+  3. ~~Ruleset "Protect main" (id 18752818) required checks 10 → 6~~ — **NOT a follow-up; verified
+     already applied on 2026-07-17.** The ruleset requires exactly the 6 post-#159 checks and all 6
+     match the real workflow `name:` values. This was carried forward from `scratch/working-notes.md`
+     and re-stated at closure without re-verification, then surfaced to the user twice as blocking.
+     **Lesson: verify an inherited "still pending" note against the live system before repeating it**
+     — "Issue-Body Snippets Are Lowest-Authority" applies to our own stale notes too. Clearing
+     `working-notes.md` at each sprint closure exists precisely to stop this class of zombie item.
+  4. Deferred to Sprint 6/7: DB-backed `RefreshTokenStore`, `SubscriptionResolver`, Secrets Manager
+     ARN loader (004-T070/T071/T072).
+  5. `internal/security/doc.go`'s package comment is **stale** — it promises a logger/middleware that
+     were deliberately built in `observability`/`middleware` instead.
+  6. `.golangci.yml` `run.build-tags` lists only `integration`, not `test` — files behind
+     `//go:build test` are invisible to the linter (pre-existing).
+  7. **`BCRYPT_COST` is loaded but never consumed** — same class as the `DB_MIN/MAX_CONNECTIONS` gap
+     above, but harmless today because the env value coincides with the hardcoded 12. Documented in
+     `backend/README.md`/`docs/security.md`/issue #143; code deliberately left alone.
+  8. **Postgres version skew between test and runtime**: testcontainers use `postgres:16-alpine`
+     while docker-compose/CI pin `postgres:15.4-alpine` (the deliberate RDS match). Pre-existing;
+     needs a deliberate decision, not a doc fix.
+  9. `ValidatePassword` has a runes-vs-bytes edge at the 72-char bound (known; documented in
+     `docs/security.md`).
+  10. Long-standing, still open: 002-T023 a11y gate still `--pass-with-no-tests` (Sprint 9);
+     `internal/example/` deletion waits on Sprint 8 (Trip); `postgres:15.4-alpine` staleness watch;
+     AWS-cost-avoidance constraint still in force; 009-T018–T026 (swagger-drift CI gate) deferred.
