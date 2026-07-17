@@ -588,3 +588,21 @@ dropped — only prose and illustrative code were trimmed. Supersedes the 2026-0
   `linters: [revive]`. Production code keeps ctx-first enforcement untouched.
 - **Related**: `backend/.golangci.yml`, `docs/coding-guidelines.md`,
   `backend/internal/database/client_test.go`, `backend/tests/integration/swagger_test.go`
+
+---
+
+### Mockery Mock Self-Import → External Test Package + Interface Ports Break Cycles
+- **Discovered**: 2026-07-16 — **Tool**: Claude Code
+- **Context**: Backend — mocking an interface whose method signatures reference types from the
+  interface's own package (e.g. `middleware.TokenValidator` returning `middleware.AuthClaims`).
+- **Problem**: (1) The generated mock in `<pkg>/mocks/` imports its source `<pkg>` for those types,
+  so an *internal* `package <pkg>` test that uses the mock forms a cycle (`pkg`→`mocks`→`pkg`).
+  (2) Separately, a middleware wanting to consume `auth/jwt` couldn't: `jwt`→`errors`→`middleware`
+  already, so `middleware`→`jwt` is a cycle.
+- **Solution**: (1) Put mock-using tests in the *external* `package <pkg>_test` (same dir is fine
+  alongside internal `package <pkg>` tests) — mirrors `internal/example/service_test.go`. (2) Define
+  a local port: a minimal interface + plain struct (`TokenValidator`/`AuthClaims`) in the consumer
+  package, and write the concrete-type→port adapter at the composition root (`package main`), not in
+  the library. Keeps the library decoupled and testable without the heavy dependency.
+- **Related**: `backend/internal/middleware/auth.go`, `backend/internal/middleware/auth_test.go`,
+  `backend/internal/middleware/mocks/token_validator_mock.go`, `docs/mock-standards.md`

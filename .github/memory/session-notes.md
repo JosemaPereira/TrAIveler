@@ -300,3 +300,45 @@ Historical summaries of completed development sessions. Committed to git as a re
     Local zone).
 - **Outcomes**: JWT token primitives exist and are unit-tested; they feed the auth middleware (#147)
   whose wiring (#148) will remove the `TODO(sprint-5)` Swagger-gating marker in `cmd/api/routes.go`.
+
+### Session: G-008 Sprint-5 Backend Middleware Chain (#146 + #147 + #148)
+
+- **Date**: 2026-07-16
+- **Tool**: Claude Code
+- **What was accomplished**: Three grouped issues on one branch
+  (`feature/008-sprint5-backend-middleware-chain`).
+  - **#146 (T024/T025)** — new subpackage `internal/auth/ratelimit`: `Limiter` (progressive delay
+    `2^(attempts-5)`s after 5 failures, clamped to the 15-min window per data-model.md:128) over an
+    in-memory, concurrency-safe TTL `store` keyed by email. `store.go`/`limiter.go` split matches the
+    two task IDs. Consumer is the future login service (T098), not middleware.
+  - **#147 (T027 + T029)** — in `internal/middleware`: `Authenticate` (validates `access_token`
+    cookie, attaches user id + `has_subscription` to context, 401 `authentication_required`
+    otherwise) and `RateLimit(limit, window)` (per-IP fixed window, `X-RateLimit-*` headers,
+    429 + `Retry-After`). T026/T028 confirmed already-satisfied (skipped).
+  - **#148 (T030)** — `RateLimit` inserted into the chain in `cmd/api/server.go` after Recovery,
+    gated on new `config.RateLimitConfig` (`RATE_LIMIT_REQUESTS`/`_WINDOW`, **default disabled**).
+  - Full backend short suite green, `-race` clean on both stores, lint clean.
+- **Key findings and decisions**:
+  - **Two design forks resolved with the user** (both "recommended" options taken): (1) auth
+    middleware is shipped **available but NOT globally gated** — no login endpoint exists yet to mint
+    a cookie, so gating `/api/v1`+swagger now would break existing tests and lock out staging;
+    `cmd/api/routes.go`'s `TODO(sprint-5)` swagger marker intentionally **stays** until Sprint 6.
+    (2) Rate limiting is **two mechanisms**: per-IP `RateLimit` middleware (this issue) + email-based
+    progressive-delay `Limiter` for login (#146). #146's "consumer is T029" reconciliation note does
+    NOT hold — an email-keyed limiter can't be global HTTP middleware; its real consumer is T098.
+  - **Auth middleware lives in `internal/middleware`, not `internal/security`** — reuses the existing
+    `ctxKeyUserID`/`UserIDFromContext` (`user_context.go`) written for "a future JWT auth middleware".
+    Added `ctxKeyHasSubscription`/`HasSubscriptionFromContext` alongside it.
+  - **Import-cycle avoidance**: `middleware` can't import `auth/jwt` (jwt→errors→middleware cycle).
+    Solved with a middleware-local `AuthClaims` port + `TokenValidator` interface; the real
+    `*jwt.Validator`→`AuthClaims` adapter is written in `package main` at Sprint-6 wiring time.
+  - **Global rate limit ships disabled** (`Requests: 0`): no spec mandates a global number, and a
+    non-zero default would risk throttling the `startAPIServer` integration tests. Per-endpoint
+    limits (10/min login etc.) come later as route-level middleware.
+- **Process note**: implemented inline and had to correct tests mid-task to TDT + mockery
+  (`MockTokenValidator` in `internal/middleware/mocks`, external `middleware_test` package to dodge
+  the mock's self-import cycle). Lesson: use the `tdd-developer` agent (reads coding/testing/mock
+  docs first) for implementation work to avoid this rework.
+- **Outcomes**: Sprint-5 backend middleware chain complete. Remaining open Sprint-5 issues are the
+  frontend pair (#149 + #150). Sprint-6 handlers will construct a `jwt.Validator`→`AuthClaims`
+  adapter, apply `Authenticate` to protected route groups, and remove the swagger `TODO(sprint-5)`.

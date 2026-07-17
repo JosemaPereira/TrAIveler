@@ -180,6 +180,46 @@ func TestHTTPServer_MiddlewareChain_DisallowedOrigin_NoAccessControlHeaders(t *t
 	assert.Equal(t, http.StatusOK, rec.Code)
 }
 
+func TestHTTPServer_MiddlewareChain_RateLimitDisabledByDefault_AllowsRepeatRequests(t *testing.T) {
+	mockDB := dbmocks.NewMockClient(t)
+	mockDB.EXPECT().Ping(mock.Anything).Return(nil)
+
+	// testConfig leaves RateLimit at its zero value (Requests: 0 == disabled),
+	// so the chain must not throttle even under repeated calls from one client.
+	srv := NewHTTPServer(mockDB, testConfig(t), testLogger(t))
+
+	for i := 0; i < 5; i++ {
+		req := httptest.NewRequest(http.MethodGet, "/healthz", nil)
+		rec := httptest.NewRecorder()
+		srv.Router().ServeHTTP(rec, req)
+		assert.Equal(t, http.StatusOK, rec.Code)
+		assert.Empty(t, rec.Header().Get("X-RateLimit-Limit"),
+			"a disabled global rate limit must not set X-RateLimit headers")
+	}
+}
+
+func TestHTTPServer_MiddlewareChain_RateLimitConfigured_Throttles(t *testing.T) {
+	mockDB := dbmocks.NewMockClient(t)
+	mockDB.EXPECT().Ping(mock.Anything).Return(nil)
+
+	cfg := testConfig(t)
+	cfg.RateLimit = config.RateLimitConfig{Requests: 1, Window: time.Minute}
+	srv := NewHTTPServer(mockDB, cfg, testLogger(t))
+
+	first := httptest.NewRequest(http.MethodGet, "/healthz", nil)
+	firstRec := httptest.NewRecorder()
+	srv.Router().ServeHTTP(firstRec, first)
+	assert.Equal(t, http.StatusOK, firstRec.Code)
+
+	second := httptest.NewRequest(http.MethodGet, "/healthz", nil)
+	secondRec := httptest.NewRecorder()
+	srv.Router().ServeHTTP(secondRec, second)
+
+	assert.Equal(t, http.StatusTooManyRequests, secondRec.Code,
+		"a second request from the same client within the window must be throttled")
+	assert.NotEmpty(t, secondRec.Header().Get("Retry-After"))
+}
+
 func TestHTTPServer_Lifecycle_StartServeShutdownGracefully(t *testing.T) {
 	mockDB := dbmocks.NewMockClient(t)
 	mockDB.EXPECT().Ping(mock.Anything).Return(nil)
