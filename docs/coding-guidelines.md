@@ -406,13 +406,14 @@ backend/
   cmd/
     api/            # main entrypoint (main.go, server.go, routes.go) — not cmd/server/
   internal/
-    middleware/      # RequestID, Logger, Recovery, CORS, BodySize
+    middleware/      # RequestID, Logger, Recovery, CORS, BodySize, Authenticate, RateLimit
     database/         # pgxpool client (pool size from DB_MIN/MAX_CONNECTIONS)
       migrations/     # shared goose config (Dir, SetDialect) — the .sql files do NOT live here
     errors/           # DomainError + HandleError
     ai/               # AIClient interface + OllamaClient/AnthropicClient
-    auth/             # flat security utilities: password.go (bcrypt cost 12), validator.go —
-                       # deliberately NOT an internal/auth/password/ subpackage
+    auth/             # flat helpers: password.go (bcrypt cost 12), validator.go
+      jwt/            # Generator/Validator/Refresher, KeyProvider, Claims (RS256, multi-key rotation)
+      ratelimit/      # progressive-delay login-attempt throttle (Limiter + in-memory TTL store)
     observability/    # GenerateCorrelationID, LogSecurityEvent (structured JSON)
     subscription/     # doc.go scaffold only (Spec 008, unbuilt)
     collaboration/    # doc.go scaffold only (Spec 008, unbuilt)
@@ -431,6 +432,15 @@ backend/
 `internal/example/` is the reference for what a real `internal/<domain>/` package should look
 like — `handler.go`, `service.go`, `repository.go` (plus `model.go`) — until the first real domain
 (Trip) ships and it is deleted.
+
+**Subpackage vs. flat convention (the "why subfolders" rule)**: introduce a subpackage
+(`internal/auth/jwt/`, `internal/auth/ratelimit/`) for a cohesive sub-domain that owns multiple
+types/interfaces and a boundary of its own (jwt: `Generator`/`Validator`/`Refresher`,
+`KeyProvider`, `Claims`; ratelimit: `Limiter` + its store); keep small, self-contained helpers
+flat in the parent package (`password.go`, `validator.go`). The asymmetry is intentional:
+`plan.md` originally envisioned an `internal/auth/password/` subpackage, but it was deliberately
+kept flat because it is small — so a stale `internal/auth/password/` path in task text should
+resolve to the flat helpers, not a new subpackage.
 
 ### Testing Conventions (Backend)
 

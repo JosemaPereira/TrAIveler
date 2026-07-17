@@ -86,7 +86,10 @@ backend/
 │   │   ├── recovery.go               # Recovers handler panics, logs stack trace, responds 500
 │   │   ├── cors.go                   # Exact-match CORS origin allow-list, handles OPTIONS preflight
 │   │   ├── body_size.go              # Caps request bodies at 10 MB, responds 413 when exceeded
-│   │   └── errors.go                 # Shared JSON error-envelope helper used by recovery.go/body_size.go
+│   │   ├── auth.go                    # Authenticate: requires a valid access_token cookie, validated via a TokenValidator/AuthClaims port; attaches user id + has_subscription to context, else 401
+│   │   ├── rate_limit.go             # RateLimit(limit, window): per-IP fixed-window throttle (X-RateLimit-* headers, 429 + Retry-After); wired in server.go, disabled by default via config
+│   │   ├── user_context.go           # UserIDFromContext / HasSubscriptionFromContext accessors for the values Authenticate stores
+│   │   └── errors.go                 # Shared JSON error-envelope helper used by recovery.go/body_size.go/auth.go/rate_limit.go
 │   ├── errors/
 │   │   ├── types.go                  # DomainError type + constructors (NotFound, Validation, Unauthorized, Forbidden, Conflict)
 │   │   └── handler.go                # HandleError(): maps *DomainError to the standard JSON error envelope (docs/api-design-standards.md §7)
@@ -102,9 +105,19 @@ backend/
 │   │   ├── client.go                 # pgxpool pooling (min/max conns from DB_MIN/MAX_CONNECTIONS via caller), fail-fast retry, DI-friendly interface
 │   │   ├── migrations/               # Shared goose config: Dir (absolute path to backend/migrations/) + SetDialect() — used by all integration tests
 │   │   └── mocks/                    # Generated database.Client mock (vektra/mockery)
-│   ├── auth/                         # FLAT security-utility package (Spec 004/008, PR #155) — deliberately no password/ subpackage
+│   ├── auth/                         # Auth package: flat security helpers (Spec 004/008, PR #155) + two subpackages — deliberately no password/ subpackage
 │   │   ├── password.go               # HashPassword/ComparePassword (bcrypt cost 12, per docs/security.md)
-│   │   └── validator.go              # ValidatePassword: 8-72 chars, upper/lower/digit
+│   │   ├── validator.go              # ValidatePassword: 8-72 chars, upper/lower/digit
+│   │   ├── jwt/                       # JWT token primitives (issue #144, 008-T019/T020/T021)
+│   │   │   ├── generator.go          # Generator (NewGenerator): signs RS256 access tokens with the primary key, stamps the kid header
+│   │   │   ├── validator.go          # Validator (NewValidator): verifies access tokens, selecting the key per-token by kid (multi-key rotation); locked to RS256
+│   │   │   ├── refresher.go          # Refresher (NewRefresher): one-time-use refresh-token rotation (validate → revoke old → issue new pair); RefreshTokenStore + SubscriptionResolver seams (impls deferred)
+│   │   │   ├── keys.go               # KeyProvider interface + StaticKeyProvider (in-memory) + LoadKeyFromPEM (raw-PEM loader, ≥2048-bit)
+│   │   │   ├── claims.go             # Claims: registered claims + has_subscription; issuer constant
+│   │   │   └── doc.go                # Package overview
+│   │   └── ratelimit/                # Account-level login-attempt throttle (this branch; consumer is the future login service, NOT middleware)
+│   │       ├── limiter.go            # Limiter (New): progressive delay 2^(attempts-5)s after 5 failures in a 15-min window; CheckRateLimit/RecordFailure/Reset
+│   │       └── store.go              # store: concurrency-safe in-memory TTL map keyed by email (package doc lives here)
 │   ├── observability/                # Correlation IDs + security event logging (Spec 004, PR #155)
 │   │   ├── correlation.go            # GenerateCorrelationID
 │   │   └── logger.go                 # LogSecurityEvent(correlationID, eventType, userID, severity, ipAddress, userAgent, details) — structured JSON, matches the security_events table
@@ -590,7 +603,7 @@ there.
 
 ## API Overview
 
-All versioned endpoints are prefixed `/api/v1`. Authentication uses an HTTP-only cookie (`auth_token`).
+All versioned endpoints are prefixed `/api/v1`. Authentication uses an HTTP-only cookie (`access_token`).
 
 ### Built today
 

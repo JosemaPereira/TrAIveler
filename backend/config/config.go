@@ -49,11 +49,12 @@ const (
 // Config holds all application configuration loaded from environment variables.
 // All fields are loaded at startup with fail-fast validation.
 type Config struct {
-	Log      LogConfig
-	Server   ServerConfig
-	Database DatabaseConfig
-	AI       AIConfig
-	Auth     AuthConfig
+	Log       LogConfig
+	Server    ServerConfig
+	Database  DatabaseConfig
+	AI        AIConfig
+	Auth      AuthConfig
+	RateLimit RateLimitConfig
 }
 
 // ServerConfig contains HTTP server settings.
@@ -109,6 +110,16 @@ type AuthConfig struct {
 	CookieSecure      bool          // COOKIE_SECURE (default: false, true in production)
 }
 
+// RateLimitConfig contains the global, per-client-IP request throttle applied
+// in the HTTP middleware chain. It is a coarse abuse safety net: stricter
+// per-endpoint limits (login, registration, password reset) are attached as
+// route-level middleware in later work. Requests <= 0 disables it, which is the
+// default — no global limit is spec-mandated, so ops opt in explicitly.
+type RateLimitConfig struct {
+	Requests int           // RATE_LIMIT_REQUESTS (default: 0, disabled)
+	Window   time.Duration // RATE_LIMIT_WINDOW (default: 1m)
+}
+
 // LogConfig contains structured logging settings.
 type LogConfig struct {
 	Level  string // LOG_LEVEL (default: info)
@@ -119,11 +130,12 @@ type LogConfig struct {
 // Returns an error if required variables are missing or invalid.
 func Load() (*Config, error) {
 	cfg := &Config{
-		Server:   loadServerConfig(),
-		Database: loadDatabaseConfig(),
-		AI:       loadAIConfig(),
-		Auth:     loadAuthConfig(),
-		Log:      loadLogConfig(),
+		Server:    loadServerConfig(),
+		Database:  loadDatabaseConfig(),
+		AI:        loadAIConfig(),
+		Auth:      loadAuthConfig(),
+		RateLimit: loadRateLimitConfig(),
+		Log:       loadLogConfig(),
 	}
 
 	if err := validate(cfg); err != nil {
@@ -131,6 +143,16 @@ func Load() (*Config, error) {
 	}
 
 	return cfg, nil
+}
+
+// loadRateLimitConfig reads the global request-throttle configuration. It
+// defaults to disabled (0 requests): the throttle only engages when
+// RATE_LIMIT_REQUESTS is set to a positive value.
+func loadRateLimitConfig() RateLimitConfig {
+	return RateLimitConfig{
+		Requests: getEnvInt("RATE_LIMIT_REQUESTS", 0),
+		Window:   getEnvDuration("RATE_LIMIT_WINDOW", time.Minute),
+	}
 }
 
 // loadServerConfig reads HTTP server configuration from environment variables.
