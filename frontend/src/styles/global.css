@@ -73,10 +73,12 @@ a:hover {
   color: var(--color-primary-hover);
 }
 
-/* Focus states - never remove the focus ring without a visible replacement */
+/* Focus states - never remove the focus ring without a visible replacement.
+   Driven by the focus-indicator tokens (tokens.css) so width/color/offset stay
+   consistent across every interactive element. */
 :focus-visible {
-  outline: 2px solid var(--color-primary);
-  outline-offset: 2px;
+  outline: var(--focus-outline-width) solid var(--focus-outline-color);
+  outline-offset: var(--focus-outline-offset);
 }
 
 /* Images */

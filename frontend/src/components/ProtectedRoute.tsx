@@ -1,15 +1,27 @@
-import { Outlet } from 'react-router'
+import { Navigate, Outlet } from 'react-router'
+
+import { useIsAuthenticated } from '../stores/auth-store'
 
 /**
- * Route guard for authenticated-only pages.
+ * Route guard for authenticated-only pages (Spec 004 / Spec 008 008-T036).
  *
- * Scaffolding placeholder for Spec 004 (Security & Authentication/
- * Authorization Model, see specs/004-security-auth-model/). It currently
- * renders its child routes unconditionally via `<Outlet />`; the real
- * auth-gating (redirect to a login route when unauthenticated, backed by
- * `lib/authContext.tsx`) is implemented in a later Spec 004 issue, once the
- * backend auth endpoints exist.
+ * Renders the matched child routes via `<Outlet />` when the auth store
+ * reports an authenticated session; otherwise redirects to `/login`,
+ * replacing the current history entry so the guarded URL is not left in the
+ * back stack.
+ *
+ * Authentication is derived from `useAuthStore` (the HTTP-only JWT cookie is
+ * the real credential; the store mirrors session state — see
+ * `stores/auth-store.ts`). Until the backend auth endpoints exist and a login
+ * flow can populate the store, this correctly keeps every protected route
+ * behind the login redirect.
  */
 export function ProtectedRoute() {
+  const isAuthenticated = useIsAuthenticated()
+
+  if (!isAuthenticated) {
+    return <Navigate to="/login" replace />
+  }
+
   return <Outlet />
 }
