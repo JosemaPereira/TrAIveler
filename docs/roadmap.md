@@ -247,6 +247,10 @@
 |----|------|-------|--------|----------|--------|------------|----------|-------|-------|
 | 002-T045 | Create OWASP ZAP baseline scan shell script (`scripts/owasp-zap-scan.sh`; exit 1 on FAIL-level finding) | G-NFR-POLISH | | P3 | Backlog | - | yes | | |
 | 002-T046 | Create `backend/config/backup-policy.yml` (RPO ≤ 24 h, daily pg_dump schedule, 7-day retention, restore command) | G-NFR-POLISH | | P3 | Backlog | - | no | | |
+| 002-T047 | Add `test` to `run.build-tags` in `backend/.golangci.yml` (currently `[integration]` only) so `//go:build test` files become lint-visible; run `golangci-lint run` and resolve/`//nolint`-justify newly-surfaced findings per Constitution III | | 6 | P2 | Backlog | - | no | | |
+| 002-T048 | Decide & record whether the testcontainers Postgres image should match prod major (tests pin `postgres:16-alpine` vs RDS/CI `15.4-alpine`); align test images to `15.4-alpine` via one shared constant across the three call sites so they cannot drift | | 6 | P2 | Backlog | - | no | | |
+| 002-T049 | Add a `roadmap-status-drift` step to `.github/workflows/backend-ci.yml` cross-checking `docs/roadmap.md` Status column against closed GitHub issues, modelled on the `swagger-drift` gate (009-T018) | | 6 | P2 | Backlog | - | no | | |
+| 002-T050 | Add `roadmap-status-drift` to the repo ruleset's required status checks (`gh api .../rulesets`), following 009-T019's process for `swagger-drift`, so the T049 gate blocks merges rather than only reporting | | 6 | P2 | Backlog | 002-T049 | no | | |
 
 ---
 
@@ -537,6 +541,19 @@
 | 004-T130 | Run `govulncheck ./...` on backend (zero critical/high CVEs) | G-SEC-VALIDATION | | P3 | Backlog | 002-T034 | yes | | Manual QA |
 | 004-T131 | Verify CloudWatch Logs retention (query AWS CLI, confirm 30 days) | G-SEC-VALIDATION | | P3 | Backlog | 004-T073 | yes | | Manual QA |
 | 004-T132 | Verify CloudWatch Alarms configured (auth-failure-rate, prompt-injection-rate) | G-SEC-VALIDATION | | P3 | Backlog | 004-T074 | yes | | Manual QA |
+
+#### Phase 7 — Convergence (Reconciliation with As-Built Code)
+
+> Convergence phase appended 2026-07-17: closes gaps between spec 004's stated intent and the code as it stands (optimistic-locking migration + unwired BcryptCost config).
+
+| ID | Task | Group | Sprint | Priority | Status | Depends on | Parallel | Issue | Notes |
+|----|------|-------|--------|----------|--------|------------|----------|-------|-------|
+| 004-T133 | Create `backend/migrations/013_create_destinations_table.sql` (goose Up/Down) per data-model §Destination; no `version` column; coordinate constraints + indexes. Prerequisite for `days.destination_id` | | 6 | P1 | Backlog | - | no | | |
+| 004-T134 | Create `backend/migrations/014_create_days_table.sql` (goose Up/Down) per data-model §Day; `trip_id`→trips CASCADE, nullable `destination_id`→destinations SET NULL, `day_number` CHECK, UNIQUE(trip_id,day_number), indexes; no `version` column | | 6 | P1 | Backlog | 004-T133 | no | | |
+| 004-T135 | Create `backend/migrations/015_create_activities_table.sql` (goose Up/Down) per data-model §Activity + Invariant 7; fold `version BIGINT NOT NULL DEFAULT 1` inline; `day_id` CASCADE, `type`/`sequence_order` CHECKs, index. This is what T011 actually needs | | 6 | P1 | Backlog | 004-T134 | no | | |
+| 004-T136 | Close out 004-T011 against T135 (no separate migration): update deferral notes in `security_migrations_test.go`, `010_create_trips_table.sql`, and the 004-T011 roadmap row; assert `activities.version` DEFAULT 1; reopen/follow-up issue #138 | | 6 | P1 | Backlog | 004-T135 | no | | |
+| 004-T137 | Forward `config.Auth.BcryptCost` into the password hasher (`backend/internal/auth/password.go` hardcodes cost 12; env var has no consumer); parameterize + wire from composition root; test a non-default cost via `bcrypt.Cost`; clamp below-12 in prod config | | 6 | P2 | Backlog | - | no | | |
+| 004-T138 | Audit remaining `config.Config` fields for the T137 class (loaded/validated but never reaching the consumer); grep consuming signatures; distinguish "no consumer yet" vs "consumer ignores value" (CookieDomain/CookieSecure/JWTExpiration/RefreshExpiration) | | 6 | P2 | Backlog | 004-T137 | no | | |
 
 ---
 
@@ -1240,6 +1257,19 @@ _Checkpoint: Subscription lifecycle complete with grace period, archival, and re
 | 008-T206 | Performance optimization: add indexes to frequently queried columns (email, user_id, trip_id, status), optimize N+1 queries with joins/batch loading, add caching headers to static assets | | | P2 | Backlog | 008-T011 | no | | Note (2026-07-15): several of these indexes already exist from the Spec 004 migrations (e.g. `idx_users_email` in `001_create_users_table.sql`, plus refresh_tokens/security_events indexes) — audit `backend/migrations/` before adding duplicates. |
 
 _Checkpoint: All polish tasks complete, authentication & collaboration UX feature fully implemented and validated_
+
+#### Phase 11 — Convergence (Reconciliation with As-Built Code)
+
+> Convergence phase appended 2026-07-17: Sprint 5 shipped the auth building blocks but never activated them (`middleware.Authenticate` guards no route; refresh-token/subscription seams have no DB-backed implementations).
+
+| ID | Task | Group | Sprint | Priority | Status | Depends on | Parallel | Issue | Notes |
+|----|------|-------|--------|----------|--------|------------|----------|-------|-------|
+| 008-T207 | Add a `jwt.Validator` → `middleware.TokenValidator` adapter in `backend/cmd/api/` (package `main`, composition root — breaks the auth/jwt↔middleware import cycle); maps `*jwt.Claims`→`middleware.AuthClaims`; test-first, no new exported surface | | 6 | P1 | Backlog | - | no | | |
+| 008-T208 | Apply `middleware.Authenticate` to the protected route group in `backend/cmd/api/routes.go` and remove the `TODO(sprint-5)` at routes.go:29; split into a public auth-entry group vs an authenticated `/api/v1` + `/swagger/*` group; `/healthz` stays public | | 6 | P1 | Backlog | 008-T207 | no | | |
+| 008-T209 | Add integration tests in `backend/cmd/api/` for the T207/T208 wiring: protected route without cookie → 401 `authentication_required`, valid cookie reaches handler and context resolves; public routes + `/healthz` reachable, `/swagger/*` gated; use a fake `TokenValidator` | | 6 | P1 | Backlog | 008-T208 | no | | |
+| 008-T210 | Make the refresh-token repository (T141) satisfy `jwt.RefreshTokenStore` and land it with login (treat as blocker of T098); align method shape to `Create`/`ByHash`/`Revoke`, return `jwt.ErrRefreshTokenNotFound` on miss, persist only the SHA-256 hash, idempotent revoke, concurrency-safe | | 6 | P1 | Backlog | - | no | | |
+| 008-T211 | Adapt the subscription repository (T041) to `jwt.SubscriptionResolver` by implementing `HasActiveSubscription` against the real subscription row, so each refresh stamps a fresh `has_subscription` claim (FR-003/FR-022) | | 6 | P1 | Backlog | - | no | | |
+| 008-T212 | Construct the `Refresher` in the composition root (`backend/cmd/api/`): wire the T210 store, existing `*jwt.Generator`, and T211 resolver with the 30-day refresh TTL, and inject into the login/logout/refresh handlers | | 6 | P1 | Backlog | 008-T210, 008-T211 | no | | |
 
 ---
 
