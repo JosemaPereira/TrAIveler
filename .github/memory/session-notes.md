@@ -279,9 +279,13 @@ Historical summaries of completed development sessions. Committed to git as a re
      not a standalone ALTER. Sibling 004-T010 *is* satisfied (`trips.version` shipped inline).
   2. **`TODO(sprint-5)` in `cmd/api/routes.go`** — Sprint 6 builds the `jwt.Validator`→`AuthClaims`
      adapter in `package main`, applies `Authenticate` to protected groups, removes the marker.
-  3. **Ruleset "Protect main" (id 18752818) required checks 10 → 6** after PR #159's CI consolidation
-     — **user action** (branch protection needs explicit approval); until applied the ruleset names
-     checks that no longer run and can block merges.
+  3. ~~Ruleset "Protect main" (id 18752818) required checks 10 → 6~~ — **NOT a follow-up; verified
+     already applied on 2026-07-17.** The ruleset requires exactly the 6 post-#159 checks and all 6
+     match the real workflow `name:` values. This was carried forward from `scratch/working-notes.md`
+     and re-stated at closure without re-verification, then surfaced to the user twice as blocking.
+     **Lesson: verify an inherited "still pending" note against the live system before repeating it**
+     — "Issue-Body Snippets Are Lowest-Authority" applies to our own stale notes too. Clearing
+     `working-notes.md` at each sprint closure exists precisely to stop this class of zombie item.
   4. Deferred to Sprint 6/7: DB-backed `RefreshTokenStore`, `SubscriptionResolver`, Secrets Manager
      ARN loader (004-T070/T071/T072).
   5. `internal/security/doc.go`'s package comment is **stale** — it promises a logger/middleware that

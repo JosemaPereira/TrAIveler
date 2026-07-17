@@ -1830,13 +1830,17 @@ through):**
    the JWT cookie yet, so wiring it would lock every route out. Sprint 6 must build the
    `jwt.Validator`→`AuthClaims` adapter in `package main`, apply `Authenticate` to protected route
    groups, and remove the TODO. Tracked on the 008-T027 row.
-2. **Ruleset "Protect main" (id 18752818) needs its required checks cut 10 → 6** after PR #159's CI
-   consolidation. Add: "Backend Lint & Test", "Build Docker Image", "Frontend Lint, Test & Build",
-   "Accessibility Audit", "Validate Terraform Configuration", "Terraform Plan (Staging)". Remove:
-   "Lint Backend Code", "Run Backend Tests", "Lint Frontend Code", "Run Frontend Tests", "Build
-   Production Bundle", "Check Terraform Formatting". **Not applied — editing branch protection
-   requires explicit owner action.** Until then the ruleset references check names that no longer
-   run, which can block merges.
+2. ~~**Ruleset "Protect main" (id 18752818) needs its required checks cut 10 → 6** after PR #159's CI
+   consolidation.~~ **RESOLVED — verified applied 2026-07-17, no action needed.** The ruleset already
+   requires exactly the 6 post-consolidation checks ("Backend Lint & Test", "Build Docker Image",
+   "Frontend Lint, Test & Build", "Accessibility Audit", "Validate Terraform Configuration",
+   "Terraform Plan (Staging)"); none of the 6 retired names remain. All 6 contexts were confirmed to
+   match the real workflow `name:` values exactly (`backend-ci.yml:63`/`:102`,
+   `frontend-ci.yml:76`/`:137`, `infra-plan.yml:67`/`:106`) — the literal-match requirement behind
+   the "Required Status Check Stuck at 'Expected'" pattern. This item was carried forward as open
+   from `scratch/working-notes.md` and re-stated here at closure **without being re-verified**; it
+   had in fact already been applied. Lesson: an inherited "still pending" note is a claim to check,
+   not a fact — the "Issue-Body Snippets Are Lowest-Authority" rule applies to our own stale notes.
 3. **002-T023** (Lighthouse/a11y assertions, Sprint 9) — `accessibility.yml` was folded into
    `frontend-ci.yml` (PR #159) and the a11y gate runs with `--pass-with-no-tests` until 002-T023
    lands. The gate is green today because it has nothing to assert; do not let this follow-up slip.
