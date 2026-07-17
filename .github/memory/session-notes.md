@@ -303,3 +303,47 @@ Historical summaries of completed development sessions. Committed to git as a re
   10. Long-standing, still open: 002-T023 a11y gate still `--pass-with-no-tests` (Sprint 9);
      `internal/example/` deletion waits on Sprint 8 (Trip); `postgres:15.4-alpine` staleness watch;
      AWS-cost-avoidance constraint still in force; 009-T018–T026 (swagger-drift CI gate) deferred.
+
+---
+
+## Sprint 6 Implementation (Detailed)
+
+### Session: Sprint 6 Planning & Issue Creation
+
+- **Date**: 2026-07-17
+- **Tool**: Claude Code
+- **What was accomplished**: Planned Sprint 6 and created its 18 issues (#167–#184) with full labels,
+  dependency cross-references, and roadmap write-back. Sprint 6 was **reshaped** from the projected
+  "data layer + repositories" (31 tasks) into the **full auth vertical + carried-forward
+  remediation** (58 tasks / 18 work items) after verification against the tree.
+- **Key findings and decisions**:
+  - **Reshape driver #1 — auth must go live, not sit inert.** Sprint 5 shipped JWT/password/rate-
+    limit/`Authenticate` middleware "available but not wired". Building more plumbing without
+    activating it would repeat that anti-pattern, so Sprint 6 pulls the backend **registration +
+    login + logout** flow forward (Spec 008 Phase 3/5 auth subset), **activates the gate** (#179
+    removes `TODO(sprint-5)` in `cmd/api/routes.go`; **T208 must land after login #178 exists** or it
+    bricks `/api/v1`+swagger), and wires a real `Refresher` on the DB-backed `RefreshTokenStore`
+    (#175) + `SubscriptionResolver` (#169). Trip CRUD/AI-stub and US2 collaboration stay out (Sprint
+    8 / post-MVP). **~27 auth tasks pulled forward from Sprints 7-8 — reconcile those at their own
+    planning.**
+  - **Reshape driver #2 — cross-spec duplication, marked superseded (no code).** 001-T009–T015
+    duplicate already-shipped Sprint 5 work (config `backend/config/config.go`, pgxpool
+    `internal/database/client.go`, 6 of 8 migrations already on disk) and Spec 008's own data layer
+    (User/Subscription repos → #175/#169, PaymentProvider/Stub → #168). Also 008-T052/053/055/056/057/
+    066/068 duplicate the Sprint 2 primitives (Button/Input/Card/Form/LoadingSpinner/ErrorMessage/
+    EmptyState already exist). 14 rows marked SUPERSEDED in roadmap Notes: existing-artifact rows →
+    `Done`, pending-superseded rows → `Backlog` + tracking pointer. Same class as the Sprint 5
+    004-vs-008 `users`-table de-dup; recorded per the *Roadmap Row Notes Are the Only Channel* pattern.
+  - **004-T011 orphan closed via #170**: destinations/days/activities migrations (013-015), with
+    `activities.version` folded inline (004-T135 is "what T011 actually needs"); 004-T136 closes it
+    out. Ordered after trips (migration 010) per *Goose Migrations Must Not Reference a Later Set*.
+  - **008-T141 (RefreshToken repo)** pulled forward from Phase 7 (was P2) → now P1 (login critical
+    path), row priority bumped to match its issue #175.
+  - Scope was user-chosen via `AskUserQuestion` ("Vertical auth completo" + "Superseded, sin código").
+    Velocity flagged: 58 > historical max (Sprint 3 = 54, mean ≈ 39); frontend auth UI (#171/#180/
+    #182/#183/#184, 14 tasks) is the documented trim line. No AWS/terraform touched (constraint holds).
+- **Outcomes**: 18 issues live (#167–#184), all labelled `sprint:6`+`spec:*`+`priority:*`+`type:*`+
+  `epic:*`+`group`; 10 blocker issues carry `⛔ Blocks` cross-reference comments; `docs/roadmap.md`
+  updated (58 task rows → Group/Sprint/Issue; 14 superseded rows; Sprint Plan block rewritten). Issue
+  creation only — no implementation yet. **Note**: downstream Sprint 7/8 entries + Sprint Summary
+  Statistics still describe pre-reshape counts; reconcile when those sprints are planned.
