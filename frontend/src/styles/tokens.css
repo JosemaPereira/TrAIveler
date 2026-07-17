@@ -34,6 +34,13 @@
   --space-12: 48px;
   --space-16: 64px;
 
+  /* Focus indicators - accessible focus ring (WCAG 2.1 AA 2.4.7 Focus Visible).
+     Consumed by global.css :focus-visible; components must reuse these instead
+     of redefining outline width/color/offset. */
+  --focus-outline-width: 2px;
+  --focus-outline-offset: 2px;
+  --focus-outline-color: var(--color-primary);
+
   /* Layout */
   --content-max-width: 1280px;
 
