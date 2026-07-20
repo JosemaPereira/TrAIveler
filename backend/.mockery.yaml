@@ -27,3 +27,6 @@ packages:
   github.com/JosemaPereira/TrAIveler/backend/internal/middleware:
     interfaces:
       TokenValidator:
+  github.com/JosemaPereira/TrAIveler/backend/internal/subscription:
+    interfaces:
+      Repository:
