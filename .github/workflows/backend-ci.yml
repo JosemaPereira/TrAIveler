@@ -35,6 +35,13 @@ on:
       - '.github/workflows/backend-ci.yml'
   workflow_dispatch:
 
+# Least-privilege token: dorny/paths-filter needs pull-requests:read to list a
+# PR's changed files via the API (otherwise the changes job fails with
+# "Resource not accessible by integration"); checkout needs contents:read.
+permissions:
+  contents: read
+  pull-requests: read
+
 # Prevent concurrent runs on the same PR
 concurrency:
   group: backend-ci-${{ github.ref }}
