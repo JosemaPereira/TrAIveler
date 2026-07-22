@@ -39,6 +39,15 @@ on:
   pull_request:
   workflow_dispatch:
 
+# Least-privilege default token: dorny/paths-filter (changes job) needs
+# pull-requests:read to list a PR's changed files via the API, else it fails
+# with "Resource not accessible by integration". The terraform-plan job sets
+# its own job-level permissions (id-token/pull-requests:write for OIDC + PR
+# comments), which fully override this default for that job.
+permissions:
+  contents: read
+  pull-requests: read
+
 # Prevent concurrent runs on the same PR
 concurrency:
   group: infra-plan-${{ github.ref }}
