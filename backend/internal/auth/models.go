@@ -55,6 +55,19 @@ type User struct {
 	Version             int64      `json:"-" db:"version"`
 }
 
+// RefreshToken is a stored refresh-token row (migrations/002). Only the SHA-256
+// hash of the opaque token is persisted, never the token itself
+// (docs/security.md). RevokedAt is nil while the token is live. The type is
+// server-internal, so it carries db tags only.
+type RefreshToken struct {
+	ID        string     `db:"id"`
+	UserID    string     `db:"user_id"`
+	TokenHash string     `db:"token_hash"`
+	ExpiresAt time.Time  `db:"expires_at"`
+	CreatedAt time.Time  `db:"created_at"`
+	RevokedAt *time.Time `db:"revoked_at"`
+}
+
 // Validate checks the User's domain invariants (email present, role valid),
 // collecting every failure. Input-shape validation of untrusted request
 // bodies lives on RegisterRequest/LoginRequest; this guards the constructed
