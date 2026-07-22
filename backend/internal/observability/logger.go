@@ -22,6 +22,7 @@ type EventType string
 
 // Event types, one per row of data-model.md's "Event Types" table.
 const (
+	EventAuthRegistration          EventType = "auth_registration"
 	EventAuthLoginSuccess          EventType = "auth_login_success"
 	EventAuthLoginFailure          EventType = "auth_login_failure"
 	EventAuthTokenRefresh          EventType = "auth_token_refresh"

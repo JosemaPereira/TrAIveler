@@ -57,7 +57,7 @@ func writeErrorResponse(w http.ResponseWriter, r *http.Request, domainErr *Domai
 	requestID, _ := middleware.RequestIDFromContext(r.Context())
 
 	w.Header().Set("Content-Type", "application/json")
-	if domainErr.Code == "service_unavailable" {
+	if domainErr.Code == "service_unavailable" || domainErr.Code == "rate_limit_exceeded" {
 		if retryAfterSeconds, ok := domainErr.Details["retry_after_seconds"].(int); ok {
 			w.Header().Set("Retry-After", strconv.Itoa(retryAfterSeconds))
 		}
@@ -91,6 +91,8 @@ func statusForCode(code string) int {
 		return http.StatusConflict
 	case "service_unavailable":
 		return http.StatusServiceUnavailable
+	case "rate_limit_exceeded":
+		return http.StatusTooManyRequests
 	default:
 		return http.StatusInternalServerError
 	}

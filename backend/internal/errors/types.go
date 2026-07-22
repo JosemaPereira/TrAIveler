@@ -106,3 +106,19 @@ func ServiceUnavailable(retryAfterSeconds int) *DomainError {
 		Details: map[string]any{"retry_after_seconds": retryAfterSeconds},
 	}
 }
+
+// RateLimited builds a "rate_limit_exceeded" domain error for a caller that has
+// exceeded an allowed request/attempt rate — e.g. the login service's
+// progressive-delay lockout after too many failed attempts (008-T098,
+// docs/security.md). The wire code is "rate_limit_exceeded" per the catalog in
+// docs/api-design-standards.md §7 (the constructor name reflects intent, as with
+// Unauthorized→authentication_required). retryAfterSeconds is carried in Details
+// so writeErrorResponse (handler.go) can echo it back as the response's
+// Retry-After header, mirroring ServiceUnavailable.
+func RateLimited(retryAfterSeconds int) *DomainError {
+	return &DomainError{
+		Code:    "rate_limit_exceeded",
+		Message: "Too many attempts; please retry later",
+		Details: map[string]any{"retry_after_seconds": retryAfterSeconds},
+	}
+}
