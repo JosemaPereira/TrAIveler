@@ -73,6 +73,18 @@ func TestLogSecurityEvent(t *testing.T) {
 			wantLevel:     "ERROR",
 		},
 		{
+			name:          "when a registration is logged it should record the auth_registration event at INFO level",
+			correlationID: "c4d4b5e6-7f8a-9b0c-1d2e-3f4a5b6c7d8e",
+			eventType:     EventAuthRegistration,
+			userID:        "0a1b2c3d-4e5f-6a7b-8c9d-0e1f2a3b4c5d",
+			severity:      SeverityInfo,
+			ipAddress:     "203.0.113.9",
+			userAgent:     "Mozilla/5.0",
+			details:       map[string]any{"has_subscription": true},
+			wantEventType: "auth_registration",
+			wantLevel:     "INFO",
+		},
+		{
 			name:          "when a login success is logged it should record the event at INFO level",
 			correlationID: "b3c3a4d5-6e7f-8a9b-0c1d-2e3f4a5b6c7d",
 			eventType:     EventAuthLoginSuccess,

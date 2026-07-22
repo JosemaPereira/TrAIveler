@@ -66,6 +66,7 @@ func TestHandleError_DomainErrorCodes_MapToExpectedStatus(t *testing.T) {
 		{"when the error is Forbidden it should respond 403 forbidden", domainerrors.Forbidden("not allowed"), http.StatusForbidden, "forbidden"},
 		{"when the error is Conflict it should respond 409 conflict", domainerrors.Conflict("version mismatch"), http.StatusConflict, "conflict"},
 		{"when the error is ServiceUnavailable it should respond 503 service_unavailable", domainerrors.ServiceUnavailable(30), http.StatusServiceUnavailable, "service_unavailable"},
+		{"when the error is RateLimited it should respond 429 rate_limit_exceeded", domainerrors.RateLimited(5), http.StatusTooManyRequests, "rate_limit_exceeded"},
 		{"when the error is an unmapped plain error it should fall back to 500 internal_error", stderrors.New("boom"), http.StatusInternalServerError, "internal_error"},
 	}
 
@@ -221,6 +222,26 @@ func TestHandleError_ServiceUnavailable_SetsRetryAfterHeaderAndDetails(t *testin
 	details, ok := body["details"].(map[string]any)
 	require.True(t, ok, "expected details object in response body")
 	assert.EqualValues(t, 30, details["retry_after_seconds"])
+}
+
+func TestHandleError_RateLimited_SetsRetryAfterHeaderAndDetails(t *testing.T) {
+	withCapturedDefaultLogger(t)
+
+	rec := httptest.NewRecorder()
+	req := requestWithID(t, http.MethodPost, "/auth/login", "")
+
+	domainerrors.HandleError(rec, req, domainerrors.RateLimited(8))
+
+	assert.Equal(t, http.StatusTooManyRequests, rec.Code)
+	assert.Equal(t, "8", rec.Header().Get("Retry-After"))
+
+	var body map[string]any
+	require.NoError(t, json.Unmarshal(rec.Body.Bytes(), &body))
+	assert.Equal(t, "rate_limit_exceeded", body["error"])
+
+	details, ok := body["details"].(map[string]any)
+	require.True(t, ok, "expected details object in response body")
+	assert.EqualValues(t, 8, details["retry_after_seconds"])
 }
 
 func TestHandleError_NonServiceUnavailableError_OmitsRetryAfterHeader(t *testing.T) {
