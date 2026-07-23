@@ -101,7 +101,7 @@ func (r *Refresher) RefreshToken(ctx context.Context, rawRefreshToken string) (T
 		return TokenPair{}, unauthorizedRefresh(errors.New("empty refresh token"))
 	}
 
-	hash := hashRefreshToken(rawRefreshToken)
+	hash := HashRefreshToken(rawRefreshToken)
 	record, err := r.store.ByHash(ctx, hash)
 	if errors.Is(err, ErrRefreshTokenNotFound) {
 		return TokenPair{}, unauthorizedRefresh(err)
@@ -162,12 +162,14 @@ func generateRefreshToken() (raw, hash string, err error) {
 		return "", "", fmt.Errorf("jwt: read random bytes: %w", err)
 	}
 	raw = base64.RawURLEncoding.EncodeToString(buf)
-	return raw, hashRefreshToken(raw), nil
+	return raw, HashRefreshToken(raw), nil
 }
 
-// hashRefreshToken returns the hex SHA-256 hash used as the stored lookup key.
-// SHA-256 (not bcrypt) suffices: the token is already high-entropy random.
-func hashRefreshToken(raw string) string {
+// HashRefreshToken returns the hex SHA-256 hash used as the stored lookup key.
+// SHA-256 (not bcrypt) suffices since the token is already high-entropy random.
+// Exported so a caller holding a presented token (e.g. logout) can compute the
+// same lookup key without re-deriving the scheme.
+func HashRefreshToken(raw string) string {
 	sum := sha256.Sum256([]byte(raw))
 	return hex.EncodeToString(sum[:])
 }

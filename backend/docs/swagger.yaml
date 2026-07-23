@@ -1,5 +1,57 @@
 basePath: /api/v1
 definitions:
+  auth.LoginRequest:
+    properties:
+      email:
+        type: string
+      password:
+        type: string
+    type: object
+  auth.LoginResponse:
+    properties:
+      user:
+        $ref: '#/definitions/auth.User'
+    type: object
+  auth.RegisterRequest:
+    properties:
+      email:
+        type: string
+      full_name:
+        type: string
+      password:
+        type: string
+      payment_method_token:
+        type: string
+    type: object
+  auth.RegisterResponse:
+    properties:
+      subscription:
+        $ref: '#/definitions/subscription.Subscription'
+      user:
+        $ref: '#/definitions/auth.User'
+    type: object
+  auth.User:
+    properties:
+      created_at:
+        type: string
+      email:
+        type: string
+      full_name:
+        type: string
+      has_subscription:
+        type: boolean
+      id:
+        type: string
+    type: object
+  auth.invalidRequestEnvelope:
+    properties:
+      error:
+        type: string
+      message:
+        type: string
+      request_id:
+        type: string
+    type: object
   errors.ErrorResponse:
     properties:
       details:
@@ -91,6 +143,23 @@ definitions:
       status:
         type: string
     type: object
+  subscription.Subscription:
+    properties:
+      cancelled_at:
+        type: string
+      created_at:
+        type: string
+      grace_period_ends_at:
+        type: string
+      id:
+        type: string
+      plan_id:
+        type: string
+      status:
+        type: string
+      user_id:
+        type: string
+    type: object
 info:
   contact: {}
   description: Machine-readable OpenAPI contract for the TrAIveler backend API, generated
@@ -98,6 +167,106 @@ info:
   title: TrAIveler API
   version: "1.0"
 paths:
+  /auth/login:
+    post:
+      consumes:
+      - application/json
+      description: |-
+        Authenticates a user and, on success, sets an access/refresh token pair as HTTP-only,
+        Secure, SameSite=Strict cookies. Unknown email and wrong password return an identical
+        401 (no account enumeration); repeated failures trigger a progressive-delay 429.
+      parameters:
+      - description: Login payload
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/auth.LoginRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/auth.LoginResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/auth.invalidRequestEnvelope'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/errors.ErrorResponse'
+        "422":
+          description: Unprocessable Entity
+          schema:
+            $ref: '#/definitions/errors.ErrorResponse'
+        "429":
+          description: Too Many Requests
+          schema:
+            $ref: '#/definitions/errors.ErrorResponse'
+      summary: Log in with email and password
+      tags:
+      - auth
+  /auth/logout:
+    post:
+      description: |-
+        Revokes the presented refresh token and clears both session cookies. Idempotent: a
+        missing or already-revoked refresh token still clears cookies and returns 204.
+      responses:
+        "204":
+          description: No Content
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/errors.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/errors.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Log out
+      tags:
+      - auth
+  /auth/register:
+    post:
+      consumes:
+      - application/json
+      description: |-
+        Creates a new user (admin role). When a payment_method_token is supplied a
+        subscription is activated and has_subscription is true; otherwise the user is a
+        Free User (has_subscription false). On success an access/refresh token pair is set as
+        HTTP-only, Secure, SameSite=Strict cookies.
+      parameters:
+      - description: Registration payload
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/auth.RegisterRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/auth.RegisterResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/auth.invalidRequestEnvelope'
+        "409":
+          description: Conflict
+          schema:
+            $ref: '#/definitions/errors.ErrorResponse'
+        "422":
+          description: Unprocessable Entity
+          schema:
+            $ref: '#/definitions/errors.ErrorResponse'
+      summary: Register a new account
+      tags:
+      - auth
   /examples:
     get:
       description: |-

@@ -105,7 +105,7 @@ type AuthConfig struct {
 	JWTSigningKey     string        // JWT_SIGNING_KEY (required in production)
 	CookieDomain      string        // COOKIE_DOMAIN (default: localhost)
 	JWTExpiration     time.Duration // JWT_EXPIRATION (default: 24h)
-	RefreshExpiration time.Duration // REFRESH_TOKEN_EXPIRATION (default: 7 days)
+	RefreshExpiration time.Duration // REFRESH_TOKEN_EXPIRATION (default: 30 days)
 	BcryptCost        int           // BCRYPT_COST (default: 12)
 	CookieSecure      bool          // COOKIE_SECURE (default: false, true in production)
 }
@@ -213,7 +213,7 @@ func loadAuthConfig() AuthConfig {
 	return AuthConfig{
 		JWTSigningKey:     getEnv("JWT_SIGNING_KEY", ""),
 		JWTExpiration:     getEnvDuration("JWT_EXPIRATION", 24*time.Hour),
-		RefreshExpiration: getEnvDuration("REFRESH_TOKEN_EXPIRATION", 7*24*time.Hour),
+		RefreshExpiration: getEnvDuration("REFRESH_TOKEN_EXPIRATION", 30*24*time.Hour),
 		CookieDomain:      getEnv("COOKIE_DOMAIN", "localhost"),
 		CookieSecure:      getEnvBool("COOKIE_SECURE", defaultCookieSecure),
 		BcryptCost:        getEnvInt("BCRYPT_COST", 12),

@@ -24,6 +24,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/JosemaPereira/TrAIveler/backend/config"
+	"github.com/JosemaPereira/TrAIveler/backend/internal/database"
 	dbmocks "github.com/JosemaPereira/TrAIveler/backend/internal/database/mocks"
 )
 
@@ -51,11 +52,21 @@ func testLogger(t *testing.T) *slog.Logger {
 	return slog.New(slog.NewJSONHandler(io.Discard, nil))
 }
 
+// mustNewHTTPServer builds an HTTPServer, failing the test on the (fatal-
+// misconfiguration) error path. Test configs leave JWT_SIGNING_KEY empty, so the
+// composition root falls back to an ephemeral in-memory key (see buildKeyProvider).
+func mustNewHTTPServer(t *testing.T, db database.Client, cfg *config.Config, logger *slog.Logger) *HTTPServer {
+	t.Helper()
+	srv, err := NewHTTPServer(db, cfg, logger)
+	require.NoError(t, err)
+	return srv
+}
+
 func TestHTTPServer_Healthz_DatabasePingSucceeds_Returns200OkBody(t *testing.T) {
 	mockDB := dbmocks.NewMockClient(t)
 	mockDB.EXPECT().Ping(mock.Anything).Return(nil)
 
-	srv := NewHTTPServer(mockDB, testConfig(t), testLogger(t))
+	srv := mustNewHTTPServer(t, mockDB, testConfig(t), testLogger(t))
 
 	req := httptest.NewRequest(http.MethodGet, "/healthz", nil)
 	rec := httptest.NewRecorder()
@@ -76,7 +87,7 @@ func TestHTTPServer_Healthz_DatabasePingFails_Returns200DegradedBody(t *testing.
 	mockDB := dbmocks.NewMockClient(t)
 	mockDB.EXPECT().Ping(mock.Anything).Return(errors.New("connection refused"))
 
-	srv := NewHTTPServer(mockDB, testConfig(t), testLogger(t))
+	srv := mustNewHTTPServer(t, mockDB, testConfig(t), testLogger(t))
 
 	req := httptest.NewRequest(http.MethodGet, "/healthz", nil)
 	rec := httptest.NewRecorder()
@@ -100,7 +111,7 @@ func TestHTTPServer_Healthz_DatabasePingExceedsTwoSecondTimeout_Returns200Degrad
 		return ctx.Err()
 	})
 
-	srv := NewHTTPServer(mockDB, testConfig(t), testLogger(t))
+	srv := mustNewHTTPServer(t, mockDB, testConfig(t), testLogger(t))
 
 	req := httptest.NewRequest(http.MethodGet, "/healthz", nil)
 	rec := httptest.NewRecorder()
@@ -121,7 +132,7 @@ func TestHTTPServer_MiddlewareChain_SetsRequestIDHeaderOnResponse(t *testing.T) 
 	mockDB := dbmocks.NewMockClient(t)
 	mockDB.EXPECT().Ping(mock.Anything).Return(nil)
 
-	srv := NewHTTPServer(mockDB, testConfig(t), testLogger(t))
+	srv := mustNewHTTPServer(t, mockDB, testConfig(t), testLogger(t))
 
 	req := httptest.NewRequest(http.MethodGet, "/healthz", nil)
 	rec := httptest.NewRecorder()
@@ -135,7 +146,7 @@ func TestHTTPServer_MiddlewareChain_IncomingRequestIDIsEchoedBack(t *testing.T) 
 	mockDB := dbmocks.NewMockClient(t)
 	mockDB.EXPECT().Ping(mock.Anything).Return(nil)
 
-	srv := NewHTTPServer(mockDB, testConfig(t), testLogger(t))
+	srv := mustNewHTTPServer(t, mockDB, testConfig(t), testLogger(t))
 
 	req := httptest.NewRequest(http.MethodGet, "/healthz", nil)
 	req.Header.Set("X-Request-ID", "incoming-id-123")
@@ -149,7 +160,7 @@ func TestHTTPServer_MiddlewareChain_IncomingRequestIDIsEchoedBack(t *testing.T) 
 func TestHTTPServer_MiddlewareChain_PanicInHandler_Returns500WithoutCrashingProcess(t *testing.T) {
 	mockDB := dbmocks.NewMockClient(t)
 
-	srv := NewHTTPServer(mockDB, testConfig(t), testLogger(t))
+	srv := mustNewHTTPServer(t, mockDB, testConfig(t), testLogger(t))
 	srv.router.Get("/panic-test", func(_ http.ResponseWriter, _ *http.Request) {
 		panic("boom: simulated handler panic")
 	})
@@ -168,7 +179,7 @@ func TestHTTPServer_MiddlewareChain_DisallowedOrigin_NoAccessControlHeaders(t *t
 	mockDB := dbmocks.NewMockClient(t)
 	mockDB.EXPECT().Ping(mock.Anything).Return(nil)
 
-	srv := NewHTTPServer(mockDB, testConfig(t), testLogger(t))
+	srv := mustNewHTTPServer(t, mockDB, testConfig(t), testLogger(t))
 
 	req := httptest.NewRequest(http.MethodGet, "/healthz", nil)
 	req.Header.Set("Origin", "https://evil.example.com")
@@ -186,7 +197,7 @@ func TestHTTPServer_MiddlewareChain_RateLimitDisabledByDefault_AllowsRepeatReque
 
 	// testConfig leaves RateLimit at its zero value (Requests: 0 == disabled),
 	// so the chain must not throttle even under repeated calls from one client.
-	srv := NewHTTPServer(mockDB, testConfig(t), testLogger(t))
+	srv := mustNewHTTPServer(t, mockDB, testConfig(t), testLogger(t))
 
 	for i := 0; i < 5; i++ {
 		req := httptest.NewRequest(http.MethodGet, "/healthz", nil)
@@ -204,7 +215,7 @@ func TestHTTPServer_MiddlewareChain_RateLimitConfigured_Throttles(t *testing.T) 
 
 	cfg := testConfig(t)
 	cfg.RateLimit = config.RateLimitConfig{Requests: 1, Window: time.Minute}
-	srv := NewHTTPServer(mockDB, cfg, testLogger(t))
+	srv := mustNewHTTPServer(t, mockDB, cfg, testLogger(t))
 
 	first := httptest.NewRequest(http.MethodGet, "/healthz", nil)
 	firstRec := httptest.NewRecorder()
@@ -224,7 +235,7 @@ func TestHTTPServer_Lifecycle_StartServeShutdownGracefully(t *testing.T) {
 	mockDB := dbmocks.NewMockClient(t)
 	mockDB.EXPECT().Ping(mock.Anything).Return(nil)
 
-	srv := NewHTTPServer(mockDB, testConfig(t), testLogger(t))
+	srv := mustNewHTTPServer(t, mockDB, testConfig(t), testLogger(t))
 
 	httpServer := &http.Server{
 		Addr:    "127.0.0.1:0",
@@ -254,7 +265,7 @@ func TestHTTPServer_Lifecycle_StartServeShutdownGracefully(t *testing.T) {
 func TestHTTPServer_Shutdown_WaitsForInFlightRequestToCompleteBeforeReturning(t *testing.T) {
 	mockDB := dbmocks.NewMockClient(t)
 
-	srv := NewHTTPServer(mockDB, testConfig(t), testLogger(t))
+	srv := mustNewHTTPServer(t, mockDB, testConfig(t), testLogger(t))
 
 	requestStarted := make(chan struct{})
 	srv.router.Get("/slow", func(w http.ResponseWriter, _ *http.Request) {

@@ -34,6 +34,12 @@ func (s *HTTPServer) registerRoutes() {
 	s.router.Group(func(r chi.Router) {
 		r.Route("/api/v1", func(r chi.Router) {
 			s.exampleHandler.RegisterRoutes(r)
+			// Auth entry points (register/login public; logout needs a valid access
+			// token). The Authenticate gate isn't mounted yet — 008-T208 (issue #179)
+			// will split this into public and authenticated groups, moving logout
+			// (and /swagger/*) behind it. Until then all /api/v1 routes are ungated,
+			// matching the TODO(sprint-5) below.
+			s.authHandler.RegisterRoutes(r)
 		})
 
 		r.Get("/swagger/*", httpSwagger.Handler())

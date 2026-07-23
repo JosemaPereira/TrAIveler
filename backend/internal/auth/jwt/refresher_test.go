@@ -98,7 +98,7 @@ func TestRefresher_RefreshToken_Success(t *testing.T) {
 	store := newFakeStore()
 	userID := uuid.New()
 	oldRaw := seedToken(t, store, userID, time.Now().Add(24*time.Hour))
-	oldHash := hashRefreshToken(oldRaw)
+	oldHash := HashRefreshToken(oldRaw)
 
 	refresher := newTestRefresher(t, store, stubSubs{has: true})
 	pair, err := refresher.RefreshToken(context.Background(), oldRaw)

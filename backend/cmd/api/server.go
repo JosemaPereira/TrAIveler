@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"log/slog"
 	"net/http"
 	"time"
@@ -10,6 +11,8 @@ import (
 	"github.com/go-chi/chi/v5"
 
 	"github.com/JosemaPereira/TrAIveler/backend/config"
+	"github.com/JosemaPereira/TrAIveler/backend/internal/auth"
+	"github.com/JosemaPereira/TrAIveler/backend/internal/auth/jwt"
 	"github.com/JosemaPereira/TrAIveler/backend/internal/database"
 	"github.com/JosemaPereira/TrAIveler/backend/internal/example"
 	"github.com/JosemaPereira/TrAIveler/backend/internal/middleware"
@@ -33,7 +36,12 @@ type HTTPServer struct {
 	cfg            *config.Config
 	logger         *slog.Logger
 	exampleHandler *example.Handler
-	startTime      time.Time
+	authHandler    *auth.Handler
+	// authKeyProvider is retained for auth-activation (008-T207, issue #179): the
+	// jwt.Validator behind the Authenticate gate must use the key set these
+	// handlers sign with.
+	authKeyProvider jwt.KeyProvider
+	startTime       time.Time
 }
 
 // NewHTTPServer builds an HTTPServer with the standard middleware chain
@@ -46,7 +54,7 @@ type HTTPServer struct {
 // global rate limit is a coarse per-IP abuse guard, engaged only when
 // cfg.RateLimit.Requests > 0 (disabled by default); stricter per-endpoint
 // limits are added as route-level middleware in later work.
-func NewHTTPServer(db database.Client, cfg *config.Config, logger *slog.Logger) *HTTPServer {
+func NewHTTPServer(db database.Client, cfg *config.Config, logger *slog.Logger) (*HTTPServer, error) {
 	router := chi.NewRouter()
 
 	router.Use(middleware.RequestID)
@@ -67,18 +75,27 @@ func NewHTTPServer(db database.Client, cfg *config.Config, logger *slog.Logger) 
 	exampleService := example.NewService(exampleRepo)
 	exampleHandler := example.NewHandler(exampleService)
 
+	// The auth vertical (register/login/logout) is composed in buildAuthComponents
+	// (cmd/api/auth.go), which can fail on fatal misconfiguration.
+	authComps, err := buildAuthComponents(cfg, db, logger)
+	if err != nil {
+		return nil, fmt.Errorf("build auth components: %w", err)
+	}
+
 	s := &HTTPServer{
-		router:         router,
-		db:             db,
-		cfg:            cfg,
-		logger:         logger,
-		exampleHandler: exampleHandler,
-		startTime:      time.Now(),
+		router:          router,
+		db:              db,
+		cfg:             cfg,
+		logger:          logger,
+		exampleHandler:  exampleHandler,
+		authHandler:     authComps.handler,
+		authKeyProvider: authComps.keyProvider,
+		startTime:       time.Now(),
 	}
 
 	s.registerRoutes()
 
-	return s
+	return s, nil
 }
 
 // Router returns the underlying Chi router as an http.Handler, ready to be
