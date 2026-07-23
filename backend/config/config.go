@@ -101,12 +101,21 @@ type OllamaConfig struct {
 }
 
 // AuthConfig contains JWT and session settings.
+//
+// Consumption audit (004-T138): every field below reaches the code it configures
+// via the auth composition root (cmd/api/auth.go, buildAuthComponents) — none is
+// the "loaded but never forwarded" pattern any more:
+//   - JWTSigningKey    → buildKeyProvider (jwt.LoadKeyFromPEM)
+//   - JWTExpiration     → jwt.NewGenerator (access-token TTL)
+//   - RefreshExpiration → jwt.NewIssuer (refresh-token TTL)
+//   - CookieDomain / CookieSecure → auth.CookieConfig (session cookies)
+//   - BcryptCost        → auth.NewService → HashPassword (this task, 004-T137)
 type AuthConfig struct {
 	JWTSigningKey     string        // JWT_SIGNING_KEY (required in production)
 	CookieDomain      string        // COOKIE_DOMAIN (default: localhost)
 	JWTExpiration     time.Duration // JWT_EXPIRATION (default: 24h)
 	RefreshExpiration time.Duration // REFRESH_TOKEN_EXPIRATION (default: 30 days)
-	BcryptCost        int           // BCRYPT_COST (default: 12)
+	BcryptCost        int           // BCRYPT_COST (default: 12; clamped up to 12 in production)
 	CookieSecure      bool          // COOKIE_SECURE (default: false, true in production)
 }
 
@@ -204,19 +213,29 @@ func loadAIConfig() AIConfig {
 	}
 }
 
+// bcryptSecurityFloor is the minimum bcrypt cost allowed in production
+// (docs/security.md). A lower BCRYPT_COST is clamped up to it there; development
+// and test may use a cheaper cost for speed.
+const bcryptSecurityFloor = 12
+
 // loadAuthConfig reads authentication and session configuration from environment variables.
 // CookieSecure defaults to true in production (mirrors the GO_ENV-driven defaults in
 // loadAIConfig/validate below) so HTTPS-only cookies aren't accidentally disabled by omission.
 func loadAuthConfig() AuthConfig {
-	defaultCookieSecure := getEnv("GO_ENV", envDevelopment) == envProduction
+	isProduction := getEnv("GO_ENV", envDevelopment) == envProduction
+
+	bcryptCost := getEnvInt("BCRYPT_COST", bcryptSecurityFloor)
+	if isProduction && bcryptCost < bcryptSecurityFloor {
+		bcryptCost = bcryptSecurityFloor
+	}
 
 	return AuthConfig{
 		JWTSigningKey:     getEnv("JWT_SIGNING_KEY", ""),
 		JWTExpiration:     getEnvDuration("JWT_EXPIRATION", 24*time.Hour),
 		RefreshExpiration: getEnvDuration("REFRESH_TOKEN_EXPIRATION", 30*24*time.Hour),
 		CookieDomain:      getEnv("COOKIE_DOMAIN", "localhost"),
-		CookieSecure:      getEnvBool("COOKIE_SECURE", defaultCookieSecure),
-		BcryptCost:        getEnvInt("BCRYPT_COST", 12),
+		CookieSecure:      getEnvBool("COOKIE_SECURE", isProduction),
+		BcryptCost:        bcryptCost,
 	}
 }
 

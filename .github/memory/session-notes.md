@@ -389,3 +389,28 @@ Historical summaries of completed development sessions. Committed to git as a re
 - **Outcomes**: register/login/logout live under `/api/v1/auth/*`, minting HTTP-only Secure
   SameSite=Strict cookies; swagger regenerated (3 new paths) and confirmed by `technical-writer`;
   roadmap rows for the 7 tasks flipped to Done. No AWS/terraform touched.
+
+### Session: Config Audit — Forward BCRYPT_COST + fix stale security doc (#174)
+
+- **Date**: 2026-07-23
+- **Tool**: Claude Code
+- **What was accomplished**: Closed #174 (004-T137/T138) on branch `feature/174-config-audit-bcrypt`,
+  **stacked on the #189 branch** (base = `feature/177-178-auth-http-surface`) because the wiring target
+  (`buildAuthComponents`) only exists there — on `main`, `auth.Service` is constructed solely in tests.
+- **Key findings and decisions**:
+  - **Resolved the long-tracked `BCRYPT_COST` gap** (the *"A Config Value Can Be Loaded… Yet Never
+    Reach the Code It Configures"* pattern): `HashPassword` now takes a `cost` (invalid → fallback to
+    `DefaultBcryptCost`=12); `auth.Service` carries `bcryptCost`, injected via `NewService`, wired from
+    `cfg.Auth.BcryptCost` in the composition root. Prod security floor: `loadAuthConfig` clamps
+    `BCRYPT_COST`<12 up to 12 when `GO_ENV=production`; dev/test may use a cheaper cost (unit tests use
+    cost 4 for speed).
+  - **Config audit (T138)**: documented on the `AuthConfig` struct — after #177/#178+#174, **every**
+    AuthConfig field reaches its consumer (JWTSigningKey/JWTExpiration/RefreshExpiration/CookieDomain/
+    CookieSecure/BcryptCost). No remaining loaded-but-ignored fields.
+  - **Stale-doc fix**: rewrote `internal/security/doc.go` — it promised JWT/rate-limit/logging impls
+    "land here", but they shipped in `internal/middleware` + `internal/observability`. Now honestly
+    marks the package as an empty reserved namespace.
+  - **Stacked-PR note**: this PR conflicts-free stacks on #189; GitHub will retarget it to `main` when
+    #189 merges. Merge #189 first.
+- **Outcomes**: `BCRYPT_COST` is now honored; config audit closed; `security` package doc accurate.
+  Build/lint/full-suite green. No AWS/terraform touched.

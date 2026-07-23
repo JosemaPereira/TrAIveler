@@ -55,7 +55,7 @@ func buildAuthComponents(cfg *config.Config, db database.Client, logger *slog.Lo
 		subscription.NewPostgresRepository(db),
 	)
 
-	authService := auth.NewService(userRepo, subscriptionService, ratelimit.New())
+	authService := auth.NewService(userRepo, subscriptionService, ratelimit.New(), cfg.Auth.BcryptCost)
 
 	handler := auth.NewHandler(authService, auth.NewJWTTokenIssuer(issuer), refreshRepo, auth.CookieConfig{
 		Domain: cfg.Auth.CookieDomain,

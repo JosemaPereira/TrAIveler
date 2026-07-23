@@ -23,6 +23,9 @@ const (
 	testPassword = "CorrectHorse1!"
 	testFullName = "Ada Lovelace"
 	testToken    = "tok_visa_demo"
+	// testBcryptCost is bcrypt.MinCost (4): the tests don't assert a specific cost,
+	// so the cheapest valid cost keeps hashing fast.
+	testBcryptCost = 4
 )
 
 // fakeSubscriptionCreator is a hand-written stand-in for the unexported
@@ -48,7 +51,7 @@ func (f *fakeSubscriptionCreator) CreateSubscription(
 
 func hashFor(t *testing.T, password string) string {
 	t.Helper()
-	hash, err := auth.HashPassword(password)
+	hash, err := auth.HashPassword(password, testBcryptCost)
 	require.NoError(t, err)
 	return hash
 }
@@ -77,7 +80,7 @@ func TestUnitRegister_NewEmailWithoutToken_CreatesUnsubscribedUser(t *testing.T)
 		Once()
 	creator := &fakeSubscriptionCreator{}
 
-	svc := auth.NewService(users, creator, ratelimit.New())
+	svc := auth.NewService(users, creator, ratelimit.New(), testBcryptCost)
 	resp, err := svc.Register(context.Background(), validRegisterRequest())
 
 	require.NoError(t, err)
@@ -110,7 +113,7 @@ func TestUnitRegister_NewEmailWithToken_CreatesSubscribedUser(t *testing.T) {
 	req := validRegisterRequest()
 	req.PaymentMethodToken = testToken
 
-	svc := auth.NewService(users, creator, ratelimit.New())
+	svc := auth.NewService(users, creator, ratelimit.New(), testBcryptCost)
 	resp, err := svc.Register(context.Background(), req)
 
 	require.NoError(t, err)
@@ -135,7 +138,7 @@ func TestUnitRegister_ExistingEmail_ReturnsConflict(t *testing.T) {
 		Once()
 	creator := &fakeSubscriptionCreator{}
 
-	svc := auth.NewService(users, creator, ratelimit.New())
+	svc := auth.NewService(users, creator, ratelimit.New(), testBcryptCost)
 	resp, err := svc.Register(context.Background(), validRegisterRequest())
 
 	require.Error(t, err)
@@ -154,7 +157,7 @@ func TestUnitRegister_InvalidRequest_ReturnsValidationWithoutTouchingRepo(t *tes
 	req := validRegisterRequest()
 	req.Email = "" // invalid
 
-	svc := auth.NewService(users, creator, ratelimit.New())
+	svc := auth.NewService(users, creator, ratelimit.New(), testBcryptCost)
 	resp, err := svc.Register(context.Background(), req)
 
 	require.Error(t, err)
@@ -173,7 +176,7 @@ func TestUnitRegister_LookupFails_PropagatesUnexpectedError(t *testing.T) {
 	users.EXPECT().GetUserByEmail(mock.Anything, testEmail).Return(nil, dbErr).Once()
 	creator := &fakeSubscriptionCreator{}
 
-	svc := auth.NewService(users, creator, ratelimit.New())
+	svc := auth.NewService(users, creator, ratelimit.New(), testBcryptCost)
 	resp, err := svc.Register(context.Background(), validRegisterRequest())
 
 	require.Error(t, err)
@@ -191,7 +194,7 @@ func TestUnitLogin_ValidCredentials_ReturnsUser(t *testing.T) {
 	users.EXPECT().GetUserByEmail(mock.Anything, testEmail).Return(user, nil).Once()
 	creator := &fakeSubscriptionCreator{}
 
-	svc := auth.NewService(users, creator, ratelimit.New())
+	svc := auth.NewService(users, creator, ratelimit.New(), testBcryptCost)
 	resp, err := svc.Login(context.Background(),
 		auth.LoginRequest{Email: testEmail, Password: testPassword}, "203.0.113.1", "Mozilla/5.0")
 
@@ -211,7 +214,7 @@ func TestUnitLogin_UnknownEmail_ReturnsUnauthorizedWithoutEnumeration(t *testing
 		Once()
 	creator := &fakeSubscriptionCreator{}
 
-	svc := auth.NewService(users, creator, ratelimit.New())
+	svc := auth.NewService(users, creator, ratelimit.New(), testBcryptCost)
 	resp, err := svc.Login(context.Background(),
 		auth.LoginRequest{Email: testEmail, Password: testPassword}, "203.0.113.1", "Mozilla/5.0")
 
@@ -240,7 +243,7 @@ func TestUnitLogin_WrongPassword_ReturnsUnauthorizedAndIncrementsFailedAttempts(
 		Once()
 	creator := &fakeSubscriptionCreator{}
 
-	svc := auth.NewService(users, creator, ratelimit.New())
+	svc := auth.NewService(users, creator, ratelimit.New(), testBcryptCost)
 	resp, err := svc.Login(context.Background(),
 		auth.LoginRequest{Email: testEmail, Password: "WrongPassword9!"}, "203.0.113.1", "Mozilla/5.0")
 
@@ -264,7 +267,7 @@ func TestUnitLogin_RateLimited_ReturnsTooManyRequestsBeforeLookup(t *testing.T) 
 		limiter.RecordFailure(testEmail)
 	}
 
-	svc := auth.NewService(users, creator, limiter)
+	svc := auth.NewService(users, creator, limiter, testBcryptCost)
 	resp, err := svc.Login(context.Background(),
 		auth.LoginRequest{Email: testEmail, Password: testPassword}, "203.0.113.1", "Mozilla/5.0")
 
@@ -294,7 +297,7 @@ func TestUnitLogin_SuccessAfterFailures_ResetsFailedAttempts(t *testing.T) {
 		Once()
 	creator := &fakeSubscriptionCreator{}
 
-	svc := auth.NewService(users, creator, ratelimit.New())
+	svc := auth.NewService(users, creator, ratelimit.New(), testBcryptCost)
 	resp, err := svc.Login(context.Background(),
 		auth.LoginRequest{Email: testEmail, Password: testPassword}, "203.0.113.1", "Mozilla/5.0")
 
@@ -309,7 +312,7 @@ func TestUnitLogin_InvalidRequest_ReturnsValidationWithoutTouchingRepo(t *testin
 	users := authmocks.NewMockUserRepository(t) // no expects
 	creator := &fakeSubscriptionCreator{}
 
-	svc := auth.NewService(users, creator, ratelimit.New())
+	svc := auth.NewService(users, creator, ratelimit.New(), testBcryptCost)
 	resp, err := svc.Login(context.Background(),
 		auth.LoginRequest{Email: testEmail, Password: ""}, "203.0.113.1", "Mozilla/5.0")
 
