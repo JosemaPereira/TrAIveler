@@ -30,6 +30,9 @@ the file **and** add a line here.
 - *Colima for testcontainers-go (Free Runtime + Required Env Vars)* — needs **both** env vars.
 - *Layered Testing Strategy with Optional Testcontainers (Go)* — `testing.Short()` gating.
 - *Mockery: Generation + Scope* — mocks are for **external-system interfaces only**.
+- *`mockery --all` Regenerates a Mock for Every Interface in a Configured Package — Prune Internal
+  Ports* — `--all` ignores the per-package `interfaces:` filter; `rm` the auto-generated internal-port
+  mocks after `make mocks`.
 - *Mockery Mock Self-Import → External Test Package + Interface Ports Break Cycles*.
 - *revive's `context-as-argument` Conflicts with the t-First Test-Helper Convention* — docs win;
   linter carve-out for `_test.go`.
@@ -683,3 +686,28 @@ Read these before trusting any spec/issue text.
   the library. Keeps the library decoupled and testable without the heavy dependency.
 - **Related**: `backend/internal/middleware/auth.go`, `backend/internal/middleware/auth_test.go`,
   `backend/internal/middleware/mocks/token_validator_mock.go`, `docs/mock-standards.md`
+
+---
+
+## `mockery --all` Regenerates a Mock for Every Interface in a Configured Package — Prune Internal Ports
+
+**Date**: 2026-07-23 · **Tool**: Claude Code
+
+- **Context**: `backend/Makefile`'s `make mocks` runs `mockery --config .mockery.yaml --all`. The
+  `--all` flag makes mockery generate a mock for **every** interface found in each package listed
+  under `packages:` — the per-package `interfaces:` list is *not* a filter when `--all` is set. So
+  adding any new interface to an already-configured package (e.g. `internal/auth`) silently produces
+  a new `<interface>_mock.go` on the next `make mocks`, including for small consumer-owned ports you
+  intended to hand-fake.
+- **Symptom**: After adding `auth.TokenIssuer` (1-method port) and with the pre-existing unexported
+  `auth.subscriptionCreator` port present, `make mocks` emitted `token_issuer_mock.go` and
+  `subscription_creator_mock.go` that were never meant to be committed (the tests hand-fake those, per
+  `docs/mock-standards.md`).
+- **Rule**: Keep generated mocks only for the seams you actually mock — external-system interfaces
+  (DB/AI/payment repos) and the handler↔service seam (mirroring `example.Service`). After `make
+  mocks`, **`rm` the auto-generated mocks for internal single-method ports** and hand-fake them. There
+  is no mock-drift CI gate (unlike `swagger-drift`), so pruning is safe; `git status internal/*/mocks`
+  is the check. Watch for `AD`/`MM` index states from repeated `make mocks` runs — `git add -A` before
+  committing to reconcile.
+- **Related**: `backend/.mockery.yaml`, `backend/internal/auth/mocks/`, *Mockery: Generation + Scope*
+  (above), `docs/mock-standards.md`.

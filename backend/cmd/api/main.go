@@ -63,7 +63,10 @@ func main() {
 		"min_connections", cfg.Database.MinConnections,
 	)
 
-	apiServer := NewHTTPServer(dbClient, cfg, logger)
+	apiServer, err := NewHTTPServer(dbClient, cfg, logger)
+	if err != nil {
+		log.Fatalf("failed to initialize HTTP server: %v", err)
+	}
 
 	httpServer := &http.Server{
 		Addr:         fmt.Sprintf(":%d", cfg.Server.Port),

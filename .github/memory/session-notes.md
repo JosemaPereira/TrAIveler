@@ -347,3 +347,45 @@ Historical summaries of completed development sessions. Committed to git as a re
   updated (58 task rows → Group/Sprint/Issue; 14 superseded rows; Sprint Plan block rewritten). Issue
   creation only — no implementation yet. **Note**: downstream Sprint 7/8 entries + Sprint Summary
   Statistics still describe pre-reshape counts; reconcile when those sprints are planned.
+
+### Session: Sprint 6 Auth HTTP Surface — Register/Login/Logout (#177 + #178)
+
+- **Date**: 2026-07-23
+- **Tool**: Claude Code
+- **What was accomplished**: Implemented the HTTP auth vertical (008-T046/T047/T080 for #177;
+  008-T099/T100/T101/T102 for #178) on branch `feature/177-178-auth-http-surface`. One branch/PR for
+  both groups since they share new files (`internal/auth/handler.go`, the token issuer, cookie
+  helpers, composition root). TDD throughout; full suite + lint green; **verified end-to-end against a
+  real Postgres** (register free+paid, duplicate→409, login, wrong-password→401, logout→204 with the
+  session's refresh token revoked in-DB).
+- **Key findings and decisions**:
+  - **New `jwt.Issuer`** (alongside `jwt.Refresher`) mints the *initial* access+refresh pair for
+    register/login; `Refresher` only *rotates*. Both reuse the same private refresh-token
+    gen/hash helpers. Exported **`jwt.HashRefreshToken`** so the logout handler can hash a presented
+    cookie to look it up (same lookup key the store was written with).
+  - **Handler ports**: `auth.AccountService` (Register/Login seam, mirrors `example.Service`
+    precedent — mocked) — named `AccountService` **not `AuthService`** to avoid the `auth.AuthService`
+    revive stutter (`Service` is the concrete struct). `TokenIssuer` (single-method port, hand-faked)
+    with an `auth.TokenPair` that mirrors `jwt.TokenPair` so the jwt package doesn't leak into handler
+    test doubles. `NewJWTTokenIssuer` adapts `*jwt.Issuer` (string↔uuid).
+  - **Composition root** in new `cmd/api/auth.go` (`buildAuthComponents`): builds the JWT
+    `KeyProvider` — loads `JWT_SIGNING_KEY` PEM, or **generates a dev-ephemeral RSA-2048 key when it's
+    unset** (config only requires it in prod). `NewHTTPServer` now returns `(*HTTPServer, error)` to
+    fail fast on a bad key (11 test call sites routed through a new `mustNewHTTPServer` helper). The
+    `keyProvider` is stored on `HTTPServer` for **#179's T207 Validator** to reuse (don't build a
+    second provider).
+  - **#177/#178 ↔ #179 boundary held**: auth routes mounted in the existing **ungated** `/api/v1`
+    group in `routes.go` (not `main.go` — per tasks.md path note). The `Authenticate` gate, the
+    Validator→AuthClaims adapter, and `Refresher` construction stay for **#179 (T207/T208/T212)**;
+    logout works today by reading the refresh cookie (user_id from context once #179 gates it).
+  - **Login has no HTTP rate-limit middleware** — the "progressive delay" is the service's email-keyed
+    `ratelimit.Limiter` (008-T024). Only **register** gets per-IP `middleware.RateLimit(10, 1m)`.
+  - **Config fix**: `REFRESH_TOKEN_EXPIRATION` default **7d → 30d** to match docs/security.md (this is
+    its first consumer); updated config_test assertion.
+  - **`mockery --all` gotcha** (see patterns-discovered): `make mocks` regenerates a mock for *every*
+    interface in each configured package, including internal single-method ports. Kept the
+    `AccountService` mock (service seam), pruned the auto-generated `TokenIssuer`/`subscriptionCreator`
+    mocks (hand-fake convention for internal ports).
+- **Outcomes**: register/login/logout live under `/api/v1/auth/*`, minting HTTP-only Secure
+  SameSite=Strict cookies; swagger regenerated (3 new paths) and confirmed by `technical-writer`;
+  roadmap rows for the 7 tasks flipped to Done. No AWS/terraform touched.

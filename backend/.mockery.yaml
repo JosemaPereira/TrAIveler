@@ -37,3 +37,4 @@ packages:
     interfaces:
       UserRepository:
       RefreshTokenRepository:
+      AccountService:

@@ -236,7 +236,7 @@ func TestLoad_Defaults(t *testing.T) {
 
 		// Auth defaults
 		{"JWT_EXPIRATION", cfg.Auth.JWTExpiration, 24 * time.Hour, "Auth"},
-		{"REFRESH_TOKEN_EXPIRATION", cfg.Auth.RefreshExpiration, 7 * 24 * time.Hour, "Auth"},
+		{"REFRESH_TOKEN_EXPIRATION", cfg.Auth.RefreshExpiration, 30 * 24 * time.Hour, "Auth"},
 		{"COOKIE_DOMAIN", cfg.Auth.CookieDomain, "localhost", "Auth"},
 		{"COOKIE_SECURE", cfg.Auth.CookieSecure, false, "Auth"},
 		{"BCRYPT_COST", cfg.Auth.BcryptCost, 12, "Auth"},
