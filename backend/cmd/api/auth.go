@@ -16,10 +16,8 @@ import (
 )
 
 const (
-	// primaryKeyID labels the single configured JWT signing key. The multi-key
-	// rotation machinery (docs/security.md) is future work; today there is one
-	// primary key, whose id is stamped into every token's `kid` header and looked
-	// up again for verification.
+	// primaryKeyID labels the single configured JWT signing key; multi-key rotation
+	// (docs/security.md) is future work. Its id is stamped into each token's `kid`.
 	primaryKeyID = "primary"
 	// devEphemeralKeyID labels the throwaway key generated when no JWT_SIGNING_KEY
 	// is configured — a development-only convenience (see buildKeyProvider).
@@ -30,18 +28,16 @@ const (
 
 // authComponents bundles the composed authentication surface. keyProvider is
 // exposed so the auth-activation work (008-T207, issue #179) can build the
-// jwt.Validator on the same key set these handlers sign with, rather than
-// constructing a second provider.
+// jwt.Validator on the same key set these handlers sign with.
 type authComponents struct {
 	handler     *auth.Handler
 	keyProvider jwt.KeyProvider
 }
 
-// buildAuthComponents wires the authentication vertical from configuration and
-// the database client: the JWT key provider and generator, the initial-session
-// issuer over the refresh-token store, the subscription service (for paid
-// registration), and the auth service and HTTP handler. It returns an error only
-// for a genuinely fatal misconfiguration (e.g. an unparseable JWT_SIGNING_KEY).
+// buildAuthComponents wires the authentication vertical from config and the
+// database client (JWT key provider and generator, session issuer, subscription
+// service, auth service, and HTTP handler). It errors only on genuinely fatal
+// misconfiguration (e.g. an unparseable JWT_SIGNING_KEY).
 func buildAuthComponents(cfg *config.Config, db database.Client, logger *slog.Logger) (*authComponents, error) {
 	keyProvider, err := buildKeyProvider(cfg, logger)
 	if err != nil {
@@ -69,12 +65,11 @@ func buildAuthComponents(cfg *config.Config, db database.Client, logger *slog.Lo
 	return &authComponents{handler: handler, keyProvider: keyProvider}, nil
 }
 
-// buildKeyProvider builds the JWT key provider from configuration. With a
-// configured JWT_SIGNING_KEY it loads that raw PEM (the "raw now, ARN later"
-// secrets model, issue #143). With none set — tolerated only outside production,
-// where config.Load already requires it — it generates an ephemeral in-memory RSA
-// key so local development can mint and verify tokens; that key resets on every
-// restart, invalidating existing local sessions, which is acceptable for dev.
+// buildKeyProvider builds the JWT key provider from config. With JWT_SIGNING_KEY
+// set it loads that raw PEM ("raw now, ARN later", issue #143). With none — only
+// tolerated outside production, where config.Load already requires it — it
+// generates an ephemeral in-memory RSA key so local dev can mint/verify tokens;
+// that key resets on each restart, invalidating local sessions (acceptable).
 func buildKeyProvider(cfg *config.Config, logger *slog.Logger) (jwt.KeyProvider, error) {
 	if cfg.Auth.JWTSigningKey != "" {
 		key, err := jwt.LoadKeyFromPEM(primaryKeyID, cfg.Auth.JWTSigningKey)

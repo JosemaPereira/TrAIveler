@@ -37,9 +37,9 @@ type HTTPServer struct {
 	logger         *slog.Logger
 	exampleHandler *example.Handler
 	authHandler    *auth.Handler
-	// authKeyProvider is retained for the auth-activation work (008-T207, issue
-	// #179): the jwt.Validator behind the Authenticate gate must use the same key
-	// set these handlers sign with.
+	// authKeyProvider is retained for auth-activation (008-T207, issue #179): the
+	// jwt.Validator behind the Authenticate gate must use the key set these
+	// handlers sign with.
 	authKeyProvider jwt.KeyProvider
 	startTime       time.Time
 }
@@ -75,9 +75,8 @@ func NewHTTPServer(db database.Client, cfg *config.Config, logger *slog.Logger) 
 	exampleService := example.NewService(exampleRepo)
 	exampleHandler := example.NewHandler(exampleService)
 
-	// The authentication vertical (register/login/logout) is composed in
-	// buildAuthComponents (cmd/api/auth.go), which can fail on a fatal
-	// misconfiguration such as an unparseable JWT_SIGNING_KEY.
+	// The auth vertical (register/login/logout) is composed in buildAuthComponents
+	// (cmd/api/auth.go), which can fail on fatal misconfiguration.
 	authComps, err := buildAuthComponents(cfg, db, logger)
 	if err != nil {
 		return nil, fmt.Errorf("build auth components: %w", err)

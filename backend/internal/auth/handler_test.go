@@ -30,9 +30,9 @@ const (
 	handlerEmail = "ada@example.com"
 )
 
-// fakeTokenIssuer is a hand fake for the single-method TokenIssuer port (a hand
-// fake is preferred over a generated mock for a one-method consumer-owned port,
-// per docs/mock-standards.md). It records its arguments and returns a canned pair.
+// fakeTokenIssuer is a hand fake for the one-method TokenIssuer port (preferred
+// over a generated mock per docs/mock-standards.md); it records args and returns
+// a canned pair.
 type fakeTokenIssuer struct {
 	pair      auth.TokenPair
 	err       error

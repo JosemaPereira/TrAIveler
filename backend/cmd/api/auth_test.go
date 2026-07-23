@@ -16,10 +16,9 @@ import (
 
 // These tests verify only that the auth routes are mounted and reachable through
 // the real composition root (NewHTTPServer -> buildAuthComponents -> routes).
-// They deliberately exercise paths that never touch the database — malformed or
-// invalid bodies are rejected before any repository call, and cookie-less logout
-// short-circuits — so the mock DB needs no expectations. Full request/response
-// behavior is covered by internal/auth's handler unit tests.
+// They exercise paths that never touch the DB (invalid bodies rejected before any
+// repository call, cookie-less logout short-circuits), so the mock DB needs no
+// expectations. Full behavior is covered by internal/auth's handler unit tests.
 
 func postTo(t *testing.T, srv *HTTPServer, path, body string) *httptest.ResponseRecorder {
 	t.Helper()

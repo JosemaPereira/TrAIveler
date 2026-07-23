@@ -8,11 +8,10 @@ import (
 	"github.com/google/uuid"
 )
 
-// Issuer mints a brand-new session — an access token plus a first refresh token —
-// for a user who has just proven their identity (registration or login). It is
-// the initial-issuance counterpart to Refresher, which rotates an existing
-// refresh token: both persist only the SHA-256 hash of the opaque refresh token,
-// never the plaintext, and share the same Generator for access tokens.
+// Issuer mints a brand-new session (an access token plus a first refresh token)
+// for a user who just proved their identity. It is the initial-issuance
+// counterpart to Refresher, which rotates an existing token; both persist only
+// the refresh token's SHA-256 hash, never the plaintext.
 type Issuer struct {
 	store      RefreshTokenStore
 	generator  *Generator
@@ -29,10 +28,10 @@ func NewIssuer(store RefreshTokenStore, generator *Generator, refreshTTL time.Du
 	return &Issuer{store: store, generator: generator, refreshTTL: refreshTTL, now: time.Now}
 }
 
-// Issue mints an access token carrying hasSubscription and a fresh refresh token
-// for userID, persisting the refresh token's hash. The access token is minted
-// first so a signing failure short-circuits before any refresh token is stored;
-// only its hash is written, so the plaintext lives solely in the returned pair.
+// Issue mints an access token (carrying hasSubscription) and a fresh refresh
+// token for userID, persisting only the refresh token's hash. The access token is
+// minted first so a signing failure short-circuits before any refresh token is
+// stored.
 func (i *Issuer) Issue(ctx context.Context, userID uuid.UUID, hasSubscription bool) (TokenPair, error) {
 	accessToken, err := i.generator.GenerateAccessToken(ctx, userID, hasSubscription)
 	if err != nil {

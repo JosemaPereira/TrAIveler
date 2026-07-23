@@ -166,10 +166,9 @@ func generateRefreshToken() (raw, hash string, err error) {
 }
 
 // HashRefreshToken returns the hex SHA-256 hash used as the stored lookup key.
-// SHA-256 (not bcrypt) suffices: the token is already high-entropy random. It is
-// exported so a caller holding a presented refresh token (e.g. the logout
-// handler) can compute the same lookup key the store was written with, without
-// re-deriving the hashing scheme.
+// SHA-256 (not bcrypt) suffices since the token is already high-entropy random.
+// Exported so a caller holding a presented token (e.g. logout) can compute the
+// same lookup key without re-deriving the scheme.
 func HashRefreshToken(raw string) string {
 	sum := sha256.Sum256([]byte(raw))
 	return hex.EncodeToString(sum[:])

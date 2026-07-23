@@ -19,35 +19,30 @@ import (
 )
 
 const (
-	// accessTokenCookie / refreshTokenCookie name the session cookies. The
-	// access-token name MUST match middleware.Authenticate's cookie name so the
-	// gate (wired in cmd/api) reads what these handlers set (docs/security.md).
+	// accessTokenCookie name MUST match middleware.Authenticate's cookie name so
+	// the gate (wired in cmd/api) reads what these handlers set (docs/security.md).
 	accessTokenCookie  = "access_token"
 	refreshTokenCookie = "refresh_token"
-	// cookiePath scopes both session cookies to the whole app so the logout
-	// handler can clear them with a matching path.
+	// cookiePath scopes both cookies to the app so logout can clear them by path.
 	cookiePath = "/"
 
-	// registerRateLimitPerMinute is the per-IP registration cap
-	// (specs/008-auth-collaboration-ux/contracts/api.md: "10 requests/minute per IP").
+	// registerRateLimitPerMinute is the per-IP registration cap (spec 008 api.md).
 	registerRateLimitPerMinute = 10
 	registerRateLimitWindow    = time.Minute
 )
 
-// AccountService is the business-logic seam the HTTP handlers depend on,
-// satisfied by *Service. Keeping it an interface (rather than the concrete
-// *Service) lets the handlers be unit-tested with a generated mock and no
-// database. Named AccountService rather than AuthService to avoid stuttering as
-// auth.AuthService (revive), since the concrete Service name is already taken.
+// AccountService is the business-logic seam the HTTP handlers depend on
+// (satisfied by *Service), kept an interface so handlers unit-test with a mock
+// and no database. Named AccountService, not AuthService, to avoid stuttering as
+// auth.AuthService (revive) — the concrete Service name is already taken.
 type AccountService interface {
 	Register(ctx context.Context, req RegisterRequest) (*RegisterResponse, error)
 	Login(ctx context.Context, req LoginRequest, ipAddress, userAgent string) (*LoginResponse, error)
 }
 
-// TokenPair is a freshly minted session: the plaintext access and refresh tokens
-// handed to the client, with their expiries for cookie lifetimes. It mirrors
-// jwt.TokenPair but lives here so the handler's TokenIssuer port does not leak
-// the jwt package into the handler's test doubles.
+// TokenPair is a freshly minted session handed to the client (plaintext tokens
+// plus expiries for cookie lifetimes). It mirrors jwt.TokenPair but lives here so
+// the TokenIssuer port does not leak the jwt package into the handler's tests.
 type TokenPair struct {
 	AccessToken      string
 	RefreshToken     string
@@ -55,25 +50,22 @@ type TokenPair struct {
 	RefreshExpiresAt time.Time
 }
 
-// TokenIssuer mints a new session for an authenticated user. NewJWTTokenIssuer
-// adapts *jwt.Issuer to it; the handler depends on this narrow port so it can be
-// tested without real signing keys.
+// TokenIssuer mints a new session for an authenticated user; NewJWTTokenIssuer
+// adapts *jwt.Issuer to it, so the handler tests without real signing keys.
 type TokenIssuer interface {
 	IssueTokens(ctx context.Context, userID string, hasSubscription bool) (TokenPair, error)
 }
 
-// CookieConfig carries the deployment-dependent cookie attributes. Secure and
-// Domain come from config (COOKIE_SECURE / COOKIE_DOMAIN); HttpOnly and
-// SameSite=Strict are fixed by the security model (docs/security.md).
+// CookieConfig carries deployment-dependent cookie attributes. Secure and Domain
+// come from config; HttpOnly and SameSite=Strict are fixed (docs/security.md).
 type CookieConfig struct {
 	Domain string
 	Secure bool
 }
 
-// Handler is the HTTP transport for the authentication endpoints
-// (register/login/logout). It translates request bodies into service calls,
-// mints session cookies via the TokenIssuer, and maps service errors onto the
-// standard error envelope through errors.HandleError.
+// Handler is the HTTP transport for the auth endpoints (register/login/logout):
+// it decodes requests into service calls, mints session cookies via TokenIssuer,
+// and maps service errors onto the standard envelope via errors.HandleError.
 type Handler struct {
 	service       AccountService
 	issuer        TokenIssuer
@@ -86,12 +78,11 @@ func NewHandler(service AccountService, issuer TokenIssuer, refreshTokens Refres
 	return &Handler{service: service, issuer: issuer, refreshTokens: refreshTokens, cookies: cookies}
 }
 
-// RegisterRoutes mounts the auth endpoints on r, expected to already be scoped
-// under /api/v1 by the caller (cmd/api/routes.go). Registration carries a
-// dedicated per-IP rate limit (10/min); login's throttle is the service's
-// email-keyed progressive delay (not HTTP middleware), and logout's auth
-// requirement is enforced by the Authenticate gate wired at the group level in
-// cmd/api (008-T208).
+// RegisterRoutes mounts the auth endpoints on r (already scoped under /api/v1 by
+// the caller). Registration has a dedicated per-IP rate limit; login's throttle
+// is the service's email-keyed progressive delay (not HTTP middleware), and
+// logout's auth requirement is enforced by the Authenticate gate wired in cmd/api
+// (008-T208).
 func (h *Handler) RegisterRoutes(r chi.Router) {
 	registerLimit := middleware.RateLimit(registerRateLimitPerMinute, registerRateLimitWindow)
 
@@ -201,11 +192,10 @@ func (h *Handler) handleLogout(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNoContent)
 }
 
-// revokePresentedRefreshToken revokes the refresh token carried by the request's
-// refresh_token cookie, if any. A missing cookie or an unknown token is a no-op
-// success (logout is idempotent — a token already gone needs no revocation); a
-// real storage error is surfaced so logout fails loudly rather than silently
-// leaving a live session.
+// revokePresentedRefreshToken revokes the token in the refresh_token cookie, if
+// any. A missing cookie or unknown token is a no-op success (logout is
+// idempotent); a real storage error is surfaced so logout fails loudly rather
+// than leaving a live session.
 func (h *Handler) revokePresentedRefreshToken(r *http.Request) error {
 	cookie, err := r.Cookie(refreshTokenCookie)
 	if err != nil || cookie.Value == "" {
@@ -223,9 +213,9 @@ func (h *Handler) revokePresentedRefreshToken(r *http.Request) error {
 	return h.refreshTokens.RevokeRefreshToken(r.Context(), token.ID)
 }
 
-// issueSession mints a token pair for the user and sets the session cookies. A
-// failure here (e.g. signing key unavailable) is returned for the caller to map
-// to a 500 — the account already exists, so the client can retry via login.
+// issueSession mints a token pair and sets the session cookies. A failure here is
+// returned for the caller to map to 500 — the account already exists, so the
+// client can retry via login.
 func (h *Handler) issueSession(w http.ResponseWriter, r *http.Request, userID string, hasSubscription bool) error {
 	pair, err := h.issuer.IssueTokens(r.Context(), userID, hasSubscription)
 	if err != nil {
@@ -307,18 +297,18 @@ func (a *jwtTokenIssuer) IssueTokens(ctx context.Context, userID string, hasSubs
 	}, nil
 }
 
-// invalidRequestEnvelope is the "invalid_request"/400 body for a malformed
-// request (bad JSON), mirroring internal/example/handler.go: errors.DomainError
-// has no 400 constructor, so this handler writes the envelope directly.
+// invalidRequestEnvelope is the invalid_request/400 body for a malformed request.
+// errors.DomainError has no 400 constructor, so this handler writes it directly
+// (mirrors internal/example/handler.go).
 type invalidRequestEnvelope struct {
 	Error     string `json:"error"`
 	Message   string `json:"message"`
 	RequestID string `json:"request_id"`
 }
 
-// clientIP is the host portion of RemoteAddr, used for security-event logging
-// and the login rate-limit context. As in the rate-limit middleware, X-Forwarded-For
-// is deliberately not trusted here (it is client-spoofable).
+// clientIP is the host portion of RemoteAddr, for security logging and the login
+// rate-limit context. As in the rate-limit middleware, X-Forwarded-For is not
+// trusted here (client-spoofable).
 func clientIP(r *http.Request) string {
 	host, _, err := net.SplitHostPort(r.RemoteAddr)
 	if err != nil {
