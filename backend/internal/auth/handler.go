@@ -42,8 +42,10 @@ type AccountService interface {
 
 // TokenPair is a freshly minted session handed to the client (plaintext tokens
 // plus expiries for cookie lifetimes). It mirrors jwt.TokenPair but lives here so
-// the TokenIssuer port does not leak the jwt package into the handler's tests.
+// the TokenIssuer port does not leak the jwt package into the handler's tests;
+// see jwt.TokenPair for why the pair carries UserID.
 type TokenPair struct {
+	UserID           string
 	AccessToken      string
 	RefreshToken     string
 	AccessExpiresAt  time.Time
@@ -56,6 +58,13 @@ type TokenIssuer interface {
 	IssueTokens(ctx context.Context, userID string, hasSubscription bool) (TokenPair, error)
 }
 
+// TokenRefresher exchanges a valid refresh token for a rotated session;
+// NewJWTTokenRefresher adapts *jwt.Refresher to it, mirroring the TokenIssuer
+// precedent so the handler tests without real signing keys or a database.
+type TokenRefresher interface {
+	RefreshToken(ctx context.Context, rawRefreshToken string) (TokenPair, error)
+}
+
 // CookieConfig carries deployment-dependent cookie attributes. Secure and Domain
 // come from config; HttpOnly and SameSite=Strict are fixed (docs/security.md).
 type CookieConfig struct {
@@ -63,34 +72,57 @@ type CookieConfig struct {
 	Secure bool
 }
 
-// Handler is the HTTP transport for the auth endpoints (register/login/logout):
-// it decodes requests into service calls, mints session cookies via TokenIssuer,
-// and maps service errors onto the standard envelope via errors.HandleError.
+// Handler is the HTTP transport for the auth endpoints
+// (register/login/refresh/logout): it decodes requests into service calls, mints
+// session cookies via TokenIssuer/TokenRefresher, and maps service errors onto
+// the standard envelope via errors.HandleError.
 type Handler struct {
 	service       AccountService
 	issuer        TokenIssuer
+	refresher     TokenRefresher
 	refreshTokens RefreshTokenRepository
 	cookies       CookieConfig
 }
 
 // NewHandler builds an auth Handler from its collaborators.
-func NewHandler(service AccountService, issuer TokenIssuer, refreshTokens RefreshTokenRepository, cookies CookieConfig) *Handler {
-	return &Handler{service: service, issuer: issuer, refreshTokens: refreshTokens, cookies: cookies}
+func NewHandler(
+	service AccountService,
+	issuer TokenIssuer,
+	refresher TokenRefresher,
+	refreshTokens RefreshTokenRepository,
+	cookies CookieConfig,
+) *Handler {
+	return &Handler{
+		service:       service,
+		issuer:        issuer,
+		refresher:     refresher,
+		refreshTokens: refreshTokens,
+		cookies:       cookies,
+	}
 }
 
-// RegisterRoutes mounts the auth endpoints on r (already scoped under /api/v1 by
-// the caller). Registration has a dedicated per-IP rate limit; login's throttle
-// is the service's email-keyed progressive delay (not HTTP middleware), and
-// logout's auth requirement is enforced by the Authenticate gate wired in cmd/api
-// (008-T208).
-func (h *Handler) RegisterRoutes(r chi.Router) {
+// RegisterPublicRoutes mounts the auth endpoints that cannot require a valid
+// access token: registration (a dedicated per-IP rate limit), login (throttled by
+// the service's email-keyed progressive delay, not HTTP middleware), and refresh
+// (008-T149: no auth middleware — it authenticates with the refresh cookie).
+//
+// Full paths are registered rather than an r.Route("/auth", ...) subtree because
+// the caller mounts this group and RegisterProtectedRoutes as siblings under the
+// same /api/v1 tree, and chi panics when one pattern is routed twice.
+func (h *Handler) RegisterPublicRoutes(r chi.Router) {
 	registerLimit := middleware.RateLimit(registerRateLimitPerMinute, registerRateLimitWindow)
 
-	r.Route("/auth", func(r chi.Router) {
-		r.With(registerLimit).Post("/register", h.handleRegister)
-		r.Post("/login", h.handleLogin)
-		r.Post("/logout", h.handleLogout)
-	})
+	r.With(registerLimit).Post("/auth/register", h.handleRegister)
+	r.Post("/auth/login", h.handleLogin)
+	r.Post("/auth/refresh", h.handleRefresh)
+}
+
+// RegisterProtectedRoutes mounts the auth endpoints that require a valid access
+// token. The gate itself (middleware.Authenticate) is applied by the caller's
+// group in cmd/api/routes.go (008-T208), not here — see RegisterPublicRoutes for
+// why these are full paths.
+func (h *Handler) RegisterProtectedRoutes(r chi.Router) {
+	r.Post("/auth/logout", h.handleLogout)
 }
 
 // handleRegister godoc
@@ -165,6 +197,50 @@ func (h *Handler) handleLogin(w http.ResponseWriter, r *http.Request) {
 	respondJSON(w, http.StatusOK, resp)
 }
 
+// refreshResponse is the 200 body of POST /auth/refresh; the rotated tokens ride
+// in cookies, never in the body (specs/008-auth-collaboration-ux/contracts/api.md).
+type refreshResponse struct {
+	Message string `json:"message"`
+}
+
+// handleRefresh godoc
+// @Summary     Refresh the session
+// @Description Exchanges the refresh_token cookie for a new access token and a rotated refresh
+// @Description token, both set as HTTP-only, Secure, SameSite=Strict cookies. Public by design: it
+// @Description authenticates with the refresh cookie, not an access token. A missing, expired, or
+// @Description already-used refresh token returns the uniform 401 authentication_required envelope.
+// @Tags        auth
+// @Produce     json
+// @Success     200 {object} refreshResponse
+// @Failure     401 {object} errors.ErrorResponse
+// @Failure     500 {object} errors.ErrorResponse
+// @Router      /auth/refresh [post]
+func (h *Handler) handleRefresh(w http.ResponseWriter, r *http.Request) {
+	cookie, err := r.Cookie(refreshTokenCookie)
+	if err != nil || cookie.Value == "" {
+		// Must reuse the Refresher's own constant, not a local literal: this
+		// body has to be byte-identical to the one an invalid token produces
+		// (see jwt.RefreshFailureMessage).
+		domainerrors.HandleError(w, r, domainerrors.Unauthorized(authjwt.RefreshFailureMessage))
+		return
+	}
+
+	pair, err := h.refresher.RefreshToken(r.Context(), cookie.Value)
+	if err != nil {
+		domainerrors.HandleError(w, r, err)
+		return
+	}
+
+	h.setSessionCookies(w, pair)
+
+	observability.LogSecurityEvent(
+		correlationID(r.Context()), observability.EventAuthTokenRefresh, pair.UserID,
+		observability.SeverityInfo, clientIP(r), r.UserAgent(), nil,
+	)
+
+	respondJSON(w, http.StatusOK, refreshResponse{Message: "Token refreshed successfully"})
+}
+
 // handleLogout godoc
 // @Summary     Log out
 // @Description Revokes the presented refresh token and clears both session cookies. Idempotent: a
@@ -173,7 +249,7 @@ func (h *Handler) handleLogin(w http.ResponseWriter, r *http.Request) {
 // @Success     204 "No Content"
 // @Failure     401 {object} errors.ErrorResponse
 // @Failure     500 {object} errors.ErrorResponse
-// @Security    BearerAuth
+// @Security    CookieAuth
 // @Router      /auth/logout [post]
 func (h *Handler) handleLogout(w http.ResponseWriter, r *http.Request) {
 	if err := h.revokePresentedRefreshToken(r); err != nil {
@@ -289,12 +365,43 @@ func (a *jwtTokenIssuer) IssueTokens(ctx context.Context, userID string, hasSubs
 		return TokenPair{}, err
 	}
 
+	return toTokenPair(pair), nil
+}
+
+// jwtTokenRefresher adapts *jwt.Refresher (which works in jwt.TokenPair) to the
+// handler's TokenRefresher port, mirroring jwtTokenIssuer above.
+type jwtTokenRefresher struct {
+	refresher *authjwt.Refresher
+}
+
+// NewJWTTokenRefresher wires a TokenRefresher backed by the jwt.Refresher.
+func NewJWTTokenRefresher(refresher *authjwt.Refresher) TokenRefresher {
+	return &jwtTokenRefresher{refresher: refresher}
+}
+
+// RefreshToken delegates to the jwt.Refresher, mapping its TokenPair onto the
+// handler-facing one. Errors pass through unchanged: the Refresher already
+// returns the uniform authentication_required domain error for any invalid,
+// expired, or revoked token.
+func (a *jwtTokenRefresher) RefreshToken(ctx context.Context, rawRefreshToken string) (TokenPair, error) {
+	pair, err := a.refresher.RefreshToken(ctx, rawRefreshToken)
+	if err != nil {
+		return TokenPair{}, err
+	}
+
+	return toTokenPair(pair), nil
+}
+
+// toTokenPair maps the jwt package's TokenPair onto the handler-facing one,
+// shared by both adapters so the two stay in step.
+func toTokenPair(pair authjwt.TokenPair) TokenPair {
 	return TokenPair{
+		UserID:           pair.UserID.String(),
 		AccessToken:      pair.AccessToken,
 		RefreshToken:     pair.RefreshToken,
 		AccessExpiresAt:  pair.AccessExpiresAt,
 		RefreshExpiresAt: pair.RefreshExpiresAt,
-	}, nil
+	}
 }
 
 // invalidRequestEnvelope is the invalid_request/400 body for a malformed request.

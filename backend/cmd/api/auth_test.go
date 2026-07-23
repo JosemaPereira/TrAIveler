@@ -53,19 +53,26 @@ func TestHTTPServer_AuthRoutes_LoginMountedAndValidatesInput(t *testing.T) {
 	assert.Equal(t, http.StatusUnprocessableEntity, invalid.Code)
 }
 
-func TestHTTPServer_AuthRoutes_LogoutMountedAndClearsCookies(t *testing.T) {
+func TestHTTPServer_AuthRoutes_LogoutMountedBehindTheAuthenticateGate(t *testing.T) {
 	srv := mustNewHTTPServer(t, dbmocks.NewMockClient(t), testConfig(t), testLogger(t))
 
-	// Cookie-less logout is idempotent: it clears cookies and returns 204 without
-	// any revocation (no DB call), confirming the route is mounted.
+	// Since 008-T208 logout lives in the authenticated group, so a cookie-less
+	// call is rejected by the gate rather than reaching the handler. Its
+	// idempotent cookie-clearing behavior is covered by internal/auth's handler
+	// unit tests, and the authenticated path by routes_test.go.
 	rec := postTo(t, srv, "/api/v1/auth/logout", "")
 
-	require.Equal(t, http.StatusNoContent, rec.Code)
-	var clearedAccess bool
-	for _, c := range rec.Result().Cookies() {
-		if c.Name == "access_token" && c.MaxAge < 0 {
-			clearedAccess = true
-		}
-	}
-	assert.True(t, clearedAccess, "logout must expire the access_token cookie")
+	require.Equal(t, http.StatusUnauthorized, rec.Code)
+	assert.Empty(t, rec.Result().Cookies(), "the gate must reject before any cookie is written")
+}
+
+func TestHTTPServer_AuthRoutes_RefreshMountedAsAPublicRoute(t *testing.T) {
+	srv := mustNewHTTPServer(t, dbmocks.NewMockClient(t), testConfig(t), testLogger(t))
+
+	// No refresh_token cookie: the handler itself answers 401 before any store
+	// lookup, so this reaches the real composed handler without touching the DB.
+	rec := postTo(t, srv, "/api/v1/auth/refresh", "")
+
+	require.Equal(t, http.StatusUnauthorized, rec.Code)
+	assert.Contains(t, rec.Body.String(), "authentication_required")
 }

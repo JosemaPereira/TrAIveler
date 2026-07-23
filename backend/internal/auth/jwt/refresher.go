@@ -22,6 +22,18 @@ const (
 	refreshTokenBytes = 32
 )
 
+// RefreshFailureMessage is the single client-facing message for every failed
+// refresh, per specs/008-auth-collaboration-ux/contracts/api.md.
+//
+// It is exported because the HTTP handler rejects a missing refresh cookie
+// itself, without ever reaching the Refresher, and the two 401 bodies must be
+// byte-identical: absent, unknown, expired, and revoked tokens have to be
+// indistinguishable from the outside, or the uniform error stops preventing
+// the enumeration it exists to prevent. Two separate literals would silently
+// drift apart, so both paths read this constant. (Same reasoning as
+// HashRefreshToken being exported for the logout path.)
+const RefreshFailureMessage = "Session expired. Please log in again."
+
 // ErrRefreshTokenNotFound is returned by RefreshTokenStore.ByHash when no row
 // matches; the Refresher treats it as an authentication failure.
 var ErrRefreshTokenNotFound = errors.New("jwt: refresh token not found")
@@ -42,9 +54,9 @@ type NewRefreshToken struct {
 	ExpiresAt time.Time
 }
 
-// RefreshTokenStore is the persistence seam for refresh tokens; the PostgreSQL
-// implementation lands with the login flow. Implementations must be
-// concurrency-safe.
+// RefreshTokenStore is the persistence seam for refresh tokens, implemented in
+// production by auth.RefreshStore over the refresh_tokens table.
+// Implementations must be concurrency-safe.
 type RefreshTokenStore interface {
 	// ByHash looks up a token by SHA-256 hash, returning ErrRefreshTokenNotFound.
 	ByHash(ctx context.Context, tokenHash string) (RefreshTokenRecord, error)
@@ -60,9 +72,15 @@ type SubscriptionResolver interface {
 	HasActiveSubscription(ctx context.Context, userID uuid.UUID) (bool, error)
 }
 
-// TokenPair is a successful refresh result. RefreshToken is the plaintext handed
-// to the client; only its hash is stored.
+// TokenPair is a freshly minted session (issued or refreshed). RefreshToken is
+// the plaintext handed to the client; only its hash is stored.
+//
+// UserID identifies the session's owner. The pair carries it because
+// POST /auth/refresh is a public route: its handler has no authenticated
+// request context to attribute the auth_token_refresh security event from, and
+// re-parsing the access token just to recover the subject would be wasteful.
 type TokenPair struct {
+	UserID           uuid.UUID
 	AccessToken      string
 	RefreshToken     string
 	AccessExpiresAt  time.Time
@@ -147,6 +165,7 @@ func (r *Refresher) RefreshToken(ctx context.Context, rawRefreshToken string) (T
 	}
 
 	return TokenPair{
+		UserID:           record.UserID,
 		AccessToken:      accessToken,
 		RefreshToken:     rawNext,
 		AccessExpiresAt:  now.Add(r.generator.accessTTL),
@@ -175,9 +194,11 @@ func HashRefreshToken(raw string) string {
 }
 
 // unauthorizedRefresh builds the uniform auth error for any invalid refresh
-// token, wrapping the cause for logs.
+// token, wrapping the cause for logs only. The client-facing message is
+// RefreshFailureMessage — see its doc for why the handler shares this exact
+// constant.
 func unauthorizedRefresh(cause error) error {
-	domainErr := domainerrors.Unauthorized("invalid or expired refresh token")
+	domainErr := domainerrors.Unauthorized(RefreshFailureMessage)
 	domainErr.Err = fmt.Errorf("jwt: refresh: %w", cause)
 	return domainErr
 }

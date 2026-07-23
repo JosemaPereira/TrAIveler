@@ -10,7 +10,26 @@ This document defines the REST API endpoint contracts for authentication, sessio
 
 **Base URL**: `/api/v1`  
 **Content-Type**: `application/json`  
-**Authentication**: JWT token in HTTP-only cookie (except registration, login, password-reset endpoints)
+**Authentication**: JWT token in HTTP-only cookie (except registration, login, refresh, and
+password-reset endpoints)
+
+> **As-built note on error codes (2026-07-23)** — the `"error"` values in the examples below are
+> written in `SCREAMING_SNAKE_CASE` (`INVALID_CREDENTIALS`, `RATE_LIMIT_EXCEEDED`,
+> `INVALID_REFRESH_TOKEN`, …). That style predates the error catalog in
+> `docs/api-design-standards.md` §7 and is **stale**. What ships is the catalog's lowercase
+> `snake_case` code, resolved through `internal/errors`' constructors:
+>
+> | This document | Actually emitted | Status |
+> |---------------|------------------|--------|
+> | `INVALID_CREDENTIALS` | `authentication_required` | 401 |
+> | `INVALID_REFRESH_TOKEN` | `authentication_required` | 401 |
+> | `RATE_LIMIT_EXCEEDED` | `rate_limit_exceeded` | 429 |
+>
+> This is a deliberate, decided correction, not drift — `docs/api-design-standards.md` §7 is the
+> authority and the generated Swagger contract in `backend/docs/` reflects the emitted codes. Do
+> not "fix" the code to match the examples below. Note in particular that `/auth/refresh` returns
+> the same `authentication_required` envelope for a missing cookie as for an invalid, expired, or
+> already-rotated token, so the two are indistinguishable to a client by design.
 
 ---
 

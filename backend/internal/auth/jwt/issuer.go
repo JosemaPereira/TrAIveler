@@ -54,6 +54,7 @@ func (i *Issuer) Issue(ctx context.Context, userID uuid.UUID, hasSubscription bo
 	}
 
 	return TokenPair{
+		UserID:           userID,
 		AccessToken:      accessToken,
 		RefreshToken:     rawRefresh,
 		AccessExpiresAt:  now.Add(i.generator.accessTTL),

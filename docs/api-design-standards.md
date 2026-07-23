@@ -676,6 +676,12 @@ Authorization: Bearer <jwt_token>
 
 **Note**: In MVP, JWT is stored in HTTP-only cookie, so this header may not be used. Include here for future external API consumers.
 
+**As-built (2026-07-23, issue #179)**: `middleware.Authenticate` accepts the `access_token` cookie
+**only** — no `Authorization: Bearer` code path exists yet. The generated Swagger 2.0 contract
+therefore declares its security definition as `CookieAuth` (`type: apiKey`, `in: header`,
+`name: Cookie`), not a bearer scheme; see `backend/cmd/api/docs.go`. Revisit when the external-API
+consumer case above is actually built.
+
 ### Request ID Header
 
 All requests **SHOULD** include (client-generated):

@@ -1,7 +1,6 @@
 package integration
 
 import (
-	"bytes"
 	"context"
 	"database/sql"
 	"encoding/json"
@@ -43,8 +42,10 @@ func applyMigrations(t *testing.T, databaseURL string) {
 }
 
 // createExample POSTs a row via the running app and returns its ID, so the
-// DB-timeout scenario below has something real to GET.
-func createExample(t *testing.T, baseURL string) string {
+// DB-timeout scenario below has something real to GET. /api/v1/examples sits in
+// the authenticated route group (008-T208), so the caller's session cookies are
+// attached to the request.
+func createExample(t *testing.T, baseURL string, cookies []*http.Cookie) string {
 	t.Helper()
 
 	payload, err := json.Marshal(map[string]string{
@@ -53,7 +54,8 @@ func createExample(t *testing.T, baseURL string) string {
 	})
 	require.NoError(t, err)
 
-	resp, err := http.Post(baseURL+"/api/v1/examples", "application/json", bytes.NewReader(payload))
+	req := newAuthenticatedRequest(t, http.MethodPost, baseURL+"/api/v1/examples", cookies, payload)
+	resp, err := http.DefaultClient.Do(req)
 	require.NoError(t, err, "POST /api/v1/examples must succeed at the transport level")
 	defer resp.Body.Close()
 	require.Equal(t, http.StatusCreated, resp.StatusCode, "expected the setup POST to succeed")
@@ -123,7 +125,10 @@ func TestGetExample_DBQueryCanceledByStatementTimeout_ReturnsCorrelatedInternalE
 	binPath := buildAPIBinary(t)
 	baseURL := startAPIServer(t, ctx, binPath, appDatabaseURL)
 
-	exampleID := createExample(t, baseURL)
+	// /api/v1 is gated since 008-T208, so this black-box test needs a genuine
+	// session before it can touch the example routes.
+	sessionCookies := registerTestSession(t, baseURL)
+	exampleID := createExample(t, baseURL, sessionCookies)
 
 	release := holdExclusiveTableLock(t, ctx, databaseURL)
 	defer release()
@@ -132,9 +137,7 @@ func TestGetExample_DBQueryCanceledByStatementTimeout_ReturnsCorrelatedInternalE
 	// broken, this fails fast instead of hanging until the surrounding go
 	// test timeout.
 	client := &http.Client{Timeout: 5 * time.Second}
-	resp, err := client.Get(baseURL + "/api/v1/examples/" + exampleID)
-	require.NoError(t, err,
-		"GET must succeed at the transport level; the expected failure is a 500 response body, not a transport error")
+	resp := authenticatedGet(t, client, baseURL+"/api/v1/examples/"+exampleID, sessionCookies)
 	defer resp.Body.Close()
 
 	assert.Equal(t, http.StatusInternalServerError, resp.StatusCode,

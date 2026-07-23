@@ -37,12 +37,27 @@ type HTTPServer struct {
 	logger         *slog.Logger
 	exampleHandler *example.Handler
 	authHandler    *auth.Handler
-	// authKeyProvider is retained for auth-activation (008-T207, issue #179): the
-	// jwt.Validator behind the Authenticate gate must use the key set these
-	// handlers sign with.
-	authKeyProvider jwt.KeyProvider
-	startTime       time.Time
+	// tokenValidator backs the Authenticate gate on the authenticated route
+	// group. It defaults to the JWT-backed adapter over the very key set
+	// buildAuthComponents signs with — one key provider, never two — and is
+	// overridable through a serverOption so wiring tests need no real RSA keys.
+	tokenValidator middleware.TokenValidator
+	// extraProtectedRoutes registers additional routes inside the authenticated
+	// /api/v1 group. It is always nil in production: it exists only because no
+	// production handler reads middleware.HasSubscriptionFromContext yet, while
+	// 008-T209 requires proving that the gate really populates that context at
+	// the composition root — which needs some handler behind the gate to observe
+	// it from. Delete this field, its three guarded lines in registerRoutes, and
+	// withProtectedRoutes in routes_test.go as soon as a real
+	// subscription-gated route lands and can carry that assertion instead.
+	extraProtectedRoutes func(chi.Router)
+	startTime            time.Time
 }
+
+// serverOption customizes an HTTPServer before its routes are registered. The
+// options themselves live with the tests that need them; production calls
+// NewHTTPServer with none.
+type serverOption func(*HTTPServer)
 
 // NewHTTPServer builds an HTTPServer with the standard middleware chain
 // registered, in order: RequestID -> Logger -> Recovery -> [RateLimit] ->
@@ -54,7 +69,7 @@ type HTTPServer struct {
 // global rate limit is a coarse per-IP abuse guard, engaged only when
 // cfg.RateLimit.Requests > 0 (disabled by default); stricter per-endpoint
 // limits are added as route-level middleware in later work.
-func NewHTTPServer(db database.Client, cfg *config.Config, logger *slog.Logger) (*HTTPServer, error) {
+func NewHTTPServer(db database.Client, cfg *config.Config, logger *slog.Logger, opts ...serverOption) (*HTTPServer, error) {
 	router := chi.NewRouter()
 
 	router.Use(middleware.RequestID)
@@ -75,22 +90,27 @@ func NewHTTPServer(db database.Client, cfg *config.Config, logger *slog.Logger) 
 	exampleService := example.NewService(exampleRepo)
 	exampleHandler := example.NewHandler(exampleService)
 
-	// The auth vertical (register/login/logout) is composed in buildAuthComponents
-	// (cmd/api/auth.go), which can fail on fatal misconfiguration.
+	// The auth vertical (register/login/refresh/logout) is composed in
+	// buildAuthComponents (cmd/api/auth.go), which can fail on fatal
+	// misconfiguration.
 	authComps, err := buildAuthComponents(cfg, db, logger)
 	if err != nil {
 		return nil, fmt.Errorf("build auth components: %w", err)
 	}
 
 	s := &HTTPServer{
-		router:          router,
-		db:              db,
-		cfg:             cfg,
-		logger:          logger,
-		exampleHandler:  exampleHandler,
-		authHandler:     authComps.handler,
-		authKeyProvider: authComps.keyProvider,
-		startTime:       time.Now(),
+		router:         router,
+		db:             db,
+		cfg:            cfg,
+		logger:         logger,
+		exampleHandler: exampleHandler,
+		authHandler:    authComps.handler,
+		tokenValidator: newJWTTokenValidator(jwt.NewValidator(authComps.keyProvider)),
+		startTime:      time.Now(),
+	}
+
+	for _, opt := range opts {
+		opt(s)
 	}
 
 	s.registerRoutes()

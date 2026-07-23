@@ -10,12 +10,14 @@ does).
 
 Serves the generated Swagger 2.0 (OpenAPI 2.0) document as JSON.
 
-- **Auth**: Same as any other route mounted inside the shared route group (none today; JWT
-  once Sprint 5 lands — see `research.md`).
+- **Auth**: Required. Since issue #179 (008-T208) `/swagger/*` is registered with the same
+  `middleware.Authenticate` chain as the authenticated `/api/v1` group, so it needs a valid
+  `access_token` cookie — see `research.md`'s "Auth gating for Swagger UI ahead of Sprint 5"
+  decision, which this delivers.
 - **Response 200**: `application/json` body containing the full Swagger 2.0 (OpenAPI 2.0)
   document (see `data-model.md` for the shape).
-- **Response 401/403**: Once auth exists, same error format as every other protected endpoint
-  per `docs/api-design-standards.md` §7 (standardized error envelope).
+- **Response 401**: The standard `authentication_required` envelope per
+  `docs/api-design-standards.md` §7, identical to every other gated endpoint.
 
 ## `GET /swagger/index.html` (and other `/swagger/*` static assets)
 
@@ -41,10 +43,20 @@ annotations directly above its function definition, following this shape (mirror
 // @Param       body body CreateExampleRequest true "Example payload"
 // @Success     201 {object} ExampleResponse
 // @Failure     400 {object} errors.ErrorResponse
-// @Security    BearerAuth
+// @Failure     401 {object} errors.ErrorResponse
+// @Security    CookieAuth
 // @Router      /examples [post]
 func (h *Handler) CreateExample(w http.ResponseWriter, r *http.Request) { ... }
 ```
+
+`@Security CookieAuth` names the single security definition declared in `backend/cmd/api/docs.go`.
+It was originally written `BearerAuth` (`in: header`, `name: Authorization`); since issue #179
+(008-T208) mounted `middleware.Authenticate`, the definition is `CookieAuth` (`in: header`,
+`name: Cookie`) because the server authenticates **only** on the HTTP-only `access_token` cookie
+and has no `Authorization: Bearer` code path — see that file's comment for why Swagger 2.0 forces
+the `Cookie`-header apiKey encoding. Add `@Security` to a handler if and only if it is mounted in
+the authenticated route group, and pair it with `@Failure 401 {object} errors.ErrorResponse`; the
+public auth entry points (`/auth/register`, `/auth/login`, `/auth/refresh`) carry neither.
 
 A handler with no such annotations is silently excluded from the contract (see `research.md`'s
 "Excluding intentionally-undocumented endpoints" decision) — this is intentional and requires

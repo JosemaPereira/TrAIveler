@@ -27,17 +27,19 @@ const (
 )
 
 // authComponents bundles the composed authentication surface. keyProvider is
-// exposed so the auth-activation work (008-T207, issue #179) can build the
-// jwt.Validator on the same key set these handlers sign with.
+// exposed so NewHTTPServer can build the Authenticate gate's jwt.Validator on
+// the same key set these handlers sign with, rather than a second one
+// (008-T207).
 type authComponents struct {
 	handler     *auth.Handler
 	keyProvider jwt.KeyProvider
 }
 
 // buildAuthComponents wires the authentication vertical from config and the
-// database client (JWT key provider and generator, session issuer, subscription
-// service, auth service, and HTTP handler). It errors only on genuinely fatal
-// misconfiguration (e.g. an unparseable JWT_SIGNING_KEY).
+// database client (JWT key provider and generator, session issuer and
+// refresher, subscription service, auth service, and HTTP handler). It errors
+// only on genuinely fatal misconfiguration (e.g. an unparseable
+// JWT_SIGNING_KEY).
 func buildAuthComponents(cfg *config.Config, db database.Client, logger *slog.Logger) (*authComponents, error) {
 	keyProvider, err := buildKeyProvider(cfg, logger)
 	if err != nil {
@@ -48,19 +50,34 @@ func buildAuthComponents(cfg *config.Config, db database.Client, logger *slog.Lo
 
 	userRepo := auth.NewPostgresUserRepository(db)
 	refreshRepo := auth.NewPostgresRefreshTokenRepository(db)
-	issuer := jwt.NewIssuer(auth.NewRefreshStore(refreshRepo), generator, cfg.Auth.RefreshExpiration)
+	refreshStore := auth.NewRefreshStore(refreshRepo)
+	issuer := jwt.NewIssuer(refreshStore, generator, cfg.Auth.RefreshExpiration)
 
-	subscriptionService := subscription.NewService(
-		payment.NewStubPaymentProvider(logger),
-		subscription.NewPostgresRepository(db),
+	// One subscription repository serves both the registration flow and the
+	// refresh flow's resolver, so a refreshed token re-reads the same rows the
+	// service writes (008-T211/T212).
+	subscriptionRepo := subscription.NewPostgresRepository(db)
+	subscriptionService := subscription.NewService(payment.NewStubPaymentProvider(logger), subscriptionRepo)
+
+	// The Refresher rotates refresh tokens and re-resolves has_subscription on
+	// every use, so a lapsed subscription takes effect within one access-token
+	// lifetime (008-T212, FR-022).
+	refresher := jwt.NewRefresher(
+		refreshStore, generator, subscription.NewResolver(subscriptionRepo), cfg.Auth.RefreshExpiration,
 	)
 
 	authService := auth.NewService(userRepo, subscriptionService, ratelimit.New(), cfg.Auth.BcryptCost)
 
-	handler := auth.NewHandler(authService, auth.NewJWTTokenIssuer(issuer), refreshRepo, auth.CookieConfig{
-		Domain: cfg.Auth.CookieDomain,
-		Secure: cfg.Auth.CookieSecure,
-	})
+	handler := auth.NewHandler(
+		authService,
+		auth.NewJWTTokenIssuer(issuer),
+		auth.NewJWTTokenRefresher(refresher),
+		refreshRepo,
+		auth.CookieConfig{
+			Domain: cfg.Auth.CookieDomain,
+			Secure: cfg.Auth.CookieSecure,
+		},
+	)
 
 	return &authComponents{handler: handler, keyProvider: keyProvider}, nil
 }

@@ -78,7 +78,9 @@ backend/
 │   └── api/
 │       ├── main.go                   # Process entry point: config → DB client → HTTP server → graceful shutdown
 │       ├── server.go                 # HTTPServer: builds the Chi router, middleware chain, /healthz handler, and the internal/example wiring
-│       └── routes.go                 # registerRoutes(): single place new endpoints are wired up (currently /healthz + /api/v1/examples)
+│       ├── auth.go                   # buildAuthComponents(): composes the auth vertical (JWT keys/generator/issuer/refresher, subscription + auth services, handler)
+│       ├── token_validator.go        # *jwt.Validator → middleware.TokenValidator adapter (008-T207; lives in main to break the jwt→errors→middleware cycle)
+│       └── routes.go                 # registerRoutes(): single place new endpoints are wired up (/healthz public; /api/v1 split into a public and an Authenticate-gated group; /swagger/* gated)
 ├── internal/                         # Domain packages — not importable outside this module
 │   ├── middleware/
 │   │   ├── request_id.go             # Generates/propagates X-Request-ID correlation ID (NFR-OBS-003)
@@ -154,8 +156,14 @@ backend/
 > **`internal/example/handler.go` is also the canonical example for `swag` doc-comment
 > annotations.** Every handler function in that file carries a `swag` doc block (`@Summary`,
 > `@Description`, `@Tags`, `@Accept`/`@Produce`, `@Param`, `@Success`, `@Failure`, `@Security
-> BearerAuth`, `@Router`) directly above its function definition, matching the shape defined in
+> CookieAuth`, `@Router`) directly above its function definition, matching the shape defined in
 > [`specs/009-api-documentation/contracts/api.md`](../specs/009-api-documentation/contracts/api.md).
+> `CookieAuth` is the single security definition declared in `cmd/api/docs.go` (`type: apiKey`,
+> `in: header`, `name: Cookie`); it was named `BearerAuth`/`Authorization` until issue #179
+> (008-T208), when the live gate made that name describe a scheme the server never accepted —
+> authentication is the HTTP-only `access_token` cookie only. Add `@Security` to a handler if and
+> only if it is mounted in the authenticated route group, and pair it with
+> `@Failure 401 {object} errors.ErrorResponse`.
 > When adding a real domain handler (Trip, Auth, ...), copy this file's annotation pattern rather
 > than inventing a new one: reference request/response types with `{object} <TypeName>` (unexported
 > types in the same package resolve fine — see `example.createRequest`/`example.listResponse` in
@@ -175,8 +183,10 @@ backend/
 > `backup-policy.yml` referenced in earlier planning docs do not exist yet either.
 >
 > **`/swagger/*` routes are mounted** (issue #115): `GET /swagger/index.html` (interactive Swagger
-> UI) and `GET /swagger/doc.json` (the generated Swagger 2.0 contract) are live, unauthenticated
-> endpoints serving the `backend/docs/` artifact above — see [Try the
+> UI) and `GET /swagger/doc.json` (the generated Swagger 2.0 contract) serve the `backend/docs/`
+> artifact above. Since issue #179 (008-T208) they are **authenticated** — they sit behind the same
+> `middleware.Authenticate` gate as the rest of `/api/v1`, so a browser needs a live `access_token`
+> cookie (log in first) to open them. See [Try the
 > API](#try-the-api-interactive-swagger-ui) below, [docs/architecture.md](../docs/architecture.md),
 > and [docs/api-design-standards.md](../docs/api-design-standards.md) §16.
 
@@ -342,19 +352,27 @@ With the backend running (either setup path above), open the interactive Swagger
 open http://localhost:8080/swagger/index.html
 ```
 
-The page renders every `swag`-annotated endpoint (currently the `internal/example` reference
-resource — see [Project Structure](#project-structure)) and lets you send real requests against
-your locally running server via "Try it out" — the page loads its contract from the live
-`GET /swagger/doc.json` route, not a static or hand-edited copy, so it always reflects whatever
-`make swagger` last generated from the annotated handlers.
+The page renders every `swag`-annotated endpoint (today: the `internal/auth` endpoints and the
+`internal/example` reference resource — see [Project Structure](#project-structure)) and lets you
+send real requests against your locally running server via "Try it out" — the page loads its
+contract from the live `GET /swagger/doc.json` route, not a static or hand-edited copy, so it
+always reflects whatever `make swagger` last generated from the annotated handlers.
+
+Ignore the **Authorize** box. The contract's `CookieAuth` definition is an `apiKey` in the `Cookie`
+header (Swagger 2.0 has no cookie scheme — that is OpenAPI 3's `in: cookie`), and browsers refuse
+to let a page set `Cookie` on an XHR, so typing a value there does nothing. You do not need it:
+the UI is same-origin with the API and behind the same gate, so the browser that could open this
+page already holds the `access_token` cookie and attaches it to every "Try it out" request
+automatically.
 
 For a step-by-step walkthrough (expand a tag, execute a real `POST /api/v1/examples` request, and
 confirm the response matches what `curl` would return), see [Scenario 2 of
 `specs/009-api-documentation/quickstart.md`](../specs/009-api-documentation/quickstart.md#scenario-2--interactive-ui-real-request).
 
-`/swagger/*` is intentionally unauthenticated for now (see the note in [Project
-Structure](#project-structure) above) — this will change once Sprint 5's JWT middleware is wired
-into the shared route group in `cmd/api/routes.go`.
+`/swagger/*` is **gated** (008-T208): it is registered with the same `middleware.Authenticate`
+chain as the authenticated `/api/v1` group in `cmd/api/routes.go`, so open it in a browser that
+already holds an `access_token` cookie — e.g. after `POST /api/v1/auth/login` — otherwise it
+answers `401 authentication_required`.
 
 ---
 
@@ -607,20 +625,28 @@ All versioned endpoints are prefixed `/api/v1`. Authentication uses an HTTP-only
 
 ### Built today
 
+Since issue #179 (008-T208) `cmd/api/routes.go` splits `/api/v1` into a **public** group and an
+**authenticated** group carrying `middleware.Authenticate`; `/healthz` sits outside both, and
+`/swagger/*` sits inside the authenticated one.
+
 | Group | Endpoints | Auth |
 |-------|-----------|------|
-| Health | `GET /healthz` | None |
-| Examples (reference pattern, throwaway — see [Project Structure](#project-structure)) | `GET/POST /api/v1/examples`, `GET/PUT/DELETE /api/v1/examples/:id` | None (no auth wired into this demo resource) |
+| Health | `GET /healthz` | None (public, unversioned) |
+| Auth (public) | `POST /api/v1/auth/register`, `/api/v1/auth/login`, `/api/v1/auth/refresh` | None — refresh authenticates with the `refresh_token` cookie |
+| Auth (authenticated) | `POST /api/v1/auth/logout` | Required (`access_token` cookie) |
+| Examples (reference pattern, throwaway — see [Project Structure](#project-structure)) | `GET/POST /api/v1/examples`, `GET/PUT/DELETE /api/v1/examples/:id` | Required (`access_token` cookie) |
+| API docs | `GET /swagger/index.html`, `GET /swagger/doc.json` | Required (`access_token` cookie) |
 
 ### Planned (not yet built)
 
-The domain routes below are the target API contract — none of them exist in the codebase yet (no
-`auth`/`trip`/`itinerary`/`conversation`/`suggestion`/`subscription` package has been created, see
+The domain routes below are the target API contract and have no HTTP surface yet (`internal/auth/`
+and `internal/subscription/` exist as packages, but only the auth endpoints listed under "Built
+today" are mounted; `internal/{trip, itinerary, conversation, suggestion}` are unbuilt — see
 [Project Structure](#project-structure)'s "Target" tree):
 
 | Group | Endpoints | Auth |
 |-------|-----------|------|
-| Auth | `POST /auth/register`, `/auth/login`, `/auth/logout`, `GET /auth/me`, `DELETE /users/me` | Mixed |
+| Auth (remaining) | `GET /auth/me`, `DELETE /users/me`, the password-reset/change endpoints | Mixed |
 | Subscription | `GET /plans`, `POST /subscription/checkout`, `/confirm`, `GET /subscription/current` | Required |
 | Trips | `GET/POST /trips`, `GET/PUT/DELETE /trips/:id` | Required (admin write) |
 | Itinerary | `POST /trips/:id/generate` | Required (admin) |
