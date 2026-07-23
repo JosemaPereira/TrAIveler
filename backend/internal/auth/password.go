@@ -2,12 +2,20 @@ package auth
 
 import "golang.org/x/crypto/bcrypt"
 
-// bcryptCost is mandated by docs/security.md; deliberately not bcrypt.DefaultCost (10).
-const bcryptCost = 12
+// DefaultBcryptCost is the bcrypt cost mandated by docs/security.md (deliberately
+// above bcrypt.DefaultCost of 10). It is also the fallback HashPassword uses when
+// a caller supplies a cost outside bcrypt's valid range.
+const DefaultBcryptCost = 12
 
-// HashPassword hashes password with bcrypt at bcryptCost.
-func HashPassword(password string) (string, error) {
-	hash, err := bcrypt.GenerateFromPassword([]byte(password), bcryptCost)
+// HashPassword hashes password with bcrypt at the given cost. A cost outside
+// bcrypt's supported range [bcrypt.MinCost, bcrypt.MaxCost] falls back to
+// DefaultBcryptCost, so a misconfigured BCRYPT_COST can neither error nor silently
+// produce a weaker-than-intended hash.
+func HashPassword(password string, cost int) (string, error) {
+	if cost < bcrypt.MinCost || cost > bcrypt.MaxCost {
+		cost = DefaultBcryptCost
+	}
+	hash, err := bcrypt.GenerateFromPassword([]byte(password), cost)
 	if err != nil {
 		return "", err
 	}

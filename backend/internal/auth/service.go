@@ -31,12 +31,15 @@ type Service struct {
 	users      UserRepository
 	subscriber subscriptionCreator
 	limiter    *ratelimit.Limiter
+	bcryptCost int
 }
 
 // NewService builds a Service from its collaborators: the user repository, the
-// subscription-creation port, and the login rate limiter.
-func NewService(users UserRepository, subscriber subscriptionCreator, limiter *ratelimit.Limiter) *Service {
-	return &Service{users: users, subscriber: subscriber, limiter: limiter}
+// subscription-creation port, the login rate limiter, and the bcrypt cost used
+// when hashing new passwords (wired from config.Auth.BcryptCost; an out-of-range
+// value is corrected by HashPassword).
+func NewService(users UserRepository, subscriber subscriptionCreator, limiter *ratelimit.Limiter, bcryptCost int) *Service {
+	return &Service{users: users, subscriber: subscriber, limiter: limiter, bcryptCost: bcryptCost}
 }
 
 // Register creates a new admin user after validating the request and enforcing
@@ -57,7 +60,7 @@ func (s *Service) Register(ctx context.Context, req RegisterRequest) (*RegisterR
 		return nil, err
 	}
 
-	hash, err := HashPassword(req.Password)
+	hash, err := HashPassword(req.Password, s.bcryptCost)
 	if err != nil {
 		return nil, fmt.Errorf("hash password: %w", err)
 	}

@@ -326,6 +326,41 @@ func TestLoad_CookieSecure_ProductionEnvExplicitFalse_OverridesDefault(t *testin
 	}
 }
 
+func TestLoad_BcryptCost_ProductionBelowFloor_ClampedToTwelve(t *testing.T) {
+	os.Clearenv()
+	os.Setenv("DATABASE_URL", "postgres://localhost/test")
+	os.Setenv("JWT_SIGNING_KEY", "test-signing-key")
+	os.Setenv("AI_PROVIDER", "ollama")
+	os.Setenv("GO_ENV", "production")
+	os.Setenv("BCRYPT_COST", "8")
+
+	cfg, err := Load()
+	if err != nil {
+		t.Fatalf("Load() unexpected error = %v", err)
+	}
+
+	if cfg.Auth.BcryptCost != 12 {
+		t.Errorf("BCRYPT_COST=8 in production: got %d, want 12 (clamped to the security floor)", cfg.Auth.BcryptCost)
+	}
+}
+
+func TestLoad_BcryptCost_NonProductionBelowFloor_Preserved(t *testing.T) {
+	os.Clearenv()
+	os.Setenv("DATABASE_URL", "postgres://localhost/test")
+	os.Setenv("AI_PROVIDER", "ollama")
+	os.Setenv("GO_ENV", "development")
+	os.Setenv("BCRYPT_COST", "6")
+
+	cfg, err := Load()
+	if err != nil {
+		t.Fatalf("Load() unexpected error = %v", err)
+	}
+
+	if cfg.Auth.BcryptCost != 6 {
+		t.Errorf("BCRYPT_COST=6 in development: got %d, want 6 (no clamp outside production)", cfg.Auth.BcryptCost)
+	}
+}
+
 func TestLoad_RequiredValues(t *testing.T) {
 	setValidEnv(t)
 
