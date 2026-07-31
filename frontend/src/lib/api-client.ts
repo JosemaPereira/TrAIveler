@@ -168,7 +168,11 @@ async function performRefresh(): Promise<boolean> {
 // moment (a dashboard firing three queries in parallel), and each of them
 // refreshing would rotate the refresh token repeatedly and invalidate the
 // others. They all await the same promise instead.
-function refreshSession(): Promise<boolean> {
+//
+// Named for the token it renews, not the session: `auth-store.ts` exports an
+// unrelated `refreshSession()` action that re-derives the *user* from the API,
+// and two same-named functions in adjacent modules would read as one.
+function refreshAccessToken(): Promise<boolean> {
   inFlightRefresh ??= performRefresh().finally(() => {
     inFlightRefresh = null
   })
@@ -194,7 +198,7 @@ async function request<T>(
     const error = await buildAPIError(response)
 
     if (allowRefresh && isRecoverableExpiry(error, endpoint)) {
-      if (await refreshSession()) {
+      if (await refreshAccessToken()) {
         // Replayed with `allowRefresh: false` so a still-401 retry falls
         // through to the session-expired path instead of looping. `options`
         // is safe to reuse because every body this client sends is an
