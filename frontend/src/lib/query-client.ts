@@ -43,6 +43,25 @@ export function getErrorMessage(error: unknown): string {
   return 'An unexpected error occurred.'
 }
 
+/**
+ * Reads the `retry_after_seconds` hint the backend attaches to a 429
+ * `rate_limit_exceeded` envelope (see `internal/errors/types.go`), for UIs
+ * that render a "try again in N seconds" countdown.
+ *
+ * Returns `undefined` unless the value is genuinely a finite number, so a
+ * malformed or absent hint degrades to "no countdown" instead of rendering
+ * `NaN`.
+ */
+export function getRetryAfterSeconds(error: unknown): number | undefined {
+  if (!isAPIError(error)) {
+    return undefined
+  }
+  const retryAfter = error.details?.retry_after_seconds
+  return typeof retryAfter === 'number' && Number.isFinite(retryAfter)
+    ? retryAfter
+    : undefined
+}
+
 export function getFieldErrors(error: unknown): Record<string, string> {
   if (!isAPIError(error) || !error.fields) {
     return {}

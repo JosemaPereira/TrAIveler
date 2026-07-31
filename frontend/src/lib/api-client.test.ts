@@ -158,6 +158,39 @@ describe('apiFetch', () => {
       await expect(apiFetch('/trips/missing')).rejects.toBeInstanceOf(APIError)
     })
 
+    it('should carry the envelope details through to the APIError', async () => {
+      const envelope = {
+        error: 'rate_limit_exceeded',
+        message: 'Too many login attempts. Please try again later.',
+        request_id: 'req_rate001',
+        details: { retry_after_seconds: 42 },
+      }
+      vi.mocked(fetch).mockResolvedValue(
+        jsonResponse(envelope, { status: 429, ok: false })
+      )
+
+      await expect(apiFetch('/auth/login')).rejects.toMatchObject({
+        status: 429,
+        code: 'rate_limit_exceeded',
+        details: { retry_after_seconds: 42 },
+      })
+    })
+
+    it('should leave details undefined when the envelope has no details object', async () => {
+      const envelope = {
+        error: 'not_found',
+        message: 'Trip not found',
+        request_id: 'req_nf001',
+      }
+      vi.mocked(fetch).mockResolvedValue(
+        jsonResponse(envelope, { status: 404, ok: false })
+      )
+
+      await expect(apiFetch('/trips/missing')).rejects.toMatchObject({
+        details: undefined,
+      })
+    })
+
     it('should leave fields undefined when the envelope has no fields array', async () => {
       const envelope = {
         error: 'authentication_required',

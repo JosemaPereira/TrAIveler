@@ -48,6 +48,9 @@ the file **and** add a line here.
 
 - *Vitest Needs Explicit `afterEach(cleanup)` Without `test.globals: true`*.
 - *Remove `baseUrl` When Only Used to Support `paths` (tsconfig)*.
+- *A Client-Level Interceptor That Must Touch the Store Needs a Handler Registry, Not an Import* —
+  the store already imports the client; invert with `setXHandler()` wired at the composition root.
+- *MSW and a Stubbed Global `fetch` Cannot Share a Test File* — the stub bypasses the interceptor.
 
 ### Infra, CI & GitHub
 
@@ -802,3 +805,51 @@ Read these before trusting any spec/issue text.
   Playwright already installed for E2E avoids a second browser download.
 - **Related**: `docs/architecture.md`, `docs/cloud-and-environments.md`, `docs/security.md`,
   `docs/testing-guidelines.md`, `docs/ui-guidelines.md`, `docs/data-model.md`
+
+---
+
+### A Client-Level Interceptor That Must Touch the Store Needs a Handler Registry, Not an Import
+
+- **Discovered**: 2026-07-31 — **Tool**: Claude Code
+- **Context**: `frontend/src/lib/api-client.ts` gaining the 401→refresh→retry interceptor (008-T160,
+  issue #180), whose failure path has to clear the Zustand auth store and redirect to `/login`.
+- **Problem**: The obvious implementation — `api-client.ts` importing `useAuthStore` — is a cycle:
+  `stores/auth-store.ts` already imports `api-client` for its own `refreshSession()`. ESM tolerates
+  such cycles only while every use is deferred inside a function, so it "works" until someone adds a
+  module-scope read and it breaks with an undefined binding at import time. The same module also has
+  no router instance to navigate with (it is plain module code, not a component).
+- **Solution**: Invert the dependency at the *client*: export
+  `setSessionExpiredHandler(handler | null)` with a `null` default (a no-op, so the client stays
+  usable and testable standalone), and put the real behavior in a feature module
+  (`features/auth/session-expiry.ts`) that the composition root (`main.tsx`) installs before first
+  render. Navigate with `window.location.assign`, not the router — no router instance is reachable,
+  and a full document load also guarantees no stale authenticated state survives in any tree, store,
+  or in-flight query. Bonus: a later ticket can swap in a router-aware handler without reopening the
+  client. Tests set/unset the handler in `afterEach`, and one test drives a real 401 through
+  `apiFetch` end-to-end rather than adding a test-only export to production code.
+- **Related**: `frontend/src/lib/api-client.ts`, `frontend/src/features/auth/session-expiry.ts`,
+  `frontend/src/main.tsx`, `frontend/src/stores/auth-store.ts`
+
+---
+
+### MSW and a Stubbed Global `fetch` Cannot Share a Test File
+
+- **Discovered**: 2026-07-31 — **Tool**: Claude Code
+- **Context**: Wiring MSW for the first time (`src/test/msw/`, lifecycle in `src/test/setup.ts`) — the
+  switch `docs/testing-guidelines.md` §Layer 2 said to make "once a real feature lands that calls the
+  backend" — alongside the pre-existing `lib/api-client.test.ts`, which stubs global `fetch`.
+- **Problem**: `vi.stubGlobal('fetch', …)` replaces the very function MSW's Node interceptor patches,
+  so an MSW handler in the same file is silently never consulted. The failure mode is not an error:
+  the stub answers, the handler's call counter stays 0, and an assertion about a multi-request
+  sequence quietly tests nothing.
+- **Solution**: Split by style, not by subject. Keep the client's own unit tests on direct `fetch`
+  stubs and put anything exercising a real request *sequence* (401→refresh→retry) in a separate
+  MSW-backed file. Run the server with `onUnhandledRequest: 'error'` so a forgotten handler fails
+  loudly instead of escaping to the network, `server.resetHandlers()` in the shared `afterEach`
+  (alongside the existing RTL `cleanup()`), and deliberately register **no** default handler for
+  endpoints that should only ever be reached indirectly — a stray call then fails the test instead of
+  being answered. Derive handler URLs from the same `VITE_API_BASE_URL` the client reads, so handler
+  and client paths cannot drift.
+- **Related**: `frontend/src/test/msw/server.ts`, `frontend/src/test/msw/handlers.ts`,
+  `frontend/src/test/setup.ts`, `frontend/src/lib/api-client.refresh.test.ts`,
+  `frontend/src/lib/api-client.test.ts`, `docs/testing-guidelines.md`
