@@ -554,3 +554,87 @@ Historical summaries of completed development sessions. Committed to git as a re
   `gofmt -l` empty, `go build`/`go vet -tags test`/`golangci-lint` all exit 0, `-short` 15 pkgs ok,
   **full suite against real Postgres 15 pkgs ok** (the load-bearing check — 013-015 break no other
   goose.Up-dependent suite). All 10 Mermaid diagrams render. No AWS/terraform touched.
+
+### Session: Frontend Auth Plumbing — Label, Hooks, authApi + 401 Refresh Interceptor (#171 + #180)
+
+- **Date**: 2026-07-31
+- **Tool**: Claude Code
+- **What was accomplished**: Closed #171 (008-T054) and #180 (008-T058/T059/T111/T112) plus **008-T160**
+  (homed on #180 by the 2026-07-30 decision) on `feature/171-180-auth-label-and-hooks`, merged as
+  **PR #194** (`9f2c8cc`). Implemented via `tdd-developer`, independently re-verified by the parent
+  session, then hardened by a user-requested scope audit and a `technical-writer` documentation pass.
+  7 commits; 24 files / 224 tests, coverage 99.21/97.18/100/99.18.
+- **Key findings and decisions**:
+  - **The auth store's `User` type was wrong and is corrected.** It declared `role`,
+    `subscription_id`, `last_login_at` — all `json:"-"` in `internal/auth/models.go`, so the API never
+    sends them — and lacked `full_name`/`has_subscription`. Written in Sprint 5 from
+    `docs/data-model.md` before any auth endpoint existed; the live backend now outranks that per the
+    *Issue-Body Snippets Are Lowest-Authority* ranking. **`role` stays absent deliberately: no
+    frontend authorization decision can be made from this type until the API exposes it** (#184).
+  - **The interceptor reaches the store through a handler registry, not an import** — `auth-store.ts`
+    already imports `api-client.ts`, so the reverse would close a cycle. New pattern entry:
+    *A Client-Level Interceptor That Must Touch the Store Needs a Handler Registry, Not an Import*.
+  - **MSW is now wired**, the switch `docs/testing-guidelines.md` §Layer 2 had deferred until a real
+    feature called the backend. New pattern entry: *MSW and a Stubbed Global `fetch` Cannot Share a
+    Test File* — the stub replaces the function MSW patches, so handlers are silently never consulted.
+  - **Scope audit found two live defects**, both reachable only now that the auth endpoints exist:
+    `mapApiError` let 409/422/429 fall through to the retryable "Something Went Wrong" default; and
+    `buildAPIError` read the rate-limit wait only from the body, though `internal/middleware/
+    rate_limit.go` (guarding `POST /auth/register`) sends the `Retry-After` **header with a
+    `details`-less envelope** — the app's own most likely 429 was losing its countdown.
+  - **The audit also found this PR had left four status docs lying** (`docs/testing-guidelines.md`,
+    `frontend/README.md` ×3 places, `docs/architecture.md`, `.env.test`). **Lesson: the two-tier docs
+    rule's tier-1 trackers must be swept in the same commit that invalidates them — grep the claim,
+    do not recall it.** Two roadmap notes (008-T033, 005-T046) asserting the store's `User` carries
+    `role`/`subscription_id` "per the higher-authority doc" were corrected the same way.
+  - `technical-writer` caught two factually wrong comments of mine and one real defect: an **empty
+    `Retry-After` header injected `retry_after_seconds: 0`** (`Number('')` is 0 and passes
+    `Number.isInteger`).
+- **Outcomes**: register/login/logout hooks live on the fetch client; an expired access token is
+  silently refreshed and the request replayed (single-flight, so concurrent expiries cannot rotate the
+  one-time-use refresh token against each other); `Label` ships. Downstream context propagated to six
+  roadmap rows plus reconciliation comments on #182/#183/#184. No AWS/terraform touched.
+
+### Session: Session Bootstrap — `GET /auth/me` (001-T021, #195)
+
+- **Date**: 2026-07-31
+- **Tool**: Claude Code
+- **What was accomplished**: Built the one genuinely unbuilt piece of **001-T021** on
+  `feature/001-t021-auth-me-endpoint`, merged as **PR #196** (`25c03a8`). Issue **#195** was created
+  for it (the roadmap row had none) and its URL written back. TDD throughout; `technical-writer`
+  review run as the mandatory API-doc step. 2 service + 4 handler + 4 integration tests (real
+  Postgres).
+- **Key findings and decisions**:
+  - The other three parts of 001-T021 (register/login/logout) had already shipped in #177/#178 — the
+    row is now marked partially superseded. **It was found by the #194 scope audit, not by planning**;
+    nothing else tracked `GET /me`, and `auth-store.refreshSession()` had been calling it all along.
+  - **Reads from the database, not the token's claims**: `has_subscription` goes stale within an
+    access token's 24h lifetime, and a caller asking "who am I" wants the current answer.
+  - **A deleted account returns 401, not 404** — a 404 would answer "who am I?" with "you do not
+    exist" while the client still holds cookies it trusts.
+  - **`/auth/me` is exempt from the client's session-expiry teardown** (new pattern entry: *An
+    Endpoint Where a 401 Is an Answer, Not a Failure*). The exemption is narrower than it looks: a
+    `token_expired` 401 still goes through refresh-and-retry, and a *failed* refresh calls
+    `notifySessionExpired()` regardless — correct, since only a genuinely-issued token reaches there,
+    but two comments overstated it and `technical-writer` caught them.
+  - **A latent frontend bug surfaced exactly as predicted**: `refreshSession()` expected a bare
+    `User` while the endpoint answers `{user}`. Its test had encoded a contract the backend never had
+    and went red the instant the real shape landed — see the new pattern entry.
+  - **A test I wrote was wrong and I caught it on reread**: `TestAuthMe_AfterLogout_Returns401` used a
+    client with no cookie jar, so it silently re-tested the anonymous case. Rewritten as
+    `..._AccessTokenOutlivesTheSession`, asserting **200** and documenting the real property — a
+    stateless JWT is not revoked by logout; clearing cookies is what ends the session.
+  - Handler tests drive the **real `middleware.Authenticate`** with a hand-faked `TokenValidator`
+    rather than exporting a context setter from `internal/middleware` purely for tests — the seam this
+    repo already regrets as `HTTPServer.extraProtectedRoutes`.
+  - **Third pre-existing swagger gap found**: `handleRegister` lacks `@Failure 429` despite
+    `middleware.RateLimit(10/min)`, alongside the already-known missing `@Failure 500` on
+    register/login. All three left for the endpoints that own them.
+- **Outcomes**: a page reload can re-derive the session, unblocking 008-T120/T121 (#184), whose
+  roadmap warning is now marked resolved. Verified: backend build/vet/lint clean, 15 pkgs `-short` ok,
+  full suite against real Postgres ok, `make swagger` idempotent; frontend 24 files / 230 tests,
+  99.21/97.18/100/99.18. No AWS/terraform touched.
+- **Open follow-ups after these two sessions**: (1) the three swagger `@Failure` gaps above; (2) the
+  #179 carry-overs — `/swagger/index.html` 401s on a cold start, contracts/api.md's 503-vs-actual-500
+  for a DB-unavailable refresh, and the `extraProtectedRoutes` test hook (delete when a real
+  subscription-gated route lands); (3) Sprint 6 still open: #172, #173, #181, #182, #183, #184.
