@@ -71,6 +71,45 @@ export class APIError extends Error {
   }
 }
 
+/**
+ * Reads a `Retry-After` header as delta-seconds.
+ *
+ * Only the numeric form is honored. The HTTP-date form is legal but this API
+ * never emits it (`internal/errors/handler.go` echoes an integer second count),
+ * and parsing a date here would mean trusting client/server clock agreement.
+ */
+function retryAfterHeaderSeconds(response: Response): number | undefined {
+  const header = response.headers.get('Retry-After')
+  if (header === null) {
+    return undefined
+  }
+  const seconds = Number(header)
+  return Number.isInteger(seconds) && seconds >= 0 ? seconds : undefined
+}
+
+/**
+ * Ensures a rate-limit/unavailable error carries `retry_after_seconds` even
+ * when the wait only arrived as a header.
+ *
+ * The backend sends both (body `details` plus the `Retry-After` header), but an
+ * intermediary — a load balancer or CDN shedding load — can answer 429/503 with
+ * the header and no envelope of ours at all. Without this the UI would silently
+ * lose the countdown in exactly the case where the wait matters most.
+ */
+function withRetryAfter(
+  details: Record<string, unknown> | undefined,
+  response: Response
+): Record<string, unknown> | undefined {
+  if (details?.retry_after_seconds !== undefined) {
+    return details
+  }
+  const seconds = retryAfterHeaderSeconds(response)
+  if (seconds === undefined) {
+    return details
+  }
+  return { ...details, retry_after_seconds: seconds }
+}
+
 async function buildAPIError(response: Response): Promise<APIError> {
   let body: unknown
   try {
@@ -86,15 +125,20 @@ async function buildAPIError(response: Response): Promise<APIError> {
       body.message,
       body.request_id,
       body.fields,
-      body.details
+      withRetryAfter(body.details, response)
     )
   }
 
+  // No envelope of ours — typically an intermediary (load balancer, CDN)
+  // answering before the request reached the app. A Retry-After header is the
+  // only structured thing such a response carries, so keep it.
   return new APIError(
     response.status,
     'unknown_error',
     response.statusText || 'Unknown error',
-    ''
+    '',
+    undefined,
+    withRetryAfter(undefined, response)
   )
 }
 
