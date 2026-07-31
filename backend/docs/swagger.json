@@ -97,6 +97,43 @@
                 }
             }
         },
+        "/auth/me": {
+            "get": {
+                "security": [
+                    {
+                        "CookieAuth": []
+                    }
+                ],
+                "description": "Returns the account behind the access_token cookie. This is how a freshly loaded\npage learns who is signed in: the session cookies are HTTP-only, so the browser\ncannot read them, and no user data survives a reload client-side. The record is read\nfrom the database, so has_subscription reflects the current state rather than the\npossibly-stale claim baked into the access token. A token whose account no longer\nexists returns the uniform 401 rather than a 404 — the session is dead, not the\nresource. The 401's error code tells the client what to do next:\nauthentication_required (no token, an invalid one, or a deleted account) means log\nin again, while token_expired — emitted only for a validly-signed but expired token\n— means refresh and retry.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "auth"
+                ],
+                "summary": "Get the authenticated account",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/auth.CurrentUserResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/errors.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/errors.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
         "/auth/refresh": {
             "post": {
                 "description": "Exchanges the refresh_token cookie for a new access token and a rotated refresh\ntoken, both set as HTTP-only, Secure, SameSite=Strict cookies. Public by design: it\nauthenticates with the refresh cookie, not an access token. A missing, expired, or\nalready-used refresh token returns the uniform 401 authentication_required envelope.",
@@ -472,6 +509,14 @@
         }
     },
     "definitions": {
+        "auth.CurrentUserResponse": {
+            "type": "object",
+            "properties": {
+                "user": {
+                    "$ref": "#/definitions/auth.User"
+                }
+            }
+        },
         "auth.LoginRequest": {
             "type": "object",
             "properties": {

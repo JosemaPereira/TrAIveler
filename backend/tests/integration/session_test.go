@@ -2,6 +2,7 @@ package integration
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -91,4 +92,27 @@ func authenticatedGet(t *testing.T, client *http.Client, url string, cookies []*
 	resp, err := client.Do(newAuthenticatedRequest(t, http.MethodGet, url, cookies, nil))
 	require.NoError(t, err, "GET %s must succeed at the transport level", url)
 	return resp
+}
+
+// setupAPITestServer boots a real backend API process against a
+// disposable Postgres testcontainer and returns its base URL, so tests in
+// this file can make genuine HTTP requests against the actual
+// cmd/api/routes.go route table instead of a hand-built substitute.
+//
+// Migrations are applied because every route worth black-box testing sits in
+// the authenticated group (008-T208): reaching one means registering a real
+// account through registerTestSession, which needs the users table to exist.
+func setupAPITestServer(t *testing.T) string {
+	t.Helper()
+
+	if testing.Short() {
+		t.Skip("skipping integration test requiring a container runtime in short mode")
+	}
+
+	ctx := context.Background()
+	databaseURL := startPostgresContainer(t, ctx)
+	applyMigrations(t, databaseURL)
+	binPath := buildAPIBinary(t)
+
+	return startAPIServer(t, ctx, binPath, databaseURL)
 }

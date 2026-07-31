@@ -49,3 +49,11 @@ export interface LoginRequest {
 export interface LoginResponse {
   user: User
 }
+
+/**
+ * `GET /auth/me` body. Same `user` envelope as register and login, so all three
+ * decode identically rather than this one being special-cased.
+ */
+export interface CurrentUserResponse {
+  user: User
+}

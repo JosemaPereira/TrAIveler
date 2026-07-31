@@ -166,6 +166,13 @@ type LoginResponse struct {
 	User User `json:"user"`
 }
 
+// CurrentUserResponse is the GET /auth/me success body. It wraps the user in the
+// same "user" envelope register and login use, so a client can decode all three
+// with one type rather than special-casing this one.
+type CurrentUserResponse struct {
+	User User `json:"user"`
+}
+
 // validateEmailField reports an email that is empty or not RFC 5322-parseable.
 // It uses net/mail rather than a hand-rolled regex, which under-/over-matches
 // the RFC in subtle ways.

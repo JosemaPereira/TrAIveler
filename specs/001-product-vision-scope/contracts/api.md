@@ -72,6 +72,23 @@ Clear `auth_token` cookie.
 
 Return the currently authenticated user.
 
+> **As-built note (2026-07-31, 001-T021)**: this endpoint now exists
+> (`auth.Handler.handleCurrentUser`), and the shipped shape differs from the example below. The
+> generated contract in `backend/docs/` is the authority; do not "fix" the code to match this
+> section. Differences, all deliberate:
+>
+> | This document | Actually shipped |
+> |---------------|------------------|
+> | cookie `auth_token` | `access_token` (HTTP-only, Secure, SameSite=Strict) |
+> | `user.role` | omitted — `auth.User.Role` carries `json:"-"`, so no client can make an authorization decision from this body |
+> | `user.subscription: { status, plan }` | flattened to a `has_subscription` boolean, read live from the `users` row rather than from the access token's claim |
+> | (absent) | `full_name`, `created_at` |
+> | `401 UNAUTHENTICATED` | `401 authentication_required` — same snake_case correction already recorded in [`specs/008-auth-collaboration-ux/contracts/api.md`](../../008-auth-collaboration-ux/contracts/api.md); `docs/api-design-standards.md` §7 is the authority |
+>
+> A token whose subject no longer exists returns that same `401`, not a `404`: the session is dead,
+> not the resource. An expired-but-validly-signed token is the one 401 that instead carries
+> `token_expired`, the frontend's silent-refresh trigger (008-T150).
+
 **Response `200`**
 ```json
 {

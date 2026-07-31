@@ -78,8 +78,11 @@ describe('useAuthStore', () => {
   })
 
   describe('when refreshSession succeeds', () => {
+    // The endpoint answers with a { user } envelope, matching register and
+    // login. This test previously mocked a bare user, encoding a contract the
+    // backend never had — it passed only because no such endpoint existed yet.
     it('should set isAuthenticated and the user from /auth/me', async () => {
-      vi.spyOn(api, 'get').mockResolvedValue(testUser)
+      vi.spyOn(api, 'get').mockResolvedValue({ user: testUser })
 
       await useAuthStore.getState().refreshSession()
 
@@ -88,6 +91,14 @@ describe('useAuthStore', () => {
       expect(state.isAuthenticated).toBe(true)
       expect(state.user).toEqual(testUser)
       expect(state.isLoading).toBe(false)
+    })
+
+    it('should unwrap the user envelope rather than storing the envelope', async () => {
+      vi.spyOn(api, 'get').mockResolvedValue({ user: testUser })
+
+      await useAuthStore.getState().refreshSession()
+
+      expect(useAuthStore.getState().user).not.toHaveProperty('user')
     })
   })
 

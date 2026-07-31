@@ -25,6 +25,65 @@ func (_m *MockAccountService) EXPECT() *MockAccountService_Expecter {
 	return &MockAccountService_Expecter{mock: &_m.Mock}
 }
 
+// CurrentUser provides a mock function with given fields: ctx, userID
+func (_m *MockAccountService) CurrentUser(ctx context.Context, userID string) (*auth.CurrentUserResponse, error) {
+	ret := _m.Called(ctx, userID)
+
+	if len(ret) == 0 {
+		panic("no return value specified for CurrentUser")
+	}
+
+	var r0 *auth.CurrentUserResponse
+	var r1 error
+	if rf, ok := ret.Get(0).(func(context.Context, string) (*auth.CurrentUserResponse, error)); ok {
+		return rf(ctx, userID)
+	}
+	if rf, ok := ret.Get(0).(func(context.Context, string) *auth.CurrentUserResponse); ok {
+		r0 = rf(ctx, userID)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*auth.CurrentUserResponse)
+		}
+	}
+
+	if rf, ok := ret.Get(1).(func(context.Context, string) error); ok {
+		r1 = rf(ctx, userID)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// MockAccountService_CurrentUser_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'CurrentUser'
+type MockAccountService_CurrentUser_Call struct {
+	*mock.Call
+}
+
+// CurrentUser is a helper method to define mock.On call
+//   - ctx context.Context
+//   - userID string
+func (_e *MockAccountService_Expecter) CurrentUser(ctx interface{}, userID interface{}) *MockAccountService_CurrentUser_Call {
+	return &MockAccountService_CurrentUser_Call{Call: _e.mock.On("CurrentUser", ctx, userID)}
+}
+
+func (_c *MockAccountService_CurrentUser_Call) Run(run func(ctx context.Context, userID string)) *MockAccountService_CurrentUser_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(context.Context), args[1].(string))
+	})
+	return _c
+}
+
+func (_c *MockAccountService_CurrentUser_Call) Return(_a0 *auth.CurrentUserResponse, _a1 error) *MockAccountService_CurrentUser_Call {
+	_c.Call.Return(_a0, _a1)
+	return _c
+}
+
+func (_c *MockAccountService_CurrentUser_Call) RunAndReturn(run func(context.Context, string) (*auth.CurrentUserResponse, error)) *MockAccountService_CurrentUser_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // Login provides a mock function with given fields: ctx, req, ipAddress, userAgent
 func (_m *MockAccountService) Login(ctx context.Context, req auth.LoginRequest, ipAddress string, userAgent string) (*auth.LoginResponse, error) {
 	ret := _m.Called(ctx, req, ipAddress, userAgent)

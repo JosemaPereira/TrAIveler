@@ -38,6 +38,7 @@ const (
 type AccountService interface {
 	Register(ctx context.Context, req RegisterRequest) (*RegisterResponse, error)
 	Login(ctx context.Context, req LoginRequest, ipAddress, userAgent string) (*LoginResponse, error)
+	CurrentUser(ctx context.Context, userID string) (*CurrentUserResponse, error)
 }
 
 // TokenPair is a freshly minted session handed to the client (plaintext tokens
@@ -123,6 +124,7 @@ func (h *Handler) RegisterPublicRoutes(r chi.Router) {
 // why these are full paths.
 func (h *Handler) RegisterProtectedRoutes(r chi.Router) {
 	r.Post("/auth/logout", h.handleLogout)
+	r.Get("/auth/me", h.handleCurrentUser)
 }
 
 // handleRegister godoc
@@ -266,6 +268,52 @@ func (h *Handler) handleLogout(w http.ResponseWriter, r *http.Request) {
 	)
 
 	w.WriteHeader(http.StatusNoContent)
+}
+
+// handleCurrentUser godoc
+// @Summary     Get the authenticated account
+// @Description Returns the account behind the access_token cookie. This is how a freshly loaded
+// @Description page learns who is signed in: the session cookies are HTTP-only, so the browser
+// @Description cannot read them, and no user data survives a reload client-side. The record is read
+// @Description from the database, so has_subscription reflects the current state rather than the
+// @Description possibly-stale claim baked into the access token. A token whose account no longer
+// @Description exists returns the uniform 401 rather than a 404 — the session is dead, not the
+// @Description resource. The 401's error code tells the client what to do next:
+// @Description authentication_required (no token, an invalid one, or a deleted account) means log
+// @Description in again, while token_expired — emitted only for a validly-signed but expired token
+// @Description — means refresh and retry.
+// @Tags        auth
+// @Produce     json
+// @Success     200 {object} CurrentUserResponse
+// @Failure     401 {object} errors.ErrorResponse
+// @Failure     500 {object} errors.ErrorResponse
+// @Security    CookieAuth
+// @Router      /auth/me [get]
+func (h *Handler) handleCurrentUser(w http.ResponseWriter, r *http.Request) {
+	userID, ok := middleware.UserIDFromContext(r.Context())
+	if !ok || userID == "" {
+		// Unreachable behind middleware.Authenticate, which is the only way this
+		// route is mounted. Kept so a future routing mistake fails closed rather
+		// than querying for the zero-value id.
+		domainerrors.HandleError(w, r, domainerrors.Unauthorized(authjwt.RefreshFailureMessage))
+		return
+	}
+
+	resp, err := h.service.CurrentUser(r.Context(), userID)
+	if err != nil {
+		if isNotFound(err) {
+			// The token is validly signed but its subject is gone (deleted
+			// account). Surfacing 404 would answer "who am I?" with "you do not
+			// exist" while the client still holds cookies it believes are good;
+			// the uniform 401 is what drives it to clear them and log in again.
+			domainerrors.HandleError(w, r, domainerrors.Unauthorized(authjwt.RefreshFailureMessage))
+			return
+		}
+		domainerrors.HandleError(w, r, err)
+		return
+	}
+
+	respondJSON(w, http.StatusOK, resp)
 }
 
 // revokePresentedRefreshToken revokes the token in the refresh_token cookie, if

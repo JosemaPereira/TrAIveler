@@ -276,3 +276,58 @@ describe('authApi.logout', () => {
     })
   })
 })
+
+describe('authApi.me', () => {
+  describe('when a session is active', () => {
+    it('should GET /auth/me and resolve with the signed-in user', async () => {
+      let method: string | undefined
+      server.use(
+        http.get(`${API_BASE_URL}/auth/me`, ({ request }) => {
+          method = request.method
+          return HttpResponse.json({ user: testUser }, { status: 200 })
+        })
+      )
+
+      const result = await authApi.me()
+
+      expect(method).toBe('GET')
+      expect(result.user).toEqual(testUser)
+    })
+
+    it('should send the session cookie along with the request', async () => {
+      let credentials: RequestCredentials | undefined
+      server.use(
+        http.get(`${API_BASE_URL}/auth/me`, ({ request }) => {
+          credentials = request.credentials
+          return HttpResponse.json({ user: testUser }, { status: 200 })
+        })
+      )
+
+      await authApi.me()
+
+      expect(credentials).toBe('include')
+    })
+  })
+
+  describe('when there is no session', () => {
+    it('should reject with a 401 APIError', async () => {
+      server.use(
+        http.get(`${API_BASE_URL}/auth/me`, () =>
+          HttpResponse.json(
+            {
+              error: 'authentication_required',
+              message: 'Session expired. Please log in again.',
+              request_id: 'req_me401',
+            },
+            { status: 401 }
+          )
+        )
+      )
+
+      await expect(authApi.me()).rejects.toMatchObject({
+        status: 401,
+        code: 'authentication_required',
+      })
+    })
+  })
+})

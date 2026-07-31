@@ -283,7 +283,8 @@ implemented (PRs #154, #155, #157) — the target design itself is unchanged:
   public. The former `TODO(sprint-5)` marker in `routes.go` is gone.
 - **Not yet built**: the password-reset and password-change flows (008-T142-T147) — request,
   complete, and change endpoints plus their `PasswordResetToken` repository. Register, login,
-  refresh, and logout all ship (PRs #189 and issue #179). See the runtime-flow note below.
+  refresh, logout, and the `GET /auth/me` session read all ship (PRs #189 and issues #179, 001-T021).
+  See the runtime-flow note below.
 - **Known doc-vs-code nuance**: `ValidatePassword` counts the 8–72 length in runes while bcrypt's
   own limit is 72 *bytes*; multi-byte passwords near the limit can pass validation yet fail loudly
   at hash time. (The earlier `BCRYPT_COST`-is-ignored nuance is resolved: since PR #190 / issue #174
@@ -343,6 +344,15 @@ on the authenticated route group; password reset (008-T142-T147) is the remainin
 - **LOGOUT** — `POST /api/v1/auth/logout`: revoke the refresh token in the store, clear both auth
   cookies, and log an `auth_logout` security event. *Built: `auth.Handler.handleLogout`, mounted in
   the authenticated group, so it requires a valid access token; revocation itself is idempotent.*
+- **SESSION READ** — `GET /api/v1/auth/me`: return the account behind the presented `access_token`
+  cookie. This is the session-bootstrap read the frontend needs because the session cookies are
+  HTTP-only and therefore unreadable by JavaScript — after a page reload it is the only way to
+  re-derive who is signed in. *Built (001-T021): `auth.Handler.handleCurrentUser` +
+  `auth.Service.CurrentUser`, mounted in the authenticated group. `has_subscription` is read from
+  the `users` row rather than from the access token's claim, which can go stale within the token's
+  lifetime. A token whose subject no longer exists (deleted account) returns the uniform `401
+  authentication_required`, not a `404` — the session is dead, not the resource — so nothing about
+  account existence leaks and the client is driven to re-authenticate rather than retry.*
 
 ## Implementation Status Note: Secrets Management
 

@@ -633,7 +633,7 @@ Since issue #179 (008-T208) `cmd/api/routes.go` splits `/api/v1` into a **public
 |-------|-----------|------|
 | Health | `GET /healthz` | None (public, unversioned) |
 | Auth (public) | `POST /api/v1/auth/register`, `/api/v1/auth/login`, `/api/v1/auth/refresh` | None — refresh authenticates with the `refresh_token` cookie |
-| Auth (authenticated) | `POST /api/v1/auth/logout` | Required (`access_token` cookie) |
+| Auth (authenticated) | `POST /api/v1/auth/logout`, `GET /api/v1/auth/me` | Required (`access_token` cookie) |
 | Examples (reference pattern, throwaway — see [Project Structure](#project-structure)) | `GET/POST /api/v1/examples`, `GET/PUT/DELETE /api/v1/examples/:id` | Required (`access_token` cookie) |
 | API docs | `GET /swagger/index.html`, `GET /swagger/doc.json` | Required (`access_token` cookie) |
 
@@ -646,7 +646,7 @@ today" are mounted; `internal/{trip, itinerary, conversation, suggestion}` are u
 
 | Group | Endpoints | Auth |
 |-------|-----------|------|
-| Auth (remaining) | `GET /auth/me`, `DELETE /users/me`, the password-reset/change endpoints | Mixed |
+| Auth (remaining) | `DELETE /users/me`, the password-reset/change endpoints | Mixed |
 | Subscription | `GET /plans`, `POST /subscription/checkout`, `/confirm`, `GET /subscription/current` | Required |
 | Trips | `GET/POST /trips`, `GET/PUT/DELETE /trips/:id` | Required (admin write) |
 | Itinerary | `POST /trips/:id/generate` | Required (admin) |

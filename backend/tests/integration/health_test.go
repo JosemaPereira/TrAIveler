@@ -21,7 +21,7 @@ type healthCheckResponse struct {
 // asserts GET /healthz always returns 200 with a generated X-Request-ID and a
 // healthy body, against a real backend + Postgres testcontainer.
 func TestHealthz_NoIncomingRequestID_ReturnsOKWithGeneratedCorrelationID(t *testing.T) {
-	baseURL := setupSwaggerTestServer(t)
+	baseURL := setupAPITestServer(t)
 
 	resp, err := http.Get(baseURL + "/healthz")
 	require.NoError(t, err, "GET /healthz must succeed at the transport level")
@@ -46,7 +46,7 @@ func TestHealthz_NoIncomingRequestID_ReturnsOKWithGeneratedCorrelationID(t *test
 // proves middleware.RequestID reuses an incoming X-Request-ID rather than
 // overwriting it with a freshly generated one.
 func TestHealthz_WithIncomingRequestIDHeader_EchoesSameValueBack(t *testing.T) {
-	baseURL := setupSwaggerTestServer(t)
+	baseURL := setupAPITestServer(t)
 
 	const incomingRequestID = "test-correlation-id-12345"
 	req, err := http.NewRequest(http.MethodGet, baseURL+"/healthz", nil)
