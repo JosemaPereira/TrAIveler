@@ -181,34 +181,11 @@ func startAPIServer(t *testing.T, ctx context.Context, binPath, databaseURL stri
 	return baseURL
 }
 
-// setupSwaggerTestServer boots a real backend API process against a
-// disposable Postgres testcontainer and returns its base URL, so tests in
-// this file can make genuine HTTP requests against the actual
-// cmd/api/routes.go route table instead of a hand-built substitute.
-//
-// Migrations are applied because /swagger/* sits in the authenticated route
-// group (008-T208): reaching it requires registering a real account through
-// registerTestSession, which needs the users table to exist.
-func setupSwaggerTestServer(t *testing.T) string {
-	t.Helper()
-
-	if testing.Short() {
-		t.Skip("skipping integration test requiring a container runtime in short mode")
-	}
-
-	ctx := context.Background()
-	databaseURL := startPostgresContainer(t, ctx)
-	applyMigrations(t, databaseURL)
-	binPath := buildAPIBinary(t)
-
-	return startAPIServer(t, ctx, binPath, databaseURL)
-}
-
 // TestSwaggerDocJSON_RouteMounted_ReturnsValidSwagger2Document is 009-T007. It
 // asserts GET /swagger/doc.json returns 200 with a body that parses as a valid
 // Swagger 2.0 (OpenAPI 2.0) document — NOT an OpenAPI v3 document.
 func TestSwaggerDocJSON_RouteMounted_ReturnsValidSwagger2Document(t *testing.T) {
-	baseURL := setupSwaggerTestServer(t)
+	baseURL := setupAPITestServer(t)
 	sessionCookies := registerTestSession(t, baseURL)
 
 	resp := authenticatedGet(t, http.DefaultClient, baseURL+"/swagger/doc.json", sessionCookies)
@@ -243,7 +220,7 @@ func TestSwaggerDocJSON_RouteMounted_ReturnsValidSwagger2Document(t *testing.T) 
 // research.md's "Excluding intentionally-undocumented endpoints" decision -
 // does not.
 func TestSwaggerDocJSON_Paths_ContainsExampleEndpointsAndExcludesHealthz(t *testing.T) {
-	baseURL := setupSwaggerTestServer(t)
+	baseURL := setupAPITestServer(t)
 	sessionCookies := registerTestSession(t, baseURL)
 
 	resp := authenticatedGet(t, http.DefaultClient, baseURL+"/swagger/doc.json", sessionCookies)
@@ -299,7 +276,7 @@ func TestSwaggerDocJSON_Paths_ContainsExampleEndpointsAndExcludesHealthz(t *test
 // resolves it against the request URL exactly as a browser would, and fetches
 // the result to confirm it lands on a live Swagger 2.0 document.
 func TestSwaggerIndexHTML_RouteMounted_DocURLResolvesToLiveDocJSON(t *testing.T) {
-	baseURL := setupSwaggerTestServer(t)
+	baseURL := setupAPITestServer(t)
 	sessionCookies := registerTestSession(t, baseURL)
 
 	indexURL := baseURL + "/swagger/index.html"

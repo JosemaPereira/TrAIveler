@@ -51,10 +51,11 @@ export const authHandlers = [
   ),
 ]
 
-// `POST /auth/refresh` has deliberately no default handler: it is only ever
+// `POST /auth/refresh` and `GET /auth/me` have deliberately no default handler: it is only ever
 // reached through the api client's silent 401 recovery, and a test that hits
 // it without saying so is a bug worth failing on rather than a request worth
 // answering. The 008-T160 tests register their own refresh handler so they
-// can count how many times it fires.
+// can count how many times it fires, and every /auth/me test states the exact
+// response it is exercising (signed in, signed out, expired mid-probe).
 
 export const handlers = [...authHandlers]

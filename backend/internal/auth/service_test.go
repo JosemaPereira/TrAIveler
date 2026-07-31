@@ -322,3 +322,45 @@ func TestUnitLogin_InvalidRequest_ReturnsValidationWithoutTouchingRepo(t *testin
 	require.ErrorAs(t, err, &domainErr)
 	assert.Equal(t, "validation_failed", domainErr.Code)
 }
+
+// --- CurrentUser ----------------------------------------------------------
+
+// TestUnitCurrentUser_ExistingUser_ReturnsUser verifies the happy path: the id
+// carried by a valid access token resolves to the account it was minted for.
+func TestUnitCurrentUser_ExistingUser_ReturnsUser(t *testing.T) {
+	users := authmocks.NewMockUserRepository(t)
+	user := &auth.User{ID: "u1", Email: testEmail, FullName: testFullName, HasSubscription: true}
+	users.EXPECT().GetUserByID(mock.Anything, "u1").Return(user, nil).Once()
+	creator := &fakeSubscriptionCreator{}
+
+	svc := auth.NewService(users, creator, ratelimit.New(), testBcryptCost)
+	resp, err := svc.CurrentUser(context.Background(), "u1")
+
+	require.NoError(t, err)
+	require.NotNil(t, resp)
+	assert.Equal(t, "u1", resp.User.ID)
+	assert.Equal(t, testEmail, resp.User.Email)
+	assert.True(t, resp.User.HasSubscription,
+		"has_subscription must come from the row, not the token's possibly-stale claim")
+}
+
+// TestUnitCurrentUser_UnknownUser_PropagatesNotFound verifies the repository's
+// NotFound reaches the caller unchanged. Translating it to the uniform 401 is
+// the handler's job: the service has no notion of a session.
+func TestUnitCurrentUser_UnknownUser_PropagatesNotFound(t *testing.T) {
+	users := authmocks.NewMockUserRepository(t)
+	users.EXPECT().
+		GetUserByID(mock.Anything, "ghost").
+		Return(nil, domainerrors.NotFound("user", "ghost")).
+		Once()
+	creator := &fakeSubscriptionCreator{}
+
+	svc := auth.NewService(users, creator, ratelimit.New(), testBcryptCost)
+	resp, err := svc.CurrentUser(context.Background(), "ghost")
+
+	require.Error(t, err)
+	assert.Nil(t, resp)
+	var domainErr *domainerrors.DomainError
+	require.ErrorAs(t, err, &domainErr)
+	assert.Equal(t, "not_found", domainErr.Code)
+}

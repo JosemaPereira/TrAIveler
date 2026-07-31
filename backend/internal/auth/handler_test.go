@@ -535,3 +535,114 @@ func TestUnitRegisterRoutes_PublicAndProtectedGroupsCoexistWithoutPanicking(t *t
 		})
 	}
 }
+
+// --- Current user ---------------------------------------------------------
+
+// fakeClaimsValidator is a hand fake for middleware.TokenValidator (one method,
+// per docs/mock-standards.md), letting these tests drive the real gate without
+// RSA keys.
+type fakeClaimsValidator struct {
+	userID string
+}
+
+func (f *fakeClaimsValidator) ValidateToken(_ context.Context, _ string) (middleware.AuthClaims, error) {
+	return middleware.AuthClaims{UserID: f.userID}, nil
+}
+
+// newGatedAuthRouter mounts the protected routes behind the real
+// middleware.Authenticate. Driving the actual gate is both closer to production
+// wiring than hand-injecting a context value and cheaper: the alternative would
+// have been exporting a context setter from internal/middleware purely for
+// tests, which is the kind of production-code test seam this repo already
+// regrets elsewhere.
+func newGatedAuthRouter(t *testing.T, h *auth.Handler, userID string) http.Handler {
+	t.Helper()
+	r := chi.NewRouter()
+	r.Use(middleware.RequestID)
+	r.Route("/api/v1", func(r chi.Router) {
+		r.Group(func(r chi.Router) {
+			r.Use(middleware.Authenticate(&fakeClaimsValidator{userID: userID}))
+			h.RegisterProtectedRoutes(r)
+		})
+	})
+	return r
+}
+
+// doAuthenticatedGet issues a GET carrying the access_token cookie the gate
+// requires. Its value is irrelevant — fakeClaimsValidator accepts anything —
+// but it must be present, since Authenticate rejects an absent cookie before
+// ever calling the validator.
+func doAuthenticatedGet(t *testing.T, router http.Handler, path string) *httptest.ResponseRecorder {
+	t.Helper()
+	req := httptest.NewRequest(http.MethodGet, path, nil)
+	req.AddCookie(&http.Cookie{Name: "access_token", Value: "any-non-empty-token"})
+	rec := httptest.NewRecorder()
+	router.ServeHTTP(rec, req)
+	return rec
+}
+
+func TestUnitHandleCurrentUser_Authenticated_Returns200WithUser(t *testing.T) {
+	svc := authmocks.NewMockAccountService(t)
+	svc.EXPECT().
+		CurrentUser(mock.Anything, testUserID).
+		Return(&auth.CurrentUserResponse{User: testUser(true)}, nil).
+		Once()
+
+	h := auth.NewHandler(svc, &fakeTokenIssuer{}, &fakeTokenRefresher{}, nil, auth.CookieConfig{})
+	rec := doAuthenticatedGet(t, newGatedAuthRouter(t, h, testUserID), "/api/v1/auth/me")
+
+	require.Equal(t, http.StatusOK, rec.Code)
+	body := decodeBody(t, rec)
+	user, ok := body["user"].(map[string]any)
+	require.True(t, ok, "response must wrap the account in a \"user\" envelope")
+	assert.Equal(t, testUserID, user["id"])
+	assert.Equal(t, handlerEmail, user["email"])
+	assert.Equal(t, true, user["has_subscription"])
+	assert.NotContains(t, user, "role", "role is never serialized (models.go json:\"-\")")
+}
+
+// A GET must not mint or rotate anything.
+func TestUnitHandleCurrentUser_Authenticated_SetsNoCookies(t *testing.T) {
+	svc := authmocks.NewMockAccountService(t)
+	svc.EXPECT().
+		CurrentUser(mock.Anything, testUserID).
+		Return(&auth.CurrentUserResponse{User: testUser(false)}, nil).
+		Once()
+
+	issuer := &fakeTokenIssuer{}
+	h := auth.NewHandler(svc, issuer, &fakeTokenRefresher{}, nil, auth.CookieConfig{})
+	rec := doAuthenticatedGet(t, newGatedAuthRouter(t, h, testUserID), "/api/v1/auth/me")
+
+	require.Equal(t, http.StatusOK, rec.Code)
+	assert.Empty(t, rec.Result().Cookies(), "a read-only probe must not set cookies")
+	assert.False(t, issuer.called, "a read-only probe must not mint tokens")
+}
+
+// A token whose subject no longer exists (deleted account) is a dead session,
+// not a missing resource: the client must be told to log in again, not shown a
+// 404 for its own identity.
+func TestUnitHandleCurrentUser_DeletedAccount_Returns401NotNotFound(t *testing.T) {
+	svc := authmocks.NewMockAccountService(t)
+	svc.EXPECT().
+		CurrentUser(mock.Anything, testUserID).
+		Return(nil, domainerrors.NotFound("user", testUserID)).
+		Once()
+
+	h := auth.NewHandler(svc, &fakeTokenIssuer{}, &fakeTokenRefresher{}, nil, auth.CookieConfig{})
+	rec := doAuthenticatedGet(t, newGatedAuthRouter(t, h, testUserID), "/api/v1/auth/me")
+
+	require.Equal(t, http.StatusUnauthorized, rec.Code)
+	assert.Equal(t, "authentication_required", decodeBody(t, rec)["error"])
+}
+
+// Defence in depth: the route only mounts behind Authenticate, so a missing id
+// means the gate was misconfigured. Fail closed rather than panic or leak.
+func TestUnitHandleCurrentUser_NoUserInContext_Returns401(t *testing.T) {
+	svc := authmocks.NewMockAccountService(t) // no expects: must not be reached
+
+	h := auth.NewHandler(svc, &fakeTokenIssuer{}, &fakeTokenRefresher{}, nil, auth.CookieConfig{})
+	rec := doJSON(t, newAuthRouter(t, h), http.MethodGet, "/api/v1/auth/me", "")
+
+	require.Equal(t, http.StatusUnauthorized, rec.Code)
+	assert.Equal(t, "authentication_required", decodeBody(t, rec)["error"])
+}

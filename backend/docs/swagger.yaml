@@ -1,5 +1,10 @@
 basePath: /api/v1
 definitions:
+  auth.CurrentUserResponse:
+    properties:
+      user:
+        $ref: '#/definitions/auth.User'
+    type: object
   auth.LoginRequest:
     properties:
       email:
@@ -232,6 +237,39 @@ paths:
       security:
       - CookieAuth: []
       summary: Log out
+      tags:
+      - auth
+  /auth/me:
+    get:
+      description: |-
+        Returns the account behind the access_token cookie. This is how a freshly loaded
+        page learns who is signed in: the session cookies are HTTP-only, so the browser
+        cannot read them, and no user data survives a reload client-side. The record is read
+        from the database, so has_subscription reflects the current state rather than the
+        possibly-stale claim baked into the access token. A token whose account no longer
+        exists returns the uniform 401 rather than a 404 — the session is dead, not the
+        resource. The 401's error code tells the client what to do next:
+        authentication_required (no token, an invalid one, or a deleted account) means log
+        in again, while token_expired — emitted only for a validly-signed but expired token
+        — means refresh and retry.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/auth.CurrentUserResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/errors.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/errors.ErrorResponse'
+      security:
+      - CookieAuth: []
+      summary: Get the authenticated account
       tags:
       - auth
   /auth/refresh:

@@ -310,3 +310,55 @@ describe('apiFetch session refresh', () => {
     })
   })
 })
+
+describe('apiFetch expected-401 endpoints', () => {
+  // /auth/me is the session probe: "no, you are not signed in" is its normal
+  // negative answer. Treating that as session death would make the app's own
+  // boot sequence bounce every anonymous visitor to /login.
+  it('should not notify the session-expired handler for a 401 from /auth/me', async () => {
+    const onSessionExpired = vi.fn()
+    setSessionExpiredHandler(onSessionExpired)
+    const { handler: refreshHandler, calls } = countingRefreshHandler(() =>
+      HttpResponse.json({ message: 'Token refreshed successfully' })
+    )
+    server.use(
+      http.get(`${API_BASE_URL}/auth/me`, () =>
+        HttpResponse.json(sessionGoneEnvelope, { status: 401 })
+      ),
+      refreshHandler
+    )
+
+    await expect(apiFetch('/auth/me')).rejects.toMatchObject({
+      code: 'authentication_required',
+    })
+
+    expect(onSessionExpired).not.toHaveBeenCalled()
+    expect(calls.count).toBe(0)
+  })
+
+  // The carve-out is about *session death*, not about skipping recovery: an
+  // access token that merely expired mid-probe should still be refreshed.
+  it('should still refresh and retry a token_expired from /auth/me', async () => {
+    const onSessionExpired = vi.fn()
+    setSessionExpiredHandler(onSessionExpired)
+    const { handler: refreshHandler, calls } = countingRefreshHandler(() =>
+      HttpResponse.json({ message: 'Token refreshed successfully' })
+    )
+    let attempts = 0
+    server.use(
+      http.get(`${API_BASE_URL}/auth/me`, () => {
+        attempts += 1
+        if (attempts === 1) {
+          return HttpResponse.json(tokenExpiredEnvelope, { status: 401 })
+        }
+        return HttpResponse.json({ user: { id: 'u1' } }, { status: 200 })
+      }),
+      refreshHandler
+    )
+
+    await expect(apiFetch('/auth/me')).resolves.toEqual({ user: { id: 'u1' } })
+
+    expect(calls.count).toBe(1)
+    expect(onSessionExpired).not.toHaveBeenCalled()
+  })
+})

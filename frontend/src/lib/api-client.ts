@@ -150,10 +150,16 @@ async function buildAPIError(response: Response): Promise<APIError> {
 
 const REFRESH_ENDPOINT = '/auth/refresh'
 
-// A 401 from these endpoints means "those credentials are wrong", not "your
-// session died", so it must not tear down the session or bounce the user to
-// the login page they are already looking at.
-const CREDENTIAL_ENDPOINTS = ['/auth/login', '/auth/register']
+// Endpoints where a 401 is an *answer*, not a failure, so it must not tear down
+// the session or bounce the caller to a login page:
+//
+// - `/auth/login`, `/auth/register`: 401 means "those credentials are wrong",
+//   and the user is already looking at the page we would redirect to.
+// - `/auth/me`: this is the session probe. Asking "am I signed in?" and being
+//   told "no" is its normal negative result — every anonymous visitor to a
+//   public page would otherwise be thrown at /login by the app's own boot
+//   sequence.
+const EXPECTED_401_ENDPOINTS = ['/auth/login', '/auth/register', '/auth/me']
 
 let sessionExpiredHandler: (() => void) | null = null
 
@@ -175,8 +181,8 @@ function notifySessionExpired(): void {
   sessionExpiredHandler?.()
 }
 
-function isCredentialEndpoint(endpoint: string): boolean {
-  return CREDENTIAL_ENDPOINTS.some((path) => endpoint.startsWith(path))
+function isExpected401Endpoint(endpoint: string): boolean {
+  return EXPECTED_401_ENDPOINTS.some((path) => endpoint.startsWith(path))
 }
 
 // Only an *expired* access token is silently recoverable. Every other 401
@@ -259,7 +265,7 @@ async function request<T>(
       throw error
     }
 
-    if (error.status === 401 && !isCredentialEndpoint(endpoint)) {
+    if (error.status === 401 && !isExpected401Endpoint(endpoint)) {
       notifySessionExpired()
     }
 

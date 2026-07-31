@@ -1,5 +1,6 @@
 import { api } from '../../../lib/api-client'
 import type {
+  CurrentUserResponse,
   LoginRequest,
   LoginResponse,
   RegisterRequest,
@@ -40,4 +41,18 @@ export const authApi = {
 
   /** Ends the session server-side (204 No Content), clearing the auth cookies. */
   logout: (): Promise<void> => api.post<undefined>('/auth/logout'),
+
+  /**
+   * Resolves the account behind the session cookies — the only way to learn who
+   * is signed in after a page reload, since the cookies are HTTP-only and no
+   * user data survives client-side.
+   *
+   * Rejects with a 401 `authentication_required` APIError when there is no
+   * session at all (no cookie, an invalid token, or a deleted account), which
+   * for this endpoint is a normal negative answer rather than session death:
+   * the api client exempts that case from its session-expiry teardown, so
+   * probing from a public page cannot bounce an anonymous visitor to `/login`.
+   */
+  me: (): Promise<CurrentUserResponse> =>
+    api.get<CurrentUserResponse>('/auth/me'),
 }

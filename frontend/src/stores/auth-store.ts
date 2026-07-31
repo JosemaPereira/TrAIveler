@@ -51,11 +51,17 @@ export const useAuthStore = create<AuthState>((set) => ({
   refreshSession: async () => {
     set({ isLoading: true })
     try {
-      const user = await api.get<User>('/auth/me')
+      // Called directly rather than through features/auth's authApi: that
+      // feature already type-imports User from here, and depending on it back
+      // would point the dependency both ways.
+      const { user } = await api.get<{ user: User }>('/auth/me')
       set({ isAuthenticated: true, user })
     } catch {
-      // Any failure (expired/invalid JWT, network error) means the caller
-      // is not authenticated — never let this reject out of the action.
+      // Any failure (no session, expired/invalid JWT, network error) means the
+      // caller is not authenticated — never let this reject out of the action.
+      // A 401 from a visitor with no session is the expected negative answer,
+      // not session death: api-client exempts /auth/me from its session-expiry
+      // teardown, so probing from a public page cannot force a redirect.
       set({ isAuthenticated: false, user: null })
     } finally {
       set({ isLoading: false })

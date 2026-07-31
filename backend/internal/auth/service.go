@@ -117,6 +117,27 @@ func (s *Service) maybeCreateSubscription(
 	return sub, nil
 }
 
+// CurrentUser resolves the account behind an authenticated request, given the
+// user id the access token carried. It is the read side of session bootstrap:
+// the browser holds only HTTP-only cookies it cannot inspect, so after a page
+// reload this is the only way to learn who is logged in.
+//
+// The record comes from the database rather than the token's claims on purpose —
+// has_subscription can go stale within an access token's lifetime (see
+// auth/jwt.Claims), and a caller asking "who am I" wants the current answer.
+//
+// An unknown id yields the repository's NotFound unchanged; mapping that onto a
+// session-level response is the handler's job, since the service has no notion
+// of a session.
+func (s *Service) CurrentUser(ctx context.Context, userID string) (*CurrentUserResponse, error) {
+	user, err := s.users.GetUserByID(ctx, userID)
+	if err != nil {
+		return nil, err
+	}
+
+	return &CurrentUserResponse{User: *user}, nil
+}
+
 // Login validates credentials with progressive, email-keyed rate limiting and
 // emits security events. It deliberately does NOT mint JWTs or set cookies —
 // that composition happens at a higher layer. The rate-limit check runs before
