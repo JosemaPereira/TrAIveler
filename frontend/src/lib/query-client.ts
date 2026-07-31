@@ -44,9 +44,11 @@ export function getErrorMessage(error: unknown): string {
 }
 
 /**
- * Reads the `retry_after_seconds` hint the backend attaches to a 429
- * `rate_limit_exceeded` envelope (see `internal/errors/types.go`), for UIs
- * that render a "try again in N seconds" countdown.
+ * Reads the `retry_after_seconds` wait hint off an error's `details`, for UIs
+ * that render a "try again in N seconds" countdown. It is set on 429
+ * `rate_limit_exceeded` and 503 `service_unavailable` errors, either by the
+ * backend envelope (`internal/errors/types.go`) or by `api-client.ts` falling
+ * back to the response's `Retry-After` header.
  *
  * Returns `undefined` unless the value is genuinely a finite number, so a
  * malformed or absent hint degrades to "no countdown" instead of rendering

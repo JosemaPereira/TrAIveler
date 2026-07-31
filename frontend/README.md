@@ -113,6 +113,7 @@ frontend/
 │   │   │   ├── Button.tsx / Button.module.css / Button.test.tsx
 │   │   │   ├── Input.tsx / Input.module.css / Input.test.tsx     # labeled field; wires aria-invalid/aria-describedby to a role="alert" error
 │   │   │   ├── Card.tsx / Card.module.css / Card.test.tsx
+│   │   │   ├── Label.tsx / Label.module.css / Label.test.tsx     # standalone label for composite fields; required indicator rendered twice (aria-hidden `*` + visually-hidden "(required)")
 │   │   │   ├── LoadingSpinner.tsx / .module.css / .test.tsx      # role="status"/aria-live loading indicator; visually-hidden text label
 │   │   │   ├── ErrorMessage.tsx / .module.css / .test.tsx        # role="alert" error display with an optional retry button
 │   │   │   └── EmptyState.tsx / .module.css / .test.tsx          # "nothing to show" state with optional icon and action button
@@ -133,19 +134,24 @@ frontend/
 │   │   ├── useErrorHandler.ts        # Maps an unknown error (e.g. TanStack Query's `error`) to { title, message, requestId?, isRetryable }; redirects to /login on 401
 │   │   └── useErrorHandler.test.tsx
 │   ├── lib/                          # Framework/infra wiring shared across the app
-│   │   ├── api-client.ts             # apiFetch base + api.get/post/put/patch/delete; APIError matching docs/api-design-standards.md §7
-│   │   ├── api-client.test.ts
-│   │   ├── query-client.ts           # TanStack queryClient config + isAPIError/getErrorMessage/getFieldErrors helpers
+│   │   ├── api-client.ts             # apiFetch base + api.get/post/put/patch/delete; APIError matching docs/api-design-standards.md §7; silent 401 token_expired → refresh → retry
+│   │   ├── api-client.test.ts        # client unit tests; stubs the global `fetch` (see "Testing")
+│   │   ├── api-client.refresh.test.ts # 401 → refresh → retry flow; MSW-backed, hence a separate file
+│   │   ├── error-handler.ts          # Pure mapApiError(error) → { title, message, requestId?, isRetryable }
+│   │   ├── error-handler.test.ts
+│   │   ├── query-client.ts           # TanStack queryClient config + isAPIError/getErrorMessage/getFieldErrors/getRetryAfterSeconds helpers
 │   │   └── query-client.test.ts
 │   ├── styles/
 │   │   ├── tokens.css                # Design tokens: color, spacing, typography, radius, shadow, z-index, transitions
 │   │   └── global.css                # Imports tokens.css; CSS reset + base element styles
 │   ├── test/
-│   │   ├── setup.ts                  # Vitest setup: extends expect with jest-dom matchers, registers RTL's afterEach(cleanup)
+│   │   ├── setup.ts                  # Vitest setup: jest-dom matchers, RTL's afterEach(cleanup), and the MSW server lifecycle (listen/resetHandlers/close)
+│   │   ├── msw/                      # Shared Mock Service Worker instance (server.ts) + default auth handlers and fixtures (handlers.ts)
+│   │   ├── queryWrapper.tsx          # createQueryWrapper(): per-test QueryClientProvider + MemoryRouter wrapper for renderHook/render
 │   │   └── cssModule.ts              # Test helper: resolves a CSS Module class into a definite `string` for toHaveClass() assertions
 │   ├── App.tsx                       # Root component: ErrorBoundary > QueryClientProvider > RouterProvider
 │   ├── App.test.tsx
-│   ├── main.tsx                      # React entry point (StrictMode + createRoot)
+│   ├── main.tsx                      # React entry point (StrictMode + createRoot); composition root that installs the session-expiry handler before first render
 │   └── vite-env.d.ts                 # ImportMetaEnv typing for VITE_* variables
 ├── tests/
 │   └── helpers/
@@ -207,10 +213,12 @@ Create a `.env.local` file (gitignored) at `frontend/`. **Never commit real valu
 | `VITE_API_BASE_URL` | ✅ | Backend API base, e.g. `http://localhost:8080/api/v1`. Read by `src/lib/api-client.ts`; there is no hardcoded fallback, so a missing value throws at request time instead of silently pointing at the wrong backend. |
 
 **`.env.test`** is committed (unlike `.env.local`) and mirrors `.env.example` with a fixed
-`VITE_API_BASE_URL`. Vite/Vitest auto-load it in `test` mode, so unit tests get a deterministic
-value without depending on a developer's local `.env.local` — tests mock `fetch` directly, so the
-URL is never dereferenced over the network, it only needs to satisfy `api-client.ts`'s
-required-env-var check. Personal overrides for test mode go in the git-ignored `.env.test.local`.
+`VITE_API_BASE_URL`. Vite/Vitest auto-load it in `test` mode, so tests get a deterministic value
+without depending on a developer's local `.env.local`. The URL is never dereferenced over the
+network — requests are answered either by MSW (whose handler URLs are built from this same value,
+so the two cannot drift) or by a stubbed global `fetch` — but it still has to be set at all, to
+satisfy `api-client.ts`'s required-env-var check. Personal overrides for test mode go in the
+git-ignored `.env.test.local`.
 
 ---
 

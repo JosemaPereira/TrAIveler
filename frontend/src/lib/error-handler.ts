@@ -37,12 +37,6 @@ const FALLBACK_MESSAGE = 'An unexpected error occurred. Please try again.'
  * - Everything else (500/503, other 5xx, and non-`APIError` network failures)
  *   → generic "Something Went Wrong", treated as retryable.
  *
- * 409/422/429 used to fall through to the retryable "Something Went Wrong"
- * default, which was wrong in both directions: it invited a pointless retry of
- * a request that can only fail again, and it hid a fixable validation error
- * behind a generic failure. They only became reachable once the auth endpoints
- * went live (#177/#178/#194).
- *
  * The user-facing `message` comes from the API error envelope when available
  * (see `api-client.ts`), otherwise a safe generic fallback — the raw error is
  * never surfaced. `requestId` is included only when the envelope carried a

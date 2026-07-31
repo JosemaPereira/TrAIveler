@@ -79,8 +79,10 @@ export class APIError extends Error {
  * and parsing a date here would mean trusting client/server clock agreement.
  */
 function retryAfterHeaderSeconds(response: Response): number | undefined {
-  const header = response.headers.get('Retry-After')
-  if (header === null) {
+  const header = response.headers.get('Retry-After')?.trim()
+  // An empty header is "absent", not "zero" — `Number('')` is 0 and passes the
+  // integer check below, which would otherwise render "try again in 0 seconds".
+  if (!header) {
     return undefined
   }
   const seconds = Number(header)
@@ -91,10 +93,14 @@ function retryAfterHeaderSeconds(response: Response): number | undefined {
  * Ensures a rate-limit/unavailable error carries `retry_after_seconds` even
  * when the wait only arrived as a header.
  *
- * The backend sends both (body `details` plus the `Retry-After` header), but an
- * intermediary — a load balancer or CDN shedding load — can answer 429/503 with
- * the header and no envelope of ours at all. Without this the UI would silently
- * lose the countdown in exactly the case where the wait matters most.
+ * Only some of these responses put the wait in the body. `errors.RateLimited`
+ * and `errors.ServiceUnavailable` send both `details.retry_after_seconds` and
+ * the header, but the per-IP throttle in `internal/middleware/rate_limit.go`
+ * (which guards `POST /auth/register`) sends the header with a `details`-less
+ * envelope, and an intermediary — a load balancer or CDN shedding load — can
+ * answer with the header and no envelope of ours at all. Without this the UI
+ * would silently lose the countdown in exactly the cases where the wait
+ * matters most.
  */
 function withRetryAfter(
   details: Record<string, unknown> | undefined,

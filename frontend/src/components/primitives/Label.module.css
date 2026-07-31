@@ -1,7 +1,8 @@
 /*
  * Label primitive styles.
- * All values reference design tokens from src/styles/tokens.css — no hard-coded
- * colors, spacing, radii, or transitions. The base rule intentionally mirrors
+ * All design values reference tokens from src/styles/tokens.css — no hard-coded
+ * colors or spacing (the fixed 1px box in .visuallyHidden is the standard clip
+ * recipe, not a design value). The base rule intentionally mirrors
  * Input.module.css's `.label` so a standalone <Label> and an <Input>'s built-in
  * label render identically.
  */

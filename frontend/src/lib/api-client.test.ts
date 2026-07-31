@@ -255,6 +255,25 @@ describe('apiFetch', () => {
       })
     })
 
+    it('should treat an empty Retry-After header as absent, not as zero', async () => {
+      const envelope = {
+        error: 'rate_limit_exceeded',
+        message: 'Too many requests',
+        request_id: 'req_rate005',
+      }
+      vi.mocked(fetch).mockResolvedValue(
+        jsonResponse(envelope, {
+          status: 429,
+          ok: false,
+          headers: { 'Retry-After': '  ' },
+        })
+      )
+
+      await expect(apiFetch('/auth/login')).rejects.toMatchObject({
+        details: undefined,
+      })
+    })
+
     it('should keep the Retry-After header when no error envelope is returned', async () => {
       // An intermediary (load balancer, CDN) shedding load answers 429 with the
       // header and no envelope of ours; the countdown must survive that.
