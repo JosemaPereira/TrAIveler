@@ -224,13 +224,22 @@ func TestCreateTrip_ValidPayload_Returns201(t *testing.T) { ... }
 - Use **Mock Service Worker (MSW)** to intercept HTTP requests instead of mocking modules directly.
 - These tests live under `src/features/<feature>/__tests__/` or alongside the feature entry component.
 
-**Current state (as of Sprint 4)**: MSW (`msw` in `frontend/package.json`) is installed but **not
-yet wired up** — no route makes a live API call yet (`src/features/` is still an empty
-placeholder), so there is nothing for MSW to intercept. Today's tests that exercise
-`src/lib/api-client.ts` (e.g. `api-client.test.ts`) mock the global `fetch` directly instead. Once
-a real feature lands that calls the backend, switch that feature's tests to MSW per this section
-rather than continuing the direct-`fetch`-mock pattern — `api-client.test.ts` is a unit test for
-the client itself, not a precedent to follow for feature-level integration tests.
+**Current state (as of Sprint 6, issue #180)**: MSW is **wired up**. The shared server lives in
+`frontend/src/test/msw/server.ts` with default handlers in `handlers.ts`, and its
+`listen`/`resetHandlers`/`close` lifecycle is owned by `frontend/src/test/setup.ts`, so every test
+file gets it for free — import `server` only to add per-test overrides via `server.use(...)`. The
+server runs with `onUnhandledRequest: 'error'`: a request no handler accounts for is a hard failure,
+never a silent real network call. Handler URLs are built from the same `VITE_API_BASE_URL` the
+client reads, so the two cannot drift. `frontend/src/test/queryWrapper.tsx` provides the
+`QueryClientProvider` + `MemoryRouter` wrapper such tests need. First consumers:
+`src/features/auth/`.
+
+**MSW and a stubbed global `fetch` cannot share a test file.** `vi.stubGlobal('fetch', …)` replaces
+the very function MSW's Node interceptor patches, so a handler in the same file is silently never
+consulted — the stub answers and the assertion quietly tests nothing. `src/lib/api-client.test.ts`
+keeps its direct-`fetch` stubs because it is the unit test for the client itself, **not** a
+precedent for feature-level tests; anything exercising a real request *sequence* (e.g. the
+401 → refresh → retry flow) goes in a separate MSW-backed file such as `api-client.refresh.test.ts`.
 
 ---
 

@@ -95,7 +95,7 @@ The frontend is the only client of the backend REST API. Its primary jobs are:
 | Styling | CSS Modules + CSS custom properties (design tokens) | ✅ tokens/global styles in place; CSS Modules in use by `primitives/`, `composites/`, and `ErrorBoundary` (issues #63, #64, #65, #62) |
 | Icons | Lucide React | ✅ installed, not yet used |
 | Linting/formatting | ESLint (strict) + Prettier | ✅ installed |
-| Unit/integration tests | Vitest + React Testing Library + MSW | ✅ installed; MSW still not wired up (tests mock `fetch` directly — see `api-client.test.ts`) |
+| Unit/integration tests | Vitest + React Testing Library + MSW | ✅ installed; **MSW wired up** (issue #180) — shared server in `src/test/msw/`, lifecycle in `src/test/setup.ts`, `onUnhandledRequest: 'error'`. `api-client.test.ts` keeps its direct `fetch` stubs (it is the client's own unit test; a stubbed `fetch` bypasses MSW, so the two styles cannot share a file) |
 | E2E + accessibility tests | Playwright (`e2e/`) + `@axe-core/playwright` | ✅ `@axe-core/playwright` installed in both `e2e/` (Sprint 1, issue #24) and `frontend/` (issue #93); `checkPageA11y(page)` helper in `frontend/tests/helpers/a11y.ts` — not yet called from any `e2e/*.spec.ts` (that wiring is 002-T023, Sprint 9) |
 | Performance auditing | `@lhci/cli` (Lighthouse CI) | ✅ installed as a `frontend/` dev dependency (issue #93); config at root [`lighthouserc.yml`](../lighthouserc.yml) |
 
@@ -113,6 +113,7 @@ frontend/
 │   │   │   ├── Button.tsx / Button.module.css / Button.test.tsx
 │   │   │   ├── Input.tsx / Input.module.css / Input.test.tsx     # labeled field; wires aria-invalid/aria-describedby to a role="alert" error
 │   │   │   ├── Card.tsx / Card.module.css / Card.test.tsx
+│   │   │   ├── Label.tsx / Label.module.css / Label.test.tsx     # standalone label for composite fields; required indicator rendered twice (aria-hidden `*` + visually-hidden "(required)")
 │   │   │   ├── LoadingSpinner.tsx / .module.css / .test.tsx      # role="status"/aria-live loading indicator; visually-hidden text label
 │   │   │   ├── ErrorMessage.tsx / .module.css / .test.tsx        # role="alert" error display with an optional retry button
 │   │   │   └── EmptyState.tsx / .module.css / .test.tsx          # "nothing to show" state with optional icon and action button
@@ -127,25 +128,30 @@ frontend/
 │   ├── stores/                       # Zustand client-state stores
 │   │   ├── auth-store.ts             # useAuthStore: isAuthenticated/user/isLoading + login/logout/refreshSession/setLoading; no persistence (session cookie is the source of truth)
 │   │   └── auth-store.test.ts
-│   ├── features/                     # Feature-scoped components and logic (empty placeholder; see .gitkeep)
-│   │   └── .gitkeep
+│   ├── features/                     # Feature-scoped components and logic
+│   │   └── auth/                     # authApi service, useRegister/useLogin/useLogout, session-expiry handler (issue #180)
 │   ├── hooks/                        # Shared custom React hooks (prefix: use)
 │   │   ├── useErrorHandler.ts        # Maps an unknown error (e.g. TanStack Query's `error`) to { title, message, requestId?, isRetryable }; redirects to /login on 401
 │   │   └── useErrorHandler.test.tsx
 │   ├── lib/                          # Framework/infra wiring shared across the app
-│   │   ├── api-client.ts             # apiFetch base + api.get/post/put/patch/delete; APIError matching docs/api-design-standards.md §7
-│   │   ├── api-client.test.ts
-│   │   ├── query-client.ts           # TanStack queryClient config + isAPIError/getErrorMessage/getFieldErrors helpers
+│   │   ├── api-client.ts             # apiFetch base + api.get/post/put/patch/delete; APIError matching docs/api-design-standards.md §7; silent 401 token_expired → refresh → retry
+│   │   ├── api-client.test.ts        # client unit tests; stubs the global `fetch` (see "Testing")
+│   │   ├── api-client.refresh.test.ts # 401 → refresh → retry flow; MSW-backed, hence a separate file
+│   │   ├── error-handler.ts          # Pure mapApiError(error) → { title, message, requestId?, isRetryable }
+│   │   ├── error-handler.test.ts
+│   │   ├── query-client.ts           # TanStack queryClient config + isAPIError/getErrorMessage/getFieldErrors/getRetryAfterSeconds helpers
 │   │   └── query-client.test.ts
 │   ├── styles/
 │   │   ├── tokens.css                # Design tokens: color, spacing, typography, radius, shadow, z-index, transitions
 │   │   └── global.css                # Imports tokens.css; CSS reset + base element styles
 │   ├── test/
-│   │   ├── setup.ts                  # Vitest setup: extends expect with jest-dom matchers, registers RTL's afterEach(cleanup)
+│   │   ├── setup.ts                  # Vitest setup: jest-dom matchers, RTL's afterEach(cleanup), and the MSW server lifecycle (listen/resetHandlers/close)
+│   │   ├── msw/                      # Shared Mock Service Worker instance (server.ts) + default auth handlers and fixtures (handlers.ts)
+│   │   ├── queryWrapper.tsx          # createQueryWrapper(): per-test QueryClientProvider + MemoryRouter wrapper for renderHook/render
 │   │   └── cssModule.ts              # Test helper: resolves a CSS Module class into a definite `string` for toHaveClass() assertions
 │   ├── App.tsx                       # Root component: ErrorBoundary > QueryClientProvider > RouterProvider
 │   ├── App.test.tsx
-│   ├── main.tsx                      # React entry point (StrictMode + createRoot)
+│   ├── main.tsx                      # React entry point (StrictMode + createRoot); composition root that installs the session-expiry handler before first render
 │   └── vite-env.d.ts                 # ImportMetaEnv typing for VITE_* variables
 ├── tests/
 │   └── helpers/
@@ -165,16 +171,16 @@ frontend/
 
 Where the codebase is still headed. Everything in "Current" above (`components/primitives/`,
 `components/composites/`, `components/ErrorBoundary.tsx`, `routes/`, `stores/auth-store.ts`,
-`features/` placeholder, `hooks/useErrorHandler.ts`, `lib/`, `tests/helpers/a11y.ts`, and the
+`features/auth/`, `hooks/useErrorHandler.ts`, `lib/`, `test/msw/`, `tests/helpers/a11y.ts`, and the
 wired-up `App.tsx`) is already real — everything below is still aspirational.
 
 ```
 frontend/
 ├── src/
-│   ├── features/                     # Feature-scoped components and logic (currently empty)
-│   │   └── ...                       # e.g. auth/, trips/, collaboration/ — added as their specs land
+│   ├── features/                     # Feature-scoped components and logic (auth/ is real; see Current)
+│   │   └── ...                       # e.g. trips/, collaboration/ — added as their specs land
 │   ├── components/
-│   │   ├── primitives/               # More primitives to add: Label, Badge, PrivacyPolicyLink
+│   │   ├── primitives/               # More primitives to add: Badge, PrivacyPolicyLink
 │   │   ├── composites/               # More composites to add: TripCard, ActivityItem, DaySection, SuggestionBubble
 │   │   └── features/                 # Feature-level UI blocks (ConversationPanel, ItineraryView, SuggestionQueue)
 │   ├── routes/                       # More routes to add: register/login/dashboard/generate/trip/privacy-policy pages
@@ -207,10 +213,12 @@ Create a `.env.local` file (gitignored) at `frontend/`. **Never commit real valu
 | `VITE_API_BASE_URL` | ✅ | Backend API base, e.g. `http://localhost:8080/api/v1`. Read by `src/lib/api-client.ts`; there is no hardcoded fallback, so a missing value throws at request time instead of silently pointing at the wrong backend. |
 
 **`.env.test`** is committed (unlike `.env.local`) and mirrors `.env.example` with a fixed
-`VITE_API_BASE_URL`. Vite/Vitest auto-load it in `test` mode, so unit tests get a deterministic
-value without depending on a developer's local `.env.local` — tests mock `fetch` directly, so the
-URL is never dereferenced over the network, it only needs to satisfy `api-client.ts`'s
-required-env-var check. Personal overrides for test mode go in the git-ignored `.env.test.local`.
+`VITE_API_BASE_URL`. Vite/Vitest auto-load it in `test` mode, so tests get a deterministic value
+without depending on a developer's local `.env.local`. The URL is never dereferenced over the
+network — requests are answered either by MSW (whose handler URLs are built from this same value,
+so the two cannot drift) or by a stubbed global `fetch` — but it still has to be set at all, to
+satisfy `api-client.ts`'s required-env-var check. Personal overrides for test mode go in the
+git-ignored `.env.test.local`.
 
 ---
 
@@ -248,9 +256,11 @@ npm run test:watch
 ```
 
 Test files live next to the source file they test (e.g. `App.test.tsx` alongside `App.tsx`), per
-[`docs/testing-guidelines.md`](../docs/testing-guidelines.md). MSW is installed for future
-integration tests that intercept HTTP calls but isn't wired up yet — `src/lib/api-client.test.ts`
-currently mocks the global `fetch` directly instead. Tests run in Vite's `test` mode, which
+[`docs/testing-guidelines.md`](../docs/testing-guidelines.md). MSW intercepts HTTP for feature-level
+tests (`src/features/auth/`, `src/lib/api-client.refresh.test.ts`); the shared server lives in
+`src/test/msw/` and its lifecycle in `src/test/setup.ts`. `src/lib/api-client.test.ts` still mocks
+the global `fetch` directly — deliberately, since it is the unit test for the client itself and a
+stubbed `fetch` would bypass MSW entirely. Tests run in Vite's `test` mode, which
 auto-loads `.env.test` for a deterministic `VITE_API_BASE_URL` (see "Environment Variables" above).
 
 ---
@@ -286,7 +296,7 @@ always permitted; the reverse is forbidden.
 
 | Layer | Location | Description |
 |-------|----------|-------------|
-| Primitives ("atoms") | `src/components/primitives/` | Single-responsibility UI primitives: `Button`, `Input`, `Card` ✅ implemented (issue #63); `LoadingSpinner`, `ErrorMessage`, `EmptyState` ✅ implemented (issue #64); `Label`, `Badge`, `PrivacyPolicyLink` ⏳ planned |
+| Primitives ("atoms") | `src/components/primitives/` | Single-responsibility UI primitives: `Button`, `Input`, `Card` ✅ implemented (issue #63); `LoadingSpinner`, `ErrorMessage`, `EmptyState` ✅ implemented (issue #64); `Label` ✅ implemented (issue #171); `Badge`, `PrivacyPolicyLink` ⏳ planned |
 | Composites | `src/components/composites/` | Reusable combinations of primitives: `Form` ✅ implemented (issue #65); `TripCard`, `ActivityItem`, `DaySection`, `TravelStyleSelector`, `SuggestionBubble`, `CollaboratorInvite` ⏳ planned |
 | Features | `src/components/features/` | Domain-specific, data-connected blocks: `ConversationPanel`, `ItineraryView`, `SuggestionQueue` ⏳ planned |
 

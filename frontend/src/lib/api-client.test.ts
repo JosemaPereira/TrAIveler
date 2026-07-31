@@ -2,13 +2,17 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { api, apiFetch, APIError } from './api-client'
 
+// `headers` is a real Headers instance rather than being omitted: buildAPIError
+// reads Retry-After off it, and a fake that lacks it would throw here while a
+// real Response never can.
 function jsonResponse(
   body: unknown,
-  init: { status: number; ok: boolean }
+  init: { status: number; ok: boolean; headers?: HeadersInit }
 ): Response {
   return {
     ok: init.ok,
     status: init.status,
+    headers: new Headers(init.headers),
     json: () => Promise.resolve(body),
   } as Response
 }
@@ -156,6 +160,135 @@ describe('apiFetch', () => {
       )
 
       await expect(apiFetch('/trips/missing')).rejects.toBeInstanceOf(APIError)
+    })
+
+    it('should carry the envelope details through to the APIError', async () => {
+      const envelope = {
+        error: 'rate_limit_exceeded',
+        message: 'Too many login attempts. Please try again later.',
+        request_id: 'req_rate001',
+        details: { retry_after_seconds: 42 },
+      }
+      vi.mocked(fetch).mockResolvedValue(
+        jsonResponse(envelope, { status: 429, ok: false })
+      )
+
+      await expect(apiFetch('/auth/login')).rejects.toMatchObject({
+        status: 429,
+        code: 'rate_limit_exceeded',
+        details: { retry_after_seconds: 42 },
+      })
+    })
+
+    it('should leave details undefined when the envelope has no details object', async () => {
+      const envelope = {
+        error: 'not_found',
+        message: 'Trip not found',
+        request_id: 'req_nf001',
+      }
+      vi.mocked(fetch).mockResolvedValue(
+        jsonResponse(envelope, { status: 404, ok: false })
+      )
+
+      await expect(apiFetch('/trips/missing')).rejects.toMatchObject({
+        details: undefined,
+      })
+    })
+
+    it('should fall back to the Retry-After header when the envelope omits the wait', async () => {
+      const envelope = {
+        error: 'rate_limit_exceeded',
+        message: 'Too many requests',
+        request_id: 'req_rate002',
+      }
+      vi.mocked(fetch).mockResolvedValue(
+        jsonResponse(envelope, {
+          status: 429,
+          ok: false,
+          headers: { 'Retry-After': '30' },
+        })
+      )
+
+      await expect(apiFetch('/auth/login')).rejects.toMatchObject({
+        details: { retry_after_seconds: 30 },
+      })
+    })
+
+    it('should prefer the envelope wait over the Retry-After header', async () => {
+      const envelope = {
+        error: 'rate_limit_exceeded',
+        message: 'Too many requests',
+        request_id: 'req_rate003',
+        details: { retry_after_seconds: 7 },
+      }
+      vi.mocked(fetch).mockResolvedValue(
+        jsonResponse(envelope, {
+          status: 429,
+          ok: false,
+          headers: { 'Retry-After': '30' },
+        })
+      )
+
+      await expect(apiFetch('/auth/login')).rejects.toMatchObject({
+        details: { retry_after_seconds: 7 },
+      })
+    })
+
+    it('should ignore a non-numeric Retry-After header', async () => {
+      // The HTTP-date form is legal but this API never emits it, and parsing it
+      // would mean trusting client/server clock agreement.
+      const envelope = {
+        error: 'rate_limit_exceeded',
+        message: 'Too many requests',
+        request_id: 'req_rate004',
+      }
+      vi.mocked(fetch).mockResolvedValue(
+        jsonResponse(envelope, {
+          status: 429,
+          ok: false,
+          headers: { 'Retry-After': 'Wed, 21 Oct 2026 07:28:00 GMT' },
+        })
+      )
+
+      await expect(apiFetch('/auth/login')).rejects.toMatchObject({
+        details: undefined,
+      })
+    })
+
+    it('should treat an empty Retry-After header as absent, not as zero', async () => {
+      const envelope = {
+        error: 'rate_limit_exceeded',
+        message: 'Too many requests',
+        request_id: 'req_rate005',
+      }
+      vi.mocked(fetch).mockResolvedValue(
+        jsonResponse(envelope, {
+          status: 429,
+          ok: false,
+          headers: { 'Retry-After': '  ' },
+        })
+      )
+
+      await expect(apiFetch('/auth/login')).rejects.toMatchObject({
+        details: undefined,
+      })
+    })
+
+    it('should keep the Retry-After header when no error envelope is returned', async () => {
+      // An intermediary (load balancer, CDN) shedding load answers 429 with the
+      // header and no envelope of ours; the countdown must survive that.
+      vi.mocked(fetch).mockResolvedValue(
+        jsonResponse('<html>Too Many Requests</html>', {
+          status: 429,
+          ok: false,
+          headers: { 'Retry-After': '120' },
+        })
+      )
+
+      await expect(apiFetch('/auth/login')).rejects.toMatchObject({
+        code: 'unknown_error',
+        details: { retry_after_seconds: 120 },
+      })
     })
 
     it('should leave fields undefined when the envelope has no fields array', async () => {

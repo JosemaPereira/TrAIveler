@@ -13,11 +13,9 @@ import {
 const testUser: User = {
   id: 'user_1',
   email: 'traveler@example.com',
-  role: 'admin',
-  subscription_id: null,
-  last_login_at: null,
+  full_name: 'Ada Traveler',
+  has_subscription: false,
   created_at: '2026-01-01T00:00:00Z',
-  updated_at: '2026-01-01T00:00:00Z',
 }
 
 // Zustand stores are module-singletons: reset state before every test so

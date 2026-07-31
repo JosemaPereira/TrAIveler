@@ -103,6 +103,69 @@ describe('mapApiError', () => {
     })
   })
 
+  describe('when handling a 409 APIError', () => {
+    it('should return a non-retryable conflict result', () => {
+      const error = new APIError(
+        409,
+        'conflict',
+        'Email already registered',
+        'req-409'
+      )
+
+      const result = mapApiError(error)
+
+      expect(result).toEqual({
+        title: 'Conflict',
+        message: 'Email already registered',
+        requestId: 'req-409',
+        isRetryable: false,
+      })
+    })
+  })
+
+  describe('when handling a 422 APIError', () => {
+    it('should return a non-retryable invalid-input result', () => {
+      const error = new APIError(
+        422,
+        'validation_failed',
+        'One or more fields failed validation',
+        'req-422',
+        [{ field: 'email', error: 'Email must be a valid email address' }]
+      )
+
+      const result = mapApiError(error)
+
+      expect(result).toEqual({
+        title: 'Invalid Input',
+        message: 'One or more fields failed validation',
+        requestId: 'req-422',
+        isRetryable: false,
+      })
+    })
+  })
+
+  describe('when handling a 429 APIError', () => {
+    it('should return a retryable too-many-requests result', () => {
+      const error = new APIError(
+        429,
+        'rate_limit_exceeded',
+        'Too many attempts; please retry later',
+        'req-429',
+        undefined,
+        { retry_after_seconds: 8 }
+      )
+
+      const result = mapApiError(error)
+
+      expect(result).toEqual({
+        title: 'Too Many Requests',
+        message: 'Too many attempts; please retry later',
+        requestId: 'req-429',
+        isRetryable: true,
+      })
+    })
+  })
+
   describe('when handling a non-APIError failure', () => {
     it('should fall back to a retryable generic result with a safe message', () => {
       const error = new TypeError('Failed to fetch')

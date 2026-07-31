@@ -2,6 +2,12 @@ import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import './styles/global.css'
 import App from './App.tsx'
+import { installSessionExpiryHandler } from './features/auth/session-expiry'
+
+// Composition root: teach the API client what to do when the session expires
+// beyond recovery. Done here, before the first render, so the very first
+// request of the app session is already covered.
+installSessionExpiryHandler()
 
 const rootElement = document.getElementById('root')
 if (!rootElement) {

@@ -2,19 +2,23 @@ import { create } from 'zustand'
 
 import { api } from '../lib/api-client'
 
-// Wire-format User (docs/data-model.md User entity), typed with the same
-// snake_case field names the backend returns — this codebase has no
-// case-conversion layer (see api-client.ts), so the frontend type mirrors
-// the API response as-is. `password_hash` is excluded from JSON
-// serialization by the backend and must never appear here.
+// Wire-format User, typed with the same snake_case field names the backend
+// returns — this codebase has no case-conversion layer (see api-client.ts),
+// so the frontend type mirrors the API response as-is.
+//
+// This is exactly the shape `POST /auth/register` and `POST /auth/login`
+// serialize today (backend/internal/auth/models.go): every other field on the
+// backend's User entity — password hash, role, version, failed login counters,
+// timestamps other than created_at — carries `json:"-"` and never reaches the
+// client. In particular `role` is deliberately NOT exposed by the API today,
+// so authorization decisions cannot be made from this type; add it here only
+// once the backend actually serializes it.
 export interface User {
   id: string
   email: string
-  role: 'admin' | 'partner'
-  subscription_id: string | null
-  last_login_at: string | null
+  full_name: string
+  has_subscription: boolean
   created_at: string
-  updated_at: string
 }
 
 export interface AuthState {

@@ -1,0 +1,38 @@
+/*
+ * Label primitive styles.
+ * All design values reference tokens from src/styles/tokens.css — no hard-coded
+ * colors or spacing (the fixed 1px box in .visuallyHidden is the standard clip
+ * recipe, not a design value). The base rule intentionally mirrors
+ * Input.module.css's `.label` so a standalone <Label> and an <Input>'s built-in
+ * label render identically.
+ */
+
+.label {
+  font-family: var(--font-family-base);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-neutral-900);
+}
+
+.requiredMark {
+  margin-left: var(--space-1);
+  color: var(--color-error);
+}
+
+/*
+ * Visually hidden but still announced by screen readers (WCAG 2.1 AA): the
+ * asterisk is aria-hidden decoration, so the requirement has to reach
+ * assistive technology as real text. `display: none` / `visibility: hidden`
+ * would remove it from the accessibility tree, hence the clip technique.
+ */
+.visuallyHidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}

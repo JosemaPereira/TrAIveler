@@ -369,9 +369,10 @@ and served at `/swagger/index.html` / `/swagger/doc.json`, unauthenticated for n
 Vite + React 19 + TypeScript strict mode. `src/App.tsx` composes `ErrorBoundary` >
 `QueryClientProvider` (`src/lib/query-client.ts`) > `RouterProvider` (`src/routes/index.tsx`).
 Atomic Design layering under `src/components/`: `primitives/` (`Button`, `Input`, `Card`,
-`LoadingSpinner`, `ErrorMessage`, `EmptyState`, each token-driven via CSS Modules), `composites/`
-(`Form`, composing `Button` + `Input`), and an empty `features/` placeholder (`.gitkeep`) reserved
-for feature-scoped modules as later specs land. `ErrorBoundary` itself sits outside this layering,
+`Label`, `LoadingSpinner`, `ErrorMessage`, `EmptyState`, each token-driven via CSS Modules),
+`composites/` (`Form`, composing `Button` + `Input`), and `features/` for feature-scoped modules —
+`features/auth/` is the first real one (issue #180: `authApi`, `useRegister`/`useLogin`/`useLogout`,
+and the session-expiry handler). `ErrorBoundary` itself sits outside this layering,
 directly under `src/components/`. `src/stores/auth-store.ts` is a Zustand store
 (`isAuthenticated`/`user`/`isLoading` + `login`/`logout`/`refreshSession`) with **no persistence
 middleware** — the HTTP-only JWT cookie is the real session store, state is re-derived via

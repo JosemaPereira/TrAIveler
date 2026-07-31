@@ -4,6 +4,7 @@ import { APIError } from './api-client'
 import {
   getErrorMessage,
   getFieldErrors,
+  getRetryAfterSeconds,
   isAPIError,
   queryClient,
 } from './query-client'
@@ -146,6 +147,61 @@ describe('getFieldErrors', () => {
     it('should return an empty record for a non-APIError value', () => {
       expect(getFieldErrors(new Error('boom'))).toEqual({})
       expect(getFieldErrors(undefined)).toEqual({})
+    })
+  })
+})
+
+describe('getRetryAfterSeconds', () => {
+  function rateLimitError(details?: Record<string, unknown>): APIError {
+    return new APIError(
+      429,
+      'rate_limit_exceeded',
+      'Too many login attempts. Please try again later.',
+      'req_1',
+      undefined,
+      details
+    )
+  }
+
+  describe('when given a rate-limited APIError', () => {
+    it('should return the retry_after_seconds value from details', () => {
+      const error = rateLimitError({ retry_after_seconds: 30 })
+
+      expect(getRetryAfterSeconds(error)).toBe(30)
+    })
+
+    it('should return 0 when the server reports no remaining wait', () => {
+      const error = rateLimitError({ retry_after_seconds: 0 })
+
+      expect(getRetryAfterSeconds(error)).toBe(0)
+    })
+  })
+
+  describe('when the retry hint is missing or unusable', () => {
+    it('should return undefined when details has no retry_after_seconds', () => {
+      expect(getRetryAfterSeconds(rateLimitError({}))).toBeUndefined()
+    })
+
+    it('should return undefined when the APIError has no details at all', () => {
+      expect(getRetryAfterSeconds(rateLimitError())).toBeUndefined()
+    })
+
+    it.each([
+      ['a string', '30'],
+      ['null', null],
+      ['NaN', Number.NaN],
+      ['Infinity', Number.POSITIVE_INFINITY],
+    ])('should return undefined when the value is %s', (_label, value) => {
+      const error = rateLimitError({ retry_after_seconds: value })
+
+      expect(getRetryAfterSeconds(error)).toBeUndefined()
+    })
+  })
+
+  describe('when given a non-APIError value', () => {
+    it('should return undefined', () => {
+      expect(getRetryAfterSeconds(new Error('boom'))).toBeUndefined()
+      expect(getRetryAfterSeconds(undefined)).toBeUndefined()
     })
   })
 })

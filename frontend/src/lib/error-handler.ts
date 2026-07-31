@@ -20,9 +20,20 @@ const FALLBACK_MESSAGE = 'An unexpected error occurred. Please try again.'
  * Maps an API (or generic) error to user-friendly display info.
  *
  * - 401 → "Session Expired" (not retryable; the caller is responsible for any
- *   redirect — this function stays side-effect free).
+ *   redirect — this function stays side-effect free). A 401 that reaches a
+ *   component has already survived the api client's silent refresh attempt
+ *   (008-T160), so the session really is over by the time this runs.
  * - 403 → "Permission Denied" (not retryable).
  * - 404 → "Not Found" (not retryable).
+ * - 409 → "Conflict" (not retryable): the request clashed with existing state —
+ *   a duplicate email on register, or a stale `version` on an optimistic-locked
+ *   update. Retrying the identical request cannot help; the user has to change
+ *   something or reload.
+ * - 422 → "Invalid Input" (not retryable): per-field messages are in
+ *   `APIError.fields`; render them against the form via `getFieldErrors` rather
+ *   than only showing this summary.
+ * - 429 → "Too Many Requests" (retryable, but not immediately — read the wait
+ *   from `getRetryAfterSeconds`).
  * - Everything else (500/503, other 5xx, and non-`APIError` network failures)
  *   → generic "Something Went Wrong", treated as retryable.
  *
@@ -37,30 +48,22 @@ export function mapApiError(error: unknown): ErrorDisplay {
   // requestId can be '' (no parseable error envelope), not just undefined —
   // treat that as "no id" rather than rendering an empty string.
   const requestId = apiError?.requestId ? apiError.requestId : undefined
+  const base = { message, requestId }
 
   switch (apiError?.status) {
     case 401:
-      return {
-        title: 'Session Expired',
-        message,
-        requestId,
-        isRetryable: false,
-      }
+      return { ...base, title: 'Session Expired', isRetryable: false }
     case 403:
-      return {
-        title: 'Permission Denied',
-        message,
-        requestId,
-        isRetryable: false,
-      }
+      return { ...base, title: 'Permission Denied', isRetryable: false }
     case 404:
-      return { title: 'Not Found', message, requestId, isRetryable: false }
+      return { ...base, title: 'Not Found', isRetryable: false }
+    case 409:
+      return { ...base, title: 'Conflict', isRetryable: false }
+    case 422:
+      return { ...base, title: 'Invalid Input', isRetryable: false }
+    case 429:
+      return { ...base, title: 'Too Many Requests', isRetryable: true }
     default:
-      return {
-        title: 'Something Went Wrong',
-        message,
-        requestId,
-        isRetryable: true,
-      }
+      return { ...base, title: 'Something Went Wrong', isRetryable: true }
   }
 }
