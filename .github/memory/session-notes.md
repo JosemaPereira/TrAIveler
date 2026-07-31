@@ -471,5 +471,52 @@ Historical summaries of completed development sessions. Committed to git as a re
   a DB-unavailable refresh; store errors wrap with `fmt.Errorf`, so they land on `internal_error`/**500**
   — a genuine unimplemented spec point, distinct from the already-decided error-code casing deviation.
   (3) `handleRegister`/`handleLogin` still declare no `@Failure 500` though `issueSession` can produce
-  one (pre-existing from #189; worth a sweep across all handlers). (4) 008-T150 (`TOKEN_EXPIRED`)
-  remains Backlog and is what the frontend's renewal trigger keys off.
+  one (pre-existing from #189; worth a sweep across all handlers).
+
+### Session: #179 scope validation → pulled 008-T150 in, homed T160 on #180
+
+- **Date**: 2026-07-30
+- **Tool**: Claude Code
+- **What was accomplished**: A post-implementation scope review of #179 surfaced that the refresh
+  endpoint was live server-side but nothing could *trigger* it — the gate returned a uniform
+  `authentication_required` for every 401, so the SPA couldn't tell "access token expired → refresh"
+  from "no session → login". That trigger is **008-T150** (backend) + **008-T160** (frontend), both
+  Backlog with no issue. User chose (AskUserQuestion) to **build T150 in #179** and **home T160 on an
+  existing issue**. Delivered T150 (commit `1e97771`, on top of `fb9a719`; PR #191). T160 was NOT
+  built (frontend — would violate consolidation-first + depends on unbuilt frontend infra); instead a
+  pickup note was added to **#180 (G-008-AUTH-HOOKS-API)**, the fetch `authApi`/api-client group that
+  naturally owns a 401→refresh→retry interceptor, and the roadmap T160 row was pointed at #180.
+- **Key findings and decisions**:
+  - **T150 wire code is `token_expired` (snake_case), NOT the spec's literal `TOKEN_EXPIRED`.** Fourth
+    instance of the same sprint-long casing correction (after `INVALID_CREDENTIALS`/
+    `INVALID_REFRESH_TOKEN`→`authentication_required`, `rate_limited`→`rate_limit_exceeded`). Added a
+    `token_expired` row to the `docs/api-design-standards.md` §7 catalog and **narrowed**
+    `authentication_required`'s "Use When" (it literally listed "expired JWT", which T150 now peels
+    off). Note the authority tension resolved here: §7 (a root doc) said expired→`authentication_required`,
+    but tasks.md (which outranks root docs) requires a *distinct* code so the client can trigger
+    refresh — tasks.md won on the *need for distinctness*, §7's snake_case rule won on the *casing*.
+  - **T150 deliberately, narrowly breaks the uniform-401 anti-enumeration property #179 just built.**
+    Safe because only a validly-signed-but-expired token (proven by a signature over an unretired key)
+    reaches the expiry branch — an attacker can't forge one without the signing key, and the holder
+    already proved they held a real token we issued. Every other failure stays `authentication_required`.
+    Tests assert missing-cookie and generic-error paths both stay uniform.
+  - **Implemented via the same import-cycle port pattern as T207**: exported `middleware.ErrTokenExpired`
+    sentinel; the `cmd/api/token_validator.go` adapter maps `gojwt.ErrTokenExpired`→sentinel (middleware
+    can't import auth/jwt). The load-bearing test drives a *real* `jwt.Validator` with a genuinely
+    past-`exp` token and asserts `errors.Is(err, middleware.ErrTokenExpired)` through the full
+    `DomainError.Unwrap → %w → gojwt` chain — not a hand-rolled wrapper. `make swagger` = no diff (the
+    401 envelope schema is unchanged; only the `error` value differs).
+  - **Colima gotcha revisited**: mid-session the integration run failed with `failed to start postgres
+    container` / `docker.sock: no such file` — Colima had **stopped**, not a code regression. `colima
+    start` and re-run → green. Verify `colima status` says "running" before reading an integration
+    failure as real.
+- **Outcomes**: Session-renewal is now server-complete: `GET`-gated routes emit `token_expired` on
+  expiry, `POST /auth/refresh` rotates, and the frontend contract is recorded on #180 for T160.
+  Verified: gofmt/build/vet/lint exit 0, `-short` 15 pkgs ok, integration vs real Postgres ok, swagger
+  no drift. No AWS/terraform touched.
+- **Still-open follow-ups** (unchanged by this session, still uncovered by any issue): (1)
+  `/swagger/index.html` 401s on cold start; (2) contracts/api.md's **503** for a DB-unavailable refresh
+  vs the actual **500** (store errors wrap with `fmt.Errorf`, not `DomainError`); (3) `handleRegister`/
+  `handleLogin` missing `@Failure 500`; (4) `HTTPServer.extraProtectedRoutes` test hook (delete when a
+  real subscription-gated route lands). (5) **008-T160** now homed on #180 but still Backlog — build
+  against `token_expired`, not `TOKEN_EXPIRED`.
