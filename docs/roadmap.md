@@ -1916,13 +1916,21 @@ Sprint 5) + Spec 002/004 cheap fixes carried from Sprint 5
 |------------|------------|------------------|
 | Auth data layer — #167,#168,#169,#175 | 11 | User/Register/Login/Subscription models; User+RefreshToken+Subscription repos; `RefreshTokenStore`/`SubscriptionResolver`; stub payment provider |
 | Auth services & HTTP — #176,#177,#178 | 10 | Register/Subscription/Login services; register+login+logout handlers & routes; Free-User variant |
-| Auth activation (composition root) — #179 | 4 | `jwt.Validator`→`AuthClaims` adapter, `Authenticate` gate on `/api/v1`+`/swagger` (removes `TODO(sprint-5)`), `Refresher` wiring, integration tests |
+| Auth activation (composition root) — #179 | 7 | `jwt.Validator`→`AuthClaims` adapter, `Authenticate` gate on `/api/v1`+`/swagger` (removes `TODO(sprint-5)`), `Refresher` wiring, integration tests; **pulled in T148/T149 (`POST /auth/refresh`) + T150 (`token_expired` on expired-access-token 401 — server half of the renewal trigger; T160 frontend half homed on #180)** |
 | Frontend auth — #171,#180,#182,#183,#184 | 14 | `Label` primitive; useRegister/useLogin/useLogout + `authApi` (fetch, not axios); Register/Login forms & pages; auth store, protected route, Navigation, dashboard shell |
 | Data-layer migrations (closes 004-T011) — #170 | 4 | destinations/days/activities migrations (013-015); `activities.version` inline |
 | G-SPEC009-CI-GATE (deferred from Sprint 5) — #172 | 4 | `swagger-drift` CI gate + required status check |
 | G-SPEC009-POLISH (deferred from Sprint 5) — #181 | 5 | Spec 009 README/docs cross-references, quickstart validation, lint/coverage |
 | G-SPRINT6-LINT-CI — #173 | 4 | golangci `test` build-tag, Postgres test-image alignment, `roadmap-status-drift` gate |
 | G-004-CONFIG-AUDIT — #174 | 2 | forward `BcryptCost`, audit unconsumed config fields |
+
+**Discovered follow-ups (non-blocking, triage into Sprint 7+)**: #192 (G-008-AUTH-FOLLOWUPS) bundles
+three items surfaced during #179 — (A) `/auth/refresh` returns 500 not the spec's 503 on a DB outage;
+(B) `handleRegister`/`handleLogin` lack `@Failure 500` annotations; (C) `/swagger/*` now 401s on a
+cold start (correct per 008-T208, but local-dev friction — decide on a dev-only bypass). Two related
+items are already tracked elsewhere and intentionally NOT in #192: 008-T160 (frontend renewal
+interceptor) is homed on #180; `HTTPServer.extraProtectedRoutes` carries its own in-code deletion
+trigger for whenever the first subscription-gated route lands.
 
 **Total**: 58 tasks → **18 work items (issues #167–#184)**  
 **Velocity note**: 58 tasks is above the historical max (Sprint 3 = 54; actual mean ≈ 39). Deliberately
