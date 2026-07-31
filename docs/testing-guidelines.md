@@ -9,6 +9,7 @@ TrAIveler follows a **Test-Driven Development** workflow: write a failing test (
 The project uses a three-layer testing strategy:
 
 ```mermaid
+%%{init: {'flowchart': {'curve': 'linear'}}}%%
 graph TD
     subgraph "Layer 1: Unit Tests"
         U1[Individual functions<br/>Services<br/>Components in isolation]

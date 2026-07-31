@@ -11,6 +11,7 @@ TrAIveler is a three-tier web application with a stateless RESTful API backend, 
 ## Component Architecture
 
 ```mermaid
+%%{init: {'flowchart': {'curve': 'linear'}}}%%
 graph TD
     User[End User Browser]
     CF[CloudFront CDN<br/>React build artifacts from S3<br/>Global edge caching, HTTPS]
@@ -287,6 +288,7 @@ and per-module notes.
 ### As-built component diagram
 
 ```mermaid
+%%{init: {'flowchart': {'curve': 'linear'}}}%%
 graph TD
     User[End User Browser]
     FE[React 19 SPA — Vite dev server :5173<br/>ErrorBoundary → QueryClientProvider → RouterProvider<br/>Single real route: placeholder HomePage]

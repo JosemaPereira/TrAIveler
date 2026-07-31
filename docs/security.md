@@ -35,6 +35,7 @@ When users change their password, they can optionally invalidate all active sess
 The system enforces two distinct roles with specific permissions:
 
 ```mermaid
+%%{init: {'flowchart': {'curve': 'linear'}}}%%
 graph TB
     User[User]
     
@@ -113,6 +114,7 @@ The system is GDPR-aware and implements the following protections:
 ### Input Validation & Sanitization
 
 ```mermaid
+%%{init: {'flowchart': {'curve': 'linear'}}}%%
 graph LR
     Input[User Input]
     

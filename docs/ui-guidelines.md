@@ -89,6 +89,7 @@ The spacing scale is based on a **4 px base unit**.
 Components are organized in three layers:
 
 ```mermaid
+%%{init: {'flowchart': {'curve': 'linear'}}}%%
 graph TB
     subgraph "Primitives (src/components/primitives/)"
         P1[Button]

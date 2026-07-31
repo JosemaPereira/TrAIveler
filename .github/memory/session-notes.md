@@ -520,3 +520,37 @@ Historical summaries of completed development sessions. Committed to git as a re
   `handleLogin` missing `@Failure 500`; (4) `HTTPServer.extraProtectedRoutes` test hook (delete when a
   real subscription-gated route lands). (5) **008-T160** now homed on #180 but still Backlog — build
   against `token_expired`, not `TOKEN_EXPIRED`.
+
+### Session: Itinerary Migrations — Destinations, Days, Activities (#170, closes 004-T011)
+
+- **Date**: 2026-07-30
+- **Tool**: Claude Code
+- **What was accomplished**: Closed #170 (004-T133/T134/T135/T136) — migrations `013_create_
+  destinations_table.sql`, `014_create_days_table.sql`, `015_create_activities_table.sql`, plus
+  `backend/tests/integration/itinerary_migrations_test.go` (3 testcontainer tests: schema,
+  constraints + FK behaviors, reversibility). TDD: the test file was written and confirmed RED
+  (`relation "destinations" does not exist`) before any SQL existed.
+- **Key findings and decisions**:
+  - **004-T011 is closed without a migration of its own.** Its two-sprint blocker was a false
+    premise — `itinerary_items` was never in the canonical model. See the new pattern *A Long-Blocked
+    Task Can Be Blocked on a Premise That Was Never True*. `activities.version BIGINT NOT NULL
+    DEFAULT 1` ships inline in 015, mirroring `trips.version` in 010. **No `itinerary_items` table
+    exists or should ever be created.**
+  - **Deviation from docs/data-model.md**: `idx_destinations_coordinates` is a plain composite
+    B-tree on `(latitude, longitude)`, not a spatial index — the doc conditions the spatial variant
+    on PostGIS, which is enabled on neither RDS nor the testcontainer.
+  - Deferral notes rewritten in all three places T136 names (`security_migrations_test.go` header,
+    `010_create_trips_table.sql` comment, the 004-T011 roadmap row). The goose strict-version-order
+    regression guard was preserved in the test header — it still governs any future migration.
+  - **Scope added by the user mid-session (docs)**: `docs/data-model.md` gained an **As-Built Schema
+    Diagram** (Mermaid `erDiagram` of the 13 real tables with every FK's `ON DELETE` action) after
+    the `PROMOTED:data-model END` marker, deliberately not inside the promoted block. It records two
+    divergences the promoted target diagram gets wrong: there is no `users.subscription_id` (the FK
+    runs the other way), and a Day has *zero or one* Destination, not exactly one (the promoted
+    diagram states it twice and inconsistently). Also straightened all 8 flowchart diagrams with
+    `curve: linear` — see the new Mermaid pattern; `erDiagram` has no such option.
+  - No new endpoints → the mandatory swagger/`technical-writer` step is N/A for this ticket.
+- **Outcomes**: Full goose Up applies cleanly through 015 and rolls back to 12 cleanly. Verified:
+  `gofmt -l` empty, `go build`/`go vet -tags test`/`golangci-lint` all exit 0, `-short` 15 pkgs ok,
+  **full suite against real Postgres 15 pkgs ok** (the load-bearing check — 013-015 break no other
+  goose.Up-dependent suite). All 10 Mermaid diagrams render. No AWS/terraform touched.

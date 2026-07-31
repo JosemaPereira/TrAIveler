@@ -15,6 +15,7 @@
 The project maintains **two distinct environments**:
 
 ```mermaid
+%%{init: {'flowchart': {'curve': 'linear'}}}%%
 graph TB
     subgraph "AWS Account (us-east-1)"
         subgraph "Staging Environment (Active MVP)"
@@ -171,6 +172,7 @@ Each environment has its own VPC with:
 **Triggered by**: Git events (push, pull request, tag)
 
 ```mermaid
+%%{init: {'flowchart': {'curve': 'linear'}}}%%
 graph TB
     Dev[Developer]
     
