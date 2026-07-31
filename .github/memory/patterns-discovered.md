@@ -26,6 +26,8 @@ the file **and** add a line here.
 - *Goose Migrations Must Not Reference Tables From a Later, Not-Yet-Landed Migration Set*.
 - *Chi Panics on a Duplicate Routed Pattern — Split Auth Groups by Full Path, Not Nested `Route()`* —
   a startup panic, not a compile error; bit the public-vs-gated `/api/v1` split.
+- *A Long-Blocked Task Can Be Blocked on a Premise That Was Never True* — verify the blocker exists
+  in the canonical model before waiting another sprint for it (004-T011/`itinerary_items`).
 
 ### Go backend — testing
 
@@ -76,6 +78,7 @@ Read these before trusting any spec/issue text.
 - *What "Keep docs/ Updated" Means for an Infra Module PR* — the two-tier docs rule.
 - *README Documentation Consistency*, *Mermaid Diagrams for Documentation*,
   *GitHub Documentation URL Formatting*.
+- *Mermaid Straight Edges: Flowcharts Have `curve`, `erDiagram` Does Not*.
 - *Targeted (Grep-First) Memory Loading in Subagent Prompts*.
 
 ### Planning & workflow
@@ -759,3 +762,43 @@ Read these before trusting any spec/issue text.
   per-path assertion can never catch divergence between paths.
 - **Related**: `backend/internal/auth/jwt/refresher.go` (`RefreshFailureMessage`),
   `backend/internal/auth/handler.go`, `backend/internal/auth/handler_test.go`
+
+---
+
+### A Long-Blocked Task Can Be Blocked on a Premise That Was Never True
+
+- **Discovered**: 2026-07-30 — **Tool**: Claude Code
+- **Context**: 004-T011 (issue #138/#170) sat Backlog across two sprints "blocked on #142 landing
+  the `itinerary_items` table."
+- **Problem**: The blocker was never going to resolve. `itinerary_items` is not an entity in
+  `docs/data-model.md` at all — it appears only in spec 004's own `research.md`/`data-model.md` and
+  in T011/T062. The canonical itinerary is Trip → Day → **Activity**, and Activity is what carries
+  the optimistic-locking counter (Invariant 7). Each sprint closure re-verified that the table was
+  still missing and re-scheduled the wait, instead of asking whether the table should exist.
+- **Solution**: When a task has been deferred more than once on "waiting for X", grep the canonical
+  root docs for X itself before re-deferring. If X is absent there, the dependency is fictional —
+  re-map the task onto the real entity and close it out. Building the fictional table would have
+  fabricated schema no document specifies and split the itinerary across two entities.
+- **Related**: `backend/migrations/015_create_activities_table.sql`, `docs/roadmap.md` row 004-T011,
+  `specs/004-security-auth-model/tasks.md` ("Naming correction" note)
+
+---
+
+### Mermaid Straight Edges: Flowcharts Have `curve`, `erDiagram` Does Not
+
+- **Discovered**: 2026-07-30 — **Tool**: Claude Code
+- **Context**: `docs/*.md` — 8 `graph TD/TB/LR` flowcharts plus 2 `erDiagram`s; request to render
+  connector lines straight/orthogonal instead of curved for readability.
+- **Problem**: Mermaid curves edges by default (`basis`). The fix is per-diagram-type, and applying
+  the wrong directive silently does nothing.
+- **Solution**: For **flowcharts**, prepend `%%{init: {'flowchart': {'curve': 'linear'}}}%%` as the
+  first line of the block (`step`/`stepAfter`/`stepBefore` give hard right angles instead). For
+  **`erDiagram` there is no `curve` option at all** — its documented config is only sizing/spacing/
+  color; orthogonal ER edges need the ELK layout engine, an optional plugin GitHub's renderer does
+  not load, so ER lines stay curved. Verify the directive actually took effect by rendering and
+  diffing the SVG path data: `curve: linear` yields only `L` commands, the default yields `C`
+  (cubic bezier). Validate every block by rendering it — `@mermaid-js/mermaid-cli` with
+  `PUPPETEER_SKIP_DOWNLOAD=true` + `PUPPETEER_EXECUTABLE_PATH` pointed at the Chromium that
+  Playwright already installed for E2E avoids a second browser download.
+- **Related**: `docs/architecture.md`, `docs/cloud-and-environments.md`, `docs/security.md`,
+  `docs/testing-guidelines.md`, `docs/ui-guidelines.md`, `docs/data-model.md`

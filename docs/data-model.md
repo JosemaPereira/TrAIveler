@@ -742,14 +742,21 @@ no longer match the repository**:
 
 - `backend/migrations/` is a single flat goose directory shared across specs (config lives in
   `backend/internal/database/migrations/` — `Dir` + `SetDialect()`; not `pkg/database/migrations/`).
-- As-built so far: `001_create_users_table.sql`, `002_create_refresh_tokens_table.sql`,
-  `003_create_jwt_signing_keys_table.sql`, `004_create_security_events_table.sql`, plus the
-  throwaway timestamp-versioned `20260710120000_create_examples_table.sql` (deleted with
-  `internal/example/` when the first real domain ships).
-- Consequently `plans` is **not** migration 001 and `users` is **not** 002 as listed above — the
-  remaining tables (plans, subscriptions, trips, destinations, days, activities, travel styles,
-  collaborators, suggestions, conversation tables) must take the next free sequential numbers when
-  they land (Spec 008's migration set, issue #142, is next).
+- As-built (updated 2026-07-30, issue #170): `001_create_users_table.sql`,
+  `002_create_refresh_tokens_table.sql`, `003_create_jwt_signing_keys_table.sql`,
+  `004_create_security_events_table.sql`, `005_alter_users_add_auth_fields.sql`,
+  `006_create_plans_table.sql`, `007_create_subscriptions_table.sql`,
+  `008_create_password_reset_tokens_table.sql`, `009_alter_security_events_add_email.sql`,
+  `010_create_trips_table.sql`, `011_create_collaborators_table.sql`,
+  `012_create_suggestions_table.sql`, `013_create_destinations_table.sql`,
+  `014_create_days_table.sql`, `015_create_activities_table.sql`, plus the throwaway
+  timestamp-versioned `20260710120000_create_examples_table.sql` (deleted with `internal/example/`
+  when the first real domain ships).
+- Consequently `plans` is **not** migration 001 and `users` is **not** 002 as listed above. Two of
+  the as-built migrations (`005`, `009`) have no counterpart in the target list at all — they are
+  ALTERs extending Spec 004 tables with Spec 008 fields rather than creating anything.
+- The entities still unbuilt (travel styles, trip travel styles, conversation sessions,
+  conversation messages) must take the next free sequential numbers — `016`+ — when they land.
 - The as-built `users` table (001) follows this document's User entity (`role` CHECK
   admin/partner, `last_login_at`); Spec 008 task text (008-T011) describes a *different* users
   scheme (`full_name`, `has_subscription`, `failed_login_attempts`, `version`, ...) — implementers
@@ -757,3 +764,153 @@ no longer match the repository**:
   second `users` table. Goose applies one directory strictly in version order and stops at the
   first failure, so a migration must never reference a table created by a later, not-yet-landed
   migration (see `.github/memory/patterns-discovered.md`).
+
+## As-Built Schema Diagram
+
+Addendum outside the promoted content above (2026-07-30, issue #170). The diagram at the top of
+this document is the **target conceptual model** (16 entities, no columns, several not yet built).
+This one is the **schema as it actually exists** in `backend/migrations/`: real column names, real
+foreign keys, and each FK's `ON DELETE` action — recorded nowhere else in one place.
+
+Update it in the same PR as any migration that adds, drops, or re-points a table or foreign key.
+
+```mermaid
+erDiagram
+    users ||--o{ refresh_tokens : "CASCADE"
+    users ||--o{ password_reset_tokens : "CASCADE"
+    users ||--o{ subscriptions : "CASCADE"
+    users |o--o{ security_events : "SET NULL"
+    users ||--o{ trips : "RESTRICT — creator_id"
+    users |o--o{ collaborators : "CASCADE — nullable user_id"
+    users ||--o{ suggestions : "CASCADE — author_id"
+    users |o--o{ suggestions : "SET NULL — reviewed_by"
+    plans ||--o{ subscriptions : "RESTRICT"
+    trips ||--o{ days : "CASCADE"
+    trips ||--o{ collaborators : "CASCADE"
+    trips ||--o{ suggestions : "CASCADE"
+    destinations |o--o{ days : "SET NULL"
+    days ||--o{ activities : "CASCADE"
+
+    users {
+        uuid id PK
+        varchar email UK
+        text password_hash
+        varchar role "admin | partner"
+        varchar full_name "nullable"
+        boolean has_subscription
+        integer failed_login_attempts
+        boolean email_verified
+        bigint version
+    }
+    refresh_tokens {
+        uuid id PK
+        uuid user_id FK
+        text token_hash
+        timestamp expires_at
+        timestamp revoked_at "nullable"
+    }
+    password_reset_tokens {
+        uuid id PK
+        uuid user_id FK
+        text token_hash
+        timestamp expires_at
+        timestamp used_at "nullable"
+    }
+    jwt_signing_keys {
+        varchar key_id PK
+        text public_key
+        text private_key_secret_arn
+        varchar status "active | retiring | retired"
+        timestamp retire_at "nullable"
+    }
+    security_events {
+        uuid id PK
+        uuid user_id FK "nullable"
+        uuid correlation_id
+        varchar event_type
+        varchar email "nullable"
+        varchar severity
+        jsonb details
+        timestamp timestamp
+    }
+    plans {
+        uuid id PK
+        varchar name "seeded: basic"
+        integer max_admin_users
+        integer max_partner_users
+    }
+    subscriptions {
+        uuid id PK
+        uuid user_id FK
+        uuid plan_id FK
+        varchar status
+        varchar stub_payment_ref "nullable"
+        timestamp grace_period_ends_at "nullable"
+        timestamp cancelled_at "nullable"
+    }
+    trips {
+        uuid id PK
+        uuid creator_id FK
+        varchar title
+        varchar status "draft | published"
+        boolean archived
+        bigint version "optimistic locking"
+    }
+    collaborators {
+        uuid id PK
+        uuid trip_id FK
+        uuid user_id FK "nullable — invite before signup"
+        varchar email
+        varchar status "pending | accepted | rejected"
+    }
+    suggestions {
+        uuid id PK
+        uuid trip_id FK
+        uuid author_id FK
+        uuid reviewed_by FK "nullable"
+        varchar target_type "day | activity"
+        uuid target_id "no FK — audit history"
+        varchar suggested_action "add | edit | delete"
+        jsonb payload
+        varchar status "pending | approved | rejected"
+    }
+    destinations {
+        uuid id PK
+        varchar name
+        varchar country "ISO 3166-1 alpha-2"
+        varchar region "nullable"
+        numeric latitude "-90..90"
+        numeric longitude "-180..180"
+    }
+    days {
+        uuid id PK
+        uuid trip_id FK
+        uuid destination_id FK "nullable — transfer days"
+        integer day_number "unique per trip"
+        varchar label "nullable"
+    }
+    activities {
+        uuid id PK
+        uuid day_id FK
+        varchar title
+        varchar type "visit | food | logistics | transfer"
+        integer sequence_order
+        boolean is_ai_generated
+        jsonb metadata "nullable"
+        bigint version "optimistic locking"
+    }
+```
+
+Not shown: `examples` (throwaway, dropped with `internal/example/`) and `goose_db_version`.
+
+**Divergences from the target diagram above** — real code wins, per the authority ranking in
+`.github/memory/patterns-discovered.md`:
+
+- **No `users.subscription_id`.** The link runs the other way (`subscriptions.user_id`), plus a
+  denormalized `users.has_subscription` flag for the JWT claim. No FK on the `users` side.
+- **A Day has *zero or one* Destination, not exactly one** — `days.destination_id` is NULLABLE for
+  transfer days. The target diagram says otherwise twice, and inconsistently (`Day }o--|| Destination`
+  plus a contradictory many-to-many `Destination }o--o{ Day`). Left uncorrected on purpose: that
+  block is inside `PROMOTED:data-model` and would be clobbered by the next `/promote-foundations`.
+- **Not yet built**: `travel_styles`, `trip_travel_styles`, `conversation_sessions`,
+  `conversation_messages` (`016`+ when they land).

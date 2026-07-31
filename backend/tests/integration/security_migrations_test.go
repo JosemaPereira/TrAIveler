@@ -5,21 +5,23 @@
 // verify the schema is by applying goose migrations against a real Postgres
 // testcontainer and inspecting information_schema directly.
 //
-// 004-T010 (trips.version) is no longer deferred: as of issue #142
-// (G-008-MIGRATIONS) it lands inside the trips CREATE migration (010), and is
-// covered by spec008_migrations_test.go in this same package. 004-T011
-// (itinerary_items.version) STAYS deferred — no migration in either spec's
-// Sprint 5 set creates an `itinerary_items` table, so its version column
-// cannot be added yet. An earlier version of this file included placeholder
-// trips/itinerary_items migrations plus a test standing up minimal tables to
-// validate them in isolation; that empirically proved goose.Up applies
-// migrations in strict version order and stops at the first failure, so
-// shipping a migration that references a not-yet-created table would break
-// every goose.Up(sqlDB, migrations.Dir) call in the repo — including
-// internal/example's and tests/integration/error_test.go's — not just this
-// package's own assertions. That regression guard is why 004-T011 remains
-// held until a migration creates `itinerary_items`; see docs/roadmap.md row
-// 004-T011 for the tracking note.
+// Neither optimistic-locking task is deferred any more, and neither needs a
+// migration file of its own:
+//   - 004-T010 (trips.version) landed inside the trips CREATE migration (010)
+//     with issue #142 (G-008-MIGRATIONS); covered by spec008_migrations_test.go.
+//   - 004-T011 landed inside the activities CREATE migration (015) with issue
+//     #170 (004-T135/T136); covered by itinerary_migrations_test.go. Its task
+//     text names an `itinerary_items` table that was never part of the
+//     canonical data model — the versioned itinerary entity is Activity (see
+//     the "Naming correction" note in specs/004-security-auth-model/tasks.md),
+//     so no `itinerary_items` table was ever created.
+//
+// Both were held through Sprint 5 for the same reason, which still governs any
+// migration added here: goose.Up applies one directory in strict version order
+// and stops at the first failure, so a migration referencing a not-yet-created
+// table breaks every goose.Up(sqlDB, migrations.Dir) call in the repo —
+// internal/example's and error_test.go's included — not just this package's.
+// That is why 013/014/015 land in destinations → days → activities order.
 package integration
 
 import (
