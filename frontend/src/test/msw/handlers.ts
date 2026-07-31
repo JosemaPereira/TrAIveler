@@ -49,7 +49,6 @@ export const authHandlers = [
     `${API_BASE_URL}/auth/logout`,
     () => new HttpResponse(null, { status: 204 })
   ),
-
 ]
 
 // `POST /auth/refresh` and `GET /auth/me` have deliberately no default handler: it is only ever
