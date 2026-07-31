@@ -95,9 +95,10 @@ func (h *Handler) RegisterRoutes(r chi.Router) {
 // @Param       body body createRequest true "Example payload"
 // @Success     201 {object} Example
 // @Failure     400 {object} invalidRequestEnvelope
+// @Failure     401 {object} errors.ErrorResponse
 // @Failure     409 {object} errors.ErrorResponse
 // @Failure     422 {object} errors.ErrorResponse
-// @Security    BearerAuth
+// @Security    CookieAuth
 // @Router      /examples [post]
 func (h *Handler) handleCreate(w http.ResponseWriter, r *http.Request) {
 	var req createRequest
@@ -123,8 +124,9 @@ func (h *Handler) handleCreate(w http.ResponseWriter, r *http.Request) {
 // @Produce     json
 // @Param       id path string true "Example ID"
 // @Success     200 {object} Example
+// @Failure     401 {object} errors.ErrorResponse
 // @Failure     404 {object} errors.ErrorResponse
-// @Security    BearerAuth
+// @Security    CookieAuth
 // @Router      /examples/{id} [get]
 func (h *Handler) handleGet(w http.ResponseWriter, r *http.Request) {
 	id := chi.URLParam(r, "id")
@@ -152,10 +154,11 @@ func (h *Handler) handleGet(w http.ResponseWriter, r *http.Request) {
 // @Param       body body updateRequest true "Example payload"
 // @Success     200 {object} Example
 // @Failure     400 {object} invalidRequestEnvelope
+// @Failure     401 {object} errors.ErrorResponse
 // @Failure     404 {object} errors.ErrorResponse
 // @Failure     409 {object} errors.ErrorResponse
 // @Failure     422 {object} errors.ErrorResponse
-// @Security    BearerAuth
+// @Security    CookieAuth
 // @Router      /examples/{id} [put]
 func (h *Handler) handleUpdate(w http.ResponseWriter, r *http.Request) {
 	id := chi.URLParam(r, "id")
@@ -188,8 +191,9 @@ func (h *Handler) handleUpdate(w http.ResponseWriter, r *http.Request) {
 // @Tags        examples
 // @Param       id path string true "Example ID"
 // @Success     204 "No Content"
+// @Failure     401 {object} errors.ErrorResponse
 // @Failure     404 {object} errors.ErrorResponse
-// @Security    BearerAuth
+// @Security    CookieAuth
 // @Router      /examples/{id} [delete]
 func (h *Handler) handleDelete(w http.ResponseWriter, r *http.Request) {
 	id := chi.URLParam(r, "id")
@@ -214,7 +218,8 @@ func (h *Handler) handleDelete(w http.ResponseWriter, r *http.Request) {
 // @Param       per_page query int false "Items per page" default(20)
 // @Success     200 {object} listResponse
 // @Failure     400 {object} invalidRequestEnvelope
-// @Security    BearerAuth
+// @Failure     401 {object} errors.ErrorResponse
+// @Security    CookieAuth
 // @Router      /examples [get]
 func (h *Handler) handleList(w http.ResponseWriter, r *http.Request) {
 	page, err := parsePositiveIntParam(r, "page", defaultPage)

@@ -52,6 +52,11 @@ definitions:
       request_id:
         type: string
     type: object
+  auth.refreshResponse:
+    properties:
+      message:
+        type: string
+    type: object
   errors.ErrorResponse:
     properties:
       details:
@@ -225,8 +230,33 @@ paths:
           schema:
             $ref: '#/definitions/errors.ErrorResponse'
       security:
-      - BearerAuth: []
+      - CookieAuth: []
       summary: Log out
+      tags:
+      - auth
+  /auth/refresh:
+    post:
+      description: |-
+        Exchanges the refresh_token cookie for a new access token and a rotated refresh
+        token, both set as HTTP-only, Secure, SameSite=Strict cookies. Public by design: it
+        authenticates with the refresh cookie, not an access token. A missing, expired, or
+        already-used refresh token returns the uniform 401 authentication_required envelope.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/auth.refreshResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/errors.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/errors.ErrorResponse'
+      summary: Refresh the session
       tags:
       - auth
   /auth/register:
@@ -302,8 +332,12 @@ paths:
           description: Bad Request
           schema:
             $ref: '#/definitions/example.invalidRequestEnvelope'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/errors.ErrorResponse'
       security:
-      - BearerAuth: []
+      - CookieAuth: []
       summary: List examples
       tags:
       - examples
@@ -329,6 +363,10 @@ paths:
           description: Bad Request
           schema:
             $ref: '#/definitions/example.invalidRequestEnvelope'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/errors.ErrorResponse'
         "409":
           description: Conflict
           schema:
@@ -338,7 +376,7 @@ paths:
           schema:
             $ref: '#/definitions/errors.ErrorResponse'
       security:
-      - BearerAuth: []
+      - CookieAuth: []
       summary: Create a new example
       tags:
       - examples
@@ -356,12 +394,16 @@ paths:
       responses:
         "204":
           description: No Content
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/errors.ErrorResponse'
         "404":
           description: Not Found
           schema:
             $ref: '#/definitions/errors.ErrorResponse'
       security:
-      - BearerAuth: []
+      - CookieAuth: []
       summary: Delete an example
       tags:
       - examples
@@ -380,12 +422,16 @@ paths:
           description: OK
           schema:
             $ref: '#/definitions/example.Example'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/errors.ErrorResponse'
         "404":
           description: Not Found
           schema:
             $ref: '#/definitions/errors.ErrorResponse'
       security:
-      - BearerAuth: []
+      - CookieAuth: []
       summary: Get an example by ID
       tags:
       - examples
@@ -426,6 +472,10 @@ paths:
           description: Bad Request
           schema:
             $ref: '#/definitions/example.invalidRequestEnvelope'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/errors.ErrorResponse'
         "404":
           description: Not Found
           schema:
@@ -439,13 +489,20 @@ paths:
           schema:
             $ref: '#/definitions/errors.ErrorResponse'
       security:
-      - BearerAuth: []
+      - CookieAuth: []
       summary: Update an example
       tags:
       - examples
 securityDefinitions:
-  BearerAuth:
+  CookieAuth:
+    description: 'Session authentication via the HTTP-only `access_token` cookie set
+      by `POST /api/v1/auth/login`, `POST /api/v1/auth/register`, and `POST /api/v1/auth/refresh`.
+      Send it as `Cookie: access_token=<jwt>`. The "Authorize" box cannot supply this
+      credential — the cookie is HttpOnly and `Cookie` is a forbidden header for browser-issued
+      requests — but Swagger UI is served from the same origin behind the same gate,
+      so a browser that reached this page already holds the cookie and sends it automatically
+      on every "Try it out" request.'
     in: header
-    name: Authorization
+    name: Cookie
     type: apiKey
 swagger: "2.0"

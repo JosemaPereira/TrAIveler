@@ -351,7 +351,8 @@ All errors **MUST** use this structure:
 |------------|-------------|---------|----------|
 | `invalid_request` | 400 | Malformed request | JSON parse error, missing required params |
 | `validation_failed` | 422 | Business rule validation failed | Email already exists, invalid date range |
-| `authentication_required` | 401 | Missing/invalid auth token | No JWT, expired JWT |
+| `authentication_required` | 401 | Missing/invalid auth token | No JWT, malformed/invalid JWT, bad signature, unknown key, wrong issuer |
+| `token_expired` | 401 | Access token expired | Valid but expired access token; client should refresh |
 | `forbidden` | 403 | Insufficient permissions | Partner trying to delete trip |
 | `not_found` | 404 | Resource doesn't exist | `/trips/nonexistent` |
 | `conflict` | 409 | Version mismatch | Optimistic locking conflict |
@@ -675,6 +676,12 @@ Authorization: Bearer <jwt_token>
 ```
 
 **Note**: In MVP, JWT is stored in HTTP-only cookie, so this header may not be used. Include here for future external API consumers.
+
+**As-built (2026-07-23, issue #179)**: `middleware.Authenticate` accepts the `access_token` cookie
+**only** — no `Authorization: Bearer` code path exists yet. The generated Swagger 2.0 contract
+therefore declares its security definition as `CookieAuth` (`type: apiKey`, `in: header`,
+`name: Cookie`), not a bearer scheme; see `backend/cmd/api/docs.go`. Revisit when the external-API
+consumer case above is actually built.
 
 ### Request ID Header
 

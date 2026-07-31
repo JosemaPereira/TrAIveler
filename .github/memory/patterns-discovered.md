@@ -24,6 +24,8 @@ the file **and** add a line here.
   — "loaded" ≠ "forwarded"; grep the consuming signature. Bit us twice (DB pool, `BCRYPT_COST`).
 - *`internal/example/` Is Throwaway — Delete on First Real Domain* — still pending (Sprint 8, Trip).
 - *Goose Migrations Must Not Reference Tables From a Later, Not-Yet-Landed Migration Set*.
+- *Chi Panics on a Duplicate Routed Pattern — Split Auth Groups by Full Path, Not Nested `Route()`* —
+  a startup panic, not a compile error; bit the public-vs-gated `/api/v1` split.
 
 ### Go backend — testing
 
@@ -37,6 +39,8 @@ the file **and** add a line here.
 - *revive's `context-as-argument` Conflicts with the t-First Test-Helper Convention* — docs win;
   linter carve-out for `_test.go`.
 - *Simulating a Realistic DB Timeout in an Integration Test*.
+- *A "These Two Responses Are Indistinguishable" Comment Needs a Test Comparing Them* — per-path
+  assertions can't catch divergence between paths; share one constant.
 
 ### Frontend
 
@@ -711,3 +715,47 @@ Read these before trusting any spec/issue text.
   committing to reconcile.
 - **Related**: `backend/.mockery.yaml`, `backend/internal/auth/mocks/`, *Mockery: Generation + Scope*
   (above), `docs/mock-standards.md`.
+
+---
+
+### Chi Panics on a Duplicate Routed Pattern — Split Auth Groups by Full Path, Not Nested `Route()`
+
+- **Discovered**: 2026-07-23 — **Tool**: Claude Code
+- **Context**: `backend/cmd/api/routes.go` (008-T208, issue #179) — splitting one `/api/v1` group into
+  a public group (register/login/refresh) and an `Authenticate`-gated group (examples, logout), with
+  `/swagger/*` gated too.
+- **Problem**: The obvious shape — two sibling `r.Group(...)`, each calling `r.Route("/auth", ...)` for
+  its own endpoints — **panics at startup**. `chi.Mux.Route()` delegates to `Mount()`, which panics
+  when the same pattern is already registered on that routing tree; `Group()` shares the parent's
+  tree, so two `/auth` subtrees collide. The same applies to calling `r.Route("/api/v1", ...)` twice
+  at the top level. This is a startup panic, not a compile or lint error, so it only surfaces when
+  something actually constructs the router.
+- **Solution**: When one URL prefix has to span two different middleware groups, register **full
+  paths** (`r.Post("/auth/login", ...)`) instead of a nested `Route()` subtree — distinct patterns
+  don't collide. Here that meant splitting `auth.Handler.RegisterRoutes` into `RegisterPublicRoutes` /
+  `RegisterProtectedRoutes`. Keep one `Route("/api/v1", ...)` holding two nested `Group`s. Assert it
+  with a real `assert.NotPanics` test that builds the server — reasoning about it is not enough, and a
+  route-table mistake otherwise reaches production as a crash on boot.
+- **Related**: `backend/cmd/api/routes.go`, `backend/cmd/api/routes_test.go`,
+  `backend/internal/auth/handler.go`
+
+---
+
+### A "These Two Responses Are Indistinguishable" Comment Needs a Test Comparing Them
+
+- **Discovered**: 2026-07-23 — **Tool**: Claude Code
+- **Context**: `POST /api/v1/auth/refresh` (008-T148) — a missing refresh cookie is rejected by the
+  handler, while an invalid/expired/revoked one is rejected deeper, by `jwt.Refresher`.
+- **Problem**: Both paths returned `401 authentication_required`, and a code comment asserted they were
+  indistinguishable — but they were built from **two separate string literals** in two packages, so the
+  `message` fields differed (`"Session expired. Please log in again."` vs `"invalid or expired refresh
+  token"`). Every existing test asserted only the status code and the `error` code, so all of them
+  passed while the anti-enumeration property the uniform envelope exists to provide was quietly broken.
+  Found by review, not by the suite.
+- **Solution**: Any time two code paths must produce an identical response, (1) give them **one shared
+  constant** rather than two literals — export it across the package boundary if needed (precedent:
+  `jwt.HashRefreshToken` is exported so logout hashes the same way), and (2) write a test that issues
+  both requests and asserts the **bodies are equal**, not just that each matches an expected code. A
+  per-path assertion can never catch divergence between paths.
+- **Related**: `backend/internal/auth/jwt/refresher.go` (`RefreshFailureMessage`),
+  `backend/internal/auth/handler.go`, `backend/internal/auth/handler_test.go`

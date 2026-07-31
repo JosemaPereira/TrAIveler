@@ -414,3 +414,109 @@ Historical summaries of completed development sessions. Committed to git as a re
     #189 merges. Merge #189 first.
 - **Outcomes**: `BCRYPT_COST` is now honored; config audit closed; `security` package doc accurate.
   Build/lint/full-suite green. No AWS/terraform touched.
+
+### Session: Auth Activation — Gate, Validator Adapter, Refresher + Refresh Endpoint (#179)
+
+- **Date**: 2026-07-23
+- **Tool**: Claude Code
+- **What was accomplished**: Closed #179 (008-T207/T208/T209/T212) on branch
+  `feature/179-auth-activation` off `main` (dad6f85, after confirming #189+#190 really landed).
+  **This is where auth actually goes live**: the `Authenticate` gate is mounted and the
+  `TODO(sprint-5)` marker is gone. Implemented via the `tdd-developer` agent, then independently
+  re-verified by the parent session (build/vet/lint/short suite/real-Postgres integration all re-run,
+  not trusted from the agent's report); `technical-writer` reviewed the API docs per the mandatory
+  CLAUDE.md step.
+- **Key findings and decisions**:
+  - **Scope extended by explicit user choice (`AskUserQuestion`)**: 008-T148/T149 (`POST /auth/refresh`)
+    were pulled forward from the P2 `G-008-US5-HANDLERS` group. T212 alone would have *constructed* a
+    `Refresher` with no consumer — exactly the inert-plumbing anti-pattern Sprint 6 was reshaped to
+    avoid. **Reconcile those two rows when Sprint 7/8's US5 handlers are planned.**
+  - **Chi panics on a duplicate routed pattern**, which drove the design: `auth.Handler.RegisterRoutes`
+    had to split into `RegisterPublicRoutes`/`RegisterProtectedRoutes` registering **full paths**
+    (`/auth/login`) rather than two sibling `r.Route("/auth", ...)` subtrees under one `/api/v1`.
+    Proven panic-free by a real test. See the new pattern entry.
+  - **Gating `/api/v1` broke two black-box suites** (`error_test.go`, `swagger_test.go`) that had
+    always called those routes unauthenticated. Fixed properly — a shared `registerTestSession` helper
+    hits the real public `POST /auth/register` against the testcontainer — rather than making
+    `/swagger/*` public to dodge it. `setupSwaggerTestServer` now applies migrations as a result.
+  - **`jwt.TokenPair` gained `UserID`** (set by both `Issuer.Issue` and `Refresher.RefreshToken`):
+    `/auth/refresh` is a *public* route, so there is no authenticated context to attribute its
+    `auth_token_refresh` security event from.
+  - **`securityDefinitions` was lying** and only became actionable once the gate went live: it declared
+    `BearerAuth`/`in: header`/`Authorization`, but `middleware.Authenticate` has no `Authorization`
+    code path at all. Now `CookieAuth`, an apiKey in the **`Cookie`** header — Swagger 2.0 has no
+    cookie scheme (that is OpenAPI 3's `in: cookie`), so this is the closest valid encoding, with a
+    `@description` explaining that the Authorize box cannot supply an HttpOnly cookie and does not
+    need to (same-origin UI behind the same gate).
+  - **Uniform-401 invariant was only half true** — caught in review, not by tests: the handler's
+    missing-cookie short-circuit and `jwt.unauthorizedRefresh` emitted *different* `message` strings
+    under the same `authentication_required` code, so a client could still distinguish absent from
+    invalid. Both now read the exported `jwt.RefreshFailureMessage`, with a test pinning that the two
+    bodies match. **Lesson: "indistinguishable" claims in comments need a test asserting equality of
+    the two responses, or they silently decay into two literals.**
+  - A **test-only hook survives in production code**: `HTTPServer.extraProtectedRoutes` (nil in prod,
+    3 guarded lines) exists solely because no production handler reads `HasSubscriptionFromContext`
+    yet, and T209 requires asserting it resolves at the composition root. **Delete it the moment a real
+    subscription-gated route lands.**
+  - T212's literal text ("inject into login/logout/refresh handlers") was **not** followed for
+    login/logout: login mints via `jwt.Issuer`, logout revokes via the repository; routing either
+    through a *rotation* operation would be churn, not wiring.
+- **Outcomes**: `/api/v1` and `/swagger/*` are gated; register/login/refresh stay public; `/healthz`
+  stays open. `POST /api/v1/auth/refresh` rotates one-time-use refresh tokens and re-resolves
+  `has_subscription`, so a lapsed subscription now takes effect within one access-token lifetime
+  (FR-022). Verified green: build/vet/lint exit 0, `-short` 15 pkgs ok, integration vs. real Postgres
+  ok (61s), `make swagger` idempotent, zero mock churn. No AWS/terraform touched.
+- **Open follow-ups**: (1) `/swagger/index.html` now 401s on a cold start — real onboarding friction,
+  needs a decision (dev-only bypass?) rather than just prose. (2) contracts/api.md specifies **503** for
+  a DB-unavailable refresh; store errors wrap with `fmt.Errorf`, so they land on `internal_error`/**500**
+  — a genuine unimplemented spec point, distinct from the already-decided error-code casing deviation.
+  (3) `handleRegister`/`handleLogin` still declare no `@Failure 500` though `issueSession` can produce
+  one (pre-existing from #189; worth a sweep across all handlers).
+
+### Session: #179 scope validation → pulled 008-T150 in, homed T160 on #180
+
+- **Date**: 2026-07-30
+- **Tool**: Claude Code
+- **What was accomplished**: A post-implementation scope review of #179 surfaced that the refresh
+  endpoint was live server-side but nothing could *trigger* it — the gate returned a uniform
+  `authentication_required` for every 401, so the SPA couldn't tell "access token expired → refresh"
+  from "no session → login". That trigger is **008-T150** (backend) + **008-T160** (frontend), both
+  Backlog with no issue. User chose (AskUserQuestion) to **build T150 in #179** and **home T160 on an
+  existing issue**. Delivered T150 (commit `1e97771`, on top of `fb9a719`; PR #191). T160 was NOT
+  built (frontend — would violate consolidation-first + depends on unbuilt frontend infra); instead a
+  pickup note was added to **#180 (G-008-AUTH-HOOKS-API)**, the fetch `authApi`/api-client group that
+  naturally owns a 401→refresh→retry interceptor, and the roadmap T160 row was pointed at #180.
+- **Key findings and decisions**:
+  - **T150 wire code is `token_expired` (snake_case), NOT the spec's literal `TOKEN_EXPIRED`.** Fourth
+    instance of the same sprint-long casing correction (after `INVALID_CREDENTIALS`/
+    `INVALID_REFRESH_TOKEN`→`authentication_required`, `rate_limited`→`rate_limit_exceeded`). Added a
+    `token_expired` row to the `docs/api-design-standards.md` §7 catalog and **narrowed**
+    `authentication_required`'s "Use When" (it literally listed "expired JWT", which T150 now peels
+    off). Note the authority tension resolved here: §7 (a root doc) said expired→`authentication_required`,
+    but tasks.md (which outranks root docs) requires a *distinct* code so the client can trigger
+    refresh — tasks.md won on the *need for distinctness*, §7's snake_case rule won on the *casing*.
+  - **T150 deliberately, narrowly breaks the uniform-401 anti-enumeration property #179 just built.**
+    Safe because only a validly-signed-but-expired token (proven by a signature over an unretired key)
+    reaches the expiry branch — an attacker can't forge one without the signing key, and the holder
+    already proved they held a real token we issued. Every other failure stays `authentication_required`.
+    Tests assert missing-cookie and generic-error paths both stay uniform.
+  - **Implemented via the same import-cycle port pattern as T207**: exported `middleware.ErrTokenExpired`
+    sentinel; the `cmd/api/token_validator.go` adapter maps `gojwt.ErrTokenExpired`→sentinel (middleware
+    can't import auth/jwt). The load-bearing test drives a *real* `jwt.Validator` with a genuinely
+    past-`exp` token and asserts `errors.Is(err, middleware.ErrTokenExpired)` through the full
+    `DomainError.Unwrap → %w → gojwt` chain — not a hand-rolled wrapper. `make swagger` = no diff (the
+    401 envelope schema is unchanged; only the `error` value differs).
+  - **Colima gotcha revisited**: mid-session the integration run failed with `failed to start postgres
+    container` / `docker.sock: no such file` — Colima had **stopped**, not a code regression. `colima
+    start` and re-run → green. Verify `colima status` says "running" before reading an integration
+    failure as real.
+- **Outcomes**: Session-renewal is now server-complete: `GET`-gated routes emit `token_expired` on
+  expiry, `POST /auth/refresh` rotates, and the frontend contract is recorded on #180 for T160.
+  Verified: gofmt/build/vet/lint exit 0, `-short` 15 pkgs ok, integration vs real Postgres ok, swagger
+  no drift. No AWS/terraform touched.
+- **Still-open follow-ups** (unchanged by this session, still uncovered by any issue): (1)
+  `/swagger/index.html` 401s on cold start; (2) contracts/api.md's **503** for a DB-unavailable refresh
+  vs the actual **500** (store errors wrap with `fmt.Errorf`, not `DomainError`); (3) `handleRegister`/
+  `handleLogin` missing `@Failure 500`; (4) `HTTPServer.extraProtectedRoutes` test hook (delete when a
+  real subscription-gated route lands). (5) **008-T160** now homed on #180 but still Backlog — build
+  against `token_expired`, not `TOKEN_EXPIRED`.

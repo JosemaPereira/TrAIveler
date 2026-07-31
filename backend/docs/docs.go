@@ -77,7 +77,7 @@ const docTemplate = `{
             "post": {
                 "security": [
                     {
-                        "BearerAuth": []
+                        "CookieAuth": []
                     }
                 ],
                 "description": "Revokes the presented refresh token and clears both session cookies. Idempotent: a\nmissing or already-revoked refresh token still clears cookies and returns 204.",
@@ -88,6 +88,38 @@ const docTemplate = `{
                 "responses": {
                     "204": {
                         "description": "No Content"
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/errors.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/errors.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/auth/refresh": {
+            "post": {
+                "description": "Exchanges the refresh_token cookie for a new access token and a rotated refresh\ntoken, both set as HTTP-only, Secure, SameSite=Strict cookies. Public by design: it\nauthenticates with the refresh cookie, not an access token. A missing, expired, or\nalready-used refresh token returns the uniform 401 authentication_required envelope.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "auth"
+                ],
+                "summary": "Refresh the session",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/auth.refreshResponse"
+                        }
                     },
                     "401": {
                         "description": "Unauthorized",
@@ -160,7 +192,7 @@ const docTemplate = `{
             "get": {
                 "security": [
                     {
-                        "BearerAuth": []
+                        "CookieAuth": []
                     }
                 ],
                 "description": "Returns a paginated list of example resources, optionally filtered by status.\nValidates page/per_page query params up front (400 on malformed or out-of-range\nvalues, per docs/api-design-standards.md §9) rather than silently clamping them.",
@@ -209,13 +241,19 @@ const docTemplate = `{
                         "schema": {
                             "$ref": "#/definitions/example.invalidRequestEnvelope"
                         }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/errors.ErrorResponse"
+                        }
                     }
                 }
             },
             "post": {
                 "security": [
                     {
-                        "BearerAuth": []
+                        "CookieAuth": []
                     }
                 ],
                 "description": "Creates an example resource for demonstration purposes",
@@ -253,6 +291,12 @@ const docTemplate = `{
                             "$ref": "#/definitions/example.invalidRequestEnvelope"
                         }
                     },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/errors.ErrorResponse"
+                        }
+                    },
                     "409": {
                         "description": "Conflict",
                         "schema": {
@@ -272,7 +316,7 @@ const docTemplate = `{
             "get": {
                 "security": [
                     {
-                        "BearerAuth": []
+                        "CookieAuth": []
                     }
                 ],
                 "description": "Retrieves a single example resource by its ID",
@@ -299,6 +343,12 @@ const docTemplate = `{
                             "$ref": "#/definitions/example.Example"
                         }
                     },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/errors.ErrorResponse"
+                        }
+                    },
                     "404": {
                         "description": "Not Found",
                         "schema": {
@@ -310,7 +360,7 @@ const docTemplate = `{
             "put": {
                 "security": [
                     {
-                        "BearerAuth": []
+                        "CookieAuth": []
                     }
                 ],
                 "description": "Fully replaces an example resource (PUT semantics); the caller-known version is\ncarried on the If-Match header rather than the request body, matching the\nconcurrency-control convention documented for versioned entities in docs/data-model.md\n(Trip/Activity's \"Concurrency Control\" sections).",
@@ -362,6 +412,12 @@ const docTemplate = `{
                             "$ref": "#/definitions/example.invalidRequestEnvelope"
                         }
                     },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/errors.ErrorResponse"
+                        }
+                    },
                     "404": {
                         "description": "Not Found",
                         "schema": {
@@ -385,7 +441,7 @@ const docTemplate = `{
             "delete": {
                 "security": [
                     {
-                        "BearerAuth": []
+                        "CookieAuth": []
                     }
                 ],
                 "description": "Deletes an example resource by its ID, responding 204 with no body on success\nper docs/api-design-standards.md §8",
@@ -405,6 +461,12 @@ const docTemplate = `{
                 "responses": {
                     "204": {
                         "description": "No Content"
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/errors.ErrorResponse"
+                        }
                     },
                     "404": {
                         "description": "Not Found",
@@ -494,6 +556,14 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "request_id": {
+                    "type": "string"
+                }
+            }
+        },
+        "auth.refreshResponse": {
+            "type": "object",
+            "properties": {
+                "message": {
                     "type": "string"
                 }
             }
@@ -666,9 +736,10 @@ const docTemplate = `{
         }
     },
     "securityDefinitions": {
-        "BearerAuth": {
+        "CookieAuth": {
+            "description": "Session authentication via the HTTP-only ` + "`" + `access_token` + "`" + ` cookie set by ` + "`" + `POST /api/v1/auth/login` + "`" + `, ` + "`" + `POST /api/v1/auth/register` + "`" + `, and ` + "`" + `POST /api/v1/auth/refresh` + "`" + `. Send it as ` + "`" + `Cookie: access_token=\u003cjwt\u003e` + "`" + `. The \"Authorize\" box cannot supply this credential — the cookie is HttpOnly and ` + "`" + `Cookie` + "`" + ` is a forbidden header for browser-issued requests — but Swagger UI is served from the same origin behind the same gate, so a browser that reached this page already holds the cookie and sends it automatically on every \"Try it out\" request.",
             "type": "apiKey",
-            "name": "Authorization",
+            "name": "Cookie",
             "in": "header"
         }
     }

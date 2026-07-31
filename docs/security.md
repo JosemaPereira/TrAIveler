@@ -267,60 +267,80 @@ implemented (PRs #154, #155, #157) — the target design itself is unchanged:
   `Refresher` that rotates refresh tokens one-time-use (validate → revoke old → issue new
   access/refresh pair). Key material is abstracted behind `KeyProvider` (a static in-memory
   implementation ships now; the Secrets Manager-backed loader is Spec 004 Phase 3) and refresh-token
-  persistence behind `RefreshTokenStore` (the PostgreSQL-backed store lands with the login flow,
-  Sprint 6-7). Opaque refresh tokens are 32-byte random values stored only as SHA-256 hashes, per
-  the `refresh_tokens` data model.
-- **Built on this branch (#147/#148)**: the JWT-cookie auth middleware (`middleware.Authenticate`)
-  and the per-IP `middleware.RateLimit` throttle now exist and are wired into the chain (rate limit
-  disabled by default via config). The JWT `Validator` above feeds `Authenticate` through an
-  `AuthClaims` port. They ship available-but-not-globally-applied: no login endpoint exists yet to
-  mint a cookie, so `/api/v1` and Swagger stay ungated and the `TODO(sprint-5)` marker in
-  `cmd/api/routes.go` remains until Sprint 6 attaches `Authenticate` to protected route groups.
-- **Not yet built**: session management and all auth HTTP endpoints (register/login/refresh/logout)
-  — tracked in Sprint 6 (008-T047/T098/T100/T101/T143). See the runtime-flow note below.
-- **Known doc-vs-code nuance**: `BCRYPT_COST` is loaded by `backend/config/config.go` (default 12)
-  but `internal/auth` currently hardcodes `const bcryptCost = 12` — a non-default env value would
-  have no effect today. Also, `ValidatePassword` counts the 8–72 length in runes while bcrypt's own
-  limit is 72 *bytes*; multi-byte passwords near the limit can pass validation yet fail loudly at
-  hash time. Both are flagged for whenever the registration handler wires these together (Spec 008
-  Phase 3).
+  persistence behind `RefreshTokenStore`, now satisfied at runtime by
+  `auth.NewRefreshStore(auth.NewPostgresRefreshTokenRepository(db))` (008-T210). Opaque refresh
+  tokens are 32-byte random values stored only as SHA-256 hashes, per the `refresh_tokens` data
+  model.
+- **Auth gate (#147/#148, mounted by #179)**: the JWT-cookie auth middleware
+  (`middleware.Authenticate`) and the per-IP `middleware.RateLimit` throttle exist and are wired
+  into the chain (the transport rate limit is disabled by default via config). The JWT `Validator`
+  above feeds `Authenticate` through an `AuthClaims` port, adapted in
+  `backend/cmd/api/token_validator.go`. Since issue #179 (008-T208) the gate is actually applied:
+  `cmd/api/routes.go` splits `/api/v1` into a public group (register/login/refresh) and an
+  authenticated group covering every other `/api/v1` route plus `/swagger/*`; `/healthz` stays
+  public. The former `TODO(sprint-5)` marker in `routes.go` is gone.
+- **Not yet built**: the password-reset and password-change flows (008-T142-T147) — request,
+  complete, and change endpoints plus their `PasswordResetToken` repository. Register, login,
+  refresh, and logout all ship (PRs #189 and issue #179). See the runtime-flow note below.
+- **Known doc-vs-code nuance**: `ValidatePassword` counts the 8–72 length in runes while bcrypt's
+  own limit is 72 *bytes*; multi-byte passwords near the limit can pass validation yet fail loudly
+  at hash time. (The earlier `BCRYPT_COST`-is-ignored nuance is resolved: since PR #190 / issue #174
+  `auth.HashPassword` takes a cost, `auth.Service` carries the configured `cfg.Auth.BcryptCost`, and
+  `config.Load` clamps the value up to a floor of 12 in production while leaving lower costs intact
+  outside it for fast tests. `auth.DefaultBcryptCost` (12) remains the fallback for an
+  out-of-bcrypt-range value.)
 
 ## Implementation Status Note: Runtime Authentication Flow (Sprint 5/6)
 
-Addendum outside the promoted content above (2026-07-16). This maps each step of the end-to-end
-auth flow to the concrete component that implements it, and marks what exists today versus what
-lands in Sprint 6. The building blocks (JWT primitives, password hashing/validation, the
-middleware, the account-level login throttle) are implemented and unit-tested; the HTTP handlers
-and login/register/logout service that stitch them together are the Sprint 6 pieces
-(008-T047/T098/T100/T101/T143). See [`backend/README.md`](../backend/README.md#project-structure)
-for the full package tree.
+Addendum outside the promoted content above (2026-07-16; implementation status refreshed
+2026-07-23). This maps each step of the end-to-end auth flow to the concrete component that
+implements it, and marks what exists today versus what is still outstanding. As of issue #179 the
+whole register/login/refresh/logout loop is wired end to end and the `Authenticate` gate is mounted
+on the authenticated route group; password reset (008-T142-T147) is the remaining unbuilt flow. See
+[`backend/README.md`](../backend/README.md#project-structure) for the full package tree.
 
 - **REGISTER** — `POST /api/v1/auth/register`: `auth.ValidatePassword` (strength) → `auth.HashPassword`
-  (bcrypt cost 12) → persist the user → issue an access token (`jwt.Generator`) and a refresh token
-  (`jwt.Refresher`'s store) → set both as HTTP-only cookies. *Password/JWT primitives exist; the
-  handler + service are pending (Sprint 6).*
+  (at the configured `BCRYPT_COST`; 12 by default and clamped up to 12 in production) → persist the
+  user → issue an access token (`jwt.Generator`) and a refresh token
+  (`jwt.Issuer`) → set both as HTTP-only cookies. *Built: `auth.Handler.handleRegister` +
+  `auth.Service.Register`, mounted as a public route with a per-IP `middleware.RateLimit(10/min)`.*
 - **LOGIN** — `POST /api/v1/auth/login`: `ratelimit.Limiter.CheckRateLimit(email)` → if a
   progressive delay is in effect, respond `429` with `Retry-After` and stop; otherwise
   `auth.ComparePassword`. On mismatch, `Limiter.RecordFailure(email)` and log an
   `auth_login_failure` security event; on success, `Limiter.Reset(email)`, issue the access+refresh
-  token pair, and log `auth_login_success`. *`ratelimit.Limiter`, `ComparePassword`, and the JWT
-  generator exist; the handler + service are pending (Sprint 6). Note the login throttle
+  token pair, and log `auth_login_success`. *Built: `auth.Handler.handleLogin` +
+  `auth.Service.Login`, mounted as a public route. Note the login throttle
   (`internal/auth/ratelimit/`) is account/email-keyed and consumed by the login service — it is
   distinct from the per-IP `middleware.RateLimit` transport throttle.*
 - **AUTHENTICATED REQUEST** — any protected route: `middleware.Authenticate` requires a valid
   `access_token` cookie, validates it through a `TokenValidator`/`AuthClaims` port backed by
   `jwt.Validator`, and attaches the user id + `has_subscription` to the request context (read via
-  `UserIDFromContext` / `HasSubscriptionFromContext`); a missing/invalid token yields `401`. *The
-  middleware and validator exist; the `*jwt.Validator`→`AuthClaims` adapter is written in package
-  main and the routes are wired at Sprint-6 time (the adapter lives in main to avoid a
-  jwt→errors→middleware import cycle).*
+  `UserIDFromContext` / `HasSubscriptionFromContext`); a missing/invalid token yields `401`
+  `authentication_required`. A validly-signed-but-expired access token is the one exception: it
+  yields `401` `token_expired` (008-T150), the frontend's silent-refresh trigger. This is a
+  deliberately narrow break from the uniform envelope and does not weaken anti-enumeration — only a
+  token we truly issued (proven by a valid signature over an unretired key) can reach the expiry
+  check, so it leaks nothing about account or token existence; every other failure (absent,
+  malformed, bad signature, unknown key, wrong issuer) stays `authentication_required`. *Built and
+  mounted (008-T207/T208, expiry code 008-T150): the `*jwt.Validator`→`AuthClaims`
+  adapter lives in `backend/cmd/api/token_validator.go` (package `main`, to avoid a
+  jwt→errors→middleware import cycle) — it maps `gojwt.ErrTokenExpired` onto the middleware-local
+  `middleware.ErrTokenExpired` sentinel, which `Authenticate` answers with `token_expired`. And
+  `backend/cmd/api/routes.go` splits `/api/v1` into a public
+  group (register/login/refresh) and an authenticated group carrying the gate — the latter covering
+  every other `/api/v1` route plus `/swagger/*`. `/healthz` stays public and unversioned.*
 - **REFRESH** — `POST /api/v1/auth/refresh`: `jwt.Refresher.RefreshToken` validates the presented
   refresh token, revokes it, and mints a new access+refresh pair (one-time-use rotation), resolving
-  a fresh `has_subscription` via `SubscriptionResolver` so the new access token is up to date. *The
-  rotation logic exists; the endpoint and the `RefreshTokenStore`/`SubscriptionResolver` PostgreSQL
-  implementations are pending (Sprint 6).*
+  a fresh `has_subscription` via `SubscriptionResolver` so the new access token is up to date. *Built
+  (008-T148/T149/T210/T211/T212): `auth.Handler.handleRefresh` is a public route (it authenticates
+  with the refresh cookie, not an access token); the store is `auth.RefreshStore` over
+  `auth.PostgresRefreshTokenRepository` and the resolver is `subscription.Resolver` over
+  `subscription.PostgresRepository`, both composed in `backend/cmd/api/auth.go`. An invalid, expired,
+  or already-rotated token returns the same uniform `401 authentication_required` envelope as a
+  missing cookie.*
 - **LOGOUT** — `POST /api/v1/auth/logout`: revoke the refresh token in the store, clear both auth
-  cookies, and log an `auth_logout` security event. *Pending (Sprint 6).*
+  cookies, and log an `auth_logout` security event. *Built: `auth.Handler.handleLogout`, mounted in
+  the authenticated group, so it requires a valid access token; revocation itself is idempotent.*
 
 ## Implementation Status Note: Secrets Management
 

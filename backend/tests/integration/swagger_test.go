@@ -45,9 +45,9 @@ var swaggerUIBundleURLPattern = regexp.MustCompile(`url:\s*"([^"]+)"`)
 // internal/example/repository_integration_test.go's setupRepositoryTestDB
 // (same image, credentials, and wait strategy) so this package follows the
 // same testcontainer convention already established elsewhere in the repo.
-// No migrations are applied here: the backend binary only needs a reachable
+// No migrations are applied here — the backend binary only needs a reachable
 // Postgres to start (database.NewClient's startup check is a bare `SELECT
-// 1`), and none of the assertions below touch persisted data.
+// 1`). Callers that do need schema apply it themselves via applyMigrations.
 func startPostgresContainer(t *testing.T, ctx context.Context) string {
 	t.Helper()
 
@@ -185,6 +185,10 @@ func startAPIServer(t *testing.T, ctx context.Context, binPath, databaseURL stri
 // disposable Postgres testcontainer and returns its base URL, so tests in
 // this file can make genuine HTTP requests against the actual
 // cmd/api/routes.go route table instead of a hand-built substitute.
+//
+// Migrations are applied because /swagger/* sits in the authenticated route
+// group (008-T208): reaching it requires registering a real account through
+// registerTestSession, which needs the users table to exist.
 func setupSwaggerTestServer(t *testing.T) string {
 	t.Helper()
 
@@ -194,27 +198,25 @@ func setupSwaggerTestServer(t *testing.T) string {
 
 	ctx := context.Background()
 	databaseURL := startPostgresContainer(t, ctx)
+	applyMigrations(t, databaseURL)
 	binPath := buildAPIBinary(t)
 
 	return startAPIServer(t, ctx, binPath, databaseURL)
 }
 
-// TestSwaggerDocJSON_RouteMounted_ReturnsValidSwagger2Document is 009-T007
-// (RED). It asserts GET /swagger/doc.json returns 200 with a body that
-// parses as a valid Swagger 2.0 (OpenAPI 2.0) document — NOT an OpenAPI v3
-// document. This is expected to fail until G-SPEC009-ANNOTATIONS (#114) and
-// G-SPEC009-SWAGGER-UI (#115) land: no /swagger/* route exists yet, so the
-// request currently 404s.
+// TestSwaggerDocJSON_RouteMounted_ReturnsValidSwagger2Document is 009-T007. It
+// asserts GET /swagger/doc.json returns 200 with a body that parses as a valid
+// Swagger 2.0 (OpenAPI 2.0) document — NOT an OpenAPI v3 document.
 func TestSwaggerDocJSON_RouteMounted_ReturnsValidSwagger2Document(t *testing.T) {
 	baseURL := setupSwaggerTestServer(t)
+	sessionCookies := registerTestSession(t, baseURL)
 
-	resp, err := http.Get(baseURL + "/swagger/doc.json")
-	require.NoError(t, err, "GET /swagger/doc.json must succeed at the transport level")
+	resp := authenticatedGet(t, http.DefaultClient, baseURL+"/swagger/doc.json", sessionCookies)
 	defer resp.Body.Close()
 
 	require.Equal(t, http.StatusOK, resp.StatusCode,
-		"expected /swagger/doc.json to be mounted and return 200; "+
-			"this fails until #114 (annotations) and #115 (route mount) land")
+		"expected /swagger/doc.json to be mounted and return 200 for an authenticated caller; "+
+			"a 401 here means the session cookies were not accepted by the Authenticate gate")
 
 	var doc map[string]any
 	require.NoError(t, json.NewDecoder(resp.Body).Decode(&doc), "response body must be valid JSON")
@@ -235,21 +237,21 @@ func TestSwaggerDocJSON_RouteMounted_ReturnsValidSwagger2Document(t *testing.T) 
 }
 
 // TestSwaggerDocJSON_Paths_ContainsExampleEndpointsAndExcludesHealthz is
-// 009-T008 (RED). It asserts every internal/example endpoint appears in the
-// parsed document's paths (relative to the /api/v1 basePath declared in
+// 009-T008. It asserts every internal/example endpoint appears in the parsed
+// document's paths (relative to the /api/v1 basePath declared in
 // cmd/api/docs.go), and that /healthz - intentionally undocumented, per
 // research.md's "Excluding intentionally-undocumented endpoints" decision -
-// does not. Expected to fail until #114/#115 land.
+// does not.
 func TestSwaggerDocJSON_Paths_ContainsExampleEndpointsAndExcludesHealthz(t *testing.T) {
 	baseURL := setupSwaggerTestServer(t)
+	sessionCookies := registerTestSession(t, baseURL)
 
-	resp, err := http.Get(baseURL + "/swagger/doc.json")
-	require.NoError(t, err, "GET /swagger/doc.json must succeed at the transport level")
+	resp := authenticatedGet(t, http.DefaultClient, baseURL+"/swagger/doc.json", sessionCookies)
 	defer resp.Body.Close()
 
 	require.Equal(t, http.StatusOK, resp.StatusCode,
-		"expected /swagger/doc.json to be mounted; "+
-			"this fails until #114 (annotations) and #115 (route mount) land")
+		"expected /swagger/doc.json to be mounted and reachable with a valid session; "+
+			"a 401 here means the session cookies were not accepted by the Authenticate gate")
 
 	var doc struct {
 		Paths map[string]map[string]json.RawMessage `json:"paths"`
@@ -280,32 +282,28 @@ func TestSwaggerDocJSON_Paths_ContainsExampleEndpointsAndExcludesHealthz(t *test
 		"/healthz must not appear in paths under any prefix either")
 }
 
-// TestSwaggerIndexHTML_RouteMounted_DocURLResolvesToLiveDocJSON is
-// 009-T014 (RED)/009-T016 (GREEN) and 009-T015. It asserts GET
-// /swagger/index.html returns 200 with an HTML content type — and, the
-// substantive check 009-T015 asks for, that the rendered page's
+// TestSwaggerIndexHTML_RouteMounted_DocURLResolvesToLiveDocJSON is 009-T014,
+// 009-T015 and 009-T016. It asserts GET /swagger/index.html returns 200 with an
+// HTML content type and — the substantive check — that the rendered page's
 // SwaggerUIBundle is genuinely wired to the *live* /swagger/doc.json route
 // mounted in cmd/api/routes.go, not a stale or hand-edited copy.
 //
 // httpSwagger.Handler() (github.com/swaggo/http-swagger/v2) defaults
-// Config.URL to the relative string "doc.json" when routes.go mounts it
-// with no explicit httpSwagger.URL(...) override. Because index.html is
-// itself served from /swagger/, a browser resolves that relative "doc.json"
-// against the current page location to /swagger/doc.json — the same
-// r.Get("/swagger/*", httpSwagger.Handler()) route, already covered by
-// TestSwaggerDocJSON_RouteMounted_ReturnsValidSwagger2Document above, that
-// serves the generated contract. This test proves that resolution actually
-// happens (rather than trusting the manual verification from #115) by
-// extracting the real `url: "..."` value the server rendered, resolving it
-// relative to the request URL exactly as a browser would, and then fetching
-// that resolved URL to confirm it lands on a genuine, live Swagger 2.0
-// document — not merely asserting the literal template string.
+// Config.URL to the relative string "doc.json" when routes.go mounts it with
+// no explicit httpSwagger.URL(...) override. Because index.html is itself
+// served from /swagger/, a browser resolves that relative "doc.json" against
+// the current page location to /swagger/doc.json — the same
+// r.Get("/swagger/*", httpSwagger.Handler()) route that serves the generated
+// contract. Asserting the literal template string would not prove that, so
+// this test extracts the `url: "..."` value the server actually rendered,
+// resolves it against the request URL exactly as a browser would, and fetches
+// the result to confirm it lands on a live Swagger 2.0 document.
 func TestSwaggerIndexHTML_RouteMounted_DocURLResolvesToLiveDocJSON(t *testing.T) {
 	baseURL := setupSwaggerTestServer(t)
+	sessionCookies := registerTestSession(t, baseURL)
 
 	indexURL := baseURL + "/swagger/index.html"
-	resp, err := http.Get(indexURL)
-	require.NoError(t, err, "GET /swagger/index.html must succeed at the transport level")
+	resp := authenticatedGet(t, http.DefaultClient, indexURL, sessionCookies)
 	defer resp.Body.Close()
 
 	require.Equal(t, http.StatusOK, resp.StatusCode,
@@ -335,8 +333,7 @@ func TestSwaggerIndexHTML_RouteMounted_DocURLResolvesToLiveDocJSON(t *testing.T)
 
 	// Actually fetch the resolved URL rather than trusting the string match:
 	// confirm it serves a genuine, live Swagger 2.0 document.
-	docResp, err := http.Get(resolvedDocURL.String())
-	require.NoError(t, err, "GET %s (the UI's resolved DocURL) must succeed", resolvedDocURL.String())
+	docResp := authenticatedGet(t, http.DefaultClient, resolvedDocURL.String(), sessionCookies)
 	defer docResp.Body.Close()
 	require.Equal(t, http.StatusOK, docResp.StatusCode,
 		"the DocURL the Swagger UI actually loads must itself return 200")

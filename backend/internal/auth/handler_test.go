@@ -48,6 +48,21 @@ func (f *fakeTokenIssuer) IssueTokens(_ context.Context, userID string, hasSubsc
 	return f.pair, f.err
 }
 
+// fakeTokenRefresher is a hand fake for the one-method TokenRefresher port,
+// matching the fakeTokenIssuer convention above.
+type fakeTokenRefresher struct {
+	pair     auth.TokenPair
+	err      error
+	called   bool
+	gotToken string
+}
+
+func (f *fakeTokenRefresher) RefreshToken(_ context.Context, rawRefreshToken string) (auth.TokenPair, error) {
+	f.called = true
+	f.gotToken = rawRefreshToken
+	return f.pair, f.err
+}
+
 func validPair() auth.TokenPair {
 	return auth.TokenPair{
 		AccessToken:      "access.jwt.value",
@@ -62,13 +77,17 @@ func testUser(hasSubscription bool) auth.User {
 }
 
 // newAuthRouter mounts the handler under /api/v1 on a real chi.Router, matching
-// production wiring, with RequestID middleware so correlation ids populate.
+// production wiring (cmd/api/routes.go): one /api/v1 subtree holding a public
+// group and an authenticated group, with RequestID middleware so correlation ids
+// populate. No Authenticate gate is mounted here — these are transport-level
+// unit tests; the gate is covered by cmd/api's wiring tests (008-T209).
 func newAuthRouter(t *testing.T, h *auth.Handler) http.Handler {
 	t.Helper()
 	r := chi.NewRouter()
 	r.Use(middleware.RequestID)
 	r.Route("/api/v1", func(r chi.Router) {
-		h.RegisterRoutes(r)
+		r.Group(h.RegisterPublicRoutes)
+		r.Group(h.RegisterProtectedRoutes)
 	})
 	return r
 }
@@ -109,7 +128,7 @@ func TestUnitHandleRegister_FreeUserNoToken_Returns201WithSessionCookies(t *test
 		Once()
 	issuer := &fakeTokenIssuer{pair: validPair()}
 
-	h := auth.NewHandler(svc, issuer, authmocks.NewMockRefreshTokenRepository(t), auth.CookieConfig{Domain: "localhost", Secure: true})
+	h := auth.NewHandler(svc, issuer, &fakeTokenRefresher{}, authmocks.NewMockRefreshTokenRepository(t), auth.CookieConfig{Domain: "localhost", Secure: true})
 	rec := doJSON(t, newAuthRouter(t, h), http.MethodPost, "/api/v1/auth/register",
 		`{"email":"ada@example.com","password":"CorrectHorse1!","full_name":"Ada Lovelace"}`)
 
@@ -150,7 +169,7 @@ func TestUnitHandleRegister_PaidUserWithToken_Returns201WithSubscribedToken(t *t
 		Once()
 	issuer := &fakeTokenIssuer{pair: validPair()}
 
-	h := auth.NewHandler(svc, issuer, authmocks.NewMockRefreshTokenRepository(t), auth.CookieConfig{})
+	h := auth.NewHandler(svc, issuer, &fakeTokenRefresher{}, authmocks.NewMockRefreshTokenRepository(t), auth.CookieConfig{})
 	rec := doJSON(t, newAuthRouter(t, h), http.MethodPost, "/api/v1/auth/register",
 		`{"email":"ada@example.com","password":"CorrectHorse1!","full_name":"Ada Lovelace","payment_method_token":"tok_visa"}`)
 
@@ -163,7 +182,7 @@ func TestUnitHandleRegister_PaidUserWithToken_Returns201WithSubscribedToken(t *t
 
 func TestUnitHandleRegister_MalformedJSON_Returns400InvalidRequest(t *testing.T) {
 	svc := authmocks.NewMockAccountService(t)
-	h := auth.NewHandler(svc, &fakeTokenIssuer{}, authmocks.NewMockRefreshTokenRepository(t), auth.CookieConfig{})
+	h := auth.NewHandler(svc, &fakeTokenIssuer{}, &fakeTokenRefresher{}, authmocks.NewMockRefreshTokenRepository(t), auth.CookieConfig{})
 	rec := doJSON(t, newAuthRouter(t, h), http.MethodPost, "/api/v1/auth/register", `{not json`)
 
 	require.Equal(t, http.StatusBadRequest, rec.Code)
@@ -176,7 +195,7 @@ func TestUnitHandleRegister_DuplicateEmail_Returns409(t *testing.T) {
 	svc.EXPECT().Register(mock.Anything, mock.Anything).
 		Return(nil, domainerrors.Conflict("Email already registered")).Once()
 
-	h := auth.NewHandler(svc, &fakeTokenIssuer{}, authmocks.NewMockRefreshTokenRepository(t), auth.CookieConfig{})
+	h := auth.NewHandler(svc, &fakeTokenIssuer{}, &fakeTokenRefresher{}, authmocks.NewMockRefreshTokenRepository(t), auth.CookieConfig{})
 	rec := doJSON(t, newAuthRouter(t, h), http.MethodPost, "/api/v1/auth/register",
 		`{"email":"ada@example.com","password":"CorrectHorse1!","full_name":"Ada Lovelace"}`)
 
@@ -191,7 +210,7 @@ func TestUnitHandleRegister_ValidationError_Returns422(t *testing.T) {
 		Return(nil, domainerrors.Validation("One or more fields failed validation",
 			domainerrors.ValidationError{Field: "password", Error: "too weak"})).Once()
 
-	h := auth.NewHandler(svc, &fakeTokenIssuer{}, authmocks.NewMockRefreshTokenRepository(t), auth.CookieConfig{})
+	h := auth.NewHandler(svc, &fakeTokenIssuer{}, &fakeTokenRefresher{}, authmocks.NewMockRefreshTokenRepository(t), auth.CookieConfig{})
 	rec := doJSON(t, newAuthRouter(t, h), http.MethodPost, "/api/v1/auth/register",
 		`{"email":"bad","password":"weak","full_name":"Ada"}`)
 
@@ -205,7 +224,7 @@ func TestUnitHandleRegister_TokenIssuanceFails_Returns500(t *testing.T) {
 		Return(&auth.RegisterResponse{User: testUser(false)}, nil).Once()
 	issuer := &fakeTokenIssuer{err: errors.New("signing key unavailable")}
 
-	h := auth.NewHandler(svc, issuer, authmocks.NewMockRefreshTokenRepository(t), auth.CookieConfig{})
+	h := auth.NewHandler(svc, issuer, &fakeTokenRefresher{}, authmocks.NewMockRefreshTokenRepository(t), auth.CookieConfig{})
 	rec := doJSON(t, newAuthRouter(t, h), http.MethodPost, "/api/v1/auth/register",
 		`{"email":"ada@example.com","password":"CorrectHorse1!","full_name":"Ada Lovelace"}`)
 
@@ -225,7 +244,7 @@ func TestUnitHandleLogin_ValidCredentials_Returns200WithSessionCookies(t *testin
 		Once()
 	issuer := &fakeTokenIssuer{pair: validPair()}
 
-	h := auth.NewHandler(svc, issuer, authmocks.NewMockRefreshTokenRepository(t), auth.CookieConfig{Secure: true})
+	h := auth.NewHandler(svc, issuer, &fakeTokenRefresher{}, authmocks.NewMockRefreshTokenRepository(t), auth.CookieConfig{Secure: true})
 	rec := doJSON(t, newAuthRouter(t, h), http.MethodPost, "/api/v1/auth/login",
 		`{"email":"ada@example.com","password":"CorrectHorse1!"}`)
 
@@ -239,7 +258,7 @@ func TestUnitHandleLogin_ValidCredentials_Returns200WithSessionCookies(t *testin
 
 func TestUnitHandleLogin_MalformedJSON_Returns400(t *testing.T) {
 	svc := authmocks.NewMockAccountService(t)
-	h := auth.NewHandler(svc, &fakeTokenIssuer{}, authmocks.NewMockRefreshTokenRepository(t), auth.CookieConfig{})
+	h := auth.NewHandler(svc, &fakeTokenIssuer{}, &fakeTokenRefresher{}, authmocks.NewMockRefreshTokenRepository(t), auth.CookieConfig{})
 	rec := doJSON(t, newAuthRouter(t, h), http.MethodPost, "/api/v1/auth/login", `{bad`)
 
 	require.Equal(t, http.StatusBadRequest, rec.Code)
@@ -252,7 +271,7 @@ func TestUnitHandleLogin_InvalidCredentials_Returns401NoCookies(t *testing.T) {
 		Return(nil, domainerrors.Unauthorized("Invalid credentials")).Once()
 	issuer := &fakeTokenIssuer{}
 
-	h := auth.NewHandler(svc, issuer, authmocks.NewMockRefreshTokenRepository(t), auth.CookieConfig{})
+	h := auth.NewHandler(svc, issuer, &fakeTokenRefresher{}, authmocks.NewMockRefreshTokenRepository(t), auth.CookieConfig{})
 	rec := doJSON(t, newAuthRouter(t, h), http.MethodPost, "/api/v1/auth/login",
 		`{"email":"ada@example.com","password":"wrong"}`)
 
@@ -267,7 +286,7 @@ func TestUnitHandleLogin_RateLimited_Returns429WithRetryAfter(t *testing.T) {
 	svc.EXPECT().Login(mock.Anything, mock.Anything, mock.Anything, mock.Anything).
 		Return(nil, domainerrors.RateLimited(8)).Once()
 
-	h := auth.NewHandler(svc, &fakeTokenIssuer{}, authmocks.NewMockRefreshTokenRepository(t), auth.CookieConfig{})
+	h := auth.NewHandler(svc, &fakeTokenIssuer{}, &fakeTokenRefresher{}, authmocks.NewMockRefreshTokenRepository(t), auth.CookieConfig{})
 	rec := doJSON(t, newAuthRouter(t, h), http.MethodPost, "/api/v1/auth/login",
 		`{"email":"ada@example.com","password":"wrong"}`)
 
@@ -297,7 +316,7 @@ func TestUnitHandleLogout_WithValidRefreshCookie_RevokesAndClearsCookies(t *test
 		Once()
 	repo.EXPECT().RevokeRefreshToken(mock.Anything, "rt-1").Return(nil).Once()
 
-	h := auth.NewHandler(authmocks.NewMockAccountService(t), &fakeTokenIssuer{}, repo, auth.CookieConfig{})
+	h := auth.NewHandler(authmocks.NewMockAccountService(t), &fakeTokenIssuer{}, &fakeTokenRefresher{}, repo, auth.CookieConfig{})
 	rec := postLogout(t, newAuthRouter(t, h), &http.Cookie{Name: "refresh_token", Value: raw})
 
 	require.Equal(t, http.StatusNoContent, rec.Code)
@@ -313,7 +332,7 @@ func TestUnitHandleLogout_WithValidRefreshCookie_RevokesAndClearsCookies(t *test
 func TestUnitHandleLogout_NoRefreshCookie_ClearsCookiesWithoutRevoking(t *testing.T) {
 	repo := authmocks.NewMockRefreshTokenRepository(t)
 
-	h := auth.NewHandler(authmocks.NewMockAccountService(t), &fakeTokenIssuer{}, repo, auth.CookieConfig{})
+	h := auth.NewHandler(authmocks.NewMockAccountService(t), &fakeTokenIssuer{}, &fakeTokenRefresher{}, repo, auth.CookieConfig{})
 	rec := postLogout(t, newAuthRouter(t, h), nil)
 
 	require.Equal(t, http.StatusNoContent, rec.Code)
@@ -330,7 +349,7 @@ func TestUnitHandleLogout_UnknownRefreshToken_IsIdempotent204(t *testing.T) {
 		Return(nil, domainerrors.NotFound("refresh token", "hash")).
 		Once()
 
-	h := auth.NewHandler(authmocks.NewMockAccountService(t), &fakeTokenIssuer{}, repo, auth.CookieConfig{})
+	h := auth.NewHandler(authmocks.NewMockAccountService(t), &fakeTokenIssuer{}, &fakeTokenRefresher{}, repo, auth.CookieConfig{})
 	rec := postLogout(t, newAuthRouter(t, h), &http.Cookie{Name: "refresh_token", Value: raw})
 
 	require.Equal(t, http.StatusNoContent, rec.Code)
@@ -345,9 +364,174 @@ func TestUnitHandleLogout_RevokeStorageError_Returns500(t *testing.T) {
 	repo.EXPECT().RevokeRefreshToken(mock.Anything, "rt-1").
 		Return(errors.New("db down")).Once()
 
-	h := auth.NewHandler(authmocks.NewMockAccountService(t), &fakeTokenIssuer{}, repo, auth.CookieConfig{})
+	h := auth.NewHandler(authmocks.NewMockAccountService(t), &fakeTokenIssuer{}, &fakeTokenRefresher{}, repo, auth.CookieConfig{})
 	rec := postLogout(t, newAuthRouter(t, h), &http.Cookie{Name: "refresh_token", Value: raw})
 
 	require.Equal(t, http.StatusInternalServerError, rec.Code)
 	assert.Nil(t, cookieByName(rec, "access_token"), "cookies must not be cleared when revocation fails")
+}
+
+// --- Refresh --------------------------------------------------------------
+
+func postRefresh(t *testing.T, router http.Handler, refreshCookie *http.Cookie) *httptest.ResponseRecorder {
+	t.Helper()
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/auth/refresh", nil)
+	if refreshCookie != nil {
+		req.AddCookie(refreshCookie)
+	}
+	rec := httptest.NewRecorder()
+	router.ServeHTTP(rec, req)
+	return rec
+}
+
+func newRefreshHandler(t *testing.T, refresher auth.TokenRefresher) *auth.Handler {
+	t.Helper()
+	return auth.NewHandler(
+		authmocks.NewMockAccountService(t),
+		&fakeTokenIssuer{},
+		refresher,
+		authmocks.NewMockRefreshTokenRepository(t),
+		auth.CookieConfig{Domain: "localhost", Secure: true},
+	)
+}
+
+func TestUnitHandleRefresh_ValidRefreshCookie_Returns200AndRotatesBothCookies(t *testing.T) {
+	// Arrange
+	pair := validPair()
+	pair.UserID = testUserID
+	refresher := &fakeTokenRefresher{pair: pair}
+	h := newRefreshHandler(t, refresher)
+
+	// Act
+	rec := postRefresh(t, newAuthRouter(t, h), &http.Cookie{Name: "refresh_token", Value: "presented-refresh-token"})
+
+	// Assert
+	require.Equal(t, http.StatusOK, rec.Code)
+	assert.True(t, refresher.called, "the handler must delegate to the token refresher")
+	assert.Equal(t, "presented-refresh-token", refresher.gotToken,
+		"the raw cookie value must be forwarded to the refresher")
+	assert.Equal(t, "Token refreshed successfully", decodeBody(t, rec)["message"])
+
+	access := cookieByName(rec, "access_token")
+	require.NotNil(t, access)
+	assert.Equal(t, pair.AccessToken, access.Value)
+	assert.True(t, access.HttpOnly)
+	assert.True(t, access.Secure)
+	assert.Equal(t, http.SameSiteStrictMode, access.SameSite)
+
+	refresh := cookieByName(rec, "refresh_token")
+	require.NotNil(t, refresh)
+	assert.Equal(t, pair.RefreshToken, refresh.Value,
+		"the rotated refresh token must replace the presented one")
+}
+
+func TestUnitHandleRefresh_MissingOrEmptyCookie_Returns401WithoutCallingTheRefresher(t *testing.T) {
+	testCases := []struct {
+		name   string
+		cookie *http.Cookie
+	}{
+		{name: "when no refresh_token cookie is presented", cookie: nil},
+		{name: "when the refresh_token cookie is empty", cookie: &http.Cookie{Name: "refresh_token", Value: ""}},
+	}
+
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			// Arrange
+			refresher := &fakeTokenRefresher{}
+			h := newRefreshHandler(t, refresher)
+
+			// Act
+			rec := postRefresh(t, newAuthRouter(t, h), testCase.cookie)
+
+			// Assert
+			require.Equal(t, http.StatusUnauthorized, rec.Code)
+			assert.Equal(t, "authentication_required", decodeBody(t, rec)["error"],
+				"the uniform 401 envelope is the snake_case catalog code, not api.md's stale INVALID_REFRESH_TOKEN")
+			assert.False(t, refresher.called, "a missing token must short-circuit before any store lookup")
+			assert.Nil(t, cookieByName(rec, "access_token"), "no session cookie may be set on a failed refresh")
+		})
+	}
+}
+
+func TestUnitHandleRefresh_RefresherRejectsToken_Returns401NoCookies(t *testing.T) {
+	// Arrange
+	// The fake returns exactly what the real jwt.Refresher returns for any bad
+	// token, so this test breaks if that error stops being the uniform one.
+	refresher := &fakeTokenRefresher{err: domainerrors.Unauthorized(authjwt.RefreshFailureMessage)}
+	h := newRefreshHandler(t, refresher)
+
+	// Act
+	rec := postRefresh(t, newAuthRouter(t, h), &http.Cookie{Name: "refresh_token", Value: "revoked-token"})
+
+	// Assert
+	require.Equal(t, http.StatusUnauthorized, rec.Code)
+	assert.Equal(t, "authentication_required", decodeBody(t, rec)["error"])
+	assert.Nil(t, cookieByName(rec, "access_token"))
+	assert.Nil(t, cookieByName(rec, "refresh_token"))
+}
+
+// A client must not be able to tell an absent refresh cookie from an invalid,
+// expired, or revoked one: the two paths are produced by different code (the
+// handler short-circuits before ever reaching the Refresher), so the identical
+// response is an invariant that has to be asserted, not assumed.
+func TestUnitHandleRefresh_MissingCookieAndRejectedToken_AreIndistinguishable(t *testing.T) {
+	// Arrange
+	missingCookie := postRefresh(t, newAuthRouter(t, newRefreshHandler(t, &fakeTokenRefresher{})), nil)
+
+	rejected := postRefresh(t,
+		newAuthRouter(t, newRefreshHandler(t,
+			&fakeTokenRefresher{err: domainerrors.Unauthorized(authjwt.RefreshFailureMessage)})),
+		&http.Cookie{Name: "refresh_token", Value: "revoked-token"})
+
+	// Assert
+	require.Equal(t, missingCookie.Code, rejected.Code)
+
+	missingBody, rejectedBody := decodeBody(t, missingCookie), decodeBody(t, rejected)
+	assert.Equal(t, missingBody["error"], rejectedBody["error"])
+	assert.Equal(t, missingBody["message"], rejectedBody["message"],
+		"a missing refresh cookie must not be distinguishable from a rejected token by its message")
+	assert.Equal(t, authjwt.RefreshFailureMessage, missingBody["message"],
+		"both paths must emit the message contracts/api.md specifies for this endpoint")
+}
+
+func TestUnitHandleRefresh_StorageFailure_Returns500NoCookies(t *testing.T) {
+	// Arrange
+	refresher := &fakeTokenRefresher{err: errors.New("db down")}
+	h := newRefreshHandler(t, refresher)
+
+	// Act
+	rec := postRefresh(t, newAuthRouter(t, h), &http.Cookie{Name: "refresh_token", Value: "some-token"})
+
+	// Assert
+	require.Equal(t, http.StatusInternalServerError, rec.Code)
+	assert.Nil(t, cookieByName(rec, "access_token"))
+}
+
+// --- Route split (008-T208) -----------------------------------------------
+
+func TestUnitRegisterRoutes_PublicAndProtectedGroupsCoexistWithoutPanicking(t *testing.T) {
+	// Arrange
+	h := newRefreshHandler(t, &fakeTokenRefresher{pair: validPair()})
+
+	// Act / Assert: chi panics if the same pattern is mounted twice on one
+	// routing tree, so registering full paths from two sibling groups (rather
+	// than two r.Route("/auth", ...) subtrees) must be panic-free.
+	var router http.Handler
+	require.NotPanics(t, func() { router = newAuthRouter(t, h) })
+
+	testCases := []struct {
+		name     string
+		path     string
+		wantCode int
+	}{
+		{name: "when the public register route is called with a malformed body", path: "/api/v1/auth/register", wantCode: http.StatusBadRequest},
+		{name: "when the public login route is called with a malformed body", path: "/api/v1/auth/login", wantCode: http.StatusBadRequest},
+	}
+
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			rec := doJSON(t, router, http.MethodPost, testCase.path, `{bad`)
+			assert.Equal(t, testCase.wantCode, rec.Code)
+		})
+	}
 }
