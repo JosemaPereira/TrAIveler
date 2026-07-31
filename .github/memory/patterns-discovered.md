@@ -43,6 +43,8 @@ the file **and** add a line here.
 - *Simulating a Realistic DB Timeout in an Integration Test*.
 - *A "These Two Responses Are Indistinguishable" Comment Needs a Test Comparing Them* — per-path
   assertions can't catch divergence between paths; share one constant.
+- *A Test Can Encode a Contract the Backend Never Had* — a mock is not evidence; it is a claim,
+  and an unbuilt endpoint can never contradict it.
 
 ### Frontend
 
@@ -51,6 +53,8 @@ the file **and** add a line here.
 - *A Client-Level Interceptor That Must Touch the Store Needs a Handler Registry, Not an Import* —
   the store already imports the client; invert with `setXHandler()` wired at the composition root.
 - *MSW and a Stubbed Global `fetch` Cannot Share a Test File* — the stub bypasses the interceptor.
+- *An Endpoint Where a 401 Is an Answer, Not a Failure* — session probes and credential
+  endpoints need a carve-out from any global 401 teardown.
 
 ### Infra, CI & GitHub
 
@@ -853,3 +857,50 @@ Read these before trusting any spec/issue text.
 - **Related**: `frontend/src/test/msw/server.ts`, `frontend/src/test/msw/handlers.ts`,
   `frontend/src/test/setup.ts`, `frontend/src/lib/api-client.refresh.test.ts`,
   `frontend/src/lib/api-client.test.ts`, `docs/testing-guidelines.md`
+
+---
+
+### An Endpoint Where a 401 Is an Answer, Not a Failure
+
+- **Discovered**: 2026-07-31 — **Tool**: Claude Code
+- **Context**: `frontend/src/lib/api-client.ts` after 008-T160 gave it a global rule — any 401 that a
+  token refresh cannot rescue tears down the session and redirects to `/login`. Then `GET /auth/me`
+  (001-T021) landed as the session-bootstrap probe.
+- **Problem**: A global "401 means the session died" rule is wrong for endpoints whose whole purpose
+  is to *ask* about authentication. `/auth/me` answers 401 for "you are not signed in" — the normal
+  negative result — so calling it on app boot from a public page would have bounced every anonymous
+  visitor to `/login` via the app's own startup sequence. The same already applied to `/auth/login`
+  and `/auth/register`, where 401 means "wrong credentials" and the user is looking at the page the
+  redirect targets. None of this shows up in tests that exercise one endpoint at a time.
+- **Solution**: Keep an explicit allowlist of endpoints where a 401 is data rather than failure
+  (`EXPECTED_401_ENDPOINTS` — the name matters: an earlier `CREDENTIAL_ENDPOINTS` stopped describing
+  the set once the probe joined it). Two things to get right: (1) the carve-out must **not** disable
+  silent recovery — a `token_expired` 401 on the probe should still refresh and retry, and only a
+  *failed* refresh escalates, because at that point the caller demonstrably held a token we issued;
+  (2) write the exemption's boundary as a test, since the difference between "no session" and
+  "expired session" on the very same URL is invisible in the code path otherwise.
+- **Related**: `frontend/src/lib/api-client.ts`, `frontend/src/lib/api-client.refresh.test.ts`,
+  `frontend/src/stores/auth-store.ts`, `backend/internal/auth/handler.go` (`handleCurrentUser`)
+
+---
+
+### A Test Can Encode a Contract the Backend Never Had
+
+- **Discovered**: 2026-07-31 — **Tool**: Claude Code
+- **Context**: `frontend/src/stores/auth-store.ts`'s `refreshSession()` called `GET /auth/me` from
+  Sprint 5 onward. The endpoint did not exist until 001-T021, two sprints later.
+- **Problem**: The action was written as `api.get<User>('/auth/me')` — a bare user — while the real
+  endpoint, once built, answered `{user}` like register and login. Its unit test mocked `api.get` to
+  resolve a bare user and passed for two sprints. It was not testing the backend; it was asserting
+  the frontend agreed with itself. **An endpoint that does not exist can never contradict a mock**, so
+  the wrong shape was frozen in by the only artifact that looked like evidence.
+- **Solution**: When client code calls an endpoint that is not built yet, treat the response shape as
+  an **assumption to be re-verified at wiring time**, not a settled contract — record it in the
+  roadmap row's Notes, and re-derive it from the Go struct's `json` tags the moment the endpoint
+  lands. The failure is silent in the good direction (correcting the code turns the test red
+  immediately, which is how this surfaced), so the discipline is simply to *look*, not to add
+  machinery. Related smell: an integration test that "passes" without exercising what its name claims
+  — the same session had `TestAuthMe_AfterLogout_Returns401` quietly re-testing the anonymous case,
+  because its `http.Client` had no cookie jar and sent nothing.
+- **Related**: `frontend/src/stores/auth-store.ts`, `frontend/src/stores/auth-store.test.ts`,
+  `backend/internal/auth/models.go`, `backend/tests/integration/auth_me_test.go`
