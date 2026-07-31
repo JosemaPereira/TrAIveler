@@ -5,6 +5,8 @@ import (
 	"errors"
 	"fmt"
 
+	gojwt "github.com/golang-jwt/jwt/v5"
+
 	"github.com/JosemaPereira/TrAIveler/backend/internal/auth/jwt"
 	"github.com/JosemaPereira/TrAIveler/backend/internal/middleware"
 )
@@ -40,12 +42,22 @@ func newJWTTokenValidator(validator claimsValidator) middleware.TokenValidator {
 // middleware's local AuthClaims. The user id rides in the standard Subject
 // claim. Failures are wrapped for context but keep the cause inspectable via
 // errors.Is/As; a validator that returns neither claims nor an error is treated
-// as a failure rather than yielding empty claims. Either way Authenticate
-// collapses the result into the uniform 401 envelope, so the cause only ever
-// reaches the logs.
+// as a failure rather than yielding empty claims.
+//
+// Expiry is singled out: a validly-signed-but-expired token surfaces from the JWT
+// layer as an error wrapping gojwt.ErrTokenExpired (the auth/jwt validator wraps
+// its cause with %w, and internal/errors.DomainError.Unwrap exposes it), so this
+// is the one composition-root seam where auth/jwt and internal/middleware meet and
+// the two can be joined. We translate it into middleware.ErrTokenExpired, which
+// Authenticate answers with 401 token_expired (008-T150). Every other failure
+// passes through unchanged and Authenticate collapses it into the uniform
+// authentication_required envelope, so the cause only ever reaches the logs.
 func (a *jwtTokenValidator) ValidateToken(ctx context.Context, token string) (middleware.AuthClaims, error) {
 	claims, err := a.validator.ValidateToken(ctx, token)
 	if err != nil {
+		if errors.Is(err, gojwt.ErrTokenExpired) {
+			return middleware.AuthClaims{}, fmt.Errorf("validate access token: %w", middleware.ErrTokenExpired)
+		}
 		return middleware.AuthClaims{}, fmt.Errorf("validate access token: %w", err)
 	}
 	if claims == nil {

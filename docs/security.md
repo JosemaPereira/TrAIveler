@@ -316,9 +316,17 @@ on the authenticated route group; password reset (008-T142-T147) is the remainin
   `access_token` cookie, validates it through a `TokenValidator`/`AuthClaims` port backed by
   `jwt.Validator`, and attaches the user id + `has_subscription` to the request context (read via
   `UserIDFromContext` / `HasSubscriptionFromContext`); a missing/invalid token yields `401`
-  `authentication_required`. *Built and mounted (008-T207/T208): the `*jwt.Validator`→`AuthClaims`
+  `authentication_required`. A validly-signed-but-expired access token is the one exception: it
+  yields `401` `token_expired` (008-T150), the frontend's silent-refresh trigger. This is a
+  deliberately narrow break from the uniform envelope and does not weaken anti-enumeration — only a
+  token we truly issued (proven by a valid signature over an unretired key) can reach the expiry
+  check, so it leaks nothing about account or token existence; every other failure (absent,
+  malformed, bad signature, unknown key, wrong issuer) stays `authentication_required`. *Built and
+  mounted (008-T207/T208, expiry code 008-T150): the `*jwt.Validator`→`AuthClaims`
   adapter lives in `backend/cmd/api/token_validator.go` (package `main`, to avoid a
-  jwt→errors→middleware import cycle) and `backend/cmd/api/routes.go` splits `/api/v1` into a public
+  jwt→errors→middleware import cycle) — it maps `gojwt.ErrTokenExpired` onto the middleware-local
+  `middleware.ErrTokenExpired` sentinel, which `Authenticate` answers with `token_expired`. And
+  `backend/cmd/api/routes.go` splits `/api/v1` into a public
   group (register/login/refresh) and an authenticated group carrying the gate — the latter covering
   every other `/api/v1` route plus `/swagger/*`. `/healthz` stays public and unversioned.*
 - **REFRESH** — `POST /api/v1/auth/refresh`: `jwt.Refresher.RefreshToken` validates the presented

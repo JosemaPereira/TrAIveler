@@ -351,7 +351,8 @@ All errors **MUST** use this structure:
 |------------|-------------|---------|----------|
 | `invalid_request` | 400 | Malformed request | JSON parse error, missing required params |
 | `validation_failed` | 422 | Business rule validation failed | Email already exists, invalid date range |
-| `authentication_required` | 401 | Missing/invalid auth token | No JWT, expired JWT |
+| `authentication_required` | 401 | Missing/invalid auth token | No JWT, malformed/invalid JWT, bad signature, unknown key, wrong issuer |
+| `token_expired` | 401 | Access token expired | Valid but expired access token; client should refresh |
 | `forbidden` | 403 | Insufficient permissions | Partner trying to delete trip |
 | `not_found` | 404 | Resource doesn't exist | `/trips/nonexistent` |
 | `conflict` | 409 | Version mismatch | Optimistic locking conflict |

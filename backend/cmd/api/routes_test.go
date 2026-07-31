@@ -170,6 +170,23 @@ func TestHTTPServer_ProtectedRoutes_InvalidAccessToken_Returns401AuthenticationR
 	assert.Equal(t, 1, validator.callCount, "a presented cookie must be validated")
 }
 
+func TestHTTPServer_ProtectedRoutes_ExpiredAccessToken_Returns401TokenExpired(t *testing.T) {
+	// A validly-signed-but-expired token gets its own code end-to-end through the
+	// real route table, so the frontend can tell "refresh me" (008-T150) apart from
+	// every other 401, which stays the uniform authentication_required.
+	// Arrange
+	srv, validator := newGatedServer(t, dbmocks.NewMockClient(t))
+	validator.err = middleware.ErrTokenExpired
+
+	// Act
+	rec := doRequest(t, srv, http.MethodGet, "/swagger/doc.json", true)
+
+	// Assert
+	require.Equal(t, http.StatusUnauthorized, rec.Code)
+	assert.Equal(t, "token_expired", decodeErrorCode(t, rec))
+	assert.Equal(t, 1, validator.callCount, "a presented cookie must be validated")
+}
+
 func TestHTTPServer_PublicRoutes_ReachableWithoutAuthentication(t *testing.T) {
 	testCases := []struct {
 		name     string
