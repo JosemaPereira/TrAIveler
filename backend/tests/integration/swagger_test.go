@@ -29,6 +29,8 @@ import (
 	"github.com/testcontainers/testcontainers-go"
 	"github.com/testcontainers/testcontainers-go/modules/postgres"
 	"github.com/testcontainers/testcontainers-go/wait"
+
+	"github.com/JosemaPereira/TrAIveler/backend/internal/testdb"
 )
 
 // swaggerUIBundleURLPattern extracts the value httpSwagger.Handler's index.html
@@ -52,7 +54,7 @@ func startPostgresContainer(t *testing.T, ctx context.Context) string {
 	t.Helper()
 
 	pgContainer, err := postgres.Run(ctx,
-		"postgres:16-alpine",
+		testdb.PostgresImage,
 		postgres.WithDatabase("testdb"),
 		postgres.WithUsername("testuser"),
 		postgres.WithPassword("testpass"),

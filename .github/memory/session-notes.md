@@ -677,3 +677,121 @@ Historical summaries of completed development sessions. Committed to git as a re
   deviations above. Verified independently: `npm run lint`/`type-check` clean, `npm test` 284/284,
   `npm run build` succeeds. PR #198 open, not merged. Sprint 6 remaining open after this: #172,
   #173, #181, #184.
+
+### Session: `swagger-drift` CI Gate + Spec 009 Closing Polish (#172, #181)
+
+- **Date**: 2026-07-31
+- **Tool**: Claude Code
+- **What was accomplished**: Closed 009-T018–T026 on `feature/172-181-swagger-drift-gate-polish`,
+  opened as **PR #200** (open, not merged). User made two upfront calls via `AskUserQuestion`:
+  defer 009-T019 again rather than chase a workaround, and do the live scratch-branch/throwaway-PR
+  proof for 009-T020 (not a local-only simulation).
+- **Key findings and decisions**:
+  - **009-T019 is genuinely blocked, re-confirmed empirically**: both `gh api
+    repos/JosemaPereira/TrAIveler/rulesets` and the specific known ruleset (id 18752818, verified
+    applied back on 2026-07-17 per the Sprint 5 closure notes) now 403 "Upgrade to GitHub Pro or
+    make this repository public" — same limitation as the *GitHub Rulesets/Branch Protection
+    Require Public Repo or Pro (Personal Accounts)* pattern (2026-07-09), now re-hit a second time.
+    User asked (mid-session, in Spanish) whether the ruleset could be added manually via the web
+    UI instead of `gh api`; answered no — the 403 reflects an account-plan restriction GitHub
+    enforces identically in the UI, not an API-specific gap. **002-T050 (#173) will hit the exact
+    same wall** — flagged on that PR's "Next Steps" for whoever picks it up.
+  - **009-T021/T022/T023 were already done before this session** — `docs/testing-guidelines.md`'s
+    "Validation Gates Beyond the Three Testing Layers" section, `backend/README.md`'s API Overview
+    table, and `docs/api-design-standards.md` §16 were all promoted from the spec on 2026-07-10,
+    *ahead of* T018's actual CI implementation landing. Verified all three against the real T018
+    step; no doc changes needed — only the roadmap Status column was stale.
+  - **The persistent local dev Docker stack (`traveler-db`/`-api`/`-ollama`, up ~3 weeks) was stale
+    enough to block Scenario 2/4/5 validation**: `goose status` showed only the `20260710120000`
+    examples seed migration applied, with all 15 numbered migrations `Pending` — the volume
+    predated the entire auth/security build-out. Goose's strict version-order guard then rejected
+    applying them out of order. Fixed by `docker compose down` + `docker volume rm
+    traveler_postgres_data` + fresh `up` + `goose up` (disposable local dev data, not a source of
+    truth). Also found and worked around a **separate, pre-existing `docker-compose.yml` bug**,
+    out of scope for this PR: its `backend` service hardcodes `JWT_SIGNING_KEY:
+    ${JWT_SIGNING_KEY:-dev_jwt_key_do_not_use_in_production}`, a non-PEM placeholder that
+    `jwt.LoadKeyFromPEM` rejects ("no PEM block found") — the *empty-string* ephemeral-RSA-key
+    dev fallback in `cmd/api/auth.go` never triggers because the default is never empty. Validated
+    all 5 quickstart scenarios by running `cmd/api` directly via `go run` instead (unset
+    `JWT_SIGNING_KEY`, real ephemeral key). `traveler-api` container is left in a crash-loop after
+    this session — flagged to the user, not fixed (unrelated to #172/#181's scope).
+  - **009-T020 done as a real live proof, not a simulation**: scratch branch
+    `scratch/009-t020-swagger-drift-proof` branched off the feature branch (so the new CI step was
+    already present), one commit editing an `@Description` annotation without regenerating
+    `backend/docs/`, pushed, opened as throwaway PR **#201** (base = feature branch, not main —
+    kept it off `main`'s PR list entirely). CI's new step failed exactly as designed; PR closed and
+    branch deleted the same session. The real PR #200 itself also proved the negative case: its own
+    CI run showed the new step passing cleanly on a non-drifted change.
+- **Outcomes**: `backend-ci.yml`'s `lint-test` job gained a "Check Swagger docs are up to date"
+  step (`go install swag` + `make swagger` + `git diff --exit-code -- docs`), proven both ways
+  (passes clean, fails on real drift) against live GitHub Actions runs, not just locally.
+  `golangci-lint` clean, `make test-coverage` green, all 3 `swagger_test.go` tests confirmed
+  passing for real (not just present) against a testcontainer Postgres. `docs/roadmap.md` rows
+  009-T018/T020–T026 → Done with as-built notes; 009-T019 stays Backlog, explicitly marked
+  blocked rather than silently dropped. PR #200 open, not merged. Sprint 6 remaining open after
+  this: #173, #184.
+
+### Session: Lint Build-Tags, Postgres Image Drift, `roadmap-status-drift` Gate (#173)
+
+- **Date**: 2026-07-31
+- **Tool**: Claude Code
+- **What was accomplished**: Closed 002-T047–T050 on `feature/173-lint-ci-postgres-drift-gate`.
+  Implemented via `tdd-developer`, then independently re-verified by the parent session (build/vet/
+  lint/`-short` suite re-run, plus a **real** testcontainer run against Postgres 15.4-alpine via
+  Colima — the load-bearing check for T048, not just a compile check). That re-verification pass
+  found and fixed two real gaps the subagent's own local testing couldn't have caught (see below).
+- **Key findings and decisions**:
+  - **T047**: `test` added to `backend/.golangci.yml`'s `run.build-tags`, surfacing 14 real findings
+    across previously lint-invisible `//go:build test` files — all fixed minimally (12
+    `unused-parameter` renamed to `_` in `internal/ai/{anthropic,ollama_client}_test.go` httptest
+    handlers, 2 `empty-block` `//nolint:revive`-justified intentional channel-drain loops, 1
+    `misspell` in `internal/auth/handler_test.go`). `golangci-lint run ./...` exits 0.
+  - **T048**: the issue text's "three call sites" was stale — real count is **five**
+    (`internal/database/client_test.go`, `tests/integration/swagger_test.go`, and the `auth`/
+    `example`/`subscription` repository integration tests), each with its own independent
+    `setup.../start...PostgresContainer` helper (no shared testcontainer helper package existed or
+    was introduced beyond the one constant this task asked for). New `backend/internal/testdb`
+    package (`PostgresImage = "postgres:15.4-alpine"`, matching the deliberate RDS pin — *A Version
+    Pin Can Be Deliberate Architecture, Not Drift*) referenced by all five. Verified for real: `go
+    test -tags test` against all five packages green under Colima (needed
+    `TESTCONTAINERS_RYUK_DISABLED=true` this session, though `patterns-discovered.md`'s documented
+    fix is `TESTCONTAINERS_DOCKER_SOCKET_OVERRIDE` — both work, the documented one is the one to
+    reach for first next time).
+  - **T049**: new `scripts/check-roadmap-status-drift.py` (+ 16-case `unittest` suite in
+    `scripts/check_roadmap_status_drift_test.py`), modelled on `check-agent-drift.py`'s style (pure
+    parse/compare core, one network boundary via a single `gh issue list --state all` call rather
+    than one call per row). Wired into `backend-ci.yml`'s `lint-test` job right after the
+    swagger-drift step. **Two real gaps found only by running it against the live repo, not just the
+    PR's own diff** (both now new `patterns-discovered.md` entries): (1) the workflow's existing
+    least-privilege `permissions:` block had no `issues: read`, so `gh issue list` would have 403'd
+    under the real Actions `GITHUB_TOKEN` despite passing under the subagent's own broad-scope local
+    `gh` session — fixed by adding `issues: read`. (2) a real run found 009-T019 as an immediate false
+    positive (Backlog + closed parent issue, but *deliberately* so, per its own Blocked note) — a
+    brand-new required gate would have shipped permanently red. Fixed by adding a second exemption
+    class alongside `Superseded`: rows whose Notes starts with `**Blocked**` are skipped, matching
+    the existing 009-T019 annotation convention exactly. Confirmed clean after both fixes:
+    `python3 scripts/check-roadmap-status-drift.py` → "No roadmap-status drift found." against the
+    real repo.
+  - **T050**: re-confirmed the same wall already flagged on #172/#181's hand-off — `gh api
+    repos/JosemaPereira/TrAIveler/rulesets` still 403s. Left `Backlog`, Notes marked `**Blocked**`
+    (same convention as 009-T019, which is exactly what T049's new exemption class now expects).
+- **Outcomes**: `golangci-lint`/`go build`/`go vet -tags test`/`make test` all clean;
+  testcontainer-backed suite green against real Postgres 15.4-alpine (`internal/{database,auth,
+  example,subscription,testdb}`, `tests/integration`); `roadmap-status-drift` step live in
+  `backend-ci.yml` and verified both by its own unit tests and a real run finding zero drift.
+  `docs/roadmap.md` rows 002-T047–T049 → Done with as-built notes; 002-T050 stays Backlog, marked
+  blocked. No AWS/terraform touched; no backend endpoints changed (technical-writer step N/A).
+
+- **Post-PR follow-up (same day)**: PR #202's own first CI run failed the new `roadmap-status-drift`
+  step it introduced — flagging its own 002-T047/T048/T049 rows as `Status=Done` while issue #173 was
+  still `OPEN` (the issue only closes at merge). Root cause: the script's `open-but-Done` rule
+  (added for symmetry, not because the ticket asked for it) directly conflicts with this repo's
+  standing "flip to Done in the closing PR" convention — every future closing PR would trip it against
+  its own issue, making the gate unusable as a required check. A local run against `main` before
+  pushing could not have caught this: `main` never has a Done row for a still-open issue, only a live
+  PR does. **Fix**: dropped the open-but-Done rule entirely, keeping only closed-but-not-{Done,
+  Superseded,Blocked-notes} — matches the ticket's literal scope ("cross-checking Status against
+  *closed* GitHub issues"). Updated the script's tests (16 still pass), its module docstring, the
+  `backend-ci.yml` step comment, and the 002-T049 roadmap Notes. New `patterns-discovered.md` addendum:
+  a gate whose own rules can be tripped by the PR that adds it needs to be checked against that PR's
+  effect, not just pre-existing `main` history.

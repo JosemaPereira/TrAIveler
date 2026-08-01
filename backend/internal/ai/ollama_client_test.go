@@ -80,7 +80,7 @@ func TestGenerateItinerary_Success_ReturnsParsedItinerary(t *testing.T) {
 }
 
 func TestGenerateItinerary_MalformedContentJSON_ReturnsWrappedError(t *testing.T) {
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		_ = json.NewEncoder(w).Encode(map[string]any{
 			"model":             "gemma3:4b",
@@ -103,7 +103,7 @@ func TestGenerateItinerary_MalformedContentJSON_ReturnsWrappedError(t *testing.T
 
 func TestGenerateItinerary_ServerErrorThenSuccess_RetriesAndReturnsItinerary(t *testing.T) {
 	var callCount int32
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		attempt := atomic.AddInt32(&callCount, 1)
 		if attempt <= 2 {
 			w.WriteHeader(http.StatusInternalServerError)
@@ -133,7 +133,7 @@ func TestGenerateItinerary_ServerErrorThenSuccess_RetriesAndReturnsItinerary(t *
 
 func TestGenerateItinerary_ServerErrorExhaustsRetries_ReturnsWrappedError(t *testing.T) {
 	var callCount int32
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		atomic.AddInt32(&callCount, 1)
 		w.WriteHeader(http.StatusInternalServerError)
 	}))
@@ -152,7 +152,7 @@ func TestGenerateItinerary_ServerErrorExhaustsRetries_ReturnsWrappedError(t *tes
 
 func TestGenerateItinerary_ConnectionRefused_ExhaustsRetriesReturnsWrappedError(t *testing.T) {
 	// A closed server guarantees connection-refused style network errors.
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {}))
+	server := httptest.NewServer(http.HandlerFunc(func(_ http.ResponseWriter, _ *http.Request) {}))
 	server.Close()
 
 	client := ai.NewOllamaClient(server.URL, "gemma3:4b", 2*time.Second, 1, nil)
@@ -177,7 +177,7 @@ func TestGenerateItinerary_ConnectionRefused_ExhaustsRetriesReturnsWrappedError(
 }
 
 func TestGenerateItinerary_ContextCanceled_ReturnsPromptlyWithContextError(t *testing.T) {
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	server := httptest.NewServer(http.HandlerFunc(func(_ http.ResponseWriter, r *http.Request) {
 		select {
 		case <-r.Context().Done():
 		case <-time.After(300 * time.Millisecond):
@@ -208,7 +208,7 @@ func TestGenerateItinerary_ContextCanceled_ReturnsPromptlyWithContextError(t *te
 }
 
 func TestStreamItinerary_HappyPath_CollectsChunksUntilDone(t *testing.T) {
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		flusher, ok := w.(http.Flusher)
 		require.True(t, ok)
 
@@ -247,7 +247,7 @@ func TestStreamItinerary_HappyPath_CollectsChunksUntilDone(t *testing.T) {
 }
 
 func TestStreamItinerary_MidStreamError_DeliversErrorAndClosesChannels(t *testing.T) {
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		flusher, ok := w.(http.Flusher)
 		require.True(t, ok)
 
@@ -310,8 +310,10 @@ func TestStreamItinerary_ContextCanceled_ClosesChannelsPromptly(t *testing.T) {
 
 	done := make(chan struct{})
 	go func() {
+		//nolint:revive // intentional drain loops: block until each channel closes, body has nothing to do
 		for range chunkCh {
 		}
+		//nolint:revive // intentional drain loops: block until each channel closes, body has nothing to do
 		for range errCh {
 		}
 		close(done)
