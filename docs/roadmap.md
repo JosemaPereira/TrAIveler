@@ -188,8 +188,8 @@
 
 | ID | Task | Group | Sprint | Priority | Status | Depends on | Parallel | Issue | Notes |
 |----|------|-------|--------|----------|--------|------------|----------|-------|-------|
-| 002-T013 | Create k6 baseline load test (ramp to 500 VUs, sustain 10 min; assert p95 ≤ 500 ms and error rate < 1%) | G-PERF-K6-TESTS | 9 | P1 | Backlog | 002-T012 | yes | | |
-| 002-T014 | Create k6 API latency scenario (constant 100 RPS; assert p95 ≤ 500 ms per non-AI endpoint) | G-PERF-K6-TESTS | 9 | P1 | Backlog | 002-T012 | yes | | |
+| 002-T013 | Create k6 baseline load test (ramp to 500 VUs, sustain 10 min; assert p95 ≤ 500 ms and error rate < 1%) | G-PERF-K6-TESTS | 9 | P1 | Backlog | 002-T012 | yes | | **Depends-on note (2026-08-01):** 002-T012 is Superseded (by 005-T035/005-T037, Done, Sprint 2, PR #72) and will never itself flip to Done — its real prerequisite work (`/healthz` + middleware chain) already shipped, so treat this as unblocked. |
+| 002-T014 | Create k6 API latency scenario (constant 100 RPS; assert p95 ≤ 500 ms per non-AI endpoint) | G-PERF-K6-TESTS | 9 | P1 | Backlog | 002-T012 | yes | | **Depends-on note (2026-08-01):** 002-T012 is Superseded (by 005-T035/005-T037, Done, Sprint 2, PR #72) and will never itself flip to Done — its real prerequisite work already shipped, so treat this as unblocked. |
 | 002-T015 | Create `load-test.yml` GitHub Actions workflow (manual `workflow_dispatch`; runs k6 against staging URL) | | 9 | P1 | Backlog | 002-T013 | no | | |
 | 002-T016 | Write integration test asserting `/healthz` responds in ≤ 100 ms for 100 sequential calls | | 9 | P1 | Backlog | 002-T010 | no | | |
 
@@ -228,7 +228,7 @@
 | ID | Task | Group | Sprint | Priority | Status | Depends on | Parallel | Issue | Notes |
 |----|------|-------|--------|----------|--------|------------|----------|-------|-------|
 | 002-T037 | Write integration test for `Logger` middleware (parse 5 requests' JSON log lines; assert all StructuredLogEntry fields) | G-OBS-VALIDATION | | P2 | Backlog | 002-T008 | yes | | |
-| 002-T038 | Write integration test for `RequestID` middleware (no-header → UUID generated; preset header → echoed) | G-OBS-VALIDATION | | P2 | Backlog | 002-T006 | yes | | |
+| 002-T038 | Write integration test for `RequestID` middleware (no-header → UUID generated; preset header → echoed) | G-OBS-VALIDATION | | P2 | Backlog | 002-T006 | yes | | **Depends-on note (2026-08-01):** 002-T006 is Superseded (by 005-T024, Done, Sprint 2, issue #54) and will never itself flip to Done — `backend/internal/middleware/request_id.go` already implements the behavior this test targets. |
 | 002-T039 | Write Playwright E2E test for `/healthz` (X-Request-ID header is UUID; response matches HealthCheckResponse schema) | G-OBS-VALIDATION | | P2 | Backlog | 002-T010 | no | | |
 | 002-T040 | Create `backend/config/alerts.yml` defining 5xx error-rate alerting rule (> 1% over 5-minute window) | | | P2 | Backlog | 002-T008 | yes | | |
 
@@ -307,9 +307,9 @@
 | 003-T032 | Create IAM module: provisions ECS task execution role, ECS task role, GitHub Actions roles | G-INFRA-IAM-MODULE | | P1 | Backlog | 003-T009 | yes | | |
 | 003-T033 | Define IAM module variables: `environment`, `ecr_repository_arn`, `secrets_manager_arns`, `s3_bucket_arns` | G-INFRA-IAM-MODULE | | P1 | Backlog | 003-T009 | yes | | |
 | 003-T034 | Define IAM module outputs: `ecs_task_execution_role_arn`, `ecs_task_role_arn`, `github_actions_role_arn` | G-INFRA-IAM-MODULE | | P1 | Backlog | 003-T009 | yes | | |
-| 003-T035 | Wire VPC module in root `main.tf`: call `modules/vpc` with staging/production-specific CIDR blocks and NAT type | | 10 | P1 | Backlog | 003-T014 | no | | |
-| 003-T036 | Wire ALB module in root `main.tf`: call `modules/alb` with VPC outputs (public subnets, security group) | | 10 | P1 | Backlog | 003-T019 | no | | |
-| 003-T037 | Wire RDS module in root `main.tf`: call `modules/rds` with VPC outputs and environment-specific instance class, Multi-AZ flag | | 10 | P1 | Backlog | 003-T022 | no | | |
+| 003-T035 | Wire VPC module in root `main.tf`: call `modules/vpc` with staging/production-specific CIDR blocks and NAT type | | 10 | P1 | Backlog | 003-T014 | no | | **Depends-on note (2026-08-01):** 003-T014 is Superseded (by 005-T061–T065, Done, Sprint 3, issue #84) and will never itself flip to Done — `infra/modules/vpc/` already exists; this task can proceed without waiting on 003-T014. |
+| 003-T036 | Wire ALB module in root `main.tf`: call `modules/alb` with VPC outputs (public subnets, security group) | | 10 | P1 | Backlog | 003-T019 | no | | **Depends-on note (2026-08-01):** 003-T019 is Superseded (by 005-T085–T089, Done, Sprint 3, issue #87) and will never itself flip to Done — `infra/modules/alb/` already exists; this task can proceed without waiting on 003-T019. |
+| 003-T037 | Wire RDS module in root `main.tf`: call `modules/rds` with VPC outputs and environment-specific instance class, Multi-AZ flag | | 10 | P1 | Backlog | 003-T022 | no | | **Depends-on note (2026-08-01):** 003-T022 is Superseded (by 005-T078–T079, Done, Sprint 3, issue #86) and will never itself flip to Done — `infra/modules/rds/` already exists; this task can proceed without waiting on 003-T022. |
 | 003-T038 | Wire ECS module in root `main.tf`: call `modules/ecs` with VPC outputs, ALB target group ARN, environment-specific task sizing | | 10 | P1 | Backlog | 003-T025 | no | | |
 | 003-T039 | Wire S3+CloudFront module in root `main.tf`: call `modules/s3-cloudfront` with environment-specific bucket name and CloudFront price class | | 10 | P1 | Backlog | 003-T029 | no | | |
 | 003-T040 | Wire IAM module in root `main.tf`: call `modules/iam` with resource ARNs (ECR, Secrets Manager, S3) from other modules | | 10 | P1 | Backlog | 003-T032 | no | | |
@@ -330,8 +330,8 @@
 
 | ID | Task | Group | Sprint | Priority | Status | Depends on | Parallel | Issue | Notes |
 |----|------|-------|--------|----------|--------|------------|----------|-------|-------|
-| 003-T048 | Create `terraform-plan.yml` GitHub Actions workflow: triggers on PR, validates Terraform, posts plan output | G-INFRA-TF-WORKFLOWS | | P1 | Backlog | 003-T010 | yes | | |
-| 003-T049 | Create `terraform-apply.yml` GitHub Actions workflow: auto-deploy staging on main merge, manual production deployment | G-INFRA-TF-WORKFLOWS | | P1 | Backlog | 003-T010 | yes | | |
+| 003-T048 | Create `terraform-plan.yml` GitHub Actions workflow: triggers on PR, validates Terraform, posts plan output | G-INFRA-TF-WORKFLOWS | | P1 | Backlog | 003-T010 | yes | | **Depends-on note (2026-08-01):** 003-T010 is Superseded (by 005-T022, Done, Sprint 1, issue #18) and will never itself flip to Done — `infra/backend.tf` already implements the S3+DynamoDB backend; this task can proceed without waiting on 003-T010. |
+| 003-T049 | Create `terraform-apply.yml` GitHub Actions workflow: auto-deploy staging on main merge, manual production deployment | G-INFRA-TF-WORKFLOWS | | P1 | Backlog | 003-T010 | yes | | **Depends-on note (2026-08-01):** 003-T010 is Superseded (by 005-T022, Done, Sprint 1, issue #18) and will never itself flip to Done — `infra/backend.tf` already implements the S3+DynamoDB backend; this task can proceed without waiting on 003-T010. |
 | 003-T050 | Create multi-stage Dockerfile for Go backend: stage 1 builds Go binary targeting `linux/arm64`, stage 2 uses alpine base | G-INFRA-DOCKER | | P1 | Backlog | 003-T001 | yes | | |
 | 003-T051 | Create `.dockerignore` for backend: excludes `*.md`, `tests/`, `.git/`, `.env*` | G-INFRA-DOCKER | | P1 | Backlog | 003-T001 | yes | | |
 | 003-T052 | Create `backend-deploy.yml` GitHub Actions workflow: builds Docker image for linux/arm64, pushes to ECR, updates ECS service | | | P1 | Backlog | 003-T050, 003-T013 | no | | |
@@ -366,7 +366,7 @@
 | 003-T066 | Add `tfsec` configuration file: enables all HIGH severity checks, ignores known false positives | G-INFRA-POLISH | | P2 | Backlog | 003-T001 | yes | | |
 | 003-T067 | Extend `backend-lint.yml` workflow (from spec 001-T076) to include Docker linting: runs `hadolint infra/docker/backend/Dockerfile` | | | P2 | Backlog | 001-T076, 003-T050 | no | | Extends 001 workflow |
 | 003-T068 | Create infrastructure documentation README: overview of Terraform modules, quick start guide, links to contracts and research | G-INFRA-POLISH | | P2 | Backlog | 003-T001 | yes | | |
-| 003-T069 | Create Terraform module documentation: auto-generate module docs using `terraform-docs` for each module | G-INFRA-POLISH | | P2 | Backlog | 003-T014 | yes | | |
+| 003-T069 | Create Terraform module documentation: auto-generate module docs using `terraform-docs` for each module | G-INFRA-POLISH | | P2 | Backlog | 003-T014 | yes | | **Depends-on note (2026-08-01):** 003-T014 is Superseded (by 005-T061–T065, Done, Sprint 3, issue #84) and will never itself flip to Done — `infra/modules/vpc/` already exists; this task can proceed without waiting on 003-T014. |
 | 003-T070 | Move backend Dockerfile from `backend/Dockerfile` (if exists from spec 001-T002) to `infra/docker/backend/Dockerfile` | | | P2 | Backlog | 001-T080, 003-T050 | no | | Relocates 001 artifact |
 | 003-T071 | Create `.editorconfig` for Terraform files: indent 2 spaces, trim trailing whitespace | G-INFRA-POLISH | | P2 | Backlog | 003-T001 | yes | | |
 | 003-T072 | Add pre-commit hook configuration: runs `terraform fmt` on staged `.tf` files | | | P2 | Backlog | 003-T001 | yes | | |
