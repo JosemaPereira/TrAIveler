@@ -96,6 +96,24 @@ decisions needed before design.
   production — rejected: FR-010 explicitly requires the UI to be reachable (not disabled) in
   every environment; an env-gated disable would contradict that clarification.
 
+### Implementation Status Note (2026-08-01, issue #192 / PR #204)
+
+The mount point described above is unchanged — Swagger UI still lives inside the same route
+registration path as `/api/v1`. However, the *gating mechanism* deviated from this decision once
+implemented: `Authenticate` is now applied to `/swagger/*` only when `Config.IsProduction()` is
+true (new `Config.Environment`/`Config.IsProduction()`, commit `6215738`), not uniformly across
+every environment as decided above. This was a deliberate revisit, not an oversight: the
+"reachable in every environment" property this section optimized for was actually motivated by
+FR-010's concern that Swagger must never be silently disabled in production — that property is
+still preserved (production remains gated, dev/staging are reachable). What changed is that local
+and staging onboarding friction from requiring a JWT to open Swagger UI was judged to outweigh
+keeping the gating mechanism uniform, so dev/staging were carved out while production stays
+gated. The previously-rejected "environment flag" alternative above is conceptually close to what
+shipped, except the switch is derived from `Config.IsProduction()` rather than a standalone
+`ENABLE_SWAGGER_UI` flag, and it disables the *auth requirement* in non-production rather than
+disabling the UI itself — so FR-010's actual requirement (never disabled in production) is not
+contradicted.
+
 ## Open items carried to implementation
 
 - None — all NEEDS CLARIFICATION items from Technical Context are resolved above.

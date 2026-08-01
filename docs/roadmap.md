@@ -1933,7 +1933,10 @@ every DB-touching failure point in `Refresher.RefreshToken` (`7fe9fa8`); (B) `ha
 `handleLogin` gained `@Failure 500` annotations, `make swagger` regenerated (`8f28b35`); (C) `/swagger/*`
 now gates on `Authenticate` **only when
 `GO_ENV=production`** (new `Config.Environment`/`Config.IsProduction()`), removing local/staging
-onboarding friction while keeping the 009-research-documented prod gating intact (`6215738`). One item
+onboarding friction by moving from the research doc's original uniform-gating decision to
+env-conditional gating — production remains gated (the property FR-010/the original decision
+actually cared about), but `specs/009-api-documentation/research.md`'s decision record didn't
+originally describe this env split (see its 2026-08-01 addendum) (`6215738`). One item
 remains deliberately out of scope: `HTTPServer.extraProtectedRoutes` still carries its own in-code
 deletion trigger for whenever the first subscription-gated route lands (unchanged, no separate
 tracking needed). 008-T160 (frontend renewal interceptor) was delivered separately on #180 (PR #194).
