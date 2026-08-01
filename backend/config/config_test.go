@@ -177,8 +177,6 @@ func TestLoad_Validation(t *testing.T) {
 	}
 }
 
-// assertValidationError checks if an error matches expected validation outcomes.
-// Extracted helper to reduce cognitive complexity.
 func assertValidationError(t *testing.T, err error, wantErr bool, errContains string) {
 	t.Helper()
 

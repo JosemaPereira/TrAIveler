@@ -111,6 +111,10 @@ func main() {
 	slog.Info("shutdown complete")
 }
 
+// getEnv is a minimal duplicate of config.getEnv, kept local because it is
+// needed for the startup log line above before config.Load() runs (and can
+// fail) — main should not depend on config having already loaded to report
+// which environment it attempted to start in.
 func getEnv(key, defaultValue string) string {
 	if value := os.Getenv(key); value != "" {
 		return value
