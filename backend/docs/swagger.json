@@ -180,7 +180,7 @@
         },
         "/auth/register": {
             "post": {
-                "description": "Creates a new user (admin role). When a payment_method_token is supplied a\nsubscription is activated and has_subscription is true; otherwise the user is a\nFree User (has_subscription false). On success an access/refresh token pair is set as\nHTTP-only, Secure, SameSite=Strict cookies.",
+                "description": "Creates a new user (admin role). When a payment_method_token is supplied a\nsubscription is activated and has_subscription is true; otherwise the user is a\nFree User (has_subscription false). On success an access/refresh token pair is set as\nHTTP-only, Secure, SameSite=Strict cookies. Rate-limited per client IP.",
                 "consumes": [
                     "application/json"
                 ],
@@ -223,6 +223,12 @@
                     },
                     "422": {
                         "description": "Unprocessable Entity",
+                        "schema": {
+                            "$ref": "#/definitions/errors.ErrorResponse"
+                        }
+                    },
+                    "429": {
+                        "description": "Too Many Requests",
                         "schema": {
                             "$ref": "#/definitions/errors.ErrorResponse"
                         }

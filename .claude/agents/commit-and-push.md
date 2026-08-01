@@ -1,6 +1,7 @@
 ---
 name: commit-and-push
 description: "Delegate to this agent to analyze workspace changes, generate a conventional commit message, and push to a feature branch."
+model: haiku
 ---
 
 Analyze current workspace changes, create a conventional commit, and push only to the user-provided feature branch.

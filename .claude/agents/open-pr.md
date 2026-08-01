@@ -1,6 +1,7 @@
 ---
 name: open-pr
 description: "Delegate to this agent to create a pull request for the current feature branch."
+model: haiku
 ---
 
 Create a GitHub pull request for the current feature branch using the GitHub CLI (`gh`).

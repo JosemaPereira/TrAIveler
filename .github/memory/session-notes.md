@@ -2,7 +2,7 @@
 
 Historical summaries of completed development sessions. Committed to git as a record.
 
-**Note**: Older sessions (specs 001-007, sprint infrastructure setup) are compacted to save tokens. Policy: each sprint's implementation sessions are compacted into a `(Compacted)` summary immediately at that sprint's own closure — the same pass that updates the sprint-closure documentation. At any given time, only the sprint currently in progress (not yet closed) has a `(Detailed)` section; the moment it closes, it gets compacted, no rolling window. Compacted sections favor brevity over completeness: PR/issue/Group IDs, decisions with lasting effect, and still-open follow-ups only — narrative process detail is cut, and duplicates of `patterns-discovered.md` entries are referenced by name instead of re-explained. Sprint 1 and Sprint 2 were compacted together on 2026-07-11; Sprint 3 was compacted at its own closure on 2026-07-12 (and re-tightened for conciseness the same day, which also lightly trimmed the Sprint 1/2 sections); Sprint 4 was compacted at its own closure on 2026-07-14; Sprint 5 was compacted at its own closure on 2026-07-17 (264 lines → 97; the pre-compaction full text is kept, uncommitted, at `scratch/session-notes-pre-sprint5-compaction-2026-07-17.md`). No sprint currently has a `(Detailed)` section — Sprint 6 opens the next one.
+**Note**: Older sessions (specs 001-007, sprint infrastructure setup) are compacted to save tokens. Policy: each sprint's implementation sessions are compacted into a `(Compacted)` summary immediately at that sprint's own closure — the same pass that updates the sprint-closure documentation. At any given time, only the sprint currently in progress (not yet closed) has a `(Detailed)` section; the moment it closes, it gets compacted, no rolling window. Compacted sections favor brevity over completeness: PR/issue/Group IDs, decisions with lasting effect, and still-open follow-ups only — narrative process detail is cut, and duplicates of `patterns-discovered.md` entries are referenced by name instead of re-explained. Sprint 1 and Sprint 2 were compacted together on 2026-07-11; Sprint 3 was compacted at its own closure on 2026-07-12 (and re-tightened for conciseness the same day, which also lightly trimmed the Sprint 1/2 sections); Sprint 4 was compacted at its own closure on 2026-07-14; Sprint 5 was compacted at its own closure on 2026-07-17 (264 lines → 97; the pre-compaction full text is kept, uncommitted, at `scratch/session-notes-pre-sprint5-compaction-2026-07-17.md`); Sprint 6 was compacted at its own closure on 2026-08-01 (489 lines → ~130; the pre-compaction full text is kept, uncommitted, at `scratch/session-notes-pre-sprint6-compaction-2026-08-01.md`). No sprint currently has a `(Detailed)` section — Sprint 7 opens the next one.
 
 ## Template
 
@@ -306,492 +306,136 @@ Historical summaries of completed development sessions. Committed to git as a re
 
 ---
 
-## Sprint 6 Implementation (Detailed)
+## Sprint 6 Implementation (Compacted)
 
-### Session: Sprint 6 Planning & Issue Creation
-
-- **Date**: 2026-07-17
-- **Tool**: Claude Code
-- **What was accomplished**: Planned Sprint 6 and created its 18 issues (#167–#184) with full labels,
-  dependency cross-references, and roadmap write-back. Sprint 6 was **reshaped** from the projected
-  "data layer + repositories" (31 tasks) into the **full auth vertical + carried-forward
-  remediation** (58 tasks / 18 work items) after verification against the tree.
-- **Key findings and decisions**:
-  - **Reshape driver #1 — auth must go live, not sit inert.** Sprint 5 shipped JWT/password/rate-
-    limit/`Authenticate` middleware "available but not wired". Building more plumbing without
-    activating it would repeat that anti-pattern, so Sprint 6 pulls the backend **registration +
-    login + logout** flow forward (Spec 008 Phase 3/5 auth subset), **activates the gate** (#179
-    removes `TODO(sprint-5)` in `cmd/api/routes.go`; **T208 must land after login #178 exists** or it
-    bricks `/api/v1`+swagger), and wires a real `Refresher` on the DB-backed `RefreshTokenStore`
-    (#175) + `SubscriptionResolver` (#169). Trip CRUD/AI-stub and US2 collaboration stay out (Sprint
-    8 / post-MVP). **~27 auth tasks pulled forward from Sprints 7-8 — reconcile those at their own
-    planning.**
-  - **Reshape driver #2 — cross-spec duplication, marked superseded (no code).** 001-T009–T015
-    duplicate already-shipped Sprint 5 work (config `backend/config/config.go`, pgxpool
-    `internal/database/client.go`, 6 of 8 migrations already on disk) and Spec 008's own data layer
-    (User/Subscription repos → #175/#169, PaymentProvider/Stub → #168). Also 008-T052/053/055/056/057/
-    066/068 duplicate the Sprint 2 primitives (Button/Input/Card/Form/LoadingSpinner/ErrorMessage/
-    EmptyState already exist). 14 rows marked SUPERSEDED in roadmap Notes: existing-artifact rows →
-    `Done`, pending-superseded rows → `Backlog` + tracking pointer. Same class as the Sprint 5
-    004-vs-008 `users`-table de-dup; recorded per the *Roadmap Row Notes Are the Only Channel* pattern.
-  - **004-T011 orphan closed via #170**: destinations/days/activities migrations (013-015), with
-    `activities.version` folded inline (004-T135 is "what T011 actually needs"); 004-T136 closes it
-    out. Ordered after trips (migration 010) per *Goose Migrations Must Not Reference a Later Set*.
-  - **008-T141 (RefreshToken repo)** pulled forward from Phase 7 (was P2) → now P1 (login critical
-    path), row priority bumped to match its issue #175.
-  - Scope was user-chosen via `AskUserQuestion` ("Vertical auth completo" + "Superseded, sin código").
-    Velocity flagged: 58 > historical max (Sprint 3 = 54, mean ≈ 39); frontend auth UI (#171/#180/
-    #182/#183/#184, 14 tasks) is the documented trim line. No AWS/terraform touched (constraint holds).
-- **Outcomes**: 18 issues live (#167–#184), all labelled `sprint:6`+`spec:*`+`priority:*`+`type:*`+
-  `epic:*`+`group`; 10 blocker issues carry `⛔ Blocks` cross-reference comments; `docs/roadmap.md`
-  updated (58 task rows → Group/Sprint/Issue; 14 superseded rows; Sprint Plan block rewritten). Issue
-  creation only — no implementation yet. **Note**: downstream Sprint 7/8 entries + Sprint Summary
-  Statistics still describe pre-reshape counts; reconcile when those sprints are planned.
-
-### Session: Sprint 6 Auth HTTP Surface — Register/Login/Logout (#177 + #178)
-
-- **Date**: 2026-07-23
-- **Tool**: Claude Code
-- **What was accomplished**: Implemented the HTTP auth vertical (008-T046/T047/T080 for #177;
-  008-T099/T100/T101/T102 for #178) on branch `feature/177-178-auth-http-surface`. One branch/PR for
-  both groups since they share new files (`internal/auth/handler.go`, the token issuer, cookie
-  helpers, composition root). TDD throughout; full suite + lint green; **verified end-to-end against a
-  real Postgres** (register free+paid, duplicate→409, login, wrong-password→401, logout→204 with the
-  session's refresh token revoked in-DB).
-- **Key findings and decisions**:
-  - **New `jwt.Issuer`** (alongside `jwt.Refresher`) mints the *initial* access+refresh pair for
-    register/login; `Refresher` only *rotates*. Both reuse the same private refresh-token
-    gen/hash helpers. Exported **`jwt.HashRefreshToken`** so the logout handler can hash a presented
-    cookie to look it up (same lookup key the store was written with).
-  - **Handler ports**: `auth.AccountService` (Register/Login seam, mirrors `example.Service`
-    precedent — mocked) — named `AccountService` **not `AuthService`** to avoid the `auth.AuthService`
-    revive stutter (`Service` is the concrete struct). `TokenIssuer` (single-method port, hand-faked)
-    with an `auth.TokenPair` that mirrors `jwt.TokenPair` so the jwt package doesn't leak into handler
-    test doubles. `NewJWTTokenIssuer` adapts `*jwt.Issuer` (string↔uuid).
-  - **Composition root** in new `cmd/api/auth.go` (`buildAuthComponents`): builds the JWT
-    `KeyProvider` — loads `JWT_SIGNING_KEY` PEM, or **generates a dev-ephemeral RSA-2048 key when it's
-    unset** (config only requires it in prod). `NewHTTPServer` now returns `(*HTTPServer, error)` to
-    fail fast on a bad key (11 test call sites routed through a new `mustNewHTTPServer` helper). The
-    `keyProvider` is stored on `HTTPServer` for **#179's T207 Validator** to reuse (don't build a
-    second provider).
-  - **#177/#178 ↔ #179 boundary held**: auth routes mounted in the existing **ungated** `/api/v1`
-    group in `routes.go` (not `main.go` — per tasks.md path note). The `Authenticate` gate, the
-    Validator→AuthClaims adapter, and `Refresher` construction stay for **#179 (T207/T208/T212)**;
-    logout works today by reading the refresh cookie (user_id from context once #179 gates it).
-  - **Login has no HTTP rate-limit middleware** — the "progressive delay" is the service's email-keyed
-    `ratelimit.Limiter` (008-T024). Only **register** gets per-IP `middleware.RateLimit(10, 1m)`.
-  - **Config fix**: `REFRESH_TOKEN_EXPIRATION` default **7d → 30d** to match docs/security.md (this is
-    its first consumer); updated config_test assertion.
-  - **`mockery --all` gotcha** (see patterns-discovered): `make mocks` regenerates a mock for *every*
-    interface in each configured package, including internal single-method ports. Kept the
-    `AccountService` mock (service seam), pruned the auto-generated `TokenIssuer`/`subscriptionCreator`
-    mocks (hand-fake convention for internal ports).
-- **Outcomes**: register/login/logout live under `/api/v1/auth/*`, minting HTTP-only Secure
-  SameSite=Strict cookies; swagger regenerated (3 new paths) and confirmed by `technical-writer`;
-  roadmap rows for the 7 tasks flipped to Done. No AWS/terraform touched.
-
-### Session: Config Audit — Forward BCRYPT_COST + fix stale security doc (#174)
-
-- **Date**: 2026-07-23
-- **Tool**: Claude Code
-- **What was accomplished**: Closed #174 (004-T137/T138) on branch `feature/174-config-audit-bcrypt`,
-  **stacked on the #189 branch** (base = `feature/177-178-auth-http-surface`) because the wiring target
-  (`buildAuthComponents`) only exists there — on `main`, `auth.Service` is constructed solely in tests.
-- **Key findings and decisions**:
-  - **Resolved the long-tracked `BCRYPT_COST` gap** (the *"A Config Value Can Be Loaded… Yet Never
-    Reach the Code It Configures"* pattern): `HashPassword` now takes a `cost` (invalid → fallback to
-    `DefaultBcryptCost`=12); `auth.Service` carries `bcryptCost`, injected via `NewService`, wired from
-    `cfg.Auth.BcryptCost` in the composition root. Prod security floor: `loadAuthConfig` clamps
-    `BCRYPT_COST`<12 up to 12 when `GO_ENV=production`; dev/test may use a cheaper cost (unit tests use
-    cost 4 for speed).
-  - **Config audit (T138)**: documented on the `AuthConfig` struct — after #177/#178+#174, **every**
-    AuthConfig field reaches its consumer (JWTSigningKey/JWTExpiration/RefreshExpiration/CookieDomain/
-    CookieSecure/BcryptCost). No remaining loaded-but-ignored fields.
-  - **Stale-doc fix**: rewrote `internal/security/doc.go` — it promised JWT/rate-limit/logging impls
-    "land here", but they shipped in `internal/middleware` + `internal/observability`. Now honestly
-    marks the package as an empty reserved namespace.
-  - **Stacked-PR note**: this PR conflicts-free stacks on #189; GitHub will retarget it to `main` when
-    #189 merges. Merge #189 first.
-- **Outcomes**: `BCRYPT_COST` is now honored; config audit closed; `security` package doc accurate.
-  Build/lint/full-suite green. No AWS/terraform touched.
-
-### Session: Auth Activation — Gate, Validator Adapter, Refresher + Refresh Endpoint (#179)
-
-- **Date**: 2026-07-23
-- **Tool**: Claude Code
-- **What was accomplished**: Closed #179 (008-T207/T208/T209/T212) on branch
-  `feature/179-auth-activation` off `main` (dad6f85, after confirming #189+#190 really landed).
-  **This is where auth actually goes live**: the `Authenticate` gate is mounted and the
-  `TODO(sprint-5)` marker is gone. Implemented via the `tdd-developer` agent, then independently
-  re-verified by the parent session (build/vet/lint/short suite/real-Postgres integration all re-run,
-  not trusted from the agent's report); `technical-writer` reviewed the API docs per the mandatory
-  CLAUDE.md step.
-- **Key findings and decisions**:
-  - **Scope extended by explicit user choice (`AskUserQuestion`)**: 008-T148/T149 (`POST /auth/refresh`)
-    were pulled forward from the P2 `G-008-US5-HANDLERS` group. T212 alone would have *constructed* a
-    `Refresher` with no consumer — exactly the inert-plumbing anti-pattern Sprint 6 was reshaped to
-    avoid. **Reconcile those two rows when Sprint 7/8's US5 handlers are planned.**
-  - **Chi panics on a duplicate routed pattern**, which drove the design: `auth.Handler.RegisterRoutes`
-    had to split into `RegisterPublicRoutes`/`RegisterProtectedRoutes` registering **full paths**
-    (`/auth/login`) rather than two sibling `r.Route("/auth", ...)` subtrees under one `/api/v1`.
-    Proven panic-free by a real test. See the new pattern entry.
-  - **Gating `/api/v1` broke two black-box suites** (`error_test.go`, `swagger_test.go`) that had
-    always called those routes unauthenticated. Fixed properly — a shared `registerTestSession` helper
-    hits the real public `POST /auth/register` against the testcontainer — rather than making
-    `/swagger/*` public to dodge it. `setupSwaggerTestServer` now applies migrations as a result.
-  - **`jwt.TokenPair` gained `UserID`** (set by both `Issuer.Issue` and `Refresher.RefreshToken`):
-    `/auth/refresh` is a *public* route, so there is no authenticated context to attribute its
-    `auth_token_refresh` security event from.
-  - **`securityDefinitions` was lying** and only became actionable once the gate went live: it declared
-    `BearerAuth`/`in: header`/`Authorization`, but `middleware.Authenticate` has no `Authorization`
-    code path at all. Now `CookieAuth`, an apiKey in the **`Cookie`** header — Swagger 2.0 has no
-    cookie scheme (that is OpenAPI 3's `in: cookie`), so this is the closest valid encoding, with a
-    `@description` explaining that the Authorize box cannot supply an HttpOnly cookie and does not
-    need to (same-origin UI behind the same gate).
-  - **Uniform-401 invariant was only half true** — caught in review, not by tests: the handler's
-    missing-cookie short-circuit and `jwt.unauthorizedRefresh` emitted *different* `message` strings
-    under the same `authentication_required` code, so a client could still distinguish absent from
-    invalid. Both now read the exported `jwt.RefreshFailureMessage`, with a test pinning that the two
-    bodies match. **Lesson: "indistinguishable" claims in comments need a test asserting equality of
-    the two responses, or they silently decay into two literals.**
-  - A **test-only hook survives in production code**: `HTTPServer.extraProtectedRoutes` (nil in prod,
-    3 guarded lines) exists solely because no production handler reads `HasSubscriptionFromContext`
-    yet, and T209 requires asserting it resolves at the composition root. **Delete it the moment a real
-    subscription-gated route lands.**
-  - T212's literal text ("inject into login/logout/refresh handlers") was **not** followed for
-    login/logout: login mints via `jwt.Issuer`, logout revokes via the repository; routing either
-    through a *rotation* operation would be churn, not wiring.
-- **Outcomes**: `/api/v1` and `/swagger/*` are gated; register/login/refresh stay public; `/healthz`
-  stays open. `POST /api/v1/auth/refresh` rotates one-time-use refresh tokens and re-resolves
-  `has_subscription`, so a lapsed subscription now takes effect within one access-token lifetime
-  (FR-022). Verified green: build/vet/lint exit 0, `-short` 15 pkgs ok, integration vs. real Postgres
-  ok (61s), `make swagger` idempotent, zero mock churn. No AWS/terraform touched.
-- **Open follow-ups**: (1) `/swagger/index.html` now 401s on a cold start — real onboarding friction,
-  needs a decision (dev-only bypass?) rather than just prose. (2) contracts/api.md specifies **503** for
-  a DB-unavailable refresh; store errors wrap with `fmt.Errorf`, so they land on `internal_error`/**500**
-  — a genuine unimplemented spec point, distinct from the already-decided error-code casing deviation.
-  (3) `handleRegister`/`handleLogin` still declare no `@Failure 500` though `issueSession` can produce
-  one (pre-existing from #189; worth a sweep across all handlers).
-
-### Session: #179 scope validation → pulled 008-T150 in, homed T160 on #180
-
-- **Date**: 2026-07-30
-- **Tool**: Claude Code
-- **What was accomplished**: A post-implementation scope review of #179 surfaced that the refresh
-  endpoint was live server-side but nothing could *trigger* it — the gate returned a uniform
-  `authentication_required` for every 401, so the SPA couldn't tell "access token expired → refresh"
-  from "no session → login". That trigger is **008-T150** (backend) + **008-T160** (frontend), both
-  Backlog with no issue. User chose (AskUserQuestion) to **build T150 in #179** and **home T160 on an
-  existing issue**. Delivered T150 (commit `1e97771`, on top of `fb9a719`; PR #191). T160 was NOT
-  built (frontend — would violate consolidation-first + depends on unbuilt frontend infra); instead a
-  pickup note was added to **#180 (G-008-AUTH-HOOKS-API)**, the fetch `authApi`/api-client group that
-  naturally owns a 401→refresh→retry interceptor, and the roadmap T160 row was pointed at #180.
-- **Key findings and decisions**:
-  - **T150 wire code is `token_expired` (snake_case), NOT the spec's literal `TOKEN_EXPIRED`.** Fourth
-    instance of the same sprint-long casing correction (after `INVALID_CREDENTIALS`/
-    `INVALID_REFRESH_TOKEN`→`authentication_required`, `rate_limited`→`rate_limit_exceeded`). Added a
-    `token_expired` row to the `docs/api-design-standards.md` §7 catalog and **narrowed**
-    `authentication_required`'s "Use When" (it literally listed "expired JWT", which T150 now peels
-    off). Note the authority tension resolved here: §7 (a root doc) said expired→`authentication_required`,
-    but tasks.md (which outranks root docs) requires a *distinct* code so the client can trigger
-    refresh — tasks.md won on the *need for distinctness*, §7's snake_case rule won on the *casing*.
-  - **T150 deliberately, narrowly breaks the uniform-401 anti-enumeration property #179 just built.**
-    Safe because only a validly-signed-but-expired token (proven by a signature over an unretired key)
-    reaches the expiry branch — an attacker can't forge one without the signing key, and the holder
-    already proved they held a real token we issued. Every other failure stays `authentication_required`.
-    Tests assert missing-cookie and generic-error paths both stay uniform.
-  - **Implemented via the same import-cycle port pattern as T207**: exported `middleware.ErrTokenExpired`
-    sentinel; the `cmd/api/token_validator.go` adapter maps `gojwt.ErrTokenExpired`→sentinel (middleware
-    can't import auth/jwt). The load-bearing test drives a *real* `jwt.Validator` with a genuinely
-    past-`exp` token and asserts `errors.Is(err, middleware.ErrTokenExpired)` through the full
-    `DomainError.Unwrap → %w → gojwt` chain — not a hand-rolled wrapper. `make swagger` = no diff (the
-    401 envelope schema is unchanged; only the `error` value differs).
-  - **Colima gotcha revisited**: mid-session the integration run failed with `failed to start postgres
-    container` / `docker.sock: no such file` — Colima had **stopped**, not a code regression. `colima
-    start` and re-run → green. Verify `colima status` says "running" before reading an integration
-    failure as real.
-- **Outcomes**: Session-renewal is now server-complete: `GET`-gated routes emit `token_expired` on
-  expiry, `POST /auth/refresh` rotates, and the frontend contract is recorded on #180 for T160.
-  Verified: gofmt/build/vet/lint exit 0, `-short` 15 pkgs ok, integration vs real Postgres ok, swagger
-  no drift. No AWS/terraform touched.
-- **Still-open follow-ups** (unchanged by this session, still uncovered by any issue): (1)
-  `/swagger/index.html` 401s on cold start; (2) contracts/api.md's **503** for a DB-unavailable refresh
-  vs the actual **500** (store errors wrap with `fmt.Errorf`, not `DomainError`); (3) `handleRegister`/
-  `handleLogin` missing `@Failure 500`; (4) `HTTPServer.extraProtectedRoutes` test hook (delete when a
-  real subscription-gated route lands). (5) **008-T160** now homed on #180 but still Backlog — build
-  against `token_expired`, not `TOKEN_EXPIRED`.
-
-### Session: Itinerary Migrations — Destinations, Days, Activities (#170, closes 004-T011)
-
-- **Date**: 2026-07-30
-- **Tool**: Claude Code
-- **What was accomplished**: Closed #170 (004-T133/T134/T135/T136) — migrations `013_create_
-  destinations_table.sql`, `014_create_days_table.sql`, `015_create_activities_table.sql`, plus
-  `backend/tests/integration/itinerary_migrations_test.go` (3 testcontainer tests: schema,
-  constraints + FK behaviors, reversibility). TDD: the test file was written and confirmed RED
-  (`relation "destinations" does not exist`) before any SQL existed.
-- **Key findings and decisions**:
-  - **004-T011 is closed without a migration of its own.** Its two-sprint blocker was a false
-    premise — `itinerary_items` was never in the canonical model. See the new pattern *A Long-Blocked
-    Task Can Be Blocked on a Premise That Was Never True*. `activities.version BIGINT NOT NULL
-    DEFAULT 1` ships inline in 015, mirroring `trips.version` in 010. **No `itinerary_items` table
-    exists or should ever be created.**
-  - **Deviation from docs/data-model.md**: `idx_destinations_coordinates` is a plain composite
-    B-tree on `(latitude, longitude)`, not a spatial index — the doc conditions the spatial variant
-    on PostGIS, which is enabled on neither RDS nor the testcontainer.
-  - Deferral notes rewritten in all three places T136 names (`security_migrations_test.go` header,
-    `010_create_trips_table.sql` comment, the 004-T011 roadmap row). The goose strict-version-order
-    regression guard was preserved in the test header — it still governs any future migration.
-  - **Scope added by the user mid-session (docs)**: `docs/data-model.md` gained an **As-Built Schema
-    Diagram** (Mermaid `erDiagram` of the 13 real tables with every FK's `ON DELETE` action) after
-    the `PROMOTED:data-model END` marker, deliberately not inside the promoted block. It records two
-    divergences the promoted target diagram gets wrong: there is no `users.subscription_id` (the FK
-    runs the other way), and a Day has *zero or one* Destination, not exactly one (the promoted
-    diagram states it twice and inconsistently). Also straightened all 8 flowchart diagrams with
-    `curve: linear` — see the new Mermaid pattern; `erDiagram` has no such option.
-  - No new endpoints → the mandatory swagger/`technical-writer` step is N/A for this ticket.
-- **Outcomes**: Full goose Up applies cleanly through 015 and rolls back to 12 cleanly. Verified:
-  `gofmt -l` empty, `go build`/`go vet -tags test`/`golangci-lint` all exit 0, `-short` 15 pkgs ok,
-  **full suite against real Postgres 15 pkgs ok** (the load-bearing check — 013-015 break no other
-  goose.Up-dependent suite). All 10 Mermaid diagrams render. No AWS/terraform touched.
-
-### Session: Frontend Auth Plumbing — Label, Hooks, authApi + 401 Refresh Interceptor (#171 + #180)
-
-- **Date**: 2026-07-31
-- **Tool**: Claude Code
-- **What was accomplished**: Closed #171 (008-T054) and #180 (008-T058/T059/T111/T112) plus **008-T160**
-  (homed on #180 by the 2026-07-30 decision) on `feature/171-180-auth-label-and-hooks`, merged as
-  **PR #194** (`9f2c8cc`). Implemented via `tdd-developer`, independently re-verified by the parent
-  session, then hardened by a user-requested scope audit and a `technical-writer` documentation pass.
-  7 commits; 24 files / 224 tests, coverage 99.21/97.18/100/99.18.
-- **Key findings and decisions**:
-  - **The auth store's `User` type was wrong and is corrected.** It declared `role`,
-    `subscription_id`, `last_login_at` — all `json:"-"` in `internal/auth/models.go`, so the API never
-    sends them — and lacked `full_name`/`has_subscription`. Written in Sprint 5 from
-    `docs/data-model.md` before any auth endpoint existed; the live backend now outranks that per the
-    *Issue-Body Snippets Are Lowest-Authority* ranking. **`role` stays absent deliberately: no
-    frontend authorization decision can be made from this type until the API exposes it** (#184).
-  - **The interceptor reaches the store through a handler registry, not an import** — `auth-store.ts`
-    already imports `api-client.ts`, so the reverse would close a cycle. New pattern entry:
-    *A Client-Level Interceptor That Must Touch the Store Needs a Handler Registry, Not an Import*.
-  - **MSW is now wired**, the switch `docs/testing-guidelines.md` §Layer 2 had deferred until a real
-    feature called the backend. New pattern entry: *MSW and a Stubbed Global `fetch` Cannot Share a
-    Test File* — the stub replaces the function MSW patches, so handlers are silently never consulted.
-  - **Scope audit found two live defects**, both reachable only now that the auth endpoints exist:
-    `mapApiError` let 409/422/429 fall through to the retryable "Something Went Wrong" default; and
-    `buildAPIError` read the rate-limit wait only from the body, though `internal/middleware/
-    rate_limit.go` (guarding `POST /auth/register`) sends the `Retry-After` **header with a
-    `details`-less envelope** — the app's own most likely 429 was losing its countdown.
-  - **The audit also found this PR had left four status docs lying** (`docs/testing-guidelines.md`,
-    `frontend/README.md` ×3 places, `docs/architecture.md`, `.env.test`). **Lesson: the two-tier docs
-    rule's tier-1 trackers must be swept in the same commit that invalidates them — grep the claim,
-    do not recall it.** Two roadmap notes (008-T033, 005-T046) asserting the store's `User` carries
-    `role`/`subscription_id` "per the higher-authority doc" were corrected the same way.
-  - `technical-writer` caught two factually wrong comments of mine and one real defect: an **empty
-    `Retry-After` header injected `retry_after_seconds: 0`** (`Number('')` is 0 and passes
-    `Number.isInteger`).
-- **Outcomes**: register/login/logout hooks live on the fetch client; an expired access token is
-  silently refreshed and the request replayed (single-flight, so concurrent expiries cannot rotate the
-  one-time-use refresh token against each other); `Label` ships. Downstream context propagated to six
-  roadmap rows plus reconciliation comments on #182/#183/#184. No AWS/terraform touched.
-
-### Session: Session Bootstrap — `GET /auth/me` (001-T021, #195)
-
-- **Date**: 2026-07-31
-- **Tool**: Claude Code
-- **What was accomplished**: Built the one genuinely unbuilt piece of **001-T021** on
-  `feature/001-t021-auth-me-endpoint`, merged as **PR #196** (`25c03a8`). Issue **#195** was created
-  for it (the roadmap row had none) and its URL written back. TDD throughout; `technical-writer`
-  review run as the mandatory API-doc step. 2 service + 4 handler + 4 integration tests (real
-  Postgres).
-- **Key findings and decisions**:
-  - The other three parts of 001-T021 (register/login/logout) had already shipped in #177/#178 — the
-    row is now marked partially superseded. **It was found by the #194 scope audit, not by planning**;
-    nothing else tracked `GET /me`, and `auth-store.refreshSession()` had been calling it all along.
-  - **Reads from the database, not the token's claims**: `has_subscription` goes stale within an
-    access token's 24h lifetime, and a caller asking "who am I" wants the current answer.
-  - **A deleted account returns 401, not 404** — a 404 would answer "who am I?" with "you do not
-    exist" while the client still holds cookies it trusts.
-  - **`/auth/me` is exempt from the client's session-expiry teardown** (new pattern entry: *An
-    Endpoint Where a 401 Is an Answer, Not a Failure*). The exemption is narrower than it looks: a
-    `token_expired` 401 still goes through refresh-and-retry, and a *failed* refresh calls
-    `notifySessionExpired()` regardless — correct, since only a genuinely-issued token reaches there,
-    but two comments overstated it and `technical-writer` caught them.
-  - **A latent frontend bug surfaced exactly as predicted**: `refreshSession()` expected a bare
-    `User` while the endpoint answers `{user}`. Its test had encoded a contract the backend never had
-    and went red the instant the real shape landed — see the new pattern entry.
-  - **A test I wrote was wrong and I caught it on reread**: `TestAuthMe_AfterLogout_Returns401` used a
-    client with no cookie jar, so it silently re-tested the anonymous case. Rewritten as
-    `..._AccessTokenOutlivesTheSession`, asserting **200** and documenting the real property — a
-    stateless JWT is not revoked by logout; clearing cookies is what ends the session.
-  - Handler tests drive the **real `middleware.Authenticate`** with a hand-faked `TokenValidator`
-    rather than exporting a context setter from `internal/middleware` purely for tests — the seam this
-    repo already regrets as `HTTPServer.extraProtectedRoutes`.
-  - **Third pre-existing swagger gap found**: `handleRegister` lacks `@Failure 429` despite
-    `middleware.RateLimit(10/min)`, alongside the already-known missing `@Failure 500` on
-    register/login. All three left for the endpoints that own them.
-- **Outcomes**: a page reload can re-derive the session, unblocking 008-T120/T121 (#184), whose
-  roadmap warning is now marked resolved. Verified: backend build/vet/lint clean, 15 pkgs `-short` ok,
-  full suite against real Postgres ok, `make swagger` idempotent; frontend 24 files / 230 tests,
-  99.21/97.18/100/99.18. No AWS/terraform touched.
-- **Open follow-ups after these two sessions**: (1) the three swagger `@Failure` gaps above; (2) the
-  #179 carry-overs — `/swagger/index.html` 401s on a cold start, contracts/api.md's 503-vs-actual-500
-  for a DB-unavailable refresh, and the `extraProtectedRoutes` test hook (delete when a real
-  subscription-gated route lands); (3) Sprint 6 still open: #172, #173, #181, #182, #183, #184.
-
-### Session: Register/Login UI — RegisterForm/Page + LoginForm/Page (#182, #183)
-
-- **Date**: 2026-07-31
-- **Tool**: Claude Code
-- **What was accomplished**: Closed 008-T060/T061/T092 (#182) and 008-T113/T114 (#183) on
-  `feature/182-183-register-login-ui` (`cc1f621`), opened as **PR #198** (not yet merged). Built via
-  `tdd-developer`, independently re-verified by the parent session (not just trusted from the
-  subagent's report), then committed/pushed via `commit-and-push` and opened via `open-pr`. 5 new
-  files + 3 modified route files, 284 tests total (up from ~230), coverage ~100% stmts on new code.
-- **Key findings and decisions**:
-  - **Both roadmap rows' stated file path (`features/auth/pages/...`) is stale.** No `pages/`
-    directory exists anywhere in this frontend — every page lives flat under `routes/`, wired into
-    `routes/index.tsx`. `RegisterPage`/`LoginPage` filled in the existing `routes/` placeholders
-    instead (same class of issue as the *Issue-Body Snippets Are Lowest-Authority* pattern, now
-    against the roadmap).
-  - **"Continue to Payment" doesn't redirect to a real checkout page** — `SubscriptionCheckout`/
-    `UpgradePage` (008-T186/T189) are separate, still-Backlog tickets #182 doesn't depend on. Since
-    `payment_method_token` is accepted inline on the same `POST /auth/register` call, `RegisterForm`
-    sends a fixed client-side `DEMO_PAYMENT_TOKEN` behind a checkbox — consistent with the backend's
-    own "[DEMO]" stub labeling.
-  - **A new open-redirect was found and closed that neither issue called out**: `LoginPage`'s
-    `?redirect=` could otherwise carry `//evil.com` or an absolute URL straight into `navigate()`.
-    New `frontend/src/routes/login-redirect.ts` (`resolveLoginRedirect`) allow-lists only a single
-    leading `/` not followed by another `/` or `\`, falling back to `/dashboard`.
-  - **The rate-limit countdown is keyed on the error object, not the numeric `retryAfterSeconds`** —
-    a second 429 with an *identical* wait must still restart the visible countdown, and the number
-    alone can't tell "still counting down" from "fresh hit, same wait." `login.error` is a new
-    object per failed mutation, so it's the correct dependency.
-  - Client-side password validation (`features/auth/validation.ts`) deliberately mirrors
-    `backend/internal/auth/validator.go` rule-for-rule so a locally-accepted password is never
-    server-rejected and vice versa.
-  - No backend/endpoint changes → the swagger/`technical-writer` mandatory step is N/A.
-- **Outcomes**: `/register` and `/login` are now real, tested pages instead of placeholders;
-  `routes/index.test.tsx` gained redirect round-trip + off-site-redirect-rejection coverage.
-  `docs/roadmap.md` rows for all 5 tasks marked Done with as-built notes recording the two path
-  deviations above. Verified independently: `npm run lint`/`type-check` clean, `npm test` 284/284,
-  `npm run build` succeeds. PR #198 open, not merged. Sprint 6 remaining open after this: #172,
-  #173, #181, #184.
-
-### Session: `swagger-drift` CI Gate + Spec 009 Closing Polish (#172, #181)
-
-- **Date**: 2026-07-31
-- **Tool**: Claude Code
-- **What was accomplished**: Closed 009-T018–T026 on `feature/172-181-swagger-drift-gate-polish`,
-  opened as **PR #200** (open, not merged). User made two upfront calls via `AskUserQuestion`:
-  defer 009-T019 again rather than chase a workaround, and do the live scratch-branch/throwaway-PR
-  proof for 009-T020 (not a local-only simulation).
-- **Key findings and decisions**:
-  - **009-T019 is genuinely blocked, re-confirmed empirically**: both `gh api
-    repos/JosemaPereira/TrAIveler/rulesets` and the specific known ruleset (id 18752818, verified
-    applied back on 2026-07-17 per the Sprint 5 closure notes) now 403 "Upgrade to GitHub Pro or
-    make this repository public" — same limitation as the *GitHub Rulesets/Branch Protection
-    Require Public Repo or Pro (Personal Accounts)* pattern (2026-07-09), now re-hit a second time.
-    User asked (mid-session, in Spanish) whether the ruleset could be added manually via the web
-    UI instead of `gh api`; answered no — the 403 reflects an account-plan restriction GitHub
-    enforces identically in the UI, not an API-specific gap. **002-T050 (#173) will hit the exact
-    same wall** — flagged on that PR's "Next Steps" for whoever picks it up.
-  - **009-T021/T022/T023 were already done before this session** — `docs/testing-guidelines.md`'s
-    "Validation Gates Beyond the Three Testing Layers" section, `backend/README.md`'s API Overview
-    table, and `docs/api-design-standards.md` §16 were all promoted from the spec on 2026-07-10,
-    *ahead of* T018's actual CI implementation landing. Verified all three against the real T018
-    step; no doc changes needed — only the roadmap Status column was stale.
-  - **The persistent local dev Docker stack (`traveler-db`/`-api`/`-ollama`, up ~3 weeks) was stale
-    enough to block Scenario 2/4/5 validation**: `goose status` showed only the `20260710120000`
-    examples seed migration applied, with all 15 numbered migrations `Pending` — the volume
-    predated the entire auth/security build-out. Goose's strict version-order guard then rejected
-    applying them out of order. Fixed by `docker compose down` + `docker volume rm
-    traveler_postgres_data` + fresh `up` + `goose up` (disposable local dev data, not a source of
-    truth). Also found and worked around a **separate, pre-existing `docker-compose.yml` bug**,
-    out of scope for this PR: its `backend` service hardcodes `JWT_SIGNING_KEY:
-    ${JWT_SIGNING_KEY:-dev_jwt_key_do_not_use_in_production}`, a non-PEM placeholder that
-    `jwt.LoadKeyFromPEM` rejects ("no PEM block found") — the *empty-string* ephemeral-RSA-key
-    dev fallback in `cmd/api/auth.go` never triggers because the default is never empty. Validated
-    all 5 quickstart scenarios by running `cmd/api` directly via `go run` instead (unset
-    `JWT_SIGNING_KEY`, real ephemeral key). `traveler-api` container is left in a crash-loop after
-    this session — flagged to the user, not fixed (unrelated to #172/#181's scope).
-  - **009-T020 done as a real live proof, not a simulation**: scratch branch
-    `scratch/009-t020-swagger-drift-proof` branched off the feature branch (so the new CI step was
-    already present), one commit editing an `@Description` annotation without regenerating
-    `backend/docs/`, pushed, opened as throwaway PR **#201** (base = feature branch, not main —
-    kept it off `main`'s PR list entirely). CI's new step failed exactly as designed; PR closed and
-    branch deleted the same session. The real PR #200 itself also proved the negative case: its own
-    CI run showed the new step passing cleanly on a non-drifted change.
-- **Outcomes**: `backend-ci.yml`'s `lint-test` job gained a "Check Swagger docs are up to date"
-  step (`go install swag` + `make swagger` + `git diff --exit-code -- docs`), proven both ways
-  (passes clean, fails on real drift) against live GitHub Actions runs, not just locally.
-  `golangci-lint` clean, `make test-coverage` green, all 3 `swagger_test.go` tests confirmed
-  passing for real (not just present) against a testcontainer Postgres. `docs/roadmap.md` rows
-  009-T018/T020–T026 → Done with as-built notes; 009-T019 stays Backlog, explicitly marked
-  blocked rather than silently dropped. PR #200 open, not merged. Sprint 6 remaining open after
-  this: #173, #184.
-
-### Session: Lint Build-Tags, Postgres Image Drift, `roadmap-status-drift` Gate (#173)
-
-- **Date**: 2026-07-31
-- **Tool**: Claude Code
-- **What was accomplished**: Closed 002-T047–T050 on `feature/173-lint-ci-postgres-drift-gate`.
-  Implemented via `tdd-developer`, then independently re-verified by the parent session (build/vet/
-  lint/`-short` suite re-run, plus a **real** testcontainer run against Postgres 15.4-alpine via
-  Colima — the load-bearing check for T048, not just a compile check). That re-verification pass
-  found and fixed two real gaps the subagent's own local testing couldn't have caught (see below).
-- **Key findings and decisions**:
-  - **T047**: `test` added to `backend/.golangci.yml`'s `run.build-tags`, surfacing 14 real findings
-    across previously lint-invisible `//go:build test` files — all fixed minimally (12
-    `unused-parameter` renamed to `_` in `internal/ai/{anthropic,ollama_client}_test.go` httptest
-    handlers, 2 `empty-block` `//nolint:revive`-justified intentional channel-drain loops, 1
-    `misspell` in `internal/auth/handler_test.go`). `golangci-lint run ./...` exits 0.
-  - **T048**: the issue text's "three call sites" was stale — real count is **five**
-    (`internal/database/client_test.go`, `tests/integration/swagger_test.go`, and the `auth`/
-    `example`/`subscription` repository integration tests), each with its own independent
-    `setup.../start...PostgresContainer` helper (no shared testcontainer helper package existed or
-    was introduced beyond the one constant this task asked for). New `backend/internal/testdb`
-    package (`PostgresImage = "postgres:15.4-alpine"`, matching the deliberate RDS pin — *A Version
-    Pin Can Be Deliberate Architecture, Not Drift*) referenced by all five. Verified for real: `go
-    test -tags test` against all five packages green under Colima (needed
-    `TESTCONTAINERS_RYUK_DISABLED=true` this session, though `patterns-discovered.md`'s documented
-    fix is `TESTCONTAINERS_DOCKER_SOCKET_OVERRIDE` — both work, the documented one is the one to
-    reach for first next time).
-  - **T049**: new `scripts/check-roadmap-status-drift.py` (+ 16-case `unittest` suite in
-    `scripts/check_roadmap_status_drift_test.py`), modelled on `check-agent-drift.py`'s style (pure
-    parse/compare core, one network boundary via a single `gh issue list --state all` call rather
-    than one call per row). Wired into `backend-ci.yml`'s `lint-test` job right after the
-    swagger-drift step. **Two real gaps found only by running it against the live repo, not just the
-    PR's own diff** (both now new `patterns-discovered.md` entries): (1) the workflow's existing
-    least-privilege `permissions:` block had no `issues: read`, so `gh issue list` would have 403'd
-    under the real Actions `GITHUB_TOKEN` despite passing under the subagent's own broad-scope local
-    `gh` session — fixed by adding `issues: read`. (2) a real run found 009-T019 as an immediate false
-    positive (Backlog + closed parent issue, but *deliberately* so, per its own Blocked note) — a
-    brand-new required gate would have shipped permanently red. Fixed by adding a second exemption
-    class alongside `Superseded`: rows whose Notes starts with `**Blocked**` are skipped, matching
-    the existing 009-T019 annotation convention exactly. Confirmed clean after both fixes:
-    `python3 scripts/check-roadmap-status-drift.py` → "No roadmap-status drift found." against the
-    real repo.
-  - **T050**: re-confirmed the same wall already flagged on #172/#181's hand-off — `gh api
-    repos/JosemaPereira/TrAIveler/rulesets` still 403s. Left `Backlog`, Notes marked `**Blocked**`
-    (same convention as 009-T019, which is exactly what T049's new exemption class now expects).
-- **Outcomes**: `golangci-lint`/`go build`/`go vet -tags test`/`make test` all clean;
-  testcontainer-backed suite green against real Postgres 15.4-alpine (`internal/{database,auth,
-  example,subscription,testdb}`, `tests/integration`); `roadmap-status-drift` step live in
-  `backend-ci.yml` and verified both by its own unit tests and a real run finding zero drift.
-  `docs/roadmap.md` rows 002-T047–T049 → Done with as-built notes; 002-T050 stays Backlog, marked
-  blocked. No AWS/terraform touched; no backend endpoints changed (technical-writer step N/A).
-
-- **Post-PR follow-up (same day)**: PR #202's own first CI run failed the new `roadmap-status-drift`
-  step it introduced — flagging its own 002-T047/T048/T049 rows as `Status=Done` while issue #173 was
-  still `OPEN` (the issue only closes at merge). Root cause: the script's `open-but-Done` rule
-  (added for symmetry, not because the ticket asked for it) directly conflicts with this repo's
-  standing "flip to Done in the closing PR" convention — every future closing PR would trip it against
-  its own issue, making the gate unusable as a required check. A local run against `main` before
-  pushing could not have caught this: `main` never has a Done row for a still-open issue, only a live
-  PR does. **Fix**: dropped the open-but-Done rule entirely, keeping only closed-but-not-{Done,
-  Superseded,Blocked-notes} — matches the ticket's literal scope ("cross-checking Status against
-  *closed* GitHub issues"). Updated the script's tests (16 still pass), its module docstring, the
-  `backend-ci.yml` step comment, and the 002-T049 roadmap Notes. New `patterns-discovered.md` addendum:
-  a gate whose own rules can be tripped by the PR that adds it needs to be checked against that PR's
-  effect, not just pre-existing `main` history.
+### Sessions: Sprint 6 Planning; Auth Data/Service/HTTP Layers (Models, Payment Stub, Repos, Services, Register/Login/Logout); Config Audit; Auth Activation (Gate + Refresh); Itinerary Migrations; Frontend Auth Plumbing + Session Bootstrap; Register/Login UI; Swagger-Drift + Roadmap-Status-Drift CI Gates
+- **Date Range**: 2026-07-17 to 2026-07-31 (closed 2026-08-01 — 58 tasks / 18 work items #167–#184
+  plus #195, PRs #186–#202)
+- **Key Outcomes**:
+  - **Planning** (#167–#184, 2026-07-17): Sprint 6 reshaped from a projected "data layer +
+    repositories" (31 tasks) into the full auth vertical + carried-forward remediation (58 tasks /
+    18 work items) after tree verification. Pulled ~27 auth tasks forward from Sprints 7-8 so auth
+    activates end-to-end rather than sitting inert (repeat of the Sprint 5 "available but not wired"
+    anti-pattern would have compounded otherwise). 14 rows marked SUPERSEDED (001-T009–T015
+    duplicated already-shipped Sprint 5 config/DB/migrations and Spec 008's own data layer; several
+    008-T0XX duplicated Sprint 2 primitives). 004-T011's orphaned migration folded into #170. Scope
+    choices made via `AskUserQuestion` ("Vertical auth completo", "Superseded, sin código"). No
+    AWS/terraform touched all sprint.
+  - **#167+#169 G-008-AUTH-MODELS/SUB-REPO** (PR #186): `auth.User`/Register/Login models,
+    `subscription.Subscription` (matches migration 007 — **no period/version columns**;
+    register-response `current_period_*` fields deferred to a future ALTER migration),
+    `subscription.Repository`/`Resolver`. #169 was pulled into the same branch mid-implementation
+    because `RegisterResponse` structurally needs `Subscription`.
+  - **#168+#175 G-008-PAYMENT/AUTH-REPO**: `payment.PaymentProvider` + `StubPaymentProvider`
+    (always-succeeds, `[DEMO]`-logged). `auth.UserRepository`/`RefreshTokenRepository` with
+    **optimistic locking via the `version` column** on `UpdateUser` (stale-version → Conflict,
+    unknown-id → NotFound, disambiguated by a follow-up existence check).
+  - **#176 G-008-AUTH-SERVICE**: `subscription.Service.CreateSubscription` (charge-then-persist).
+    `auth.Service.Register` — **FK-safe ordering**: CreateUser first, subscription second, then
+    UpdateUser `has_subscription`. `auth.Service.Login` — **rate-limit check before bcrypt**, and an
+    unknown email is treated identically to a wrong password (**no enumeration**). **Incident**: a
+    dependency PR showed MERGED on GitHub but `main` had been silently reset behind its merge commit,
+    so #176 started on a `main` missing its own dependencies — caught before any #176 code landed,
+    fixed via `git merge --ff-only` (pure fast-forward, no history rewrite). Promoted to personal
+    memory (`verify-origin-main-has-merged-deps`): a PR marked MERGED does not guarantee `main`
+    actually advanced to it.
+  - **#177+#178 Auth HTTP Surface** (PR #189): register/login/logout live under `/api/v1/auth/*`,
+    HTTP-only Secure SameSite=Strict cookies. New `jwt.Issuer` (mints initial pairs) alongside
+    `jwt.Refresher` (rotates only). Composition root `cmd/api/auth.go` generates a **dev-ephemeral
+    RSA-2048 key** when `JWT_SIGNING_KEY` is unset (still required in prod). Only register gets
+    per-IP rate-limit middleware; login's throttle is the service's email-keyed limiter.
+    `REFRESH_TOKEN_EXPIRATION` default corrected 7d→30d to match `docs/security.md`.
+  - **#174 Config Audit** (stacked on #189's branch): closed the long-tracked `BCRYPT_COST`
+    loaded-but-unconsumed gap — `HashPassword` now takes a `cost`, and a prod floor clamps
+    `BCRYPT_COST`<12 up to 12. Every `AuthConfig` field now reaches a real consumer. Fixed
+    `internal/security/doc.go`, which had promised JWT/rate-limit/logging implementations that
+    actually shipped in `middleware`/`observability`.
+  - **#179 Auth Activation** (branched off `main` after confirming #177/#178's and #174's PRs had
+    really landed): the `Authenticate` gate is mounted and the `TODO(sprint-5)` marker is gone —
+    **auth goes live**. `POST /auth/refresh` (008-T148/T149) was pulled forward so the `Refresher`
+    built here has a real caller from day one. Routing fixed per *Chi Panics on a Duplicate Routed
+    Pattern* (`patterns-discovered.md`) — `RegisterPublicRoutes`/`RegisterProtectedRoutes` split.
+    `securityDefinitions` corrected from a fictitious `Authorization` header scheme to `CookieAuth`.
+    A uniform-401 gap (missing-cookie vs. invalid-refresh had different `message` strings) was fixed
+    and pinned by a body-equality test (*A "These Two Responses Are Indistinguishable" Comment Needs
+    a Test Comparing Them*). `HTTPServer.extraProtectedRoutes` — a test-only hook left in prod
+    code — flagged for deletion the moment a real subscription-gated route lands.
+  - **#179 follow-up, T150** (2026-07-30, PR #191): added a `token_expired` error code
+    (**snake_case**, not the spec's literal `TOKEN_EXPIRED` — the sprint's 4th such casing
+    correction) so the SPA can distinguish "no session" from "expired session" on a 401 — a
+    deliberate, narrow, safe break of the uniform-401 property (only a validly-signed-but-expired
+    token can reach that branch). T160, the frontend consumer, was homed on #180 instead of being
+    built here.
+  - **#170 Itinerary Migrations** (closes 004-T011): `013–015_create_{destinations,days,
+    activities}.sql`, `activities.version` inline (mirrors `trips.version`). **004-T011's two-sprint
+    blocker was a false premise** — `itinerary_items` was never in the canonical model (see *A
+    Long-Blocked Task Can Be Blocked on a Premise That Was Never True*, `patterns-discovered.md`).
+    `docs/data-model.md` gained an As-Built Schema Diagram documenting two divergences from the
+    promoted target diagram (no `users.subscription_id`; a Day has zero-or-one Destination, not
+    exactly one).
+  - **#171+#180 Frontend Auth Plumbing** (PR #194): `Label` primitive; `authApi`/
+    `use{Register,Login,Logout}` hooks; the 401→refresh→retry interceptor (**single-flight**, so
+    concurrent expiries can't race the one-time-use refresh token), reaching the store through a
+    **handler registry, not an import**, navigating with **`window.location`, not the router** (see
+    *A Client-Level Interceptor That Must Touch the Store Needs a Handler Registry, Not an Import*).
+    **MSW wired for the first time**, the switch `docs/testing-guidelines.md` had deferred until a
+    real feature called the backend. Corrected the auth store's `User` type to the real wire shape
+    (`role`/`subscription_id` were never actually serialized — dropped; `full_name`/`has_subscription`
+    added). A scope audit found and fixed two live defects: `mapApiError` let 409/422/429 fall
+    through to a generic retryable error, and the rate-limit countdown wasn't honoring the
+    `Retry-After` **header** (register's 429 ships with no body `details`).
+  - **#195 `GET /auth/me`** (001-T021, PR #196): reads **from the DB, not token claims**
+    (subscription status can go stale within a token's lifetime); **401, not 404**, on a deleted
+    account; **exempt from session-expiry teardown** except when the 401 is itself an unrescued
+    `token_expired`. Unblocked 008-T120/T121 (#184).
+  - **#182+#183 Register/Login UI** (PR #198): real `/register`/`/login` pages replacing
+    placeholders. Closed an open-redirect gap in `?redirect=` handling (`resolveLoginRedirect`
+    allow-lists a single leading `/`). Client-side password validation deliberately mirrors the
+    backend validator rule-for-rule.
+  - **#172+#181 `swagger-drift` CI Gate** (PR #200): `backend-ci.yml` gained a swagger-drift check,
+    proven both ways with a real throwaway PR (#201, closed same session) that intentionally
+    drifted docs and failed CI as designed. 009-T019 (branch-protection automation) stays **Backlog,
+    marked Blocked** — GitHub 403s rulesets/branch-protection APIs on a private personal-account
+    repo (re-confirmed; 002-T050/#173 was about to hit the identical wall).
+  - **#173 Lint/Postgres/roadmap-status-drift** (PR #202): `test` build-tag added to golangci-lint's
+    scope (14 real findings fixed). New `internal/testdb.PostgresImage` constant unifies 5
+    independent testcontainer call sites on `postgres:15.4-alpine` (the deliberate RDS-matching
+    pin). New `scripts/check-roadmap-status-drift.py` + CI step, needing `issues: read` added to the
+    workflow's `permissions:` block. **Post-PR fix**: the gate's own first CI run flagged its own
+    just-Done rows against a still-OPEN #173 (an issue only closes at merge) — the symmetric
+    "open-but-Done" rule was dropped entirely, keeping only "closed-but-not-{Done, Superseded,
+    Blocked}" per the ticket's literal scope (*A New CI Gate Must Be Test-Run Against `main`'s
+    Actual State, Not Just a Clean Diff*, `patterns-discovered.md`).
+- **Key Decisions**:
+  - Every subagent-implemented ticket this sprint was independently re-verified by the parent
+    session (rebuild/vet/lint/full-suite re-run against real Postgres, diffs read in full) before
+    being trusted — caught real gaps multiple times (a missing test, stale docs, the #176 dangling-
+    merge incident above).
+  - `technical-writer` review proved genuinely load-bearing, not ceremonial: caught a real defect
+    (`Number('') === 0` making an empty `Retry-After` header inject `retry_after_seconds: 0`) and
+    several overstated comments across the sprint.
+  - Roadmap-row Notes remained the load-bearing channel for scope decisions reaching not-yet-created
+    tickets (superseded rows, casing corrections, path deviations) — *Roadmap Row Notes Are the Only
+    Channel Future Issue Bodies Inherit Context Through* was reused repeatedly this sprint.
+- **Post-closure follow-up** (2026-08-01, issue #192, PR #204, 3 commits): fixed all three items
+  flagged above at #179's close — `/auth/refresh` now returns 503 (not 500) on a DB outage via new
+  `errors.ServiceUnavailableFromDB`; `handleRegister`/`handleLogin` gained `@Failure 500`;
+  `/swagger/*` is now auth-gated only when `Config.IsProduction()` (fixes the cold-start 401).
+  `backend/docs/` regenerated via `make swagger` in the same commits. **Gap**: issue #192 itself
+  said item B should "route through `technical-writer` per the API-doc policy" — `gh pr view 204`
+  shows no reviews/comments, so that review appears to have been skipped.
+- **`@Failure 429` gap fixed** (2026-08-01, same day as closure): `handleRegister` was missing
+  `@Failure 429` despite `middleware.RateLimit(10/min)` making it a genuine possible response —
+  found during #195's session but never folded into #192's scope (#192 only covered `@Failure
+  500`). Annotation added, `backend/docs/` regenerated via `make swagger`, build/vet clean.
+  Uncommitted pending `technical-writer` review (see below).
+- **Open follow-ups carried into Sprint 7+**:
+  1. `HTTPServer.extraProtectedRoutes` test-only hook — delete the moment a real subscription-gated
+     route lands.
+  2. Register-response `current_period_start`/`current_period_end` fields need a future ALTER
+     migration on `subscriptions` (migration 007 has no period columns).
+  3. 009-T019 / 002-T050 both permanently Blocked on the same GitHub-plan wall (rulesets/
+     branch-protection require Pro or a public repo) — not fixable by more engineering.
+  4. Long-standing, still open: 002-T023 a11y gate `--pass-with-no-tests` (Sprint 9);
+     `internal/example/` deletion waits on Sprint 8 (Trip); AWS-cost-avoidance constraint still in
+     force.

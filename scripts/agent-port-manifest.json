@@ -93,10 +93,10 @@
         ".github/prompts/commit-and-push.prompt.md"
       ],
       "hashes": {
-        ".claude/agents/commit-and-push.md": "13d1381dec44290413b306eb0762063b270bfc44f17f6f36fb01d77eb9e86d55",
+        ".claude/agents/commit-and-push.md": "7b6a1ebec22d55c3a33ba17914c02e9ee341eb5fd5bab145fdc5e8bb3335c838",
         ".github/prompts/commit-and-push.prompt.md": "79135fd933c2c218c6cec94d4a2074e2b74e1d2530f019e2e5b63a9a2576d33f"
       },
-      "last_synced": "2026-07-09"
+      "last_synced": "2026-08-01"
     },
     {
       "name": "open-pr",
@@ -105,10 +105,10 @@
         ".github/prompts/open-pr.prompt.md"
       ],
       "hashes": {
-        ".claude/agents/open-pr.md": "b3da93e022bcb194976f163795ee2c4533766bda9f3df66400d83e49d1404a6e",
+        ".claude/agents/open-pr.md": "96a2be57f4e89035a6b8b3117a0897290ad71726180e5859bb7d0e3ba97072d4",
         ".github/prompts/open-pr.prompt.md": "54c47bbbad5901cdae11332bcb65512eb75f9712984d5701bd3629536a10fabb"
       },
-      "last_synced": "2026-07-16"
+      "last_synced": "2026-08-01"
     },
     {
       "name": "promote-fundations",
@@ -129,10 +129,10 @@
         ".github/prompts/sync-issues.prompt.md"
       ],
       "hashes": {
-        ".claude/agents/sync-issues.md": "233d2cb1c5fadc7c6aae0748d266353032bfc7969a4392300a3b61df1fb8bf57",
+        ".claude/agents/sync-issues.md": "cf54f24e4f3b663432a87b69648efbce8ffb5ac1235fbb6653551386dcb0078f",
         ".github/prompts/sync-issues.prompt.md": "5c954b8e8ebc2a4f43ef20fdfc15e6e7fe4727e7e6fd9f274a415931d24092cc"
       },
-      "last_synced": "2026-07-09"
+      "last_synced": "2026-08-01"
     }
   ]
 }
