@@ -203,7 +203,7 @@
 | 002-T020 | Write Vitest unit test for `PrivacyPolicyLink` (correct href, accessible text present) | G-A11Y-PRIVACY-LINK | 9 | P1 | Backlog | 002-T019 | yes | | |
 | 002-T021 | Add `/privacy-policy` route to React Router; add `PrivacyPolicyLink` to registration form footer | | 9 | P1 | Backlog | 002-T017, 002-T019 | no | | |
 | 002-T022 | Create accessibility E2E helper `checkPageA11y(page)` wrapping `@axe-core/playwright` | G-SPRINT3-A11Y-CI | 3 | P1 | Done | 002-T002 | yes | https://github.com/JosemaPereira/TrAIveler/issues/93 | PR #103 - Accessibility CI gate (Lighthouse + axe-core): checkPageA11y helper, lighthouserc.yml, accessibility.yml PR gate. Closes #93. |
-| 002-T023 | Add `checkPageA11y(page)` call to every existing Playwright E2E spec; tag with `@accessibility` | | 9 | P1 | Backlog | 002-T022 | no | | Reminder (2026-07-15): the accessibility gate (now the `Accessibility Audit` job in `frontend-ci.yml`) has bridged on `--pass-with-no-tests` since Sprint 3 (#93) — this task removes that bridge; do not let it slip past Sprint 9. |
+| 002-T023 | Add `checkPageA11y(page)` call to every existing Playwright E2E spec; tag with `@accessibility` | | 9 | P1 | Backlog | 002-T022 | no | | Reminder (2026-07-15): the accessibility gate (now the `Accessibility Audit` job in `frontend-ci.yml`) has bridged on `--pass-with-no-tests` since Sprint 3 (#93) — this task removes that bridge; do not let it slip past Sprint 9. Tracking issue #209 (2026-08-01 retrospective) reconfirmed the gap is still live; close #209 as part of this task's issue rather than creating a separate one. |
 | 002-T024 | Create `accessibility.yml` GitHub Actions workflow (axe-core Playwright run + lhci autorun; PR gate) | G-SPRINT3-A11Y-CI | 3 | P1 | Done | 002-T022, 002-T004 | no | https://github.com/JosemaPereira/TrAIveler/issues/93 | PR #103 - Accessibility CI gate (Lighthouse + axe-core): checkPageA11y helper, lighthouserc.yml, accessibility.yml PR gate. Closes #93. |
 
 #### Phase 5 — User Story 3: Security Reviewer Confirms Security Posture (Priority: P1) → **Sprint 9**
@@ -1426,7 +1426,11 @@ The minimum sequential chain to reach a fully functional, security-hardened, dem
 > to `postgres:15.18-alpine` after reviewing postgresql.org's security page (28 CVEs fixed between
 > 15.4 and 15.18; none critical enough to have required an emergency out-of-band bump before this,
 > but the pin was overdue for a routine one). No fixed re-review cadence exists yet for this pin —
-> that remains a process gap, to be revisited periodically rather than solved here.
+> that remains a process gap, to be revisited periodically rather than solved here; GitHub
+> rulesets/branch-protection automation (009-T019/002-T050, issue
+> [#212](https://github.com/JosemaPereira/TrAIveler/issues/212)) is permanently blocked on the
+> personal-account plan (Pro or a public repo required) — not sprint-schedulable, only re-check if
+> that constraint changes.
 
 ### 🏗️ Sprint 1: Architecture Foundation (Weeks 1-2) ✅ **COMPLETE**
 
@@ -1992,7 +1996,11 @@ Sprint 4's 009-T010/T013/T017/T021 (`Done`).
 
 **Total**: 44 tasks  
 **Risks**: SSE streaming complexity, AI stub maintainability  
-**Dependencies**: Sprint 7 complete
+**Dependencies**: Sprint 7 complete  
+**Carried-forward cleanup** (not from `specs/*/tasks.md`, no roadmap row — pull in when scoping this
+sprint): issue [#210](https://github.com/JosemaPereira/TrAIveler/issues/210) (delete
+`backend/internal/example/` and `HTTPServer.extraProtectedRoutes` once this sprint's real Trip
+CRUD/subscription-gated routes land — both items' trigger condition).
 
 ---
 
@@ -2013,7 +2021,11 @@ Sprint 4's 009-T010/T013/T017/T021 (`Done`).
 
 **Total**: 56 tasks  
 **Risks**: Load test threshold tuning, CI gate false positives  
-**Dependencies**: Sprint 8 complete
+**Dependencies**: Sprint 8 complete  
+**Carried-forward cleanup**: issue [#209](https://github.com/JosemaPereira/TrAIveler/issues/209)
+(a11y CI gate still bridges on `--pass-with-no-tests` — this sprint's `@accessibility` E2E tag work
+(002-T023, the "Accessibility gates" row above) is exactly what resolves it; close #209 once that
+tag lands and the bridge is removed).
 
 ---
 
