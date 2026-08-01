@@ -810,7 +810,7 @@
 
 | ID | Task | Group | Sprint | Priority | Status | Depends on | Parallel | Issue | Notes |
 |----|------|-------|--------|----------|--------|------------|----------|-------|-------|
-| 006-T039 | Verify User entity indexes documented (idx_users_email UNIQUE expression index for case-insensitive lookup, idx_users_subscription_id) in specs/006-core-domain-model/data-model.md | G-DOC-INDEXES | | P2 | Backlog | 006-T038 | yes | | |
+| 006-T039 | Verify User entity indexes documented (idx_users_email UNIQUE expression index for case-insensitive lookup) in specs/006-core-domain-model/data-model.md | G-DOC-INDEXES | | P2 | Backlog | 006-T038 | yes | | |
 | 006-T040 | Verify Trip entity indexes documented (idx_trips_creator_id for user's trip list, idx_trips_status for published/draft filtering) | G-DOC-INDEXES | | P2 | Backlog | 006-T038 | yes | | |
 | 006-T041 | Verify Day entity indexes documented (idx_days_trip_id for trip detail queries, idx_days_destination_id for destination usage) | G-DOC-INDEXES | | P2 | Backlog | 006-T038 | yes | | |
 | 006-T042 | Verify Activity entity indexes documented (idx_activities_day_id for day detail queries ordered by sequence) | G-DOC-INDEXES | | P2 | Backlog | 006-T038 | yes | | |
@@ -1422,7 +1422,11 @@ The minimum sequential chain to reach a fully functional, security-hardened, dem
 > **Standing Open Items** (project-wide constraints/watches not owned by a single sprint or task —
 > full history in `.github/memory/session-notes.md`): AWS-cost-avoidance constraint (no real
 > `terraform apply`/`aws` resource creation against real AWS) remains in force until the user lifts
-> it; `postgres:15.4-alpine` CVE staleness watch remains unresolved, no target sprint yet.
+> it; `postgres:15.4-alpine` CVE staleness watch is now resolved (2026-08-01, issue #211) — bumped
+> to `postgres:15.18-alpine` after reviewing postgresql.org's security page (28 CVEs fixed between
+> 15.4 and 15.18; none critical enough to have required an emergency out-of-band bump before this,
+> but the pin was overdue for a routine one). No fixed re-review cadence exists yet for this pin —
+> that remains a process gap, to be revisited periodically rather than solved here.
 
 ### 🏗️ Sprint 1: Architecture Foundation (Weeks 1-2) ✅ **COMPLETE**
 

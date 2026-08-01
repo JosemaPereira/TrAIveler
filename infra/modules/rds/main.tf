@@ -5,10 +5,14 @@
 # port, and a Secrets Manager secret holding the generated master
 # credentials.
 #
-# engine_version is deliberately pinned to 15.4 to match the postgres:15.4-
+# engine_version is deliberately pinned to 15.18 to match the postgres:15.18-
 # alpine image used in docker-compose.yml and backend CI (see
 # docs/architecture.md, docs/cloud-and-environments.md, docs/data-model.md).
 # Do not bump this independently of that documented decision.
+#
+# Last reviewed/bumped: 2026-08-01 (issue #211), after a CVE audit against
+# postgresql.org's security page. Re-review periodically — no fixed cadence
+# exists yet for this pin.
 
 # ---------------------------------------------------------------------------
 # Subnet group
@@ -102,7 +106,7 @@ resource "aws_secretsmanager_secret_version" "db_credentials" {
 resource "aws_db_instance" "main" {
   identifier     = "${var.environment}-traveler-db"
   engine         = "postgres"
-  engine_version = "15.4"
+  engine_version = "15.18"
 
   instance_class    = var.instance_class
   allocated_storage = 20

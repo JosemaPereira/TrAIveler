@@ -79,7 +79,7 @@ graph TB
 - **Purpose**: Running all user-facing functionality with cost-optimized configuration
 - **Configuration**:
   - VPC: 10.0.0.0/16 CIDR block
-  - RDS: db.t4g.micro PostgreSQL 15.4, single-AZ, 7-day backups
+  - RDS: db.t4g.micro PostgreSQL 15.18, single-AZ, 7-day backups
   - ECS Fargate: 0.25 vCPU / 0.5 GB RAM tasks, ARM64 Graviton2, auto-scaling 1-2 tasks
   - NAT: NAT instance (cost savings: ~$57/month vs NAT Gateway)
   - CloudWatch logs: 7-day retention
@@ -91,7 +91,7 @@ graph TB
 - **Purpose**: Production-grade configuration ready for deployment when approved
 - **Configuration**:
   - VPC: 10.1.0.0/16 CIDR block (non-overlapping with staging)
-  - RDS: db.t4g.small PostgreSQL 15.4, Multi-AZ for high availability, 30-day backups
+  - RDS: db.t4g.small PostgreSQL 15.18, Multi-AZ for high availability, 30-day backups
   - ECS Fargate: 1 vCPU / 2GB RAM tasks, ARM64 Graviton2, auto-scaling 2-20 tasks
   - NAT: NAT Gateway (production-grade reliability)
   - CloudWatch logs: 30-day retention
