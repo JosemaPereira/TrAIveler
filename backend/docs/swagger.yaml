@@ -215,6 +215,10 @@ paths:
           description: Too Many Requests
           schema:
             $ref: '#/definitions/errors.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/errors.ErrorResponse'
       summary: Log in with email and password
       tags:
       - auth
@@ -294,6 +298,10 @@ paths:
           description: Internal Server Error
           schema:
             $ref: '#/definitions/errors.ErrorResponse'
+        "503":
+          description: Service Unavailable
+          schema:
+            $ref: '#/definitions/errors.ErrorResponse'
       summary: Refresh the session
       tags:
       - auth
@@ -330,6 +338,10 @@ paths:
             $ref: '#/definitions/errors.ErrorResponse'
         "422":
           description: Unprocessable Entity
+          schema:
+            $ref: '#/definitions/errors.ErrorResponse'
+        "500":
+          description: Internal Server Error
           schema:
             $ref: '#/definitions/errors.ErrorResponse'
       summary: Register a new account

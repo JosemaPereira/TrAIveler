@@ -3,6 +3,7 @@ package jwt
 import (
 	"context"
 	"errors"
+	"fmt"
 	"testing"
 	"time"
 
@@ -13,12 +14,38 @@ import (
 	domainerrors "github.com/JosemaPereira/TrAIveler/backend/internal/errors"
 )
 
+// fakeConnectivityError stands in for a pgx connection-level failure (dial
+// refused, timeout, DNS failure, ...), reused here (rather than importing
+// the errors package's test-only type) so this package's tests stay free of
+// a test-to-test dependency. pgx's own such errors are unexported and only
+// constructible by actually dialing, so this minimal type satisfies the same
+// duck-typed `interface{ SafeToRetry() bool }` that pgconn.SafeToRetry
+// checks for via errors.As — see errors.ServiceUnavailableFromDB.
+type fakeConnectivityError struct {
+	cause error
+}
+
+func (e *fakeConnectivityError) Error() string     { return fmt.Sprintf("dial: %s", e.cause) }
+func (e *fakeConnectivityError) Unwrap() error     { return e.cause }
+func (e *fakeConnectivityError) SafeToRetry() bool { return true }
+
+// newConnRefusedError builds a connection-level failure, e.g. a database
+// outage during POST /auth/refresh (issue #192 Task A).
+func newConnRefusedError() error {
+	return &fakeConnectivityError{cause: errors.New("connection refused")}
+}
+
 // fakeStore is an in-memory RefreshTokenStore for tests, keyed by token hash.
+// Each storage-touching method has its own fail hook so a test can target a
+// single call site (e.g. Revoke succeeding but Create failing) instead of
+// every call failing identically.
 type fakeStore struct {
-	byHash   map[string]RefreshTokenRecord
-	created  []NewRefreshToken
-	revoked  []uuid.UUID
-	failNext error // if set, the next store call returns this error
+	byHash     map[string]RefreshTokenRecord
+	created    []NewRefreshToken
+	revoked    []uuid.UUID
+	failByHash error // if set, ByHash returns this error instead of looking up
+	failRevoke error // if set, Revoke returns this error instead of revoking
+	failCreate error // if set, Create returns this error instead of persisting
 }
 
 func newFakeStore() *fakeStore {
@@ -26,8 +53,8 @@ func newFakeStore() *fakeStore {
 }
 
 func (s *fakeStore) ByHash(_ context.Context, hash string) (RefreshTokenRecord, error) {
-	if s.failNext != nil {
-		return RefreshTokenRecord{}, s.failNext
+	if s.failByHash != nil {
+		return RefreshTokenRecord{}, s.failByHash
 	}
 	rec, ok := s.byHash[hash]
 	if !ok {
@@ -37,8 +64,8 @@ func (s *fakeStore) ByHash(_ context.Context, hash string) (RefreshTokenRecord, 
 }
 
 func (s *fakeStore) Revoke(_ context.Context, id uuid.UUID) error {
-	if s.failNext != nil {
-		return s.failNext
+	if s.failRevoke != nil {
+		return s.failRevoke
 	}
 	s.revoked = append(s.revoked, id)
 	// Reflect the revocation in the stored record so a reuse attempt sees it.
@@ -53,8 +80,8 @@ func (s *fakeStore) Revoke(_ context.Context, id uuid.UUID) error {
 }
 
 func (s *fakeStore) Create(_ context.Context, token NewRefreshToken) error {
-	if s.failNext != nil {
-		return s.failNext
+	if s.failCreate != nil {
+		return s.failCreate
 	}
 	s.created = append(s.created, token)
 	s.byHash[token.TokenHash] = RefreshTokenRecord{
@@ -184,16 +211,82 @@ func TestRefresher_RefreshToken_Rejections(t *testing.T) {
 
 func TestRefresher_RefreshToken_StoreErrorIsNotUnauthorized(t *testing.T) {
 	store := newFakeStore()
-	store.failNext = errors.New("db is down")
+	// A plain, non-connectivity query-level error (not something
+	// pgconn.SafeToRetry would recognize) — contrast with
+	// TestRefresher_RefreshToken_DBConnectivityFailure_MapsToServiceUnavailable
+	// below, which uses a connection-level failure instead.
+	store.failByHash = errors.New("db is down")
 
 	refresher := newTestRefresher(t, store, stubSubs{})
 	_, err := refresher.RefreshToken(context.Background(), "anything")
 
 	require.Error(t, err)
-	// A transient storage failure must surface as an infrastructure error, not
-	// be masked as an authentication rejection.
+	// A transient, non-connectivity storage failure must surface as an
+	// unmapped infrastructure error (500 via errors.HandleError), not be
+	// masked as an authentication rejection nor misclassified as
+	// service_unavailable.
 	var domainErr *domainerrors.DomainError
-	assert.False(t, errors.As(err, &domainErr), "storage failure should not become a domain auth error")
+	assert.False(t, errors.As(err, &domainErr), "storage failure should not become a domain error")
+}
+
+// TestRefresher_RefreshToken_DBConnectivityFailure_MapsToServiceUnavailable
+// is issue #192 Task A: specs/008-auth-collaboration-ux/contracts/api.md
+// requires 503 for "Database unavailable" on refresh, so a connection-level
+// failure at any of the three storage-touching points, or at the also
+// DB-backed subscription-resolver step, must map to service_unavailable
+// (503 + Retry-After) rather than the generic 500 a plain wrapped error
+// would produce.
+func TestRefresher_RefreshToken_DBConnectivityFailure_MapsToServiceUnavailable(t *testing.T) {
+	assertServiceUnavailable := func(t *testing.T, err error) {
+		t.Helper()
+		require.Error(t, err)
+		var domainErr *domainerrors.DomainError
+		require.True(t, errors.As(err, &domainErr), "expected a *errors.DomainError")
+		assert.Equal(t, "service_unavailable", domainErr.Code)
+		assert.Equal(t, 30, domainErr.Details["retry_after_seconds"])
+	}
+
+	t.Run("when looking up the presented token fails", func(t *testing.T) {
+		store := newFakeStore()
+		store.failByHash = newConnRefusedError()
+
+		refresher := newTestRefresher(t, store, stubSubs{})
+		_, err := refresher.RefreshToken(context.Background(), "anything")
+
+		assertServiceUnavailable(t, err)
+	})
+
+	t.Run("when revoking the old token fails", func(t *testing.T) {
+		store := newFakeStore()
+		raw := seedToken(t, store, uuid.New(), time.Now().Add(24*time.Hour))
+		store.failRevoke = newConnRefusedError()
+
+		refresher := newTestRefresher(t, store, stubSubs{})
+		_, err := refresher.RefreshToken(context.Background(), raw)
+
+		assertServiceUnavailable(t, err)
+	})
+
+	t.Run("when persisting the rotated token fails", func(t *testing.T) {
+		store := newFakeStore()
+		raw := seedToken(t, store, uuid.New(), time.Now().Add(24*time.Hour))
+		store.failCreate = newConnRefusedError()
+
+		refresher := newTestRefresher(t, store, stubSubs{has: true})
+		_, err := refresher.RefreshToken(context.Background(), raw)
+
+		assertServiceUnavailable(t, err)
+	})
+
+	t.Run("when resolving the subscription fails", func(t *testing.T) {
+		store := newFakeStore()
+		raw := seedToken(t, store, uuid.New(), time.Now().Add(24*time.Hour))
+
+		refresher := newTestRefresher(t, store, stubSubs{err: newConnRefusedError()})
+		_, err := refresher.RefreshToken(context.Background(), raw)
+
+		assertServiceUnavailable(t, err)
+	})
 }
 
 func TestRefresher_RefreshToken_SubscriptionErrorPropagates(t *testing.T) {

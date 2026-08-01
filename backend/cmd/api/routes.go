@@ -23,12 +23,12 @@ import (
 // and an authenticated group carrying middleware.Authenticate for everything
 // else.
 //
-// /swagger/* is gated too, which is how this delivers
-// specs/009-api-documentation/research.md's "Auth gating for Swagger UI ahead
-// of Sprint 5" decision. That decision assumed a single shared Chi group would
-// pick up the auth middleware for free; one shared group stopped being possible
-// once some routes had to stay public, so /swagger/* is gated explicitly by
-// reusing the same Authenticate chain.
+// /swagger/* is gated too, but only in production, which is how this
+// delivers specs/009-api-documentation/research.md's "Auth gating for
+// Swagger UI ahead of Sprint 5" decision without the onboarding friction it
+// causes locally: a fresh checkout hitting /swagger/index.html got a 401
+// before any login was even possible (issue #192 Task C). Outside
+// production the route is mounted with no middleware at all.
 //
 // Both auth groups register full paths (`/auth/login`, not a nested
 // r.Route("/auth", ...)) because Chi panics when the same pattern is routed
@@ -55,7 +55,12 @@ func (s *HTTPServer) registerRoutes() {
 		})
 	})
 
-	// /swagger/* is a top-level path (not nested under /api/v1's URL prefix)
-	// but carries the same gate as the authenticated group above.
-	s.router.With(authenticate).Get("/swagger/*", httpSwagger.Handler())
+	// /swagger/* is a top-level path (not nested under /api/v1's URL prefix).
+	// It only carries the same gate as the authenticated group above in
+	// production; see the doc comment above for why.
+	swaggerRoute := s.router.With()
+	if s.cfg.IsProduction() {
+		swaggerRoute = s.router.With(authenticate)
+	}
+	swaggerRoute.Get("/swagger/*", httpSwagger.Handler())
 }

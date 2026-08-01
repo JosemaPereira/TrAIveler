@@ -69,6 +69,12 @@ const docTemplate = `{
                         "schema": {
                             "$ref": "#/definitions/errors.ErrorResponse"
                         }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/errors.ErrorResponse"
+                        }
                     }
                 }
             }
@@ -169,6 +175,12 @@ const docTemplate = `{
                         "schema": {
                             "$ref": "#/definitions/errors.ErrorResponse"
                         }
+                    },
+                    "503": {
+                        "description": "Service Unavailable",
+                        "schema": {
+                            "$ref": "#/definitions/errors.ErrorResponse"
+                        }
                     }
                 }
             }
@@ -218,6 +230,12 @@ const docTemplate = `{
                     },
                     "422": {
                         "description": "Unprocessable Entity",
+                        "schema": {
+                            "$ref": "#/definitions/errors.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
                         "schema": {
                             "$ref": "#/definitions/errors.ErrorResponse"
                         }
