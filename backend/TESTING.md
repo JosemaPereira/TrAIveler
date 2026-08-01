@@ -161,7 +161,7 @@ open coverage.html
 | **Quick feedback during TDD** | `make test` | Fast, no Docker needed |
 | **Before committing code** | `make test` | Same as CI will run |
 | **Before creating PR** | `make test-all` | Full coverage (if Colima available) |
-| **Testing database code** | `make test-integration` | Real PostgreSQL behavior |
+| **Testing database code** | `make test-all` | Real PostgreSQL behavior via testcontainers |
 | **Checking coverage** | `make test-coverage` | Generate coverage.html |
 | **CI pipeline** | `make test-coverage` | Unit tests + race + coverage |
 
@@ -172,29 +172,31 @@ open coverage.html
 ### "Cannot connect to Docker daemon"
 
 **Cause:** Trying to run testcontainer tests without Colima  
-**Sose `make test` instead (skips testcontainers)
+**Solution:**
+
+1. Use `make test` instead (skips testcontainers)
 2. Start Colima: `colima start --cpu 2 --memory 4`
 3. Use `make test-all` after Colima is running
 
-### "DATABASE_URL not set"
+### "test-integration: command not found" / deprecation message
 
-**Cause:** Running `make test-integration` without DATABASE_URL  
-**Solution:**
-```bash
-docker-compose up -d postgres
-export DATABASE_URL="postgresql://traveler_user:traveler_pass@localhost:5432/traveler_db?sslmode=disable"
-make test-integration
-```
+**Cause:** `make test-integration` is a deprecated alias — the separate integration-test target
+was removed (see "Historical Note" below); testcontainer tests (`make test-all`) provide the same
+coverage and don't need `DATABASE_URL` (each test spins up its own ephemeral container).  
+**Solution:** Use `make test-all` (requires Colima) instead.
 
 ### Tests pass locally but fail in CI
 
-**Caummary
+**Cause:** Usually an environment difference — a test that isn't hermetic (leaks state across
+runs), or a local-only tool/env var CI doesn't have. Testcontainer tests are skipped in CI
+(`-short`), so they can't be the cause; check what changed outside `-short`'s scope first.
+
+## Summary
 
 ✅ **For daily development:** `make test` (fast, reliable, no Docker)  
 ✅ **For comprehensive testing:** `make test-all` (requires Colima)  
 ✅ **For CI:** `make test-coverage` (same as local default)  
 ✅ **All commands documented** in Makefile help: `make help`
-
 
 ---
 

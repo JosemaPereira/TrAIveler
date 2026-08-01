@@ -54,7 +54,7 @@ changed, not just because an implementation landed.
 |----------|---------|
 | [api-design-standards.md](api-design-standards.md) | API conventions: resource naming, URL structure, versioning (`/api/v1`), HTTP methods, request/response formats, standardized error format, status codes, pagination, filtering, sorting, rate limiting |
 | [coding-guidelines.md](coding-guidelines.md) | Formatting rules, import organization, naming conventions, KISS/DRY principles for Go (backend) and React/TypeScript (frontend) |
-| [testing-guidelines.md](testing-guidelines.md) | Three-layer testing strategy (unit, integration, E2E), folder structure, naming conventions, coverage targets (80% business logic, 80% shared components) |
+| [testing-guidelines.md](testing-guidelines.md) | Three-layer testing strategy (unit, integration, E2E), folder structure, naming conventions, coverage targets (90% business logic, 90% shared components) |
 | [ui-guidelines.md](ui-guidelines.md) | Design tokens (color, spacing, typography), component layers (Atomic Design), responsive breakpoints, accessibility rules, loading/error/empty state requirements |
 | [mock-standards.md](mock-standards.md) | Standardized mock generation pattern and location convention used across the backend |
 
@@ -63,7 +63,7 @@ changed, not just because an implementation landed.
 | Document | Purpose |
 |----------|---------|
 | [roadmap.md](roadmap.md) | Source of truth for task existence, sprint assignment, and status — generated/reconciled by `/build-roadmap`, human-owned Priority/Status/Phase/Issue/Notes columns |
-| [project-workflow.md](project-workflow.md) | End-to-end operating manual: how the project was bootstrapped, the SpecKit + agentic-kit tooling, and the repeatable flow from a spec to a shipped, tracked piece of work |
+| [project-workflow.md](project-workflow.md) | End-to-end operating manual: how the project was bootstrapped, the SpecKit + agentic-kit tooling, and the repeatable flow from a spec to a shipped, tracked piece of work (documents the Copilot invocation surface; see `CLAUDE.md` for Claude Code's equivalent, canonical mechanism) |
 
 ---
 

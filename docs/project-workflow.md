@@ -4,6 +4,17 @@
 > was added and what problem each piece solves, and the repeatable flow from a spec to
 > a shipped, tracked piece of work. Written to live inside the repo so any contributor
 > (or agent) can follow it without external context.
+>
+> **Tool scope**: this guide documents the workflow as invoked through GitHub Copilot's
+> `.github/prompts/*.prompt.md` / `.github/agents/*.agent.md` (dot-named slash commands
+> like `/speckit.specify`, `/implement-feature`). Claude Code — the project's primary
+> tool per `CLAUDE.md` — runs the same underlying steps through a different invocation
+> mechanism: the official SpecKit skills as hyphenated commands (`/speckit-specify`,
+> `/speckit-implement`, ...), and everything else via subagent delegation by name (e.g.
+> "implement X with TDD" for `tdd-developer`) rather than a slash command, since no
+> `.claude/commands/` wrappers exist for those by design. See `CLAUDE.md`'s "Local
+> Agents & Workflows" section for the current, canonical description of both
+> mechanisms — if this guide and that section ever disagree, `CLAUDE.md` wins.
 
 ---
 

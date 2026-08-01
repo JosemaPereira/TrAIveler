@@ -9,12 +9,47 @@ typed API client, accessibility helpers, and unit/integration tests.
 
 ---
 
-> **Implementation Status**: ✅ Sprint 2 complete (closed 2026-07-11) — frontend application
-> structure (Spec 005 Phase 4) shipped in full, across issues #59–#66 (PRs #79–#82). Sprint 3
-> (Weeks 5–6) is mainly Terraform infrastructure modules, but also pulled the accessibility CI gate
-> forward (issue #93, `G-SPRINT3-A11Y-CI`, tasks 002-T002/T004/T022/T024 — see "Accessibility" and
-> "Continuous Integration" below). The next feature-scoped frontend work (auth pages, trip
-> dashboard, feature components) lands in later sprints per [`docs/roadmap.md`](../docs/roadmap.md).
+> **Implementation Status**: ✅ Sprint 6 complete (closed 2026-08-01) — frontend application
+> structure (Spec 005 Phase 4) shipped in full in Sprint 2, across issues #59–#66 (PRs #79–#82).
+> Sprint 3 (Weeks 5–6) was mainly Terraform infrastructure modules, but also pulled the
+> accessibility CI gate forward (issue #93, `G-SPRINT3-A11Y-CI`, tasks 002-T002/T004/T022/T024 —
+> see "Accessibility" and "Continuous Integration" below). Sprint 6 (issues #171/#180/#182/#183/#184,
+> PRs #194/#196/#198/#203, 2026-07-30–08-01) then shipped the feature-scoped frontend work this
+> banner used to describe as future: real auth pages, navigation, a dashboard shell, and a
+> redirect-aware route guard, wired against the backend auth vertical that landed the same sprint
+> (see [`backend/README.md`](../backend/README.md)).
+> - ✅ Sprint 6 (issues #171/#180, PR #194): auth API/hooks plumbing — `src/features/auth/`
+>   (`services/authApi.ts`; `types.ts` for the wire shapes; `validation.ts`, mirroring the backend's
+>   password rules rule-for-rule; `hooks/useRegister.ts`/`useLogin.ts`/`useLogout.ts`, each a
+>   TanStack Query mutation around `authApi`) and the `Label` primitive. `src/lib/api-client.ts`
+>   gained a single-flight 401→refresh→retry interceptor reached through a handler registry
+>   (`session-expiry.ts`'s `installSessionExpiryHandler`/`handleSessionExpired`, wired from
+>   `main.tsx` before first render), not a direct import, so the client stays store-agnostic;
+>   `src/stores/auth-store.ts`'s `User` type was corrected to the real wire shape (`full_name`,
+>   `has_subscription`; no `role`/`subscription_id` — the backend never serializes those).
+> - ✅ Sprint 6 (issue #195, PR #196): `GET /auth/me` session bootstrap — `useAuthStore.refreshSession()`
+>   calls it to re-derive session state on reload (the HTTP-only cookie is the real store; nothing is
+>   rehydrated from local storage). A 401 here is a normal negative answer, not session death, so it is
+>   exempted from the interceptor's teardown.
+> - ✅ Sprint 6 (issues #182/#183, PR #198): real `/login` and `/register` pages —
+>   `src/routes/LoginPage.tsx`/`RegisterPage.tsx` rendering `features/auth/components/LoginForm.tsx`/
+>   `RegisterForm.tsx`. `src/routes/login-redirect.ts`'s `resolveLoginRedirect` allow-lists only a
+>   same-origin `?redirect=` target (a single leading `/`, rejecting `//host`/`/\host`) before
+>   `LoginPage` navigates there on success, closing an open-redirect gap.
+> - ✅ Sprint 6 (issue #184, PR #203, closes G-008-AUTH-SHELL 008-T120/T121/T122/T069):
+>   `src/components/ProtectedRoute.tsx` — redirects an unauthenticated visitor to
+>   `/login?redirect=<attempted-path>` (replacing history) instead of rendering the guarded
+>   `<Outlet />`; `src/components/composites/Navigation.tsx` — user name, subscription badge, log
+>   out button, and a responsive hamburger menu; `src/routes/DashboardPage.tsx` — wires `Navigation`
+>   plus a welcome message and an `EmptyState` placeholder (real trip list deferred to Sprint 8);
+>   `auth-store.ts` gained a `setUser` action to refresh user data without touching
+>   `isAuthenticated`. `src/routes/index.tsx`'s route table now nests `dashboard`, `trips/:id`, and
+>   `settings` under `ProtectedRoute`, alongside the public `login`/`register`/`password-reset`
+>   routes and the index `HomePage`. `PasswordResetPage.tsx`, `SettingsPage.tsx`, and
+>   `TripDetailPage.tsx` are still placeholder pages scaffolding their routes — real content is later
+>   Sprint 8+ work. `src/lib/auth.ts` and `src/lib/authContext.tsx` remain the original Spec-004
+>   scaffolding placeholders (`export {}` / an untyped `createContext`) — session state actually
+>   lives in `stores/auth-store.ts` and `features/auth/`, not in these two files.
 > - ✅ Sprint 3 (issue #93): accessibility CI gate — `@axe-core/playwright` + `@lhci/cli` dev
 >   dependencies, root `lighthouserc.yml`, `checkPageA11y(page)` helper (`frontend/tests/helpers/a11y.ts`),
 >   dedicated `Accessibility Audit` job in `.github/workflows/frontend-ci.yml`. Not yet exercising real pages — no E2E spec is
@@ -26,7 +61,8 @@ typed API client, accessibility helpers, and unit/integration tests.
 > - ✅ Sprint 2 (005-T042/T043, issue #59): design system tokens — `src/styles/tokens.css` +
 >   `src/styles/global.css`, imported once in `src/main.tsx`
 > - ✅ Test tooling: Vitest + React Testing Library + jest-dom + MSW installed, `npm test` runs a
->   passing smoke test (`src/App.test.tsx`); no coverage threshold enforced yet (roadmap 002-T041)
+>   passing smoke test (`src/App.test.tsx`). Coverage threshold enforcement (originally roadmap
+>   002-T041) shipped later — see "Running Tests" below: `vitest.config.ts` now enforces ≥90%.
 > - ✅ Sprint 2 (005-T048–T051, issue #63): core UI primitives — `Button`, `Input`, `Card` under
 >   `src/components/primitives/`, each with a token-driven CSS Module and a co-located Vitest/RTL
 >   test file
@@ -54,9 +90,12 @@ typed API client, accessibility helpers, and unit/integration tests.
 >   forbids navigating during render). `ErrorMessage` gained an optional `requestId` prop that
 >   renders a de-emphasized "Reference ID" line so a user can read a correlation ID off to support.
 >   005-T114 (sending `X-Request-ID` and parsing `requestId` out of error envelopes in
->   `src/lib/api-client.ts`) shipped earlier, in Sprint 2 (issue #81). Not yet wired into any real
->   page — no route consumes live API data yet, so nothing calls `useErrorHandler` or renders
->   `ErrorMessage` with a live `requestId` today; that lands with the feature pages in later sprints.
+>   `src/lib/api-client.ts`) shipped earlier, in Sprint 2 (issue #81). Still not wired into any real
+>   page as of Sprint 6: the auth pages that now do consume live API data (`LoginForm`/`RegisterForm`)
+>   render their errors via `getErrorMessage`/`getFieldErrors`/`isAPIError` from
+>   `src/lib/query-client.ts` directly rather than through this hook, so nothing calls
+>   `useErrorHandler` or renders `ErrorMessage` with a live `requestId` today; adopting the intended
+>   pattern (see "Error Handling" below) is still open follow-up work.
 >
 > Spec 005 Phase 4 (frontend application structure) is now complete. The "Project Structure" and
 > "Tech Stack" sections below still contain a **Target** subsection for work planned in later
@@ -93,7 +132,7 @@ The frontend is the only client of the backend REST API. Its primary jobs are:
 | Client state | Zustand | ✅ wired up: `useAuthStore` in `src/stores/auth-store.ts` (issue #61) |
 | Build tool | Vite | ✅ installed |
 | Styling | CSS Modules + CSS custom properties (design tokens) | ✅ tokens/global styles in place; CSS Modules in use by `primitives/`, `composites/`, and `ErrorBoundary` (issues #63, #64, #65, #62) |
-| Icons | Lucide React | ✅ installed, not yet used |
+| Icons | Lucide React | ✅ installed; in use — e.g. `AlertCircle` in `src/components/primitives/ErrorMessage.tsx` |
 | Linting/formatting | ESLint (strict) + Prettier | ✅ installed |
 | Unit/integration tests | Vitest + React Testing Library + MSW | ✅ installed; **MSW wired up** (issue #180) — shared server in `src/test/msw/`, lifecycle in `src/test/setup.ts`, `onUnhandledRequest: 'error'`. `api-client.test.ts` keeps its direct `fetch` stubs (it is the client's own unit test; a stubbed `fetch` bypasses MSW, so the two styles cannot share a file) |
 | E2E + accessibility tests | Playwright (`e2e/`) + `@axe-core/playwright` | ✅ `@axe-core/playwright` installed in both `e2e/` (Sprint 1, issue #24) and `frontend/` (issue #93); `checkPageA11y(page)` helper in `frontend/tests/helpers/a11y.ts` — not yet called from any `e2e/*.spec.ts` (that wiring is 002-T023, Sprint 9) |
@@ -118,18 +157,39 @@ frontend/
 │   │   │   ├── ErrorMessage.tsx / .module.css / .test.tsx        # role="alert" error display with an optional retry button
 │   │   │   └── EmptyState.tsx / .module.css / .test.tsx          # "nothing to show" state with optional icon and action button
 │   │   ├── composites/                # Compositions of primitives
-│   │   │   └── Form.tsx / Form.module.css / Form.test.tsx        # config-driven form built on Button + Input; owns loading/error state
+│   │   │   ├── Form.tsx / Form.module.css / Form.test.tsx        # config-driven form built on Button + Input; owns loading/error state
+│   │   │   └── Navigation.tsx / .module.css / .test.tsx          # Persistent authenticated-shell nav: user name, subscription badge, log out button, responsive hamburger menu (issue #184, PR #203)
+│   │   ├── ProtectedRoute.tsx / .test.tsx                        # Route guard: renders <Outlet /> when useIsAuthenticated() is true, else redirects (replace) to /login?redirect=<attempted-path> (issue #184, PR #203)
 │   │   └── ErrorBoundary.tsx / .module.css / .test.tsx           # Top-level class-based error boundary (see "Component Architecture" below); not a primitive or composite — sits outside the Atomic Design layers
 │   ├── routes/                       # React Router v7 route configuration
-│   │   ├── index.tsx                 # createBrowserRouter config: RootLayout > index route (HomePage)
-│   │   ├── RootLayout.tsx            # Shared layout; renders <Outlet /> (future: header/footer chrome)
+│   │   ├── index.tsx                 # createBrowserRouter config: RootLayout > { public: index/login/register/password-reset; ProtectedRoute > dashboard/trips/:id/settings } (issues #182/#183/#184)
+│   │   ├── RootLayout.tsx            # Shared layout; renders <Outlet /> (future: header/footer chrome — Navigation is rendered per-page today, e.g. by DashboardPage, not here)
 │   │   ├── HomePage.tsx              # Placeholder index-route page
+│   │   ├── LoginPage.tsx             # Renders LoginForm; on success navigates to the sanitized ?redirect= target (resolveLoginRedirect), else /dashboard (issue #183, PR #198)
+│   │   ├── RegisterPage.tsx          # Renders RegisterForm; on success navigates to /dashboard, replacing history (issue #182, PR #198)
+│   │   ├── login-redirect.ts / .test.ts # resolveLoginRedirect(): allow-lists a same-origin ?redirect= path (single leading /), rejecting //host and /\host open-redirect vectors (issue #183, PR #198)
+│   │   ├── PasswordResetPage.tsx     # Placeholder scaffolding the public /password-reset route; real reset flow is later-sprint work
+│   │   ├── DashboardPage.tsx / .test.tsx # Wires Navigation + a welcome message + an EmptyState placeholder (real trip list lands with TripDashboard/useTrips in Sprint 8) (issue #184, PR #203)
+│   │   ├── SettingsPage.tsx          # Placeholder scaffolding the protected /settings route; real account/subscription settings are later-sprint work
+│   │   ├── TripDetailPage.tsx        # Placeholder scaffolding the protected /trips/:id route; real itinerary content is later-sprint work
 │   │   └── index.test.tsx
 │   ├── stores/                       # Zustand client-state stores
-│   │   ├── auth-store.ts             # useAuthStore: isAuthenticated/user/isLoading + login/logout/refreshSession/setLoading; no persistence (session cookie is the source of truth)
+│   │   ├── auth-store.ts             # useAuthStore: isAuthenticated/user/isLoading + login/logout/refreshSession/setUser/setLoading; no persistence (session cookie is the source of truth). setUser added issue #184/PR #203 to refresh user data without touching isAuthenticated
 │   │   └── auth-store.test.ts
 │   ├── features/                     # Feature-scoped components and logic
-│   │   └── auth/                     # authApi service, useRegister/useLogin/useLogout, session-expiry handler (issue #180)
+│   │   └── auth/                     # Auth feature module (issues #171/#180/#182/#183, PRs #194/#198)
+│   │       ├── types.ts              # Wire types for /api/v1/auth/*: RegisterRequest/Response, LoginRequest/Response, CurrentUserResponse, Subscription
+│   │       ├── validation.ts         # isValidEmail/validatePasswordStrength/isValidFullName — mirrors backend/internal/auth/validator.go rule-for-rule
+│   │       ├── session-expiry.ts     # handleSessionExpired/installSessionExpiryHandler: on an unrecoverable 401, clears the auth store and window.location.assigns to /login?redirect=..., wired from main.tsx via a handler registry (not an import) to keep api-client.ts store-agnostic
+│   │       ├── services/
+│   │       │   └── authApi.ts        # register/login/logout/me built on lib/api-client.ts (credentials: 'include'; tokens ride as HttpOnly cookies, never handled here)
+│   │       ├── hooks/
+│   │       │   ├── useRegister.ts    # TanStack mutation for POST /auth/register; on success pushes the returned user into the auth store
+│   │       │   ├── useLogin.ts       # TanStack mutation for POST /auth/login; also exposes retryAfterSeconds seeded from a 429's Retry-After
+│   │       │   └── useLogout.ts      # TanStack mutation for POST /auth/logout; on success clears the store, drops the whole query cache, and navigates to /login
+│   │       └── components/
+│   │           ├── LoginForm.tsx     # Email/password form; renders a generic "Invalid email or password" on 401 (anti-enumeration) and a live rate-limit countdown on 429
+│   │           └── RegisterForm.tsx  # Email/password/full_name form with an optional [DEMO] payment-token checkbox (DEMO_PAYMENT_TOKEN — the real checkout page is a separate, still-Backlog ticket)
 │   ├── hooks/                        # Shared custom React hooks (prefix: use)
 │   │   ├── useErrorHandler.ts        # Maps an unknown error (e.g. TanStack Query's `error`) to { title, message, requestId?, isRetryable }; redirects to /login on 401
 │   │   └── useErrorHandler.test.tsx
@@ -158,7 +218,7 @@ frontend/
 │       └── a11y.ts / a11y.test.ts    # checkPageA11y(page): wraps @axe-core/playwright, throws on any WCAG 2.1 AA violation (issue #93); not yet called from e2e/*.spec.ts (002-T023, Sprint 9)
 ├── index.html
 ├── vite.config.ts
-├── vitest.config.ts                  # jsdom environment, coverage via v8 (no enforced threshold yet)
+├── vitest.config.ts                  # jsdom environment, coverage via v8, thresholds enforced at 90% (statements/branches/functions/lines)
 ├── tsconfig.json / tsconfig.node.json  # TypeScript strict mode
 ├── tsconfig.tests.json                # Extends tsconfig.json; includes tests/ so ESLint's typed linting can parse it (src/ build is unaffected)
 ├── eslint.config.js                  # Flat ESLint config
@@ -170,9 +230,13 @@ frontend/
 ### Target (planned, future specs)
 
 Where the codebase is still headed. Everything in "Current" above (`components/primitives/`,
-`components/composites/`, `components/ErrorBoundary.tsx`, `routes/`, `stores/auth-store.ts`,
-`features/auth/`, `hooks/useErrorHandler.ts`, `lib/`, `test/msw/`, `tests/helpers/a11y.ts`, and the
-wired-up `App.tsx`) is already real — everything below is still aspirational.
+`components/composites/` including `Navigation`, `components/ProtectedRoute.tsx`,
+`components/ErrorBoundary.tsx`, `routes/` including the real `login`/`register`/`password-reset`/
+`dashboard`/`trips/:id`/`settings` route files, `stores/auth-store.ts`, `features/auth/`,
+`hooks/useErrorHandler.ts`, `lib/`, `test/msw/`, `tests/helpers/a11y.ts`, and the wired-up `App.tsx`)
+is already real — everything below is still aspirational. Note that some routes above are real
+*files* wired into the router but still render placeholder content (`PasswordResetPage`,
+`SettingsPage`, `TripDetailPage`, `HomePage`) — see the "Current" tree for which.
 
 ```
 frontend/
@@ -181,17 +245,19 @@ frontend/
 │   │   └── ...                       # e.g. trips/, collaboration/ — added as their specs land
 │   ├── components/
 │   │   ├── primitives/               # More primitives to add: Badge, PrivacyPolicyLink
-│   │   ├── composites/               # More composites to add: TripCard, ActivityItem, DaySection, SuggestionBubble
+│   │   ├── composites/               # More composites to add: TripCard, ActivityItem, DaySection, TravelStyleSelector, SuggestionBubble, CollaboratorInvite
 │   │   └── features/                 # Feature-level UI blocks (ConversationPanel, ItineraryView, SuggestionQueue)
-│   ├── routes/                       # More routes to add: register/login/dashboard/generate/trip/privacy-policy pages
+│   ├── routes/                       # More routes to add: itinerary-generation, privacy-policy pages; real content still to land inside the existing password-reset/settings/trip/home placeholder pages
 │   ├── lib/                          # More TanStack Query hooks to add on top of api-client.ts: useTrips, useTrip, useSendMessage, etc.
 │   └── hooks/                        # More shared hooks beyond useErrorHandler, as reusable non-query logic emerges
 └── public/
 ```
 
-Coverage thresholds (≥ 80% for `src/components/` and `src/hooks/`) are not yet enforced in
-`vitest.config.ts` — both directories exist today, but configuring the thresholds themselves is
-still tracked separately as roadmap 002-T041.
+Coverage thresholds (≥ 90% statements/branches/functions/lines, repo-wide) **are** enforced via
+`thresholds` in `vitest.config.ts` — `npm run test:coverage` and the CI coverage step fail below
+that floor. This supersedes the enforcement gap formerly tracked as roadmap task 002-T041; see
+[`docs/testing-guidelines.md`](../docs/testing-guidelines.md#coverage-targets) for the full history
+of the 80%→90% change.
 
 ---
 
@@ -248,7 +314,7 @@ Ensure the backend is running first — see [`backend/README.md`](../backend/REA
 # Unit and integration tests
 npm test
 
-# Unit tests with a coverage report (no enforced threshold yet — see roadmap 002-T041)
+# Unit tests with a coverage report (≥90% enforced — see "Coverage Targets" in docs/testing-guidelines.md)
 npm run test:coverage
 
 # Watch mode during development
@@ -297,12 +363,13 @@ always permitted; the reverse is forbidden.
 | Layer | Location | Description |
 |-------|----------|-------------|
 | Primitives ("atoms") | `src/components/primitives/` | Single-responsibility UI primitives: `Button`, `Input`, `Card` ✅ implemented (issue #63); `LoadingSpinner`, `ErrorMessage`, `EmptyState` ✅ implemented (issue #64); `Label` ✅ implemented (issue #171); `Badge`, `PrivacyPolicyLink` ⏳ planned |
-| Composites | `src/components/composites/` | Reusable combinations of primitives: `Form` ✅ implemented (issue #65); `TripCard`, `ActivityItem`, `DaySection`, `TravelStyleSelector`, `SuggestionBubble`, `CollaboratorInvite` ⏳ planned |
+| Composites | `src/components/composites/` | Reusable combinations of primitives: `Form` ✅ implemented (issue #65); `Navigation` ✅ implemented (issue #184); `TripCard`, `ActivityItem`, `DaySection`, `TravelStyleSelector`, `SuggestionBubble`, `CollaboratorInvite` ⏳ planned |
 | Features | `src/components/features/` | Domain-specific, data-connected blocks: `ConversationPanel`, `ItineraryView`, `SuggestionQueue` ⏳ planned |
 
-`ErrorBoundary` (`src/components/ErrorBoundary.tsx`) ✅ implemented (issue #62) sits outside this
-layering — it's a single top-level app-shell component, not a reusable primitive/composite/feature
-block, so it lives directly under `src/components/` rather than in one of the three subdirectories.
+`ErrorBoundary` (`src/components/ErrorBoundary.tsx`) ✅ implemented (issue #62) and `ProtectedRoute`
+(`src/components/ProtectedRoute.tsx`) ✅ implemented (issue #184) both sit outside this layering —
+single top-level app-shell/routing components, not reusable primitives/composites/features, so they
+live directly under `src/components/` rather than in one of the three subdirectories.
 
 Every data-dependent component must explicitly handle **Loading**, **Error**, and **Empty** states.
 
@@ -322,9 +389,11 @@ Every data-dependent component must explicitly handle **Loading**, **Error**, an
 
 Three pieces compose into the intended error-handling pattern for any future data-fetching
 component: `APIError` (thrown at the fetch layer), `useErrorHandler` (turns it into display-ready
-info), and `ErrorMessage` (renders that info). **Note**: as of this writing no route makes a live
-API call yet (auth/trip pages are future-sprint work — issues #55/#117/#118), so this pattern isn't
-visible anywhere in the running app today; it documents what any future feature page should adopt.
+info), and `ErrorMessage` (renders that info). **Note (updated Sprint 6)**: the auth pages now make
+live API calls (`LoginForm`/`RegisterForm` via `useLogin`/`useRegister`), but they render errors via
+`getErrorMessage`/`getFieldErrors`/`isAPIError` from `src/lib/query-client.ts` directly rather than
+through this hook — so `useErrorHandler`/`ErrorMessage` still aren't exercised anywhere in the
+running app today. This section documents the intended pattern for future feature pages to adopt.
 
 ### `APIError` (`src/lib/api-client.ts`)
 
