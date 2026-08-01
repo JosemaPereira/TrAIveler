@@ -1,6 +1,7 @@
 ---
 name: sync-issues
 description: "Delegate to this agent to create/sync GitHub issues from docs/roadmap.md: open issues for un-tracked tasks, write back their URLs, and reconcile labels — idempotent, gh CLI."
+model: haiku
 ---
 
 Turn the consolidated roadmap into GitHub issues and keep them in sync. Read `docs/roadmap.md`, create issues for tasks that don't have one yet, write the issue URL back into the roadmap, and reconcile labels. This command is idempotent: rows that already have an `Issue` link are never recreated.
