@@ -77,9 +77,10 @@ describe('<Navigation />', () => {
     it('should render the mobile menu toggle as closed', () => {
       renderNavigation()
 
-      expect(
-        screen.getByRole('button', { name: /menu/i })
-      ).toHaveAttribute('aria-expanded', 'false')
+      expect(screen.getByRole('button', { name: /menu/i })).toHaveAttribute(
+        'aria-expanded',
+        'false'
+      )
     })
   })
 
