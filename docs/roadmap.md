@@ -1926,13 +1926,17 @@ Sprint 5) + Spec 002/004 cheap fixes carried from Sprint 5
 | G-SPRINT6-LINT-CI — #173 | 4 | golangci `test` build-tag, Postgres test-image alignment, `roadmap-status-drift` gate |
 | G-004-CONFIG-AUDIT — #174 | 2 | forward `BcryptCost`, audit unconsumed config fields |
 
-**Discovered follow-ups (non-blocking, triage into Sprint 7+)**: #192 (G-008-AUTH-FOLLOWUPS) bundles
-three items surfaced during #179 — (A) `/auth/refresh` returns 500 not the spec's 503 on a DB outage;
-(B) `handleRegister`/`handleLogin` lack `@Failure 500` annotations; (C) `/swagger/*` now 401s on a
-cold start (correct per 008-T208, but local-dev friction — decide on a dev-only bypass). Two related
-items are already tracked elsewhere and intentionally NOT in #192: 008-T160 (frontend renewal
-interceptor) is homed on #180; `HTTPServer.extraProtectedRoutes` carries its own in-code deletion
-trigger for whenever the first subscription-gated route lands.
+**Discovered follow-ups — RESOLVED (2026-08-01)**: #192 (G-008-AUTH-FOLLOWUPS) bundled three items
+surfaced during #179, all closed via PR #204 on branch `feature/192-auth-followups`: (A) `/auth/refresh`
+now returns `503` (not `500`) on a DB outage via new `errors.ServiceUnavailableFromDB`, wired into
+every DB-touching failure point in `Refresher.RefreshToken` (`7fe9fa8`); (B) `handleRegister`/
+`handleLogin` gained `@Failure 500` annotations, `make swagger` regenerated (`8f28b35`); (C) `/swagger/*`
+now gates on `Authenticate` **only when
+`GO_ENV=production`** (new `Config.Environment`/`Config.IsProduction()`), removing local/staging
+onboarding friction while keeping the 009-research-documented prod gating intact (`6215738`). One item
+remains deliberately out of scope: `HTTPServer.extraProtectedRoutes` still carries its own in-code
+deletion trigger for whenever the first subscription-gated route lands (unchanged, no separate
+tracking needed). 008-T160 (frontend renewal interceptor) was delivered separately on #180 (PR #194).
 
 **Total**: 58 tasks → **18 work items (issues #167–#184)**  
 **Velocity note**: 58 tasks is above the historical max (Sprint 3 = 54; actual mean ≈ 39). Deliberately
