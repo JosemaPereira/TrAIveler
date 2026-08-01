@@ -17,6 +17,7 @@ import (
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 
+	"github.com/JosemaPereira/TrAIveler/backend/config"
 	"github.com/JosemaPereira/TrAIveler/backend/internal/database"
 	dbmocks "github.com/JosemaPereira/TrAIveler/backend/internal/database/mocks"
 	"github.com/JosemaPereira/TrAIveler/backend/internal/middleware"
@@ -62,8 +63,18 @@ func withProtectedRoutes(register func(chi.Router)) serverOption {
 
 // newGatedServer builds a server whose gate accepts every presented cookie and
 // reports the given claims, optionally mounting extra probe routes inside the
-// authenticated group.
+// authenticated group. Uses the default (non-production) test config.
 func newGatedServer(t *testing.T, db database.Client, extra ...serverOption) (*HTTPServer, *fakeTokenValidator) {
+	t.Helper()
+	return newGatedServerWithConfig(t, db, testConfig(t), extra...)
+}
+
+// newGatedServerWithConfig is newGatedServer parametrized by cfg, so a test can
+// exercise environment-dependent behavior — e.g. /swagger/* only being gated in
+// production (issue #192 Task C) — without duplicating the fake-validator wiring.
+func newGatedServerWithConfig(
+	t *testing.T, db database.Client, cfg *config.Config, extra ...serverOption,
+) (*HTTPServer, *fakeTokenValidator) {
 	t.Helper()
 
 	validator := &fakeTokenValidator{
@@ -71,10 +82,20 @@ func newGatedServer(t *testing.T, db database.Client, extra ...serverOption) (*H
 	}
 	opts := append([]serverOption{withTokenValidator(validator)}, extra...)
 
-	srv, err := NewHTTPServer(db, testConfig(t), testLogger(t), opts...)
+	srv, err := NewHTTPServer(db, cfg, testLogger(t), opts...)
 	require.NoError(t, err)
 
 	return srv, validator
+}
+
+// productionTestConfig is testConfig with Environment set to production, for
+// tests proving production-only behavior such as /swagger/* gating (issue
+// #192 Task C).
+func productionTestConfig(t *testing.T) *config.Config {
+	t.Helper()
+	cfg := testConfig(t)
+	cfg.Environment = "production"
+	return cfg
 }
 
 // doRequest issues one request against the server's real route table, optionally
@@ -127,6 +148,10 @@ func TestHTTPServer_Routes_RegisteringPublicAndProtectedGroupsDoesNotPanic(t *te
 }
 
 func TestHTTPServer_ProtectedRoutes_NoAccessTokenCookie_Returns401AuthenticationRequired(t *testing.T) {
+	// /swagger/* is deliberately not in this table: unlike the routes below, it
+	// is gated only in production (issue #192 Task C) — see
+	// TestHTTPServer_SwaggerRoutes_ProductionConfig_NoAccessTokenCookie_Returns401AuthenticationRequired
+	// and TestHTTPServer_SwaggerRoutes_NonProductionConfig_ServesWithoutAuthentication.
 	testCases := []struct {
 		name   string
 		method string
@@ -135,8 +160,6 @@ func TestHTTPServer_ProtectedRoutes_NoAccessTokenCookie_Returns401Authentication
 		{name: "when an example collection route is requested", method: http.MethodGet, path: "/api/v1/examples"},
 		{name: "when an example item route is requested", method: http.MethodGet, path: "/api/v1/examples/some-id"},
 		{name: "when logout is requested", method: http.MethodPost, path: "/api/v1/auth/logout"},
-		{name: "when the Swagger contract is requested", method: http.MethodGet, path: "/swagger/doc.json"},
-		{name: "when the Swagger UI is requested", method: http.MethodGet, path: "/swagger/index.html"},
 	}
 
 	for _, testCase := range testCases {
@@ -157,12 +180,15 @@ func TestHTTPServer_ProtectedRoutes_NoAccessTokenCookie_Returns401Authentication
 }
 
 func TestHTTPServer_ProtectedRoutes_InvalidAccessToken_Returns401AuthenticationRequired(t *testing.T) {
+	// Exercised against /api/v1/auth/logout rather than /swagger/* because the
+	// latter is only conditionally gated (issue #192 Task C); logout is gated
+	// in every environment, which is what this test's own name promises.
 	// Arrange
 	srv, validator := newGatedServer(t, dbmocks.NewMockClient(t))
 	validator.err = errors.New("invalid or expired token")
 
 	// Act
-	rec := doRequest(t, srv, http.MethodGet, "/swagger/doc.json", true)
+	rec := doRequest(t, srv, http.MethodPost, "/api/v1/auth/logout", true)
 
 	// Assert
 	require.Equal(t, http.StatusUnauthorized, rec.Code)
@@ -173,13 +199,15 @@ func TestHTTPServer_ProtectedRoutes_InvalidAccessToken_Returns401AuthenticationR
 func TestHTTPServer_ProtectedRoutes_ExpiredAccessToken_Returns401TokenExpired(t *testing.T) {
 	// A validly-signed-but-expired token gets its own code end-to-end through the
 	// real route table, so the frontend can tell "refresh me" (008-T150) apart from
-	// every other 401, which stays the uniform authentication_required.
+	// every other 401, which stays the uniform authentication_required. Exercised
+	// against /api/v1/auth/logout for the same reason as the InvalidAccessToken
+	// test above: /swagger/* is only conditionally gated (issue #192 Task C).
 	// Arrange
 	srv, validator := newGatedServer(t, dbmocks.NewMockClient(t))
 	validator.err = middleware.ErrTokenExpired
 
 	// Act
-	rec := doRequest(t, srv, http.MethodGet, "/swagger/doc.json", true)
+	rec := doRequest(t, srv, http.MethodPost, "/api/v1/auth/logout", true)
 
 	// Assert
 	require.Equal(t, http.StatusUnauthorized, rec.Code)
@@ -278,9 +306,49 @@ func TestHTTPServer_ProtectedRoutes_ValidAccessTokenCookie_ReachesHandlerWithUse
 	assert.True(t, gotHasSub)
 }
 
-func TestHTTPServer_SwaggerRoutes_ValidAccessTokenCookie_ServesTheContract(t *testing.T) {
+// TestHTTPServer_SwaggerRoutes_NonProductionConfig_ServesWithoutAuthentication
+// is issue #192 Task C: /swagger/index.html sitting behind the Authenticate
+// gate is real onboarding friction locally (401 on first load, before any
+// login), so outside production the route is reachable with no cookie at all.
+func TestHTTPServer_SwaggerRoutes_NonProductionConfig_ServesWithoutAuthentication(t *testing.T) {
 	// Arrange
 	srv, validator := newGatedServer(t, dbmocks.NewMockClient(t))
+
+	// Act: no cookie presented at all.
+	rec := doRequest(t, srv, http.MethodGet, "/swagger/doc.json", false)
+
+	// Assert
+	require.Equal(t, http.StatusOK, rec.Code)
+	assert.Zero(t, validator.callCount, "a non-production /swagger/* request must not consult the gate")
+
+	var doc map[string]any
+	require.NoError(t, json.Unmarshal(rec.Body.Bytes(), &doc))
+	assert.Equal(t, "2.0", doc["swagger"])
+}
+
+// TestHTTPServer_SwaggerRoutes_ProductionConfig_NoAccessTokenCookie_Returns401AuthenticationRequired
+// preserves the pre-existing production behavior (specs/009-api-documentation/research.md's
+// "Auth gating for Swagger UI ahead of Sprint 5" decision): /swagger/* stays
+// gated in production, issue #192 Task C only relaxes it outside production.
+func TestHTTPServer_SwaggerRoutes_ProductionConfig_NoAccessTokenCookie_Returns401AuthenticationRequired(t *testing.T) {
+	// Arrange
+	srv, validator := newGatedServerWithConfig(t, dbmocks.NewMockClient(t), productionTestConfig(t))
+
+	// Act
+	rec := doRequest(t, srv, http.MethodGet, "/swagger/doc.json", false)
+
+	// Assert
+	require.Equal(t, http.StatusUnauthorized, rec.Code)
+	assert.Equal(t, "authentication_required", decodeErrorCode(t, rec))
+	assert.Zero(t, validator.callCount, "a missing cookie must be rejected before any token validation")
+}
+
+// TestHTTPServer_SwaggerRoutes_ProductionConfig_ValidAccessTokenCookie_ServesTheContract
+// is the production counterpart of
+// TestHTTPServer_SwaggerRoutes_NonProductionConfig_ServesWithoutAuthentication.
+func TestHTTPServer_SwaggerRoutes_ProductionConfig_ValidAccessTokenCookie_ServesTheContract(t *testing.T) {
+	// Arrange
+	srv, validator := newGatedServerWithConfig(t, dbmocks.NewMockClient(t), productionTestConfig(t))
 
 	// Act
 	rec := doRequest(t, srv, http.MethodGet, "/swagger/doc.json", true)

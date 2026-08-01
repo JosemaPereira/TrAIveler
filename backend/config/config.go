@@ -49,12 +49,25 @@ const (
 // Config holds all application configuration loaded from environment variables.
 // All fields are loaded at startup with fail-fast validation.
 type Config struct {
-	Log       LogConfig
-	Server    ServerConfig
-	Database  DatabaseConfig
-	AI        AIConfig
-	Auth      AuthConfig
-	RateLimit RateLimitConfig
+	// Environment is the raw GO_ENV value ("development" by default, or
+	// "production"). The individual loaders below already read GO_ENV ad hoc
+	// where they need it at load time (see loadAIConfig/loadAuthConfig); this
+	// field exists for code that only holds an already-loaded *Config and
+	// needs to ask it, via IsProduction, without re-reading the environment
+	// itself — e.g. gating /swagger/* behind auth only in production
+	// (cmd/api/routes.go, issue #192 Task C).
+	Environment string
+	Log         LogConfig
+	Server      ServerConfig
+	Database    DatabaseConfig
+	AI          AIConfig
+	Auth        AuthConfig
+	RateLimit   RateLimitConfig
+}
+
+// IsProduction reports whether this Config was loaded with GO_ENV=production.
+func (c *Config) IsProduction() bool {
+	return c.Environment == envProduction
 }
 
 // ServerConfig contains HTTP server settings.
@@ -139,12 +152,13 @@ type LogConfig struct {
 // Returns an error if required variables are missing or invalid.
 func Load() (*Config, error) {
 	cfg := &Config{
-		Server:    loadServerConfig(),
-		Database:  loadDatabaseConfig(),
-		AI:        loadAIConfig(),
-		Auth:      loadAuthConfig(),
-		RateLimit: loadRateLimitConfig(),
-		Log:       loadLogConfig(),
+		Environment: getEnv("GO_ENV", envDevelopment),
+		Server:      loadServerConfig(),
+		Database:    loadDatabaseConfig(),
+		AI:          loadAIConfig(),
+		Auth:        loadAuthConfig(),
+		RateLimit:   loadRateLimitConfig(),
+		Log:         loadLogConfig(),
 	}
 
 	if err := validate(cfg); err != nil {

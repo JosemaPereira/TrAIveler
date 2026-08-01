@@ -361,6 +361,42 @@ func TestLoad_BcryptCost_NonProductionBelowFloor_Preserved(t *testing.T) {
 	}
 }
 
+func TestLoad_Environment_DefaultsToDevelopment(t *testing.T) {
+	setValidEnv(t)
+
+	cfg, err := Load()
+	if err != nil {
+		t.Fatalf("Load() unexpected error = %v", err)
+	}
+
+	if cfg.Environment != "development" {
+		t.Errorf("Environment: got %q, want %q", cfg.Environment, "development")
+	}
+	if cfg.IsProduction() {
+		t.Errorf("IsProduction() with GO_ENV unset: got true, want false")
+	}
+}
+
+func TestLoad_Environment_ReflectsGOEnvProduction(t *testing.T) {
+	os.Clearenv()
+	os.Setenv("DATABASE_URL", "postgres://localhost/test")
+	os.Setenv("JWT_SIGNING_KEY", "test-signing-key")
+	os.Setenv("AI_PROVIDER", "ollama")
+	os.Setenv("GO_ENV", "production")
+
+	cfg, err := Load()
+	if err != nil {
+		t.Fatalf("Load() unexpected error = %v", err)
+	}
+
+	if cfg.Environment != "production" {
+		t.Errorf("Environment: got %q, want %q", cfg.Environment, "production")
+	}
+	if !cfg.IsProduction() {
+		t.Errorf("IsProduction() with GO_ENV=production: got false, want true")
+	}
+}
+
 func TestLoad_RequiredValues(t *testing.T) {
 	setValidEnv(t)
 
