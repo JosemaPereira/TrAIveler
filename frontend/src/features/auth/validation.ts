@@ -25,9 +25,15 @@ export function isValidEmail(email: string): boolean {
 export function validatePasswordStrength(password: string): string[] {
   const errors: string[] = []
 
+  // Count Unicode code points, not UTF-16 code units: `.length` would count a
+  // character outside the Basic Multilingual Plane (e.g. an emoji) as two,
+  // disagreeing with the backend's len([]rune(password)) by one per such
+  // character (backend/internal/auth/validator.go).
+  const codePointLength = Array.from(password).length
+
   if (
-    password.length < MIN_PASSWORD_LENGTH ||
-    password.length > MAX_PASSWORD_LENGTH
+    codePointLength < MIN_PASSWORD_LENGTH ||
+    codePointLength > MAX_PASSWORD_LENGTH
   ) {
     errors.push(
       `Password must be between ${String(MIN_PASSWORD_LENGTH)} and ${String(MAX_PASSWORD_LENGTH)} characters`

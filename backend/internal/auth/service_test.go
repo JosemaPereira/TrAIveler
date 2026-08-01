@@ -28,6 +28,28 @@ const (
 	testBcryptCost = 4
 )
 
+// fakeConnectivityError stands in for a pgx connection-level failure (dial
+// refused, timeout, DNS failure, ...), duplicated here rather than imported
+// from another package's test file (same reasoning as
+// internal/auth/jwt/refresher_test.go's own copy: pgx's real connectivity
+// errors are unexported and only constructible by actually dialing, so this
+// minimal type satisfies the same duck-typed `interface{ SafeToRetry() bool
+// }` that pgconn.SafeToRetry checks for via errors.As — see
+// errors.ServiceUnavailableFromDB).
+type fakeConnectivityError struct {
+	cause error
+}
+
+func (e *fakeConnectivityError) Error() string     { return "dial: " + e.cause.Error() }
+func (e *fakeConnectivityError) Unwrap() error     { return e.cause }
+func (e *fakeConnectivityError) SafeToRetry() bool { return true }
+
+// newConnRefusedError builds a connection-level failure, e.g. a database
+// outage during POST /auth/register or POST /auth/login (issue #207 Sub-item 1).
+func newConnRefusedError() error {
+	return &fakeConnectivityError{cause: errors.New("connection refused")}
+}
+
 // fakeSubscriptionCreator is a hand-written stand-in for the unexported
 // subscriptionCreator port (single method, satisfied structurally by
 // *subscription.Service). Per docs/mock-standards.md a hand fake is preferred
@@ -49,9 +71,9 @@ func (f *fakeSubscriptionCreator) CreateSubscription(
 	return f.sub, f.err
 }
 
-func hashFor(t *testing.T, password string) string {
+func hashFor(t *testing.T) string {
 	t.Helper()
-	hash, err := auth.HashPassword(password, testBcryptCost)
+	hash, err := auth.HashPassword(testPassword, testBcryptCost)
 	require.NoError(t, err)
 	return hash
 }
@@ -184,13 +206,106 @@ func TestUnitRegister_LookupFails_PropagatesUnexpectedError(t *testing.T) {
 	assert.ErrorIs(t, err, dbErr)
 }
 
+// assertServiceUnavailable verifies err is a "service_unavailable" DomainError
+// carrying the 30-second Retry-After hint, matching /auth/refresh's own
+// classification (jwt.classifyStorageErr, issue #192 Task A) so register/login
+// behave consistently under a database outage (issue #207 Sub-item 1).
+func assertServiceUnavailable(t *testing.T, err error) {
+	t.Helper()
+	require.Error(t, err)
+	var domainErr *domainerrors.DomainError
+	require.ErrorAs(t, err, &domainErr)
+	assert.Equal(t, "service_unavailable", domainErr.Code)
+	assert.Equal(t, 30, domainErr.Details["retry_after_seconds"])
+}
+
+// TestUnitRegister_LookupFailsWithConnectivityError_ReturnsServiceUnavailable
+// verifies a database outage during the email-uniqueness lookup maps to a 503,
+// not the generic 500 a plain repository error would fall through to.
+func TestUnitRegister_LookupFailsWithConnectivityError_ReturnsServiceUnavailable(t *testing.T) {
+	users := authmocks.NewMockUserRepository(t)
+	users.EXPECT().GetUserByEmail(mock.Anything, testEmail).Return(nil, newConnRefusedError()).Once()
+	creator := &fakeSubscriptionCreator{}
+
+	svc := auth.NewService(users, creator, ratelimit.New(), testBcryptCost)
+	resp, err := svc.Register(context.Background(), validRegisterRequest())
+
+	assert.Nil(t, resp)
+	assertServiceUnavailable(t, err)
+}
+
+// TestUnitRegister_CreateUserFailsWithConnectivityError_ReturnsServiceUnavailable
+// verifies a database outage while persisting the new user maps to a 503.
+func TestUnitRegister_CreateUserFailsWithConnectivityError_ReturnsServiceUnavailable(t *testing.T) {
+	users := authmocks.NewMockUserRepository(t)
+	users.EXPECT().
+		GetUserByEmail(mock.Anything, testEmail).
+		Return(nil, domainerrors.NotFound("user", testEmail)).
+		Once()
+	users.EXPECT().CreateUser(mock.Anything, mock.Anything).Return(newConnRefusedError()).Once()
+	creator := &fakeSubscriptionCreator{}
+
+	svc := auth.NewService(users, creator, ratelimit.New(), testBcryptCost)
+	resp, err := svc.Register(context.Background(), validRegisterRequest())
+
+	assert.Nil(t, resp)
+	assertServiceUnavailable(t, err)
+}
+
+// TestUnitRegister_SubscriptionCreationFailsWithConnectivityError_ReturnsServiceUnavailable
+// verifies a database outage inside subscription creation (charge succeeds,
+// persistence fails) maps to a 503 rather than a generic 500.
+func TestUnitRegister_SubscriptionCreationFailsWithConnectivityError_ReturnsServiceUnavailable(t *testing.T) {
+	users := authmocks.NewMockUserRepository(t)
+	users.EXPECT().
+		GetUserByEmail(mock.Anything, testEmail).
+		Return(nil, domainerrors.NotFound("user", testEmail)).
+		Once()
+	users.EXPECT().CreateUser(mock.Anything, mock.Anything).Return(nil).Once()
+	creator := &fakeSubscriptionCreator{err: newConnRefusedError()}
+
+	req := validRegisterRequest()
+	req.PaymentMethodToken = testToken
+
+	svc := auth.NewService(users, creator, ratelimit.New(), testBcryptCost)
+	resp, err := svc.Register(context.Background(), req)
+
+	assert.Nil(t, resp)
+	assertServiceUnavailable(t, err)
+}
+
+// TestUnitRegister_SubscriptionFlipUpdateFailsWithConnectivityError_ReturnsServiceUnavailable
+// verifies a database outage while flipping has_subscription=true after a
+// successful subscription creation maps to a 503.
+func TestUnitRegister_SubscriptionFlipUpdateFailsWithConnectivityError_ReturnsServiceUnavailable(t *testing.T) {
+	users := authmocks.NewMockUserRepository(t)
+	users.EXPECT().
+		GetUserByEmail(mock.Anything, testEmail).
+		Return(nil, domainerrors.NotFound("user", testEmail)).
+		Once()
+	users.EXPECT().CreateUser(mock.Anything, mock.Anything).Return(nil).Once()
+	users.EXPECT().UpdateUser(mock.Anything, mock.Anything).Return(newConnRefusedError()).Once()
+
+	wantSub := &subscription.Subscription{ID: "sub-1", Status: subscription.StatusActive}
+	creator := &fakeSubscriptionCreator{sub: wantSub}
+
+	req := validRegisterRequest()
+	req.PaymentMethodToken = testToken
+
+	svc := auth.NewService(users, creator, ratelimit.New(), testBcryptCost)
+	resp, err := svc.Register(context.Background(), req)
+
+	assert.Nil(t, resp)
+	assertServiceUnavailable(t, err)
+}
+
 // --- Login ----------------------------------------------------------------
 
 // TestUnitLogin_ValidCredentials_ReturnsUser verifies the happy path: correct
 // password, no prior failures, so no counter update is needed.
 func TestUnitLogin_ValidCredentials_ReturnsUser(t *testing.T) {
 	users := authmocks.NewMockUserRepository(t)
-	user := &auth.User{ID: "u1", Email: testEmail, PasswordHash: hashFor(t, testPassword)}
+	user := &auth.User{ID: "u1", Email: testEmail, PasswordHash: hashFor(t)}
 	users.EXPECT().GetUserByEmail(mock.Anything, testEmail).Return(user, nil).Once()
 	creator := &fakeSubscriptionCreator{}
 
@@ -232,7 +347,7 @@ func TestUnitLogin_UnknownEmail_ReturnsUnauthorizedWithoutEnumeration(t *testing
 func TestUnitLogin_WrongPassword_ReturnsUnauthorizedAndIncrementsFailedAttempts(t *testing.T) {
 	users := authmocks.NewMockUserRepository(t)
 	user := &auth.User{
-		ID: "u1", Email: testEmail, PasswordHash: hashFor(t, testPassword), FailedLoginAttempts: 0,
+		ID: "u1", Email: testEmail, PasswordHash: hashFor(t), FailedLoginAttempts: 0,
 	}
 	users.EXPECT().GetUserByEmail(mock.Anything, testEmail).Return(user, nil).Once()
 	users.EXPECT().
@@ -286,7 +401,7 @@ func TestUnitLogin_RateLimited_ReturnsTooManyRequestsBeforeLookup(t *testing.T) 
 func TestUnitLogin_SuccessAfterFailures_ResetsFailedAttempts(t *testing.T) {
 	users := authmocks.NewMockUserRepository(t)
 	user := &auth.User{
-		ID: "u1", Email: testEmail, PasswordHash: hashFor(t, testPassword), FailedLoginAttempts: 3,
+		ID: "u1", Email: testEmail, PasswordHash: hashFor(t), FailedLoginAttempts: 3,
 	}
 	users.EXPECT().GetUserByEmail(mock.Anything, testEmail).Return(user, nil).Once()
 	users.EXPECT().
@@ -321,6 +436,62 @@ func TestUnitLogin_InvalidRequest_ReturnsValidationWithoutTouchingRepo(t *testin
 	var domainErr *domainerrors.DomainError
 	require.ErrorAs(t, err, &domainErr)
 	assert.Equal(t, "validation_failed", domainErr.Code)
+}
+
+// TestUnitLogin_LookupFailsWithConnectivityError_ReturnsServiceUnavailable
+// verifies a database outage during the credential lookup maps to a 503,
+// not the uniform 401 an unknown email would get.
+func TestUnitLogin_LookupFailsWithConnectivityError_ReturnsServiceUnavailable(t *testing.T) {
+	users := authmocks.NewMockUserRepository(t)
+	users.EXPECT().GetUserByEmail(mock.Anything, testEmail).Return(nil, newConnRefusedError()).Once()
+	creator := &fakeSubscriptionCreator{}
+
+	svc := auth.NewService(users, creator, ratelimit.New(), testBcryptCost)
+	resp, err := svc.Login(context.Background(),
+		auth.LoginRequest{Email: testEmail, Password: testPassword}, "203.0.113.1", "Mozilla/5.0")
+
+	assert.Nil(t, resp)
+	assertServiceUnavailable(t, err)
+}
+
+// TestUnitLogin_FailedAttemptUpdateFailsWithConnectivityError_ReturnsServiceUnavailable
+// verifies a database outage while persisting the incremented failed-attempt
+// counter (after a wrong password) maps to a 503.
+func TestUnitLogin_FailedAttemptUpdateFailsWithConnectivityError_ReturnsServiceUnavailable(t *testing.T) {
+	users := authmocks.NewMockUserRepository(t)
+	user := &auth.User{
+		ID: "u1", Email: testEmail, PasswordHash: hashFor(t), FailedLoginAttempts: 0,
+	}
+	users.EXPECT().GetUserByEmail(mock.Anything, testEmail).Return(user, nil).Once()
+	users.EXPECT().UpdateUser(mock.Anything, mock.Anything).Return(newConnRefusedError()).Once()
+	creator := &fakeSubscriptionCreator{}
+
+	svc := auth.NewService(users, creator, ratelimit.New(), testBcryptCost)
+	resp, err := svc.Login(context.Background(),
+		auth.LoginRequest{Email: testEmail, Password: "WrongPassword9!"}, "203.0.113.1", "Mozilla/5.0")
+
+	assert.Nil(t, resp)
+	assertServiceUnavailable(t, err)
+}
+
+// TestUnitLogin_ResetFailedAttemptsUpdateFailsWithConnectivityError_ReturnsServiceUnavailable
+// verifies a database outage while clearing a previously non-zero failed-
+// attempt counter on a successful login maps to a 503.
+func TestUnitLogin_ResetFailedAttemptsUpdateFailsWithConnectivityError_ReturnsServiceUnavailable(t *testing.T) {
+	users := authmocks.NewMockUserRepository(t)
+	user := &auth.User{
+		ID: "u1", Email: testEmail, PasswordHash: hashFor(t), FailedLoginAttempts: 3,
+	}
+	users.EXPECT().GetUserByEmail(mock.Anything, testEmail).Return(user, nil).Once()
+	users.EXPECT().UpdateUser(mock.Anything, mock.Anything).Return(newConnRefusedError()).Once()
+	creator := &fakeSubscriptionCreator{}
+
+	svc := auth.NewService(users, creator, ratelimit.New(), testBcryptCost)
+	resp, err := svc.Login(context.Background(),
+		auth.LoginRequest{Email: testEmail, Password: testPassword}, "203.0.113.1", "Mozilla/5.0")
+
+	assert.Nil(t, resp)
+	assertServiceUnavailable(t, err)
 }
 
 // --- CurrentUser ----------------------------------------------------------

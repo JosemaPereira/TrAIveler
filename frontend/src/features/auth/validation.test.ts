@@ -97,6 +97,38 @@ describe('validatePasswordStrength', () => {
       ])
     })
   })
+
+  // Backend counts length as len([]rune(password)) — Unicode code points
+  // (backend/internal/auth/validator.go:22). A character outside the Basic
+  // Multilingual Plane (e.g. this emoji) is one code point but two UTF-16
+  // code units, so `.length` (JS's native string length) disagrees with the
+  // rune count by one per such character. Proves the fix for issue #207
+  // Sub-item 4.
+  describe('when the password contains a character outside the BMP', () => {
+    it('should count it as a single character, matching the backend rune count', () => {
+      // 8 code points: 7 ASCII + 1 emoji (U+1F600, a surrogate pair in
+      // UTF-16). `.length` alone would report 9, one more than the backend's
+      // rune count for the exact same string.
+      const password = 'Aa1bcde😀'
+      expect(Array.from(password)).toHaveLength(8)
+      expect(password.length).toBe(9)
+
+      expect(validatePasswordStrength(password)).toEqual([])
+    })
+
+    it('should report the length rule when the code-point count is too short even though .length is not', () => {
+      // 7 code points (6 ASCII + 1 emoji), one below the 8-character
+      // minimum — but native `.length` reports 8, which would wrongly pass a
+      // UTF-16-based check where the backend's rune-based one correctly fails.
+      const password = 'Aa1bcd😀'
+      expect(Array.from(password)).toHaveLength(7)
+      expect(password.length).toBe(8)
+
+      expect(validatePasswordStrength(password)).toContain(
+        'Password must be between 8 and 72 characters'
+      )
+    })
+  })
 })
 
 describe('isValidFullName', () => {

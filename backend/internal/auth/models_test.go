@@ -213,3 +213,32 @@ func TestUnitRegisterResponseMarshalJSON_IncludesSubscriptionWhenPresent(t *test
 	require.NoError(t, json.Unmarshal(raw, &out))
 	assert.Contains(t, out, "subscription")
 }
+
+// TestUnitRegisterResponseMarshalJSON_IncludesCurrentPeriodFieldsWhenPresent
+// verifies the register response's wire shape actually carries
+// current_period_start/end (migrations/016, issue #207 Sub-item 2) — no
+// separate response-shaping struct drops them, since RegisterResponse embeds
+// *subscription.Subscription directly.
+func TestUnitRegisterResponseMarshalJSON_IncludesCurrentPeriodFieldsWhenPresent(t *testing.T) {
+	start := time.Date(2026, 8, 1, 0, 0, 0, 0, time.UTC)
+	end := start.Add(30 * 24 * time.Hour)
+	resp := RegisterResponse{
+		User: User{ID: "user-1", Email: "ada@example.com"},
+		Subscription: &subscription.Subscription{
+			ID:                 "sub-1",
+			Status:             subscription.StatusActive,
+			CurrentPeriodStart: &start,
+			CurrentPeriodEnd:   &end,
+		},
+	}
+
+	raw, err := json.Marshal(resp)
+	require.NoError(t, err)
+
+	var out map[string]any
+	require.NoError(t, json.Unmarshal(raw, &out))
+	sub, ok := out["subscription"].(map[string]any)
+	require.True(t, ok, "subscription must serialize as an object")
+	assert.Contains(t, sub, "current_period_start")
+	assert.Contains(t, sub, "current_period_end")
+}

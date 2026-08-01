@@ -6,6 +6,7 @@ import (
 	"context"
 	"errors"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
@@ -104,4 +105,32 @@ func TestUnitCreateSubscription_RepositoryFails_PropagatesError(t *testing.T) {
 // the single seeded MVP 'basic' plan (migration 006), which registration relies on.
 func TestUnitDefaultPlanID_MatchesSeededBasicPlan(t *testing.T) {
 	assert.Equal(t, "00000000-0000-0000-0000-000000000001", subscription.DefaultPlanID)
+}
+
+// TestUnitCreateSubscription_PaymentSucceeds_StampsCurrentPeriod verifies that
+// a newly created active subscription gets a 30-day current billing period
+// starting now (issue #207 Sub-item 2, migrations/016), now that the
+// subscriptions table actually has current_period_start/end columns to hold it.
+func TestUnitCreateSubscription_PaymentSucceeds_StampsCurrentPeriod(t *testing.T) {
+	provider := paymentmocks.NewMockPaymentProvider(t)
+	repo := submocks.NewMockRepository(t)
+
+	provider.EXPECT().
+		ProcessPayment(mock.Anything, testToken, subscription.DefaultPlanID).
+		Return("stub_ref_period", nil).
+		Once()
+	repo.EXPECT().Create(mock.Anything, mock.Anything).Return(nil).Once()
+
+	before := time.Now()
+	svc := subscription.NewService(provider, repo)
+	sub, err := svc.CreateSubscription(context.Background(), testUserID, subscription.DefaultPlanID, testToken)
+	after := time.Now()
+
+	require.NoError(t, err)
+	require.NotNil(t, sub)
+	require.NotNil(t, sub.CurrentPeriodStart, "an active subscription must have a period start")
+	require.NotNil(t, sub.CurrentPeriodEnd, "an active subscription must have a period end")
+	assert.False(t, sub.CurrentPeriodStart.Before(before))
+	assert.False(t, sub.CurrentPeriodStart.After(after))
+	assert.WithinDuration(t, sub.CurrentPeriodStart.Add(30*24*time.Hour), *sub.CurrentPeriodEnd, time.Second)
 }

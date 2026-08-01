@@ -143,6 +143,7 @@ func (h *Handler) RegisterProtectedRoutes(r chi.Router) {
 // @Failure     422 {object} errors.ErrorResponse
 // @Failure     429 {object} errors.ErrorResponse
 // @Failure     500 {object} errors.ErrorResponse
+// @Failure     503 {object} errors.ErrorResponse
 // @Router      /auth/register [post]
 func (h *Handler) handleRegister(w http.ResponseWriter, r *http.Request) {
 	var req RegisterRequest
@@ -180,6 +181,7 @@ func (h *Handler) handleRegister(w http.ResponseWriter, r *http.Request) {
 // @Failure     422 {object} errors.ErrorResponse
 // @Failure     429 {object} errors.ErrorResponse
 // @Failure     500 {object} errors.ErrorResponse
+// @Failure     503 {object} errors.ErrorResponse
 // @Router      /auth/login [post]
 func (h *Handler) handleLogin(w http.ResponseWriter, r *http.Request) {
 	var req LoginRequest
