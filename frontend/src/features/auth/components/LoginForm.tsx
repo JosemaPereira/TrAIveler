@@ -14,10 +14,9 @@ export interface LoginFormProps {
   onSuccess?: () => void
 }
 
-// The backend deliberately answers identically for "unknown email" and
-// "wrong password" (anti-enumeration, docs/security.md) — this form honors
-// that by never rendering the server's own message for a 401, only this
-// single generic copy, so no wording difference could leak which case it was.
+// The backend answers identically for "unknown email" and "wrong password"
+// (anti-enumeration, docs/security.md); this form honors that by never
+// showing the server's own 401 text, only this generic copy.
 const GENERIC_AUTH_ERROR = 'Invalid email or password.'
 
 interface FieldValues {

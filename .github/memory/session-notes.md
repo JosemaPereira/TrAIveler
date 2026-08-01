@@ -638,3 +638,42 @@ Historical summaries of completed development sessions. Committed to git as a re
   #179 carry-overs — `/swagger/index.html` 401s on a cold start, contracts/api.md's 503-vs-actual-500
   for a DB-unavailable refresh, and the `extraProtectedRoutes` test hook (delete when a real
   subscription-gated route lands); (3) Sprint 6 still open: #172, #173, #181, #182, #183, #184.
+
+### Session: Register/Login UI — RegisterForm/Page + LoginForm/Page (#182, #183)
+
+- **Date**: 2026-07-31
+- **Tool**: Claude Code
+- **What was accomplished**: Closed 008-T060/T061/T092 (#182) and 008-T113/T114 (#183) on
+  `feature/182-183-register-login-ui` (`cc1f621`), opened as **PR #198** (not yet merged). Built via
+  `tdd-developer`, independently re-verified by the parent session (not just trusted from the
+  subagent's report), then committed/pushed via `commit-and-push` and opened via `open-pr`. 5 new
+  files + 3 modified route files, 284 tests total (up from ~230), coverage ~100% stmts on new code.
+- **Key findings and decisions**:
+  - **Both roadmap rows' stated file path (`features/auth/pages/...`) is stale.** No `pages/`
+    directory exists anywhere in this frontend — every page lives flat under `routes/`, wired into
+    `routes/index.tsx`. `RegisterPage`/`LoginPage` filled in the existing `routes/` placeholders
+    instead (same class of issue as the *Issue-Body Snippets Are Lowest-Authority* pattern, now
+    against the roadmap).
+  - **"Continue to Payment" doesn't redirect to a real checkout page** — `SubscriptionCheckout`/
+    `UpgradePage` (008-T186/T189) are separate, still-Backlog tickets #182 doesn't depend on. Since
+    `payment_method_token` is accepted inline on the same `POST /auth/register` call, `RegisterForm`
+    sends a fixed client-side `DEMO_PAYMENT_TOKEN` behind a checkbox — consistent with the backend's
+    own "[DEMO]" stub labeling.
+  - **A new open-redirect was found and closed that neither issue called out**: `LoginPage`'s
+    `?redirect=` could otherwise carry `//evil.com` or an absolute URL straight into `navigate()`.
+    New `frontend/src/routes/login-redirect.ts` (`resolveLoginRedirect`) allow-lists only a single
+    leading `/` not followed by another `/` or `\`, falling back to `/dashboard`.
+  - **The rate-limit countdown is keyed on the error object, not the numeric `retryAfterSeconds`** —
+    a second 429 with an *identical* wait must still restart the visible countdown, and the number
+    alone can't tell "still counting down" from "fresh hit, same wait." `login.error` is a new
+    object per failed mutation, so it's the correct dependency.
+  - Client-side password validation (`features/auth/validation.ts`) deliberately mirrors
+    `backend/internal/auth/validator.go` rule-for-rule so a locally-accepted password is never
+    server-rejected and vice versa.
+  - No backend/endpoint changes → the swagger/`technical-writer` mandatory step is N/A.
+- **Outcomes**: `/register` and `/login` are now real, tested pages instead of placeholders;
+  `routes/index.test.tsx` gained redirect round-trip + off-site-redirect-rejection coverage.
+  `docs/roadmap.md` rows for all 5 tasks marked Done with as-built notes recording the two path
+  deviations above. Verified independently: `npm run lint`/`type-check` clean, `npm test` 284/284,
+  `npm run build` succeeds. PR #198 open, not merged. Sprint 6 remaining open after this: #172,
+  #173, #181, #184.

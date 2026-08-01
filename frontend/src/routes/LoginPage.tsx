@@ -4,12 +4,12 @@ import { LoginForm } from '../features/auth/components/LoginForm'
 import { resolveLoginRedirect } from './login-redirect'
 
 /**
- * Login page (Spec 008, 008-T113/T114). Renders `LoginForm` and, on a
- * successful login, navigates to the sanitized `?redirect=` target
- * `features/auth/session-expiry.ts` attaches when it bounces an expired
- * session here (`resolveLoginRedirect` rejects anything that is not a
- * same-origin relative path), defaulting to `/dashboard` otherwise.
- * `replace: true` keeps the login form out of the back-button history.
+ * Login page. Renders `LoginForm` and, on a successful login, navigates to
+ * the sanitized `?redirect=` target `features/auth/session-expiry.ts`
+ * attaches when it bounces an expired session here (`resolveLoginRedirect`
+ * rejects anything that is not a same-origin relative path), defaulting to
+ * `/dashboard` otherwise. `replace: true` keeps the login form out of the
+ * back-button history.
  */
 export function LoginPage() {
   const navigate = useNavigate()
