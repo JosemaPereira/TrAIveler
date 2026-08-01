@@ -59,7 +59,7 @@ func TestIssue_NilUserID_ReturnsErrorAndPersistsNothing(t *testing.T) {
 
 func TestIssue_StorePersistFails_ReturnsWrappedError(t *testing.T) {
 	store := newFakeStore()
-	store.failNext = errors.New("db down")
+	store.failCreate = errors.New("db down")
 	issuer, _ := newTestIssuer(t, store, 30*24*time.Hour)
 
 	_, err := issuer.Issue(context.Background(), uuid.New(), false)

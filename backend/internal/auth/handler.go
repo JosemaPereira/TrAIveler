@@ -216,6 +216,7 @@ type refreshResponse struct {
 // @Success     200 {object} refreshResponse
 // @Failure     401 {object} errors.ErrorResponse
 // @Failure     500 {object} errors.ErrorResponse
+// @Failure     503 {object} errors.ErrorResponse
 // @Router      /auth/refresh [post]
 func (h *Handler) handleRefresh(w http.ResponseWriter, r *http.Request) {
 	cookie, err := r.Cookie(refreshTokenCookie)

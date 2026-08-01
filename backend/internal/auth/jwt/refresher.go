@@ -20,6 +20,11 @@ const (
 	defaultRefreshTTL = 30 * 24 * time.Hour
 	// refreshTokenBytes is the token entropy before encoding (data-model.md: 32 min).
 	refreshTokenBytes = 32
+	// dbUnavailableRetryAfterSeconds is the Retry-After hint attached to a
+	// service_unavailable response caused by a database connectivity failure
+	// during refresh (issue #192 Task A). Matches the register endpoint's
+	// documented example (specs/008-auth-collaboration-ux/contracts/api.md).
+	dbUnavailableRetryAfterSeconds = 30
 )
 
 // RefreshFailureMessage is the single client-facing message for every failed
@@ -125,7 +130,7 @@ func (r *Refresher) RefreshToken(ctx context.Context, rawRefreshToken string) (T
 		return TokenPair{}, unauthorizedRefresh(err)
 	}
 	if err != nil {
-		return TokenPair{}, fmt.Errorf("jwt: look up refresh token: %w", err)
+		return TokenPair{}, classifyStorageErr(err, "jwt: look up refresh token: %w")
 	}
 
 	now := r.now()
@@ -137,12 +142,16 @@ func (r *Refresher) RefreshToken(ctx context.Context, rawRefreshToken string) (T
 	}
 
 	if err := r.store.Revoke(ctx, record.ID); err != nil {
-		return TokenPair{}, fmt.Errorf("jwt: revoke refresh token: %w", err)
+		return TokenPair{}, classifyStorageErr(err, "jwt: revoke refresh token: %w")
 	}
 
 	hasSubscription, err := r.subs.HasActiveSubscription(ctx, record.UserID)
 	if err != nil {
-		return TokenPair{}, fmt.Errorf("jwt: resolve subscription: %w", err)
+		// HasActiveSubscription is DB-backed (subscription.Resolver reads the
+		// subscriptions table) and still inside this method's own call graph,
+		// so a connectivity failure here gets the same classification as the
+		// three RefreshTokenStore calls above.
+		return TokenPair{}, classifyStorageErr(err, "jwt: resolve subscription: %w")
 	}
 
 	accessToken, err := r.generator.GenerateAccessToken(ctx, record.UserID, hasSubscription)
@@ -161,7 +170,7 @@ func (r *Refresher) RefreshToken(ctx context.Context, rawRefreshToken string) (T
 		TokenHash: hashNext,
 		ExpiresAt: refreshExpiresAt,
 	}); err != nil {
-		return TokenPair{}, fmt.Errorf("jwt: persist refresh token: %w", err)
+		return TokenPair{}, classifyStorageErr(err, "jwt: persist refresh token: %w")
 	}
 
 	return TokenPair{
@@ -201,4 +210,18 @@ func unauthorizedRefresh(cause error) error {
 	domainErr := domainerrors.Unauthorized(RefreshFailureMessage)
 	domainErr.Err = fmt.Errorf("jwt: refresh: %w", cause)
 	return domainErr
+}
+
+// classifyStorageErr converts a DB-backed call's failure into the error
+// RefreshToken should return: a service_unavailable DomainError
+// (errors.ServiceUnavailableFromDB) for a database connectivity failure, so
+// errors.HandleError maps it to 503 per
+// specs/008-auth-collaboration-ux/contracts/api.md's "Database unavailable"
+// (issue #192 Task A); otherwise err wrapped with format, which
+// errors.HandleError falls through to the generic internal_error/500.
+func classifyStorageErr(err error, format string) error {
+	if svcErr := domainerrors.ServiceUnavailableFromDB(err, dbUnavailableRetryAfterSeconds); svcErr != nil {
+		return svcErr
+	}
+	return fmt.Errorf(format, err)
 }
