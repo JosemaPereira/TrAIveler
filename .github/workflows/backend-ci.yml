@@ -5,8 +5,10 @@
 #
 # Workflow steps:
 # 1. Lint & Test - golangci-lint, then Go tests with race detection and
-#    coverage (one job: they shared identical checkout/setup-go, and lint
-#    finishing first fails fast before the slower test run)
+#    coverage, then a swagger-drift check confirming backend/docs/ matches
+#    what `make swagger` would regenerate right now (one job: they shared
+#    identical checkout/setup-go, and lint finishing first fails fast before
+#    the slower test run)
 # 2. Build - Build Docker image for linux/arm64 (ECS Fargate) to validate the
 #    Dockerfile; the image is not pushed or persisted anywhere yet
 # 3. Push (main only) - Push image to ECR (placeholder for Sprint 3)
@@ -97,6 +99,17 @@ jobs:
         run: |
           make test-coverage
           go tool cover -func=coverage.out
+
+      - name: Check Swagger docs are up to date
+        # Regenerates backend/docs/ from the swag doc-comment annotations and
+        # fails if the committed output differs — a stale contract is a bug,
+        # not a style nit (see docs/testing-guidelines.md's "Validation Gates
+        # Beyond the Three Testing Layers" section).
+        working-directory: backend
+        run: |
+          go install github.com/swaggo/swag/cmd/swag@latest
+          make swagger
+          git diff --exit-code -- docs
 
       - name: Upload coverage to artifact
         uses: actions/upload-artifact@v4
