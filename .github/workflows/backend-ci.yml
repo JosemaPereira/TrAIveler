@@ -116,9 +116,10 @@ jobs:
           git diff --exit-code -- docs
 
       - name: Check roadmap Status matches live GitHub issue state
-        # docs/roadmap.md's human-owned Status column must agree with the
-        # real state of its linked issue (closed-but-not-Done, or
-        # open-but-Done, is drift) — see scripts/check-roadmap-status-drift.py.
+        # Catches a row nobody flipped after its tracking issue closed
+        # (closed-but-not-{Done,Superseded}) — see
+        # scripts/check-roadmap-status-drift.py for why the reverse
+        # (open-but-Done) is deliberately not checked.
         env:
           GH_TOKEN: ${{ github.token }}
         run: python3 scripts/check-roadmap-status-drift.py

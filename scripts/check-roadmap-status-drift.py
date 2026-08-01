@@ -7,9 +7,14 @@ docs/roadmap.md holds one markdown table per Spec/Phase, each with columns
 Superseded); `Issue` links to the GitHub issue tracking that row, and multiple rows
 commonly share the same issue (a "group" ticket).
 
-Drift = a row whose linked issue's actual GitHub state disagrees with its Status:
-  - issue is CLOSED but Status is neither Done nor Superseded, or
-  - issue is OPEN but Status IS Done.
+Drift = a row whose Status is neither Done nor Superseded while its linked issue
+is already CLOSED — i.e. a stale row nobody flipped after the tracking issue
+closed. The reverse case (issue OPEN, Status already Done) is deliberately NOT
+flagged: this repo's standard workflow flips a row to Done in the very PR that
+closes its issue (see .github/memory/session-notes.md's "flip roadmap
+Backlog→Done as part of the closing PR" convention), and the issue does not
+actually close until that PR merges — so every closing PR would trip this gate
+against its own not-yet-merged issue if the reverse case were checked too.
 
 Rows with no Issue URL are out of scope entirely (nothing to compare against).
 Rows with Status Superseded are also out of scope entirely: superseded work is
@@ -124,6 +129,9 @@ def compute_drift(rows: list[RoadmapRow], issue_states: dict[int, str]) -> list[
     number is absent from that map (not returned by the `gh` query) is skipped
     with a warning on stderr rather than reported as drift, since that is a
     data problem (stale/typo'd issue number), not a status-vs-reality mismatch.
+
+    Only CLOSED-but-not-Done is checked (see the module docstring for why an
+    OPEN-but-Done rule would falsely trip on every issue-closing PR).
     """
     drift: list[DriftEntry] = []
     for row in rows:
@@ -142,8 +150,6 @@ def compute_drift(rows: list[RoadmapRow], issue_states: dict[int, str]) -> list[
             continue
 
         if state == "CLOSED" and row.status != STATUS_DONE:
-            drift.append(DriftEntry(row=row, github_state=state))
-        elif state == "OPEN" and row.status == STATUS_DONE:
             drift.append(DriftEntry(row=row, github_state=state))
 
     return drift

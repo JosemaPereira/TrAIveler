@@ -930,6 +930,18 @@ Read these before trusting any spec/issue text.
   skipped, mirroring how 002-T050 will hit the identical wall on its own row. Caught by the parent
   session's independent re-verification pass — the implementing subagent's own local run used its
   personal `gh` auth and never surfaced the token-permission half of this (see the next entry).
+- **Second failure, same class, only visible on the real PR**: after the `**Blocked**` fix, a local
+  run against `main` reported clean — but the *first real CI run on the PR that introduced the gate*
+  still failed, flagging its own 002-T047–T049 rows as `Status=Done` while issue #173 was still
+  `OPEN`. Root cause: this repo's standing convention is to flip a row to `Done` **in the same PR
+  that closes its issue** (the issue only closes at merge), so an "OPEN-but-Done" rule — added for
+  symmetry with "CLOSED-but-not-Done", not because the ticket asked for it — would fail on *every*
+  future closing PR, not just this one. A local run against `main` can't surface this: `main` never
+  contains a row marked `Done` for a still-open issue, only a live PR does. **Lesson: a self-
+  referential gate (one whose rules can be tripped by the very PR that adds it) needs to be evaluated
+  against that PR's own effect, not just against pre-existing history.** Fix: drop the OPEN-but-Done
+  rule entirely — the ticket's literal ask ("cross-checking Status against *closed* GitHub issues")
+  only ever required the CLOSED-but-not-Done direction.
 - **Related**: *GitHub Rulesets/Branch Protection Require Public Repo or Pro (Personal Accounts)*,
   `scripts/check-roadmap-status-drift.py`, `scripts/check-agent-drift.py`
 

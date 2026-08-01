@@ -781,3 +781,17 @@ Historical summaries of completed development sessions. Committed to git as a re
   `backend-ci.yml` and verified both by its own unit tests and a real run finding zero drift.
   `docs/roadmap.md` rows 002-T047–T049 → Done with as-built notes; 002-T050 stays Backlog, marked
   blocked. No AWS/terraform touched; no backend endpoints changed (technical-writer step N/A).
+
+- **Post-PR follow-up (same day)**: PR #202's own first CI run failed the new `roadmap-status-drift`
+  step it introduced — flagging its own 002-T047/T048/T049 rows as `Status=Done` while issue #173 was
+  still `OPEN` (the issue only closes at merge). Root cause: the script's `open-but-Done` rule
+  (added for symmetry, not because the ticket asked for it) directly conflicts with this repo's
+  standing "flip to Done in the closing PR" convention — every future closing PR would trip it against
+  its own issue, making the gate unusable as a required check. A local run against `main` before
+  pushing could not have caught this: `main` never has a Done row for a still-open issue, only a live
+  PR does. **Fix**: dropped the open-but-Done rule entirely, keeping only closed-but-not-{Done,
+  Superseded,Blocked-notes} — matches the ticket's literal scope ("cross-checking Status against
+  *closed* GitHub issues"). Updated the script's tests (16 still pass), its module docstring, the
+  `backend-ci.yml` step comment, and the 002-T049 roadmap Notes. New `patterns-discovered.md` addendum:
+  a gate whose own rules can be tripped by the PR that adds it needs to be checked against that PR's
+  effect, not just pre-existing `main` history.

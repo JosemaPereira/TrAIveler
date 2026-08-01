@@ -158,8 +158,10 @@ class TestComputeDrift(unittest.TestCase):
         # Assert
         self.assertEqual(drift, [])
 
-    def test_open_issue_with_done_status_is_drift(self):
-        # Arrange
+    def test_open_issue_with_done_status_is_not_drift(self):
+        # Arrange: a row is flipped to Done in the same PR that closes its
+        # issue — the issue is still OPEN until that PR merges, so this must
+        # never be reported as drift (it would trip on every closing PR).
         row = drift_module.RoadmapRow(
             id="002-T047", status="Done",
             issue_url="https://github.com/JosemaPereira/TrAIveler/issues/173", issue_number=173,
@@ -169,8 +171,7 @@ class TestComputeDrift(unittest.TestCase):
         drift = drift_module.compute_drift([row], {173: "OPEN"})
 
         # Assert
-        self.assertEqual(len(drift), 1)
-        self.assertEqual(drift[0].github_state, "OPEN")
+        self.assertEqual(drift, [])
 
     def test_open_issue_with_in_progress_status_is_not_drift(self):
         # Arrange
