@@ -132,7 +132,7 @@ func (h *Handler) RegisterProtectedRoutes(r chi.Router) {
 // @Description Creates a new user (admin role). When a payment_method_token is supplied a
 // @Description subscription is activated and has_subscription is true; otherwise the user is a
 // @Description Free User (has_subscription false). On success an access/refresh token pair is set as
-// @Description HTTP-only, Secure, SameSite=Strict cookies.
+// @Description HTTP-only, Secure, SameSite=Strict cookies. Rate-limited per client IP.
 // @Tags        auth
 // @Accept      json
 // @Produce     json
@@ -141,6 +141,7 @@ func (h *Handler) RegisterProtectedRoutes(r chi.Router) {
 // @Failure     400 {object} invalidRequestEnvelope
 // @Failure     409 {object} errors.ErrorResponse
 // @Failure     422 {object} errors.ErrorResponse
+// @Failure     429 {object} errors.ErrorResponse
 // @Failure     500 {object} errors.ErrorResponse
 // @Router      /auth/register [post]
 func (h *Handler) handleRegister(w http.ResponseWriter, r *http.Request) {

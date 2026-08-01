@@ -313,7 +313,7 @@ paths:
         Creates a new user (admin role). When a payment_method_token is supplied a
         subscription is activated and has_subscription is true; otherwise the user is a
         Free User (has_subscription false). On success an access/refresh token pair is set as
-        HTTP-only, Secure, SameSite=Strict cookies.
+        HTTP-only, Secure, SameSite=Strict cookies. Rate-limited per client IP.
       parameters:
       - description: Registration payload
         in: body
@@ -338,6 +338,10 @@ paths:
             $ref: '#/definitions/errors.ErrorResponse'
         "422":
           description: Unprocessable Entity
+          schema:
+            $ref: '#/definitions/errors.ErrorResponse'
+        "429":
+          description: Too Many Requests
           schema:
             $ref: '#/definitions/errors.ErrorResponse'
         "500":
