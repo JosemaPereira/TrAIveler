@@ -1,7 +1,19 @@
+import { Navigation } from '@/components/composites/Navigation'
+import { EmptyState } from '@/components/primitives/EmptyState'
+import { useUser } from '@/stores/auth-store'
+
 /**
- * Placeholder dashboard page. Real trip-overview content lands in a later
- * sprint; this scaffolds the protected `/dashboard` route.
+ * EmptyState below is a placeholder; the real trip list lands with
+ * `TripDashboard`/`useTrips` in Sprint 8.
  */
 export function DashboardPage() {
-  return <h1>Dashboard</h1>
+  const user = useUser()
+
+  return (
+    <div>
+      <Navigation />
+      <h1>Welcome back{user ? `, ${user.full_name}` : ''}</h1>
+      <EmptyState title="No trips yet" />
+    </div>
+  )
 }

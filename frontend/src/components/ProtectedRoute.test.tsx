@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react'
+import { render, screen, waitFor } from '@testing-library/react'
 import { createMemoryRouter, RouterProvider } from 'react-router'
 import { beforeEach, describe, expect, it } from 'vitest'
 
@@ -21,6 +21,8 @@ function renderAtDashboard() {
   })
 
   render(<RouterProvider router={router} />)
+
+  return router
 }
 
 // Zustand store is a module-singleton: reset before each test.
@@ -43,6 +45,15 @@ describe('<ProtectedRoute />', () => {
       expect(
         screen.queryByRole('heading', { name: 'Dashboard' })
       ).not.toBeInTheDocument()
+    })
+
+    it('should carry the attempted path as a redirect query param', async () => {
+      const router = renderAtDashboard()
+
+      await waitFor(() => {
+        expect(router.state.location.pathname).toBe('/login')
+      })
+      expect(router.state.location.search).toBe('?redirect=%2Fdashboard')
     })
   })
 

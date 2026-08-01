@@ -66,6 +66,27 @@ describe('useAuthStore', () => {
     })
   })
 
+  describe('when setUser is called', () => {
+    it('should update the stored user', () => {
+      useAuthStore.getState().login(testUser)
+      const updatedUser: User = { ...testUser, full_name: 'Ada Explorer' }
+
+      useAuthStore.getState().setUser(updatedUser)
+
+      expect(useAuthStore.getState().user).toEqual(updatedUser)
+    })
+
+    it('should not change isAuthenticated', () => {
+      useAuthStore.setState({ isAuthenticated: false, user: null })
+
+      useAuthStore.getState().setUser(testUser)
+
+      const state = useAuthStore.getState()
+      expect(state.user).toEqual(testUser)
+      expect(state.isAuthenticated).toBe(false)
+    })
+  })
+
   describe('when setLoading is called', () => {
     it('should toggle isLoading to the given value', () => {
       useAuthStore.getState().setLoading(true)

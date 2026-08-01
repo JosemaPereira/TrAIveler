@@ -28,6 +28,7 @@ export interface AuthState {
   login: (user: User) => void
   logout: () => void
   refreshSession: () => Promise<void>
+  setUser: (user: User) => void
   setLoading: (loading: boolean) => void
 }
 
@@ -66,6 +67,11 @@ export const useAuthStore = create<AuthState>((set) => ({
     } finally {
       set({ isLoading: false })
     }
+  },
+
+  // Unlike login(), does not touch isAuthenticated — just updates user data.
+  setUser: (user) => {
+    set({ user })
   },
 
   setLoading: (loading) => {
