@@ -176,9 +176,7 @@ export function RegisterForm({ onSuccess }: RegisterFormProps) {
           }}
           disabled={isSubmitting}
         />
-        <Label htmlFor="wants-payment">
-          [DEMO] Add a payment method now
-        </Label>
+        <Label htmlFor="wants-payment">[DEMO] Add a payment method now</Label>
       </div>
 
       <div className={styles.actions}>

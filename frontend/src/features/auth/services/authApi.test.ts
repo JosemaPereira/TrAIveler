@@ -2,11 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { http, HttpResponse } from 'msw'
 
 import { APIError } from '@/lib/api-client'
-import {
-  API_BASE_URL,
-  testSubscription,
-  testUser,
-} from '@/test/msw/handlers'
+import { API_BASE_URL, testSubscription, testUser } from '@/test/msw/handlers'
 import { server } from '@/test/msw/server'
 import { authApi } from './authApi'
 

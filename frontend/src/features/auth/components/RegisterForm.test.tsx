@@ -40,9 +40,7 @@ describe('<RegisterForm />', () => {
     it('should render the email, password, and full name fields', () => {
       renderForm()
 
-      expect(
-        screen.getByRole('textbox', { name: 'Email' })
-      ).toBeInTheDocument()
+      expect(screen.getByRole('textbox', { name: 'Email' })).toBeInTheDocument()
       expect(screen.getByLabelText('Password')).toBeInTheDocument()
       expect(
         screen.getByRole('textbox', { name: 'Full Name' })

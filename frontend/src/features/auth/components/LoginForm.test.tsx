@@ -18,9 +18,7 @@ vi.mock('../hooks/useLogin', async (importOriginal) => {
 
 const mockedUseLogin = vi.mocked(useLogin)
 const { useLogin: actualUseLogin } =
-  await vi.importActual<typeof import('../hooks/useLogin')>(
-    '../hooks/useLogin'
-  )
+  await vi.importActual<typeof import('../hooks/useLogin')>('../hooks/useLogin')
 
 const validPassword = 'CorrectHorse1!'
 
@@ -60,9 +58,7 @@ describe('<LoginForm />', () => {
     it('should render the email and password fields', () => {
       renderForm()
 
-      expect(
-        screen.getByRole('textbox', { name: 'Email' })
-      ).toBeInTheDocument()
+      expect(screen.getByRole('textbox', { name: 'Email' })).toBeInTheDocument()
       expect(screen.getByLabelText('Password')).toBeInTheDocument()
     })
 
