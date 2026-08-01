@@ -25,26 +25,32 @@ const (
 
 // Subscription is the billing relationship between a User and a Plan.
 //
-// The field set intentionally matches the live subscriptions table
-// (migrations/007_create_subscriptions_table.sql), which is the source of
-// truth: that migration deliberately omitted current_period_start/end and a
-// version column ("in no design doc" at the time). The API contract's
-// register response (specs/008-auth-collaboration-ux/contracts/api.md) does
-// reference current_period_start/end; surfacing those requires a follow-up
-// schema migration and is tracked separately (see docs/roadmap.md 008-T039
-// Notes) rather than modeled here as columns that don't exist.
+// The field set matches the live subscriptions table
+// (migrations/007_create_subscriptions_table.sql plus
+// migrations/016_alter_subscriptions_add_period_columns.sql, which added
+// current_period_start/end — deliberately deferred at 007's creation time,
+// "in no design doc"; issue #207 Sub-item 2 closed that gap once the API
+// contract's register response, specs/008-auth-collaboration-ux/contracts/api.md,
+// needed them on the wire). A version/optimistic-locking column remains
+// undeferred pending its own design.
+//
+// current_period_start/end are nil for a 'stub_pending' subscription (no
+// billing period yet); Service.CreateSubscription stamps both when creating
+// an 'active' one.
 //
 // db tags drive repository row scanning; json tags drive the API wire format.
 // stub_payment_ref is server-internal and never serialized (json:"-").
 type Subscription struct {
-	ID                string     `json:"id" db:"id"`
-	UserID            string     `json:"user_id" db:"user_id"`
-	PlanID            string     `json:"plan_id" db:"plan_id"`
-	Status            string     `json:"status" db:"status"`
-	StubPaymentRef    *string    `json:"-" db:"stub_payment_ref"`
-	GracePeriodEndsAt *time.Time `json:"grace_period_ends_at,omitempty" db:"grace_period_ends_at"`
-	CancelledAt       *time.Time `json:"cancelled_at,omitempty" db:"cancelled_at"`
-	CreatedAt         time.Time  `json:"created_at" db:"created_at"`
+	ID                 string     `json:"id" db:"id"`
+	UserID             string     `json:"user_id" db:"user_id"`
+	PlanID             string     `json:"plan_id" db:"plan_id"`
+	Status             string     `json:"status" db:"status"`
+	StubPaymentRef     *string    `json:"-" db:"stub_payment_ref"`
+	CurrentPeriodStart *time.Time `json:"current_period_start,omitempty" db:"current_period_start"`
+	CurrentPeriodEnd   *time.Time `json:"current_period_end,omitempty" db:"current_period_end"`
+	GracePeriodEndsAt  *time.Time `json:"grace_period_ends_at,omitempty" db:"grace_period_ends_at"`
+	CancelledAt        *time.Time `json:"cancelled_at,omitempty" db:"cancelled_at"`
+	CreatedAt          time.Time  `json:"created_at" db:"created_at"`
 }
 
 // IsActive reports whether the subscription currently grants paid benefits at

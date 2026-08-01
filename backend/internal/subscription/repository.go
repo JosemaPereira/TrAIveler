@@ -58,12 +58,17 @@ func NewPostgresRepository(db database.Client) Repository {
 // is reported as a domain Conflict rather than a raw pgconn error.
 func (r *PostgresRepository) Create(ctx context.Context, sub *Subscription) error {
 	const query = `
-		INSERT INTO subscriptions (id, user_id, plan_id, status, stub_payment_ref)
-		VALUES ($1, $2, $3, $4, $5)
+		INSERT INTO subscriptions (
+			id, user_id, plan_id, status, stub_payment_ref,
+			current_period_start, current_period_end
+		)
+		VALUES ($1, $2, $3, $4, $5, $6, $7)
 		RETURNING created_at`
 
-	err := r.db.Pool().QueryRow(ctx, query, sub.ID, sub.UserID, sub.PlanID, sub.Status, sub.StubPaymentRef).
-		Scan(&sub.CreatedAt)
+	err := r.db.Pool().QueryRow(ctx, query,
+		sub.ID, sub.UserID, sub.PlanID, sub.Status, sub.StubPaymentRef,
+		sub.CurrentPeriodStart, sub.CurrentPeriodEnd,
+	).Scan(&sub.CreatedAt)
 	if err != nil {
 		var pgErr *pgconn.PgError
 		if errors.As(err, &pgErr) && pgErr.Code == uniqueViolationCode {
@@ -80,13 +85,17 @@ func (r *PostgresRepository) Create(ctx context.Context, sub *Subscription) erro
 // (e.g. the SubscriptionResolver maps it to has_subscription=false).
 func (r *PostgresRepository) GetByUserID(ctx context.Context, userID string) (*Subscription, error) {
 	const query = `
-		SELECT id, user_id, plan_id, status, stub_payment_ref, grace_period_ends_at, cancelled_at, created_at
+		SELECT
+			id, user_id, plan_id, status, stub_payment_ref,
+			current_period_start, current_period_end,
+			grace_period_ends_at, cancelled_at, created_at
 		FROM subscriptions
 		WHERE user_id = $1`
 
 	var sub Subscription
 	err := r.db.Pool().QueryRow(ctx, query, userID).Scan(
 		&sub.ID, &sub.UserID, &sub.PlanID, &sub.Status, &sub.StubPaymentRef,
+		&sub.CurrentPeriodStart, &sub.CurrentPeriodEnd,
 		&sub.GracePeriodEndsAt, &sub.CancelledAt, &sub.CreatedAt,
 	)
 	if err != nil {

@@ -131,6 +131,60 @@ func TestIntegrationCreate_DuplicateUser_ReturnsConflict(t *testing.T) {
 	assert.Equal(t, "conflict", domainErr.Code)
 }
 
+// TestIntegrationCreate_ActiveSubscriptionWithPeriod_RoundTripsPeriodColumns
+// verifies current_period_start/current_period_end (migrations/016, issue
+// #207 Sub-item 2) are actually persisted and read back, not silently
+// dropped by the repository's INSERT/SELECT column lists.
+func TestIntegrationCreate_ActiveSubscriptionWithPeriod_RoundTripsPeriodColumns(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping testcontainer test in short mode")
+	}
+	ctx := context.Background()
+	db := setupRepositoryTestDB(t, ctx)
+	repo := NewPostgresRepository(db)
+
+	sub := newActiveSubscription(seedUser(t, ctx, db, "period-1"))
+	periodStart := time.Now().Truncate(time.Second).UTC()
+	periodEnd := periodStart.Add(30 * 24 * time.Hour)
+	sub.CurrentPeriodStart = &periodStart
+	sub.CurrentPeriodEnd = &periodEnd
+
+	require.NoError(t, repo.Create(ctx, sub))
+
+	found, err := repo.GetByUserID(ctx, sub.UserID)
+	require.NoError(t, err)
+	require.NotNil(t, found.CurrentPeriodStart)
+	require.NotNil(t, found.CurrentPeriodEnd)
+	assert.WithinDuration(t, periodStart, *found.CurrentPeriodStart, time.Second)
+	assert.WithinDuration(t, periodEnd, *found.CurrentPeriodEnd, time.Second)
+}
+
+// TestIntegrationCreate_StubPendingSubscription_LeavesPeriodColumnsNil verifies
+// a subscription created with no billing period yet (nil pointers) persists
+// and reads back as NULL, not a zero-value time.
+func TestIntegrationCreate_StubPendingSubscription_LeavesPeriodColumnsNil(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping testcontainer test in short mode")
+	}
+	ctx := context.Background()
+	db := setupRepositoryTestDB(t, ctx)
+	repo := NewPostgresRepository(db)
+
+	userID := seedUser(t, ctx, db, "period-stub")
+	sub := &Subscription{
+		ID:     uuid.New().String(),
+		UserID: userID,
+		PlanID: basicPlanID,
+		Status: StatusStubPending,
+	}
+	require.NoError(t, repo.Create(ctx, sub))
+
+	found, err := repo.GetByUserID(ctx, userID)
+	require.NoError(t, err)
+	assert.Nil(t, found.CurrentPeriodStart)
+	assert.Nil(t, found.CurrentPeriodEnd)
+}
+
 func TestIntegrationGetByUserID_Existing_ReturnsSubscription(t *testing.T) {
 	if testing.Short() {
 		t.Skip("skipping testcontainer test in short mode")

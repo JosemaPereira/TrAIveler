@@ -23,6 +23,34 @@ type subscriptionCreator interface {
 	CreateSubscription(ctx context.Context, userID, planID, token string) (*subscription.Subscription, error)
 }
 
+// dbUnavailableRetryAfterSeconds is the Retry-After hint attached to a
+// service_unavailable response caused by a database connectivity failure
+// during register or login (issue #207 Sub-item 1). Matches
+// jwt.Refresher's own constant for the same class of failure on
+// POST /auth/refresh (issue #192 Task A) and the documented example in
+// specs/008-auth-collaboration-ux/contracts/api.md.
+const dbUnavailableRetryAfterSeconds = 30
+
+// classifyStorageErr converts a DB-backed repository/subscriber call's
+// failure into the error Register/Login should return: a
+// service_unavailable DomainError (domainerrors.ServiceUnavailableFromDB) for
+// a database connectivity failure, so errors.HandleError maps it to 503 per
+// specs/008-auth-collaboration-ux/contracts/api.md's "Database unavailable";
+// otherwise err unchanged, so a normal repository error (not-found,
+// constraint violation, ...) keeps falling through to its existing handling
+// (generic internal_error/500, or a caller-specific domain error).
+//
+// This mirrors jwt.classifyStorageErr (internal/auth/jwt/refresher.go,
+// unexported there too) rather than sharing it: auth already imports auth/jwt
+// for token issuance, so importing back would cycle. Both call the same
+// underlying errors.ServiceUnavailableFromDB.
+func classifyStorageErr(err error) error {
+	if svcErr := domainerrors.ServiceUnavailableFromDB(err, dbUnavailableRetryAfterSeconds); svcErr != nil {
+		return svcErr
+	}
+	return err
+}
+
 // Service contains authentication business logic: registration (uniqueness,
 // hashing, optional subscription) and login (credential validation, progressive
 // rate limiting, security-event logging). It has no knowledge of HTTP, SQL, or
@@ -57,7 +85,7 @@ func (s *Service) Register(ctx context.Context, req RegisterRequest) (*RegisterR
 	if _, err := s.users.GetUserByEmail(ctx, req.Email); err == nil {
 		return nil, domainerrors.Conflict("Email already registered")
 	} else if !isNotFound(err) {
-		return nil, err
+		return nil, classifyStorageErr(err)
 	}
 
 	hash, err := HashPassword(req.Password, s.bcryptCost)
@@ -73,7 +101,7 @@ func (s *Service) Register(ctx context.Context, req RegisterRequest) (*RegisterR
 		FullName:     req.FullName,
 	}
 	if err := s.users.CreateUser(ctx, user); err != nil {
-		return nil, err
+		return nil, classifyStorageErr(err)
 	}
 
 	sub, err := s.maybeCreateSubscription(ctx, user, req.PaymentMethodToken)
@@ -106,12 +134,12 @@ func (s *Service) maybeCreateSubscription(
 
 	sub, err := s.subscriber.CreateSubscription(ctx, user.ID, subscription.DefaultPlanID, paymentToken)
 	if err != nil {
-		return nil, err
+		return nil, classifyStorageErr(err)
 	}
 
 	user.HasSubscription = true
 	if err := s.users.UpdateUser(ctx, user); err != nil {
-		return nil, err
+		return nil, classifyStorageErr(err)
 	}
 
 	return sub, nil
@@ -165,14 +193,14 @@ func (s *Service) Login(
 			s.logLoginFailure(correlation, "", req.Email, "unknown_email", ipAddress, userAgent)
 			return nil, domainerrors.Unauthorized("Invalid credentials")
 		}
-		return nil, err
+		return nil, classifyStorageErr(err)
 	}
 
 	if ComparePassword(user.PasswordHash, req.Password) != nil {
 		s.limiter.RecordFailure(req.Email)
 		user.FailedLoginAttempts++
 		if err := s.users.UpdateUser(ctx, user); err != nil {
-			return nil, err
+			return nil, classifyStorageErr(err)
 		}
 		s.logLoginFailure(correlation, user.ID, req.Email, "invalid_credentials", ipAddress, userAgent)
 		return nil, domainerrors.Unauthorized("Invalid credentials")
@@ -182,7 +210,7 @@ func (s *Service) Login(
 	if user.FailedLoginAttempts > 0 {
 		user.FailedLoginAttempts = 0
 		if err := s.users.UpdateUser(ctx, user); err != nil {
-			return nil, err
+			return nil, classifyStorageErr(err)
 		}
 	}
 
