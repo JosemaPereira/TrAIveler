@@ -71,15 +71,15 @@
 
 | ID | Task | Group | Sprint | Priority | Status | Depends on | Parallel | Issue | Notes |
 |----|------|-------|--------|----------|--------|------------|----------|-------|-------|
-| 001-T024 | Create CSS custom property design tokens (colors, spacing, typography, border-radius) | | 7 | P1 | Backlog | 001-T001 | yes | | |
-| 001-T025 | Create typed API client base (`apiFetch` wrapper with credentials: include, JSON parsing) | G-FRONTEND-INFRA | 7 | P1 | Backlog | 001-T001 | yes | | |
-| 001-T026 | Create auth Zustand store (user, setUser, clearUser; persist to sessionStorage) | G-FRONTEND-INFRA | 7 | P1 | Backlog | 001-T001 | yes | | |
-| 001-T027 | Create `ProtectedRoute` (redirect to /login) and `GuestRoute` (redirect to /dashboard) | G-FRONTEND-INFRA | 7 | P1 | Backlog | 001-T001 | yes | | |
-| 001-T028 | Create primitive Button, Input, Label, Badge components using design tokens | | 7 | P1 | Backlog | 001-T024 | yes | | |
-| 001-T029 | Implement Register page (email + password form, calls POST /auth/register, redirects to checkout) | G-FRONTEND-AUTH-PAGES | 7 | P1 | Backlog | 001-T024, 001-T025 | no | | |
-| 001-T030 | Implement stub Checkout page (plan summary, POST /subscription/checkout + /confirm, redirect dashboard) | G-FRONTEND-AUTH-PAGES | 7 | P1 | Backlog | 001-T028, 001-T029 | no | | |
-| 001-T031 | Implement Login page (calls POST /auth/login, sets user in store, redirects to dashboard) | G-FRONTEND-AUTH-PAGES | 7 | P1 | Backlog | 001-T028, 001-T030 | no | | |
-| 001-T032 | Wire React Router v7 with all routes (/, /login, /register, /subscribe, /dashboard, /trips/:id, /generate) | | 7 | P1 | Backlog | 001-T029, 001-T030, 001-T031 | no | | |
+| 001-T024 | Create CSS custom property design tokens (colors, spacing, typography, border-radius) | | 7 | P1 | Superseded | 001-T001 | yes | | SUPERSEDED (2026-08-01, Sprint 7 re-planning): `frontend/src/styles/tokens.css` already shipped Sprint 2 (G-SPRINT2-FRONTEND-TOKENS, issue #59, PR #79) and gained focus-indicator tokens in Sprint 5 (008-T034, issue #150, PR #164). No separate Spec-001 work. |
+| 001-T025 | Create typed API client base (`apiFetch` wrapper with credentials: include, JSON parsing) | G-FRONTEND-INFRA | 7 | P1 | Superseded | 001-T001 | yes | | SUPERSEDED (2026-08-01): `frontend/src/lib/api-client.ts` already shipped Sprint 2 (G-SPRINT2-FRONTEND-APP-SHELL, issue #60/#66, PR #81); confirmed as the canonical fetch-based HTTP client over Axios in Sprint 5 (008-T031, issue #149). No separate Spec-001 work. |
+| 001-T026 | Create auth Zustand store (user, setUser, clearUser; persist to sessionStorage) | G-FRONTEND-INFRA | 7 | P1 | Superseded | 001-T001 | yes | | SUPERSEDED (2026-08-01): `frontend/src/stores/auth-store.ts` already shipped Sprint 2 (issue #61, PR #82); `User` shape corrected to the real wire shape in Sprint 6 (008-T033, issue #180, PR #194). No separate Spec-001 work. |
+| 001-T027 | Create `ProtectedRoute` (redirect to /login) and `GuestRoute` (redirect to /dashboard) | G-SPRINT7-FRONTEND-SHELL-GAPS | 7 | P1 | Backlog | 001-T001 | yes | https://github.com/JosemaPereira/TrAIveler/issues/218 | Re-scoped (2026-08-01, Sprint 7 re-planning): **ProtectedRoute half is Done** — `frontend/src/components/ProtectedRoute.tsx` shipped Sprint 2 (PR #81), wired to really gate on `useIsAuthenticated()` in Sprint 5 (008-T036, issue #149, PR #164). **GuestRoute half is genuinely open** — no such component exists anywhere in the tree; an authenticated user visiting `/login` or `/register` today sees the form again instead of being redirected to `/dashboard`. Real remaining scope for this row = GuestRoute only. Grouped with the Badge remainder of 001-T028 into G-SPRINT7-FRONTEND-SHELL-GAPS (2-task group: same spec, same area, same tech stack, no shared deps). |
+| 001-T028 | Create primitive Button, Input, Label, Badge components using design tokens | G-SPRINT7-FRONTEND-SHELL-GAPS | 7 | P1 | Backlog | 001-T024 | yes | https://github.com/JosemaPereira/TrAIveler/issues/218 | Re-scoped (2026-08-01): **Button/Input Done** (Sprint 2, `components/primitives/`, issue #63, PR #80). **Label Done** (Sprint 6, 008-T054, issue #171, PR #194). **Badge genuinely open** — no `Badge` component exists anywhere in the tree. Real remaining scope for this row = Badge only. Building it here pre-empts 008-T083 (Phase 4 US2, unscheduled — Post-MVP Sprints 11-12 per Sprint Plan); flag that row for supersession once this ships. Grouped with the GuestRoute remainder of 001-T027 into G-SPRINT7-FRONTEND-SHELL-GAPS. |
+| 001-T029 | Implement Register page (email + password form, calls POST /auth/register, redirects to checkout) | G-FRONTEND-AUTH-PAGES | 7 | P1 | Superseded | 001-T024, 001-T025 | no | | SUPERSEDED (2026-08-01): Register page shipped Sprint 6 as `frontend/src/routes/RegisterPage.tsx` + `features/auth/components/RegisterForm.tsx` (008-T060/T061, issue #182, PR #198). No separate Spec-001 work. |
+| 001-T030 | Implement stub Checkout page (plan summary, POST /subscription/checkout + /confirm, redirect dashboard) | | | P1 | Backlog | 001-T028, 001-T029 | no | | DEFERRED, unscheduled (2026-08-01, Sprint 7 re-planning): genuinely not built — no Subscribe/Checkout page exists. Deliberately left OUT of Sprint 7: the registration flow actually shipped in Sprint 6 (008-T060, issue #182) does not redirect to a separate checkout page — payment is collected inline via a "Continue to Payment" checkbox in `RegisterForm` using a fixed demo token, so nothing in the shipped flow would call this page today. Building it now would be unwired/throwaway work (the "available but not wired" anti-pattern this project explicitly avoided when reshaping Sprint 6). Likely overlaps 008-T186 (`SubscriptionCheckout`, Phase 9, Post-MVP Sprints 13-14) — needs an explicit product decision (does the MVP want a standalone Subscribe/upgrade page at all, and if so does it live here or does 008-T186 supersede it) before scheduling into any sprint. **Flagged for the user, not resolved here.** |
+| 001-T031 | Implement Login page (calls POST /auth/login, sets user in store, redirects to dashboard) | G-FRONTEND-AUTH-PAGES | 7 | P1 | Superseded | 001-T028, 001-T030 | no | | SUPERSEDED (2026-08-01): Login page shipped Sprint 6 as `frontend/src/routes/LoginPage.tsx` + `features/auth/components/LoginForm.tsx` (008-T113/T114, issue #183, PR #198). No separate Spec-001 work. |
+| 001-T032 | Wire React Router v7 with all routes (/, /login, /register, /subscribe, /dashboard, /trips/:id, /generate) | | 7 | P1 | Superseded | 001-T029, 001-T030, 001-T031 | no | | SUPERSEDED (2026-08-01): router wiring shipped incrementally — initial scaffold Sprint 2 (PR #81), 6-route set (`/register /login /dashboard /trips/:id /settings /password-reset`) Sprint 5 (008-T036, issue #149, PR #164), dashboard+navigation Sprint 6 (issue #184, PR #203). Real file is `frontend/src/routes/index.tsx`, not `App.tsx`/`router.tsx`. Remaining literal routes (`/subscribe`, `/generate`) ride along with their own pages (001-T030's deferred decision above; `/generate` is Sprint 8's Generate page, 001-T047) — not separate trackable work; the routing infrastructure itself is proven and complete. |
 
 #### Phase 3 — User Story 1: First-Time Traveler Plans a Trip (Priority: P1) 🎯 MVP → **Sprint 8**
 
@@ -1032,7 +1032,7 @@
 | 008-T035 | Create global styles in frontend/src/styles/global.css: CSS reset, base typography, box-sizing border-box, accessible focus styles using tokens | G-008-FRONTEND-STYLES | 5 | P1 | Done | 008-T034 | yes | https://github.com/JosemaPereira/TrAIveler/issues/150 | Impl 2026-07-16: reset/base-typography/box-sizing already existed (Sprint 2); rewired `:focus-visible` from hardcoded `2px`/`--color-primary`/`2px` to the new focus-indicator tokens from T034 |
 | 008-T036 | Create React Router configuration in frontend/src/routes/router.tsx: routes for /register, /login, /dashboard, /trips/:id, /settings, /password-reset, with protected route wrapper checking authStore.isAuthenticated | G-008-FRONTEND-INFRA | 5 | P1 | Done | 008-T033 | no | https://github.com/JosemaPereira/TrAIveler/issues/149 | Impl 2026-07-16: genuinely-new work. Added the 6 routes to the existing `frontend/src/routes/index.tsx` (NOT a competing `router.tsx` — App.tsx already imports `router` from `./routes`, real code wins over the literal path). 6 placeholder page components under `routes/`. `components/ProtectedRoute.tsx` now really gates on `useIsAuthenticated()` (redirect `/login`), replacing the unconditional `<Outlet/>` scaffold — single wrapper shared with Spec 004 per issue #149 |
 
-#### Phase 3 — User Story 1: Paid User Registration & First Trip Creation (Priority: P1) 🎯 MVP → **Sprints 6-7**
+#### Phase 3 — User Story 1: Paid User Registration & First Trip Creation (Priority: P1) 🎯 MVP → **Sprint 6** (Register/Login live); **Sprint 8** (remaining Trip creation backend+frontend, re-scoped 2026-08-01 — see Sprint 7 re-planning pass in Sprint Plan)
 
 | ID | Task | Group | Sprint | Priority | Status | Depends on | Parallel | Issue | Notes |
 |----|------|-------|--------|----------|--------|------------|----------|-------|-------|
@@ -1047,10 +1047,10 @@
 | 008-T045 | Implement subscription service CreateSubscription in backend/internal/subscription/service.go: calls payment provider ProcessPayment, creates Subscription with status='active', current_period_end=now+30days, returns subscription | G-008-AUTH-SERVICE | 6 | P1 | Done | 008-T041, 008-T043 | no | https://github.com/JosemaPereira/TrAIveler/issues/176 | Implemented via #176 (branch `feature/176-g-008-auth-service`). `subscription.Service.CreateSubscription(ctx, userID, planID, token)` in `backend/internal/subscription/service.go` — charges `payment.PaymentProvider.ProcessPayment` first, then (only on success) persists an `active` subscription stamped with the opaque `StubPaymentRef`. **Superseded (2026-07-22):** the row's literal `current_period_end=now+30days` does NOT ship — the subscriptions table (migration 007) has no `current_period_*` columns (deliberate deferral, see 008-T039 Notes and `subscription/models.go`); surfacing a period still needs a future ALTER migration. Added `subscription.DefaultPlanID = "00000000-0000-0000-0000-000000000001"` (the single seeded 'basic' plan, migration 006), used by registration. |
 | 008-T046 | Implement POST /auth/register handler in backend/internal/auth/handler.go: validates request body (email format, password strength), calls authService.Register, generates JWT tokens (access 24h, refresh 30d), sets HTTP-only Secure SameSite=Strict cookies, returns 201 with user+subscription JSON | G-008-REGISTER-HTTP | 6 | P1 | Done | 008-T044, 008-T019 | no | https://github.com/JosemaPereira/TrAIveler/issues/177 | Done via #177 (branch `feature/177-178-auth-http-surface`). `auth.Handler.handleRegister` in `backend/internal/auth/handler.go`: decodes body → `Service.Register` → mints access(24h)+refresh(30d) via new `jwt.Issuer` + `auth.TokenIssuer` adapter, sets HTTP-only Secure SameSite=Strict cookies (`access_token`/`refresh_token`, Path=/), 201 with user(+subscription). Service seam is `auth.AccountService` (named to avoid `auth.AuthService` revive stutter; `Service` taken). Verified end-to-end vs real Postgres. |
 | 008-T047 | Register POST /api/v1/auth/register route in backend/cmd/api/main.go: attach register handler to Chi router with rate limit middleware (10/min per IP) | G-008-REGISTER-HTTP | 6 | P1 | Done | 008-T046, 008-T030 | no | https://github.com/JosemaPereira/TrAIveler/issues/177 | Done via #177. Route mounted in `backend/cmd/api/routes.go` (**not** `main.go` — per the tasks.md path note) inside the shared `/api/v1` group via `Handler.RegisterRoutes`, wrapped with per-IP `middleware.RateLimit(10, 1m)` scoped to `/register`. Composition root is new `cmd/api/auth.go` (`buildAuthComponents`), which also builds the JWT `KeyProvider` (dev-ephemeral key when `JWT_SIGNING_KEY` unset) reused by #179's Validator. |
-| 008-T048 | Create Trip model in backend/internal/collaboration/models.go: Trip struct with ID, CreatorID, Destination, StartDate, EndDate, Archived, CreatedAt, UpdatedAt, Version (note: full AI generation logic deferred to future spec, stub returns hardcoded itinerary) | G-008-US1-TRIP | | P1 | Backlog | 008-T001 | yes | | |
-| 008-T049 | Create Trip repository in backend/internal/collaboration/repository.go: CreateTrip(trip), GetTripsByCreatorID(creatorID), GetTripByID(id), UpdateTrip(trip), DeleteTrip(id) | G-008-US1-TRIP | | P1 | Backlog | 008-T048, 008-T015 | yes | | |
-| 008-T050 | Implement POST /trips handler in backend/internal/collaboration/handler.go: validates auth, extracts user from context, validates request (destination, dates), creates Trip with CreatorID=user.ID, returns 201 with trip JSON (AI stub: returns trip with hardcoded 3-day Paris itinerary) | | | P1 | Backlog | 008-T049, 008-T027 | no | | |
-| 008-T051 | Register POST /api/v1/trips route in backend/cmd/api/main.go: attach trip creation handler with auth middleware (requires valid JWT) | | | P1 | Backlog | 008-T050, 008-T030 | no | | |
+| 008-T048 | Create Trip model in backend/internal/collaboration/models.go: Trip struct with ID, CreatorID, Destination, StartDate, EndDate, Archived, CreatedAt, UpdatedAt, Version (note: full AI generation logic deferred to future spec, stub returns hardcoded itinerary) | G-008-US1-TRIP | 8 | P1 | Backlog | 008-T001 | yes | | Re-scoped to Sprint 8 (2026-08-01, Sprint 7 re-planning): no frontend caller exists in Sprint 7 scope (008-T062–070's Trip UI moved to Sprint 8 too, see those rows), so building this now would be unwired. **Cross-spec duplicate risk flagged, not resolved**: Spec 001 Phase 3 (001-T033, `backend/internal/trip/repository.go`, already Sprint 8) defines an equivalent Trip entity + repository with a REAL (AI-conversation-backed) itinerary, in a DIFFERENT package (`internal/trip/` vs this row's `internal/collaboration/`). Building this row's hardcoded-Paris stub first risks it being discarded the same sprint by Spec 001's real version — Sprint 8's own planning pass must decide whether this row is superseded by 001-T033–T040, same reconciliation pattern as the Sprint 6 users-table/PaymentProvider/repo de-duplications. |
+| 008-T049 | Create Trip repository in backend/internal/collaboration/repository.go: CreateTrip(trip), GetTripsByCreatorID(creatorID), GetTripByID(id), UpdateTrip(trip), DeleteTrip(id) | G-008-US1-TRIP | 8 | P1 | Backlog | 008-T048, 008-T015 | yes | | Re-scoped to Sprint 8 (2026-08-01) alongside 008-T048 — see that row's cross-spec duplicate-risk flag vs. Spec 001 Phase 3's Sprint 8 backend (001-T033). |
+| 008-T050 | Implement POST /trips handler in backend/internal/collaboration/handler.go: validates auth, extracts user from context, validates request (destination, dates), creates Trip with CreatorID=user.ID, returns 201 with trip JSON (AI stub: returns trip with hardcoded 3-day Paris itinerary) | | 8 | P1 | Backlog | 008-T049, 008-T027 | no | | Re-scoped to Sprint 8 (2026-08-01) — its only consumers (008-T065/T067/T070 Trip frontend) were also moved to Sprint 8 this pass. Duplicate-risk vs. Spec 001 Phase 3's real, AI-backed POST /trips (001-T038) flagged on 008-T048; Sprint 8 planning must reconcile which implementation ships. |
+| 008-T051 | Register POST /api/v1/trips route in backend/cmd/api/main.go: attach trip creation handler with auth middleware (requires valid JWT) | | 8 | P1 | Backlog | 008-T050, 008-T030 | no | | Re-scoped to Sprint 8 (2026-08-01) alongside 008-T050. |
 | 008-T052 | Create Button primitive in frontend/src/components/primitives/Button.tsx: <Button> with variant (primary/secondary/danger), size (small/medium/large), disabled, loading props; uses design tokens; keyboard accessible | G-008-US1-PRIMITIVES | | P1 | Done | 008-T034 | yes | | SUPERSEDED (2026-07-17): `Button` already shipped Sprint 2 (`frontend/src/components/primitives/Button.tsx`). No rebuild. |
 | 008-T053 | Create Input primitive in frontend/src/components/primitives/Input.tsx: <Input> with type, label, error, disabled props; uses design tokens; associated label for accessibility | G-008-US1-PRIMITIVES | | P1 | Done | 008-T034 | yes | | SUPERSEDED (2026-07-17): `Input` already shipped Sprint 2 (`primitives/Input.tsx`). No rebuild. |
 | 008-T054 | Create Label primitive in frontend/src/components/primitives/Label.tsx: <Label> with htmlFor, required indicator; uses design tokens | G-008-AUTH-PRIMITIVE | 6 | P1 | Done | 008-T034 | yes | https://github.com/JosemaPereira/TrAIveler/issues/171 | Done (branch feature/171-180-auth-label-and-hooks, awaiting PR). As-built (`Label.tsx` + `Label.module.css` + `Label.test.tsx`): props extend `LabelHTMLAttributes<HTMLLabelElement>` with **required** `htmlFor: string` (stricter than the DOM, so a Label can never be rendered unassociated) and optional `required?: boolean`. The required indicator is rendered **twice** for WCAG 2.1 AA: an `aria-hidden` asterisk for sighted users plus a visually hidden `(required)` text for screen readers — no `.sr-only`/`.visually-hidden` utility existed in `styles/global.css`, so the clip-based `.visuallyHidden` class lives in `Label.module.css`. Base `.label` rule mirrors `Input.module.css`'s (`--font-family-base`, `--font-size-sm`, `--font-weight-medium`, `--color-neutral-900`); asterisk uses `--color-error`. `className` merged the same way `Input.tsx` does. **`Input.tsx` deliberately NOT refactored** to consume this — Input already renders its own associated label and that refactor is out of scope. |
@@ -1061,15 +1061,15 @@
 | 008-T059 | Create authApi service in frontend/src/features/auth/services/authApi.ts: register(email, password, fullName, paymentMethodToken) calls axios POST /api/v1/auth/register with withCredentials | G-008-AUTH-HOOKS-API | 6 | P1 | Done | 008-T031 | yes | https://github.com/JosemaPereira/TrAIveler/issues/180 | Reconciliation note (2026-07-15): there is NO Axios in this repo — the HTTP client is the fetch-based `frontend/src/lib/api-client.ts` (`api.*` helpers, `APIError`, per-request X-Request-ID); build authApi on it, do not add axios (see #149). **Done (branch feature/171-180-auth-label-and-hooks, awaiting PR).** As-built (`frontend/src/features/auth/services/authApi.ts` + `types.ts`): built on `api.post` as instructed (no axios, no `withCredentials` — `apiFetch` already sends `credentials: 'include'` on every request). `register(RegisterRequest)` → 201 `{user, subscription?}`; `login(LoginRequest)` → 200 `{user}`; `logout()` → 204. Request/response types live in `features/auth/types.ts` and were verified against the **real backend structs** (`internal/auth/models.go`, `internal/subscription/models.go`), not the spec prose: the wire `user` is exactly `{id, email, full_name, has_subscription, created_at}` — everything else is `json:"-"`. Consequently **`stores/auth-store.ts`'s `User` interface was corrected** (it declared `role`/`subscription_id`/`last_login_at`, none of which the API serializes, and lacked `full_name`/`has_subscription`); `role` is deliberately not exposed by the API today, so no authz decision can be made from it. Tokens are never handled in JS (HttpOnly cookies, docs/security.md). |
 | 008-T060 | Create RegisterForm component in frontend/src/features/auth/components/RegisterForm.tsx: form with email, password, fullName inputs, "Continue to Payment" checkbox, "Create Free Account" button; uses useRegister hook, validates client-side, shows loading/error states | G-008-REGISTER-UI | 6 | P1 | Done | 008-T056, 008-T058 | no | https://github.com/JosemaPereira/TrAIveler/issues/182 | Done (2026-07-31, branch feature/182-183-register-login-ui). As-built: `frontend/src/features/auth/components/RegisterForm.tsx`. Client-side validation (`features/auth/validation.ts`) mirrors `backend/internal/auth/validator.go`'s password rules exactly, blocking submission before any server round trip. "Continue to Payment" is a checkbox that reveals a second submit button (not always-visible); checking it sends a fixed `DEMO_PAYMENT_TOKEN` since the real checkout page (008-T186/T189) is a separate, still-Backlog ticket — consistent with the backend's own `StubPaymentProvider` demo labeling. Server errors surface via `getErrorMessage`/`getFieldErrors` (409 duplicate email, 422 per-field). |
 | 008-T061 | Create RegisterPage in frontend/src/features/auth/pages/RegisterPage.tsx: renders RegisterForm, heading "Create Your Account", links to /login; redirects to /dashboard on success | G-008-REGISTER-UI | 6 | P1 | Done | 008-T060, 008-T036 | no | https://github.com/JosemaPereira/TrAIveler/issues/182 | Done (2026-07-31, same branch/PR as T060/T092). **Deviation from this row's stated path**: lives at `frontend/src/routes/RegisterPage.tsx` (the pre-existing placeholder), not `features/auth/pages/` — no `pages/` directory exists anywhere in this codebase; every page is flat under `routes/` and wired into `routes/index.tsx`. Navigates with `replace: true` so the register form isn't left in back-button history. |
-| 008-T062 | Create useTrips hook in frontend/src/features/trips/hooks/useTrips.ts: TanStack Query query for GET /trips, returns user's owned trips and collaborations | G-008-US1-TRIP-HOOKS | | P1 | Backlog | 008-T031 | yes | | |
-| 008-T063 | Create useCreateTrip hook in frontend/src/features/trips/hooks/useCreateTrip.ts: TanStack Query mutation for POST /trips, invalidates trips query on success | G-008-US1-TRIP-HOOKS | | P1 | Backlog | 008-T031 | yes | | |
-| 008-T064 | Create tripsApi service in frontend/src/features/trips/services/tripsApi.ts: getTrips(), createTrip(destination, startDate, endDate) calls axios | G-008-US1-API | | P1 | Backlog | 008-T031 | yes | | Reconciliation note (2026-07-15): no Axios in this repo — use the fetch-based `frontend/src/lib/api-client.ts` (see 008-T059 note / #149). |
-| 008-T065 | Create TripCard component in frontend/src/features/trips/components/TripCard.tsx: displays trip destination, dates, "View Details" link; uses Card composite; keyboard accessible | | | P1 | Backlog | 008-T052, 008-T034 | no | | |
+| 008-T062 | Create useTrips hook in frontend/src/features/trips/hooks/useTrips.ts: TanStack Query query for GET /trips, returns user's owned trips and collaborations | G-008-US1-TRIP-HOOKS | 8 | P1 | Backlog | 008-T031 | yes | | Re-scoped to Sprint 8 (2026-08-01, Sprint 7 re-planning pass): needs a real `GET /trips` endpoint, which does not exist yet (008-T050/T051 and Spec 001's equivalent are both Sprint 8). Building against a mock/fixture in Sprint 7 was considered and rejected — would be throwaway work discarded the same sprint the real endpoint lands (`frontend/src/routes/DashboardPage.tsx`'s own code comment already anticipates this: "the real trip list lands with TripDashboard/useTrips in Sprint 8"). See Sprint Plan → Sprint 7 re-planning pass for the full Trip-dependency ordering decision. |
+| 008-T063 | Create useCreateTrip hook in frontend/src/features/trips/hooks/useCreateTrip.ts: TanStack Query mutation for POST /trips, invalidates trips query on success | G-008-US1-TRIP-HOOKS | 8 | P1 | Backlog | 008-T031 | yes | | Re-scoped to Sprint 8 (2026-08-01) — same Trip-backend dependency as 008-T062. |
+| 008-T064 | Create tripsApi service in frontend/src/features/trips/services/tripsApi.ts: getTrips(), createTrip(destination, startDate, endDate) calls axios | G-008-US1-API | 8 | P1 | Backlog | 008-T031 | yes | | Re-scoped to Sprint 8 (2026-08-01) — same Trip-backend dependency as 008-T062. Reconciliation note (2026-07-15, still applies): no Axios in this repo — build on `frontend/src/lib/api-client.ts` (see 008-T059 note / #149). |
+| 008-T065 | Create TripCard component in frontend/src/features/trips/components/TripCard.tsx: displays trip destination, dates, "View Details" link; uses Card composite; keyboard accessible | | 8 | P1 | Backlog | 008-T052, 008-T034 | no | | Re-scoped to Sprint 8 (2026-08-01) — same Trip-backend dependency as 008-T062. **Cross-spec duplicate risk flagged, not resolved**: Spec 001 also defines a `TripCard` composite (001-T041, already Sprint 8, `components/composites/TripCard.tsx`) for the same concept — Sprint 8 planning must decide whether these are the same component (likely) and reconcile to one, same pattern as the Sprint 6 primitives de-duplication. |
 | 008-T066 | Create Card composite in frontend/src/components/composites/Card.tsx: <Card> with heading, children; uses design tokens for border, padding, shadow | G-008-US1-COMPOSITES | | P1 | Done | 008-T034 | yes | | SUPERSEDED (2026-07-17): `Card` already shipped Sprint 2 (`primitives/Card.tsx`; spec said composites/ — real is primitives/). No rebuild. |
-| 008-T067 | Create TripDashboard component in frontend/src/features/trips/components/TripDashboard.tsx: renders "My Trips" section (if hasSubscription), "Shared with Me" section, "Create Trip" button (enabled if hasSubscription, disabled with tooltip if Free User), uses useTrips hook, displays LoadingSpinner/ErrorMessage/EmptyState | | | P1 | Backlog | 008-T062, 008-T065, 008-T057 | no | | |
+| 008-T067 | Create TripDashboard component in frontend/src/features/trips/components/TripDashboard.tsx: renders "My Trips" section (if hasSubscription), "Shared with Me" section, "Create Trip" button (enabled if hasSubscription, disabled with tooltip if Free User), uses useTrips hook, displays LoadingSpinner/ErrorMessage/EmptyState | | 8 | P1 | Backlog | 008-T062, 008-T065, 008-T057 | no | | Re-scoped to Sprint 8 (2026-08-01) — depends on 008-T062/T065, both moved to Sprint 8. `frontend/src/routes/DashboardPage.tsx` already ships a placeholder (`EmptyState`) with an inline comment anticipating this exact component landing in Sprint 8. |
 | 008-T068 | Create EmptyState feature in frontend/src/components/features/EmptyState.tsx: <EmptyState> with message, illustration icon, action button; uses design tokens | G-008-US1-COMPONENTS | | P1 | Done | 008-T034 | yes | | SUPERSEDED (2026-07-17): `EmptyState` already shipped Sprint 2 (`primitives/EmptyState.tsx`; spec said features/ — real is primitives/). No rebuild. |
-| 008-T069 | Create DashboardPage in frontend/src/features/trips/pages/DashboardPage.tsx: renders TripDashboard, heading "My Trips", protected route (requires auth) | G-008-AUTH-SHELL | 6 | P1 | Done | 008-T067, 008-T036 | no | https://github.com/JosemaPereira/TrAIveler/issues/184 | |
-| 008-T070 | Create TripDetailPage in frontend/src/features/trips/pages/TripDetailPage.tsx: displays trip destination, dates, day-by-day itinerary (stub: hardcoded Paris 3-day plan), "Edit Trip" button (if owner), "Delete Trip" button (if owner), uses useTripDetail hook (fetch GET /trips/:id) | | | P1 | Backlog | 008-T062, 008-T036 | no | | |
+| 008-T069 | Create DashboardPage in frontend/src/features/trips/pages/DashboardPage.tsx: renders TripDashboard, heading "My Trips", protected route (requires auth) | G-008-AUTH-SHELL | 6 | P1 | Done | 008-T067, 008-T036 | no | https://github.com/JosemaPereira/TrAIveler/issues/184 | Shipped ahead of its own listed dependency (008-T067 is Backlog, re-scoped to Sprint 8 above): `frontend/src/routes/DashboardPage.tsx` renders the page shell (`Navigation` + heading) with a placeholder `EmptyState` in place of the real `TripDashboard`/`useTrips` content, by explicit code comment. Real content lands with 008-T067 in Sprint 8; no further work needed on this row. |
+| 008-T070 | Create TripDetailPage in frontend/src/features/trips/pages/TripDetailPage.tsx: displays trip destination, dates, day-by-day itinerary (stub: hardcoded Paris 3-day plan), "Edit Trip" button (if owner), "Delete Trip" button (if owner), uses useTripDetail hook (fetch GET /trips/:id) | | 8 | P1 | Backlog | 008-T062, 008-T036 | no | | Re-scoped to Sprint 8 (2026-08-01) — depends on 008-T062, moved to Sprint 8. `frontend/src/routes/TripDetailPage.tsx` already ships a placeholder (`<h1>Trip</h1>`) with an inline comment anticipating real content "in a later sprint once the trip features exist" — the `/trips/:id` route itself already exists (008-T036/#149, Sprint 5) and needs no rework, only its content. |
 
 _Checkpoint: Paid User can now register, create subscription, and generate first trip (US1 complete and independently testable)_
 
@@ -1089,7 +1089,7 @@ _Checkpoint: Paid User can now register, create subscription, and generate first
 | 008-T080 | Modify POST /auth/register handler in backend/internal/auth/handler.go: if no paymentMethodToken provided, skip subscription creation, set User.HasSubscription=false, log auth_registration with has_subscription=false detail | G-008-REGISTER-HTTP | 6 | P1 | Done | 008-T046 | no | https://github.com/JosemaPereira/TrAIveler/issues/177 | Done via #177. Free-User variant needs no separate handler branch: with no `payment_method_token`, `Service.Register` skips subscription and leaves `has_subscription=false`, the issued access token carries `has_subscription=false`, and `auth_registration` logs `has_subscription=false`. Verified end-to-end (201, no `subscription` object, cookie JWT claim false). |
 | 008-T081 | Implement GET /invitations handler in backend/internal/collaboration/handler.go: validates auth, returns Collaborator records where UserID=user.ID AND status='pending', includes trip details (destination, creator name) | G-008-US2-HANDLERS | | P1 | Backlog | 008-T073, 008-T027 | yes | | |
 | 008-T082 | Register GET /api/v1/invitations route in backend/cmd/api/main.go: attach invitations list handler with auth middleware | G-008-US2-HANDLERS | | P1 | Backlog | 008-T081, 008-T030 | yes | | |
-| 008-T083 | Create Badge primitive in frontend/src/components/primitives/Badge.tsx: <Badge> with variant (free/paid/pending); uses design tokens; displays "Free User" or "Paid User" text | G-008-US2-PRIMITIVES | | P1 | Backlog | 008-T034 | yes | | |
+| 008-T083 | Create Badge primitive in frontend/src/components/primitives/Badge.tsx: <Badge> with variant (free/paid/pending); uses design tokens; displays "Free User" or "Paid User" text | G-008-US2-PRIMITIVES | | P1 | Backlog | 008-T034 | yes | | Likely to be SUPERSEDED: a `Badge` primitive is being pulled forward into Sprint 7 under 001-T028 (G-SPRINT7-FRONTEND-SHELL-GAPS, 2026-08-01) since Spec 001's frontend-shell task bundles it with Button/Input/Label. Verify against real code before this phase's own planning pass (Post-MVP Sprints 11-12) — if `components/primitives/Badge.tsx` already exists, this row is a duplicate, not new work. |
 | 008-T084 | Create Modal composite in frontend/src/components/composites/Modal.tsx: <Modal> with isOpen, onClose, title, children; uses design tokens; keyboard trap, ESC to close, focus management | G-008-US2-COMPOSITES | | P1 | Backlog | 008-T034 | yes | | |
 | 008-T085 | Create Banner composite in frontend/src/components/composites/Banner.tsx: <Banner> with type (info/warning/error/success), message, action button; uses design tokens; dismissible | G-008-US2-COMPOSITES | | P1 | Backlog | 008-T034 | yes | | |
 | 008-T086 | Create useInvitations hook in frontend/src/features/collaboration/hooks/useInvitations.ts: TanStack Query query for GET /invitations, returns pending invitations | G-008-US2-HOOKS | | P1 | Backlog | 008-T031 | yes | | |
@@ -1964,20 +1964,135 @@ Sprint 4's 009-T010/T013/T017/T021 (`Done`).
 
 ### 🎨 Sprint 7: Frontend Shell & Components (Weeks 13-14)
 
+**Re-planning pass (2026-08-01) — findings and decisions** (supersedes the 28-task draft below; full
+rationale kept here per the Sprint 5/6 precedent of documenting re-planning passes where the
+reassessment happens):
+
+1. **Re-verified roadmap Status vs. GitHub and the real tree**: Sprint 6 is fully closed (19 issues
+   #167–#184+#195, all `CLOSED`; `gh issue list --state open` returns exactly 3 items — #209, #210,
+   #212 — none of which target this sprint's scope, confirmed below). No `sprint:7` issues exist yet
+   (clean planning pass, not drift reconciliation), but the *rows* this sprint's draft cites were
+   never individually verified against Sprint 6's actual delivery — that verification is what this
+   pass does.
+2. **The 9-task "Frontend shell" block (001-T024–T032) is almost entirely already-shipped leakage
+   from Sprint 2/5/6**: file-by-file verification against `frontend/src/` found 6 of 9 tasks fully
+   satisfied by existing code (design tokens, API client, auth store, Register page, Login page,
+   router wiring — all shipped Sprint 2 through Sprint 6, see each row's updated Notes) and marked
+   `Superseded`. Two tasks (`ProtectedRoute`+`GuestRoute`, and `Button`/`Input`/`Label`+`Badge`) are
+   **partially** satisfied — only `GuestRoute` and `Badge` are genuinely unbuilt. One task (stub
+   Checkout page, 001-T030) is genuinely unbuilt but is **deliberately not scheduled** — see finding
+   #5.
+3. **The 19-task "Authentication UI" block (008-T052–T070, Spec 008 Phase 3's frontend half) is 13
+   tasks already Done** (primitives shipped Sprint 2, Label/hooks/Register UI shipped Sprint 6 —
+   #171/#180/#182) **and 6 tasks that are Trip-dependent** (`useTrips`, `useCreateTrip`, `tripsApi`,
+   `TripCard`, `TripDashboard`, `TripDetailPage` — 008-T062/T063/T064/T065/T067/T070). See finding #4
+   for what happens to those 6.
+4. **Trip-dependency ordering question, resolved — move the 6 Trip-dependent frontend tasks to
+   Sprint 8, do not build them against a mock in Sprint 7.** No Trip backend exists yet: Spec 008's
+   own Trip creation stub (008-T048–T051, `POST /trips` returning a hardcoded 3-day Paris itinerary)
+   is unbuilt and unscheduled, and Spec 001 Phase 3's real, AI-conversation-backed Trip backend
+   (001-T033–T040) is already scheduled Sprint 8. Building `useTrips`/`TripCard`/`TripDashboard`
+   against a mock/fixture now was considered and rejected: it would be pure throwaway work, discarded
+   the same sprint the real endpoint ships anyway, repeating the "available but not wired" anti-pattern
+   this project explicitly rejected when reshaping Sprint 6 ("Auth must go live, not sit inert").
+   Corroborating evidence already in the tree: `frontend/src/routes/DashboardPage.tsx` ships a
+   placeholder `EmptyState` with its own code comment — *"the real trip list lands with
+   TripDashboard/useTrips in Sprint 8"* — and `TripDetailPage.tsx` ships `<h1>Trip</h1>` with a
+   comment anticipating real content "in a later sprint once the trip features exist." Both predate
+   this planning pass, i.e. the codebase had already independently converged on this answer.
+   **Moved to Sprint 8**: 008-T062, T063, T064, T065, T067, T070 (frontend) + 008-T048, T049, T050,
+   T051 (backend stub, same reasoning — no Sprint-7-resident caller once the frontend moves). A
+   **cross-spec duplicate-work risk is flagged, not resolved**, exactly like the Sprint 5/6
+   users-table and PaymentProvider precedents: Spec 008's Trip model/repo/handler
+   (`internal/collaboration/`, hardcoded stub) structurally overlaps Spec 001 Phase 3's Trip
+   model/repo/handler (`internal/trip/`, real AI-backed), and Spec 008's `TripCard` (008-T065)
+   overlaps Spec 001's own `TripCard` (001-T041) — both already land Sprint 8. Sprint 8's own
+   planning pass must reconcile these, not fixed here.
+5. **001-T030 (stub Checkout/Subscribe page) is deliberately left unscheduled, not pulled into Sprint
+   7 or moved to Sprint 8** — flagged as an open product question rather than silently decided either
+   way. The registration flow actually shipped in Sprint 6 (008-T060/#182) does not redirect to a
+   separate checkout page at all: payment is collected inline via a "Continue to Payment" checkbox in
+   `RegisterForm` using a fixed demo token. Nothing in the shipped flow would call a standalone
+   Subscribe/Checkout page today, and it likely overlaps 008-T186 (`SubscriptionCheckout`, Phase 9,
+   currently Post-MVP Sprints 13-14). Building it now would be unwired work with no caller. **Needs an
+   explicit decision from the user**: does the MVP still want a standalone Subscribe/upgrade page, and
+   if so does it belong in an earlier sprint than 008-T186, or does 008-T186 simply supersede this row
+   when Sprint 13-14 planning happens?
+6. **Confirmed the three open issues stay out of Sprint 7 scope, as their roadmap Notes already
+   state**: #212 (009-T019/002-T050, GitHub ruleset automation) is permanently blocked on the
+   personal-account GitHub plan, not sprint-schedulable. #210 (G-SPRINT8-CLEANUP) is explicitly gated
+   on Sprint 8's real Trip CRUD routes landing — consistent with finding #4 above, if anything this
+   pass *reinforces* that gate rather than weakening it. #209 (a11y CI gate bridge) is explicitly
+   deferred to Sprint 9, pending 002-T023. None of the three have any dependency relationship to this
+   sprint's frontend-shell scope; re-confirmed via `gh issue list --state open` (3 results, matching
+   exactly).
+7. **Open strategic question for the user, not resolved unilaterally**: after this correction, Sprint
+   7's genuine remaining scope from specs/*/tasks.md is a single small 2-task group (`GuestRoute` +
+   `Badge`) — far under this project's ~20-30 task/sprint capacity assumption. This is an honest
+   finding, not an artifact of under-scoping the search: Sprint 6 pulled forward the overwhelming
+   majority of what Sprint 7 was originally drafted to contain (see Sprint 6's own re-planning pass,
+   "~27 auth tasks pulled forward from Sprints 7-8"), and this pass additionally routes the one
+   remaining substantial block (Trip UI) to Sprint 8 per finding #4. Three options existed: **(a)**
+   accept a deliberately light Sprint 7 and let Sprint 8's own planning pass independently decide
+   whether to pull its own scope earlier; **(b)** have a follow-up pass pull specific Sprint 8 backend
+   work forward; **(c)** treat Sprint 7 as absorbed and renumber Sprint 8 onward. **User confirmed
+   (2026-08-01): option (a)** — the light sprint is accepted as-is, no scope pulled forward from
+   Sprint 8.
+8. **User-requested addition (2026-08-01), not derived from any spec's `tasks.md`**: a repo-wide code
+   comment audit — remove or rewrite comments that merely restate what the code already says, that are
+   excessively long relative to what they explain, or that otherwise don't earn their keep (no hidden
+   constraint, subtle invariant, or non-obvious WHY behind them), across **all four** code areas
+   (backend, frontend, e2e, infra — clarified via `AskUserQuestion` after "los tres proyectos" turned
+   out to undercount the repo's actual four top-level code directories). Per
+   `.github/SPRINT-CONSOLIDATION-CHECKLIST.md`'s explicit "DON'T consolidate: different tech stacks
+   (Go + TypeScript = separate)" rule, this is scoped as **four separate work items**, one per stack
+   (Go, React/TypeScript, Playwright/TypeScript, Terraform/HCL), not one bundled task — each is a
+   read-only review-and-prune pass with no behavior change, so no cross-item dependency exists either.
+
 **Epic Label**: `epic:frontend-shell`
 
-**Goal**: Build React app shell, authentication pages, and component library primitives.
+**Goal**: Close the small remaining gap in the authenticated-app frontend shell (guest-route
+redirects, the Badge primitive) before Sprint 8's Trip-generation work begins, and use the light
+capacity this sprint to run a repo-wide comment-quality pass across all four code areas.
 
-**Scope**: Spec 001 Phase 2 (Frontend) + Spec 008 Phase 3 Part 2
+**Scope**: Spec 001 Phase 2 remainder (001-T027 GuestRoute half, 001-T028 Badge half) + a new,
+non-spec comment-audit task per area (backend/frontend/e2e/infra), per finding #8. Spec 008 Phase 3's
+remaining tasks (008-T048–T051, T062–T065, T067, T070) move to Sprint 8 per finding #4 above;
+001-T030 stays unscheduled per finding #5.
 
-| Work Items | Task Count | Key Deliverables |
-|------------|------------|------------------|
-| Frontend shell | 9 | Design tokens, API client, Zustand auth store, routing, primitives (Button, Input, Label) |
-| Authentication UI | 19 | Register/Login/Dashboard pages, TripCard, TripDashboard, TripDetail with TanStack Query hooks |
+**Consolidation (mandatory analysis performed at this planning pass)**: the two genuinely open
+spec-sourced tasks — `GuestRoute` (001-T027 remainder) and `Badge` (001-T028 remainder) — meet every
+consolidation rule (same spec, same area/`frontend/src/components/`, same tech stack, no blocking
+dependency between them, well under the 2-4 task optimal size) and are grouped into one work item,
+`G-SPRINT7-FRONTEND-SHELL-GAPS`. The comment-audit addition is the mirror case — one logical task that
+explicitly must **not** be consolidated, since it spans four different tech stacks (the checklist's own
+"DON'T" example is literally "Go + TypeScript = separate"); kept as four standalone work items instead.
 
-**Total**: 28 tasks  
-**Risks**: Component library scope creep, TanStack Query learning curve  
-**Dependencies**: Sprint 6 complete
+**Prioritization**: no MoSCoW/RICE re-ranking needed for the spec-sourced pair — both are P1
+foundation work (routing/primitives) with no scope-cut candidates. The comment-audit items are
+housekeeping (no priority label from any spec); sequenced last since they touch the broadest surface
+area and benefit from landing after this sprint's one functional change (`GuestRoute`) rather than
+racing it.
+
+| Order | Work Item | Tasks | Issue | Depends On | Key Deliverables |
+|-------|-----------|-------|-------|------------|-------------------|
+| 1 | G-SPRINT7-FRONTEND-SHELL-GAPS | 2 (001-T027 remainder, 001-T028 remainder) | [#218](https://github.com/JosemaPereira/TrAIveler/issues/218) | — (all real prerequisites — `useIsAuthenticated`, `tokens.css`, the primitives directory — already `Done`) | `GuestRoute` component (redirect authenticated users away from `/login`/`/register` to `/dashboard`); `Badge` primitive (variant-based, design-token-driven) |
+| 2 | G-SPRINT7-COMMENT-AUDIT-BACKEND | 1 (non-spec) | [#219](https://github.com/JosemaPereira/TrAIveler/issues/219) | — (read-only review, independent of #1) | Sweep `backend/` (Go) for comments that restate the code, are excessively long, or add nothing beyond the obvious behavior of the function/type/segment they annotate; remove or shorten, no behavior change |
+| 3 | G-SPRINT7-COMMENT-AUDIT-FRONTEND | 1 (non-spec) | [#220](https://github.com/JosemaPereira/TrAIveler/issues/220) | — (independent of #1/#2; touches some of the same files `GuestRoute`/`Badge` will add, but no ordering requirement — reviewer just needs latest tree) | Same sweep applied to `frontend/src/` (React/TypeScript) |
+| 4 | G-SPRINT7-COMMENT-AUDIT-E2E | 1 (non-spec) | [#221](https://github.com/JosemaPereira/TrAIveler/issues/221) | — (independent) | Same sweep applied to `e2e/tests/` and `e2e/fixtures/` (Playwright/TypeScript) |
+| 5 | G-SPRINT7-COMMENT-AUDIT-INFRA | 1 (non-spec) | [#222](https://github.com/JosemaPereira/TrAIveler/issues/222) | — (independent) | Same sweep applied to `infra/` (Terraform/HCL: `.tf`/`.tfvars` comments) |
+
+**Total**: 2 spec-sourced tasks + 4 non-spec comment-audit tasks → **5 work items** (vs. the draft's
+nominal 28 tasks — 26 were already Done/Superseded or re-scoped to Sprint 8/unscheduled this pass; see
+findings above for the full breakdown)  
+**Risks**: none technical — the spec-sourced scope is two small, well-understood primitives with no
+novel technology, and the comment audits are read-only prune passes with an explicit no-behavior-change
+constraint. The main risk is judgment-call consistency across four reviewers/PRs on what counts as
+"redundant" or "excessively long" — worth a one-line shared rubric in each issue body (mirror this
+project's own working convention: comments should explain a non-obvious WHY — a hidden constraint, a
+subtle invariant, a workaround — not restate WHAT the code already says).  
+**Dependencies**: Sprint 6 complete (verified above — 19/19 issues closed, no drift) for item #1; the
+comment-audit items (#2-#5) have no dependency beyond the current tree.
 
 ---
 
@@ -1994,9 +2109,23 @@ Sprint 4's 009-T010/T013/T017/T021 (`Done`).
 | Trip generation backend | 18 | Trip/Conversation/Itinerary services, AI Claude streaming (stub: 3-day Paris itinerary), HTTP handlers |
 | Login & trip management | 26 | Login/logout flow, trips list/detail/update/delete handlers, trip CRUD UI pages |
 
-**Total**: 44 tasks  
-**Risks**: SSE streaming complexity, AI stub maintainability  
+**Total**: 44 tasks (nominal draft — **not yet re-verified**; see the inherited-scope note below, this
+sprint's own planning pass must recompute the real count, same as every prior sprint's planning
+pass has had to correct its predecessor's draft)  
+**Risks**: SSE streaming complexity, AI stub maintainability; **new, surfaced at Sprint 7's
+re-planning pass (2026-08-01)**: two concrete cross-spec duplicate-work risks this sprint's planning
+must reconcile before implementation — Spec 008's Trip model/repo/handler (`internal/collaboration/`,
+008-T048–T051, hardcoded-stub) vs. Spec 001 Phase 3's real AI-backed Trip backend (`internal/trip/`,
+001-T033–T040); and Spec 008's `TripCard` (008-T065) vs. Spec 001's own `TripCard` (001-T041)  
 **Dependencies**: Sprint 7 complete  
+**Inherited scope from Sprint 7's re-planning pass (2026-08-01)** — not yet reflected in the table
+above, since re-planning Sprint 8 itself is out of that pass's scope; pull these in at this sprint's
+own planning: 008-T048, T049, T050, T051 (backend Trip creation stub — see duplicate-risk flag above)
+and 008-T062, T063, T064, T065, T067, T070 (frontend Trip UI: `useTrips`/`useCreateTrip` hooks,
+`tripsApi`, `TripCard`, `TripDashboard`, `TripDetailPage`) — moved here because no Trip backend exists
+yet for them to call; see the Sprint 7 entry above, finding #4, for the full reasoning. Both
+`frontend/src/routes/DashboardPage.tsx` and `TripDetailPage.tsx` already carry code comments
+anticipating this content landing in this sprint.  
 **Carried-forward cleanup** (not from `specs/*/tasks.md`, no roadmap row — pull in when scoping this
 sprint): issue [#210](https://github.com/JosemaPereira/TrAIveler/issues/210) (delete
 `backend/internal/example/` and `HTTPServer.extraProtectedRoutes` once this sprint's real Trip
