@@ -2,11 +2,11 @@ import { useEffect, useState } from 'react'
 import type { ChangeEvent, SyntheticEvent } from 'react'
 import { Link } from 'react-router'
 
-import { Button } from '../../../components/primitives/Button'
-import { Input } from '../../../components/primitives/Input'
-import { getErrorMessage, isAPIError } from '../../../lib/query-client'
-import { useLogin } from '../hooks/useLogin'
-import { isValidEmail } from '../validation'
+import { Button } from '@/components/primitives/Button'
+import { Input } from '@/components/primitives/Input'
+import { getErrorMessage, isAPIError } from '@/lib/query-client'
+import { useLogin } from '@/features/auth/hooks/useLogin'
+import { isValidEmail } from '@/features/auth/validation'
 import styles from './LoginForm.module.css'
 
 export interface LoginFormProps {

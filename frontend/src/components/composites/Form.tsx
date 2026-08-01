@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import type { InputHTMLAttributes, SyntheticEvent } from 'react'
-import { Button } from '../primitives/Button'
-import { Input } from '../primitives/Input'
+import { Button } from '@/components/primitives/Button'
+import { Input } from '@/components/primitives/Input'
 import styles from './Form.module.css'
 
 export interface FormFieldConfig extends Omit<

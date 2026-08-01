@@ -18,5 +18,7 @@ export function resolveLoginRedirect(redirectParam: string | null): string {
   if (!redirectParam) {
     return DEFAULT_REDIRECT
   }
-  return SAFE_RELATIVE_PATH.test(redirectParam) ? redirectParam : DEFAULT_REDIRECT
+  return SAFE_RELATIVE_PATH.test(redirectParam)
+    ? redirectParam
+    : DEFAULT_REDIRECT
 }

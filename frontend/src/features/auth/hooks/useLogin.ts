@@ -1,9 +1,9 @@
 import { useMutation } from '@tanstack/react-query'
 
-import { getRetryAfterSeconds } from '../../../lib/query-client'
-import { useAuthStore } from '../../../stores/auth-store'
-import { authApi } from '../services/authApi'
-import type { LoginRequest, LoginResponse } from '../types'
+import { getRetryAfterSeconds } from '@/lib/query-client'
+import { useAuthStore } from '@/stores/auth-store'
+import { authApi } from '@/features/auth/services/authApi'
+import type { LoginRequest, LoginResponse } from '@/features/auth/types'
 
 /**
  * Mutation for `POST /auth/login`, plus the rate-limit countdown seed.

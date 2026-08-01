@@ -1,6 +1,6 @@
 import { create } from 'zustand'
 
-import { api } from '../lib/api-client'
+import { api } from '@/lib/api-client'
 
 // Wire-format User, typed with the same snake_case field names the backend
 // returns — this codebase has no case-conversion layer (see api-client.ts),

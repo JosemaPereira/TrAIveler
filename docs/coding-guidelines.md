@@ -477,7 +477,13 @@ structure, and coverage targets live in [`testing-guidelines.md`](testing-guidel
 
 ### Import Organization
 Imports must be grouped in this order, separated by blank lines: React/framework → third-party →
-internal absolute (`@/...`) → internal relative → styles/assets.
+internal absolute (`@/...`) → styles/assets.
+
+Any import that crosses a directory boundary (i.e. would otherwise need a `../`) **must** use the
+`@/` path alias (mapped to `./src` in `vite.config.ts` / `tsconfig.json`'s
+`"paths": { "@/*": ["./src/*"] }`), regardless of depth — this includes single-level `../` imports,
+not just deep `../../../` chains. Only same-directory imports (`./Foo.module.css`, a co-located
+test/type file) stay relative.
 
 ```ts
 // 1. React and framework
@@ -486,24 +492,21 @@ import { useState, useEffect } from 'react';
 // 2. Third-party libraries
 import { useQuery } from '@tanstack/react-query';
 
-// 3. Internal — absolute paths (via the '@' path alias, configured in vite.config.ts /
-//    tsconfig.json's "paths": { "@/*": ["./src/*"] })
+// 3. Internal — absolute paths (via the '@' path alias)
 import { ItineraryCard } from '@/components/ItineraryCard';
 import { useTrip } from '@/hooks/useTrip';
+import { isAPIError } from '@/lib/query-client';
 
-// 3b. Internal — relative paths (used when the absolute alias would be awkward, e.g. a
-//    hook importing a sibling lib module — see frontend/src/hooks/useErrorHandler.ts)
-import { isAPIError } from '../lib/query-client';
-
-// 4. Styles / assets
+// 4. Styles / assets — same-directory relative imports are fine here
 import styles from './TripView.module.css';
 ```
 
-**Enforcement note**: this order is a documented project convention (also stated in
-[`frontend/README.md`](../frontend/README.md#code-standards)), not an automated ESLint rule —
-`frontend/eslint.config.js` has no `eslint-plugin-import`/`import/order` rule configured, and no
-such plugin is installed. `npm run lint` will not catch a misordered import block; follow the
-convention by hand and rely on code review to catch drift.
+**Enforcement**: the `@/`-over-`../` rule is enforced automatically by ESLint's built-in
+`no-restricted-imports` (`frontend/eslint.config.js`), which errors on any `../*` import —
+`npm run lint` will catch it. Group *ordering* (React → third-party → internal → styles) remains a
+documented convention only (also stated in
+[`frontend/README.md`](../frontend/README.md#code-standards)); no `eslint-plugin-import`/`import/order`
+plugin is installed, so ordering itself is not auto-checked and relies on code review.
 
 ### Component Conventions
 - One component per file. The file name matches the component name in PascalCase: `TripCard.tsx`.

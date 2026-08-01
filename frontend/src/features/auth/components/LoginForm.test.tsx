@@ -3,12 +3,12 @@ import { act, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { http, HttpResponse } from 'msw'
 
-import { APIError } from '../../../lib/api-client'
-import { useAuthStore } from '../../../stores/auth-store'
-import { API_BASE_URL, testUser } from '../../../test/msw/handlers'
-import { server } from '../../../test/msw/server'
-import { createQueryWrapper } from '../../../test/queryWrapper'
-import { useLogin } from '../hooks/useLogin'
+import { APIError } from '@/lib/api-client'
+import { useAuthStore } from '@/stores/auth-store'
+import { API_BASE_URL, testUser } from '@/test/msw/handlers'
+import { server } from '@/test/msw/server'
+import { createQueryWrapper } from '@/test/queryWrapper'
+import { useLogin } from '@/features/auth/hooks/useLogin'
 import { LoginForm } from './LoginForm'
 
 vi.mock('../hooks/useLogin', async (importOriginal) => {
@@ -18,9 +18,7 @@ vi.mock('../hooks/useLogin', async (importOriginal) => {
 
 const mockedUseLogin = vi.mocked(useLogin)
 const { useLogin: actualUseLogin } =
-  await vi.importActual<typeof import('../hooks/useLogin')>(
-    '../hooks/useLogin'
-  )
+  await vi.importActual<typeof import('../hooks/useLogin')>('../hooks/useLogin')
 
 const validPassword = 'CorrectHorse1!'
 
@@ -60,9 +58,7 @@ describe('<LoginForm />', () => {
     it('should render the email and password fields', () => {
       renderForm()
 
-      expect(
-        screen.getByRole('textbox', { name: 'Email' })
-      ).toBeInTheDocument()
+      expect(screen.getByRole('textbox', { name: 'Email' })).toBeInTheDocument()
       expect(screen.getByLabelText('Password')).toBeInTheDocument()
     })
 

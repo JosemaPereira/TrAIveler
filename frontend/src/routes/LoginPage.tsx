@@ -1,6 +1,6 @@
 import { Link, useNavigate, useSearchParams } from 'react-router'
 
-import { LoginForm } from '../features/auth/components/LoginForm'
+import { LoginForm } from '@/features/auth/components/LoginForm'
 import { resolveLoginRedirect } from './login-redirect'
 
 /**

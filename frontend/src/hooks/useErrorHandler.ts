@@ -1,9 +1,9 @@
 import { useEffect } from 'react'
 import { useNavigate } from 'react-router'
 
-import { isAPIError } from '../lib/query-client'
-import { mapApiError } from '../lib/error-handler'
-import type { ErrorDisplay } from '../lib/error-handler'
+import { isAPIError } from '@/lib/query-client'
+import { mapApiError } from '@/lib/error-handler'
+import type { ErrorDisplay } from '@/lib/error-handler'
 
 // Re-exported for existing consumers that imported the result type from here.
 export type ErrorHandlerResult = ErrorDisplay

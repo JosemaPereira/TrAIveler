@@ -1,7 +1,7 @@
 import { http, HttpResponse } from 'msw'
 
-import type { Subscription } from '../../features/auth/types'
-import type { User } from '../../stores/auth-store'
+import type { Subscription } from '@/features/auth/types'
+import type { User } from '@/stores/auth-store'
 
 /**
  * Absolute base URL every handler is registered against. Read from the same

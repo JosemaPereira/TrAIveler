@@ -3,10 +3,10 @@ import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { http, HttpResponse } from 'msw'
 
-import { useAuthStore } from '../../../stores/auth-store'
-import { API_BASE_URL, testUser } from '../../../test/msw/handlers'
-import { server } from '../../../test/msw/server'
-import { createQueryWrapper } from '../../../test/queryWrapper'
+import { useAuthStore } from '@/stores/auth-store'
+import { API_BASE_URL, testUser } from '@/test/msw/handlers'
+import { server } from '@/test/msw/server'
+import { createQueryWrapper } from '@/test/queryWrapper'
 import { DEMO_PAYMENT_TOKEN, RegisterForm } from './RegisterForm'
 
 const validEmail = 'traveler@example.com'
@@ -40,9 +40,7 @@ describe('<RegisterForm />', () => {
     it('should render the email, password, and full name fields', () => {
       renderForm()
 
-      expect(
-        screen.getByRole('textbox', { name: 'Email' })
-      ).toBeInTheDocument()
+      expect(screen.getByRole('textbox', { name: 'Email' })).toBeInTheDocument()
       expect(screen.getByLabelText('Password')).toBeInTheDocument()
       expect(
         screen.getByRole('textbox', { name: 'Full Name' })

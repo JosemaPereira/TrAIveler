@@ -4,7 +4,7 @@ import userEvent from '@testing-library/user-event'
 
 import { Label } from './Label'
 import styles from './Label.module.css'
-import { cssClass } from '../../test/cssModule'
+import { cssClass } from '@/test/cssModule'
 
 describe('<Label />', () => {
   describe('when rendered with a control id', () => {

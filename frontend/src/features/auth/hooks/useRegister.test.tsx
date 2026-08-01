@@ -2,14 +2,10 @@ import { beforeEach, describe, expect, it } from 'vitest'
 import { renderHook, waitFor } from '@testing-library/react'
 import { http, HttpResponse } from 'msw'
 
-import { useAuthStore } from '../../../stores/auth-store'
-import {
-  API_BASE_URL,
-  testSubscription,
-  testUser,
-} from '../../../test/msw/handlers'
-import { server } from '../../../test/msw/server'
-import { createQueryWrapper } from '../../../test/queryWrapper'
+import { useAuthStore } from '@/stores/auth-store'
+import { API_BASE_URL, testSubscription, testUser } from '@/test/msw/handlers'
+import { server } from '@/test/msw/server'
+import { createQueryWrapper } from '@/test/queryWrapper'
 import { useRegister } from './useRegister'
 
 const validRegistration = {

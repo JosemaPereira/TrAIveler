@@ -3,7 +3,7 @@ import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { Button } from './Button'
 import styles from './Button.module.css'
-import { cssClass } from '../../test/cssModule'
+import { cssClass } from '@/test/cssModule'
 
 describe('<Button />', () => {
   describe('when rendered with default props', () => {

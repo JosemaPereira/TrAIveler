@@ -1,4 +1,4 @@
-import type { User } from '../../stores/auth-store'
+import type { User } from '@/stores/auth-store'
 
 /**
  * Wire types for the auth surface (`POST /api/v1/auth/*`).

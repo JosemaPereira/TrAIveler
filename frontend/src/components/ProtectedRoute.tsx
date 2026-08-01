@@ -1,6 +1,6 @@
 import { Navigate, Outlet } from 'react-router'
 
-import { useIsAuthenticated } from '../stores/auth-store'
+import { useIsAuthenticated } from '@/stores/auth-store'
 
 /**
  * Route guard for authenticated-only pages (Spec 004 / Spec 008 008-T036).

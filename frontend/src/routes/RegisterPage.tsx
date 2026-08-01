@@ -1,6 +1,6 @@
 import { Link, useNavigate } from 'react-router'
 
-import { RegisterForm } from '../features/auth/components/RegisterForm'
+import { RegisterForm } from '@/features/auth/components/RegisterForm'
 
 /**
  * Registration page. Renders `RegisterForm` and, on a successful registration
