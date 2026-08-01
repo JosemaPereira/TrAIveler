@@ -5,6 +5,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/JosemaPereira/TrAIveler/backend/internal/testdb"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/testcontainers/testcontainers-go"
@@ -22,7 +23,7 @@ const (
 
 // setupPostgresContainer is a test helper that starts a PostgreSQL testcontainer
 // and returns its connection string for use in integration tests.
-// The container uses postgres:16-alpine with test credentials (testuser/testpass/testdb).
+// The container uses testdb.PostgresImage with test credentials (testuser/testpass/testdb).
 // Waits for PostgreSQL to be fully ready before returning (2 occurrences of "ready" message).
 //
 // The container is terminated automatically via t.Cleanup when the test ends.
@@ -30,7 +31,7 @@ func setupPostgresContainer(t *testing.T, ctx context.Context) string {
 	t.Helper()
 
 	pgContainer, err := postgres.Run(ctx,
-		"postgres:16-alpine",
+		testdb.PostgresImage,
 		postgres.WithDatabase("testdb"),
 		postgres.WithUsername("testuser"),
 		postgres.WithPassword("testpass"),

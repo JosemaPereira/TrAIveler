@@ -6,7 +6,9 @@
 # Workflow steps:
 # 1. Lint & Test - golangci-lint, then Go tests with race detection and
 #    coverage, then a swagger-drift check confirming backend/docs/ matches
-#    what `make swagger` would regenerate right now (one job: they shared
+#    what `make swagger` would regenerate right now, then a roadmap-status
+#    drift check confirming docs/roadmap.md's Status column agrees with the
+#    live GitHub state of each row's linked issue (one job: they shared
 #    identical checkout/setup-go, and lint finishing first fails fast before
 #    the slower test run)
 # 2. Build - Build Docker image for linux/arm64 (ECS Fargate) to validate the
@@ -39,10 +41,12 @@ on:
 
 # Least-privilege token: dorny/paths-filter needs pull-requests:read to list a
 # PR's changed files via the API (otherwise the changes job fails with
-# "Resource not accessible by integration"); checkout needs contents:read.
+# "Resource not accessible by integration"); checkout needs contents:read;
+# the roadmap-status-drift step's `gh issue list` needs issues:read.
 permissions:
   contents: read
   pull-requests: read
+  issues: read
 
 # Prevent concurrent runs on the same PR
 concurrency:
@@ -110,6 +114,14 @@ jobs:
           go install github.com/swaggo/swag/cmd/swag@latest
           make swagger
           git diff --exit-code -- docs
+
+      - name: Check roadmap Status matches live GitHub issue state
+        # docs/roadmap.md's human-owned Status column must agree with the
+        # real state of its linked issue (closed-but-not-Done, or
+        # open-but-Done, is drift) — see scripts/check-roadmap-status-drift.py.
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: python3 scripts/check-roadmap-status-drift.py
 
       - name: Upload coverage to artifact
         uses: actions/upload-artifact@v4

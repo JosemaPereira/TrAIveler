@@ -19,6 +19,7 @@ import (
 	"github.com/JosemaPereira/TrAIveler/backend/internal/database"
 	"github.com/JosemaPereira/TrAIveler/backend/internal/database/migrations"
 	domainerrors "github.com/JosemaPereira/TrAIveler/backend/internal/errors"
+	"github.com/JosemaPereira/TrAIveler/backend/internal/testdb"
 )
 
 // setupRepositoryTestDB starts a PostgreSQL testcontainer, applies goose
@@ -29,7 +30,7 @@ func setupRepositoryTestDB(t *testing.T, ctx context.Context) database.Client {
 	t.Helper()
 
 	pgContainer, err := postgres.Run(ctx,
-		"postgres:16-alpine",
+		testdb.PostgresImage,
 		postgres.WithDatabase("testdb"),
 		postgres.WithUsername("testuser"),
 		postgres.WithPassword("testpass"),

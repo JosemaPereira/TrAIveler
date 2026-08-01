@@ -69,6 +69,10 @@ the file **and** add a line here.
 - *Hash-Manifest Drift Detection for Hand-Ported Config Pairs* — `scripts/check-agent-drift.py`.
 - *Prefer the Official Multi-Agent Integration Over Hand-Porting* — why the SpecKit hand-port died.
 - *Claude Code's Shell Snapshot Drops Single-Underscore Shell Functions*.
+- *A New CI Gate Must Be Test-Run Against `main`'s Actual State, Not Just a Clean Diff* — a status
+  gate can be internally correct yet ship permanently red.
+- *`permissions:` on a Workflow Silently Denies `gh` Calls a Local Session Would Allow* — least-
+  privilege scoping and a new `gh` subcommand are easy to add in different sessions.
 
 ### Authority, docs & process
 
@@ -904,3 +908,50 @@ Read these before trusting any spec/issue text.
   because its `http.Client` had no cookie jar and sent nothing.
 - **Related**: `frontend/src/stores/auth-store.ts`, `frontend/src/stores/auth-store.test.ts`,
   `backend/internal/auth/models.go`, `backend/tests/integration/auth_me_test.go`
+
+---
+
+### A New CI Gate Must Be Test-Run Against `main`'s Actual State, Not Just a Clean Diff
+
+- **Discovered**: 2026-07-31 — **Tool**: Claude Code
+- **Context**: Building `scripts/check-roadmap-status-drift.py` (002-T049, issue #173), a gate
+  comparing every `docs/roadmap.md` row's Status against its linked GitHub issue's live state.
+- **Problem**: The script's unit tests were all green and its own PR's diff was clean, but running it
+  for real against the live repo (not a scratch fixture) found an immediate failure: 009-T019 is
+  deliberately left `Backlog` with its parent issue #172 closed — a documented, permanent platform
+  blocker (see the ruleset-403 pattern below), not oversight. A gate that is internally correct can
+  still be **wrong about what "correct" means for the data it will actually run against** — shipping
+  it as-is would have made a brand-new required check red on `main` from the moment it merged, for a
+  row nobody was ever going to "fix".
+- **Solution**: Before trusting a new drift/lint/status gate as done, run it for real against the
+  current `main`/live state it will actually gate, not just fixture data or the PR's own diff. Here
+  that meant adding a second exemption class beyond `Superseded`: rows whose Notes cell starts with
+  `**Blocked**` (this repo's existing convention for "attempted, genuinely can't proceed") are also
+  skipped, mirroring how 002-T050 will hit the identical wall on its own row. Caught by the parent
+  session's independent re-verification pass — the implementing subagent's own local run used its
+  personal `gh` auth and never surfaced the token-permission half of this (see the next entry).
+- **Related**: *GitHub Rulesets/Branch Protection Require Public Repo or Pro (Personal Accounts)*,
+  `scripts/check-roadmap-status-drift.py`, `scripts/check-agent-drift.py`
+
+---
+
+### `permissions:` on a Workflow Silently Denies `gh` Calls a Local Session Would Allow
+
+- **Discovered**: 2026-07-31 — **Tool**: Claude Code
+- **Context**: Same `roadmap-status-drift` CI step (002-T049) calling `gh issue list` inside
+  `backend-ci.yml`'s `lint-test` job.
+- **Problem**: `backend-ci.yml` sets an explicit least-privilege `permissions:` block
+  (`contents: read`, `pull-requests: read` — added for `dorny/paths-filter`). Any scope not listed
+  defaults to no access for the job's `GITHUB_TOKEN`, so `gh issue list` would 403 in real Actions
+  runs even though it worked perfectly when the implementing subagent tested it locally — a local
+  `gh` session authenticates with the developer's own PAT, which has full repo access regardless of
+  what the workflow YAML grants. Passing tests plus a clean local script run gave false confidence;
+  nothing before actually merging would have caught the CI-only failure.
+- **Solution**: Every time a new step adds a `gh`/`GITHUB_TOKEN`-authenticated API call to a workflow
+  that already has an explicit `permissions:` block, re-check that block for the specific scope the
+  new call needs (here, `issues: read`) — don't assume "it ran locally" proves the CI token can do
+  it. Workflows with no `permissions:` block at all don't have this failure mode (the default token
+  is broad), which is exactly why it's easy to miss on a repo where some workflows are scoped and
+  others aren't.
+- **Related**: `.github/workflows/backend-ci.yml`, *Least-Privilege Token* comment above its
+  `permissions:` block, `scripts/check-roadmap-status-drift.py`

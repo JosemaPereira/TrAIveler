@@ -101,7 +101,7 @@ func TestAnthropicGenerateItinerary_Success_ReturnsParsedItinerary(t *testing.T)
 
 func TestAnthropicGenerateItinerary_RateLimitedThenSucceeds_RetriesAndReturnsItinerary(t *testing.T) {
 	var callCount int32
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		attempt := atomic.AddInt32(&callCount, 1)
 		if attempt <= 2 {
 			writeAnthropicError(w, http.StatusTooManyRequests, "rate_limit_error")
@@ -125,7 +125,7 @@ func TestAnthropicGenerateItinerary_RateLimitedThenSucceeds_RetriesAndReturnsIti
 
 func TestAnthropicGenerateItinerary_ServiceUnavailableExhaustsRetries_ReturnsProviderUnavailableError(t *testing.T) {
 	var callCount int32
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		atomic.AddInt32(&callCount, 1)
 		writeAnthropicError(w, http.StatusServiceUnavailable, "overloaded_error")
 	}))
@@ -149,7 +149,7 @@ func TestAnthropicGenerateItinerary_ServiceUnavailableExhaustsRetries_ReturnsPro
 }
 
 func TestAnthropicGenerateItinerary_ClientTimeoutExceeded_ReturnsPromptContextDeadlineError(t *testing.T) {
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	server := httptest.NewServer(http.HandlerFunc(func(_ http.ResponseWriter, r *http.Request) {
 		select {
 		case <-r.Context().Done():
 		case <-time.After(300 * time.Millisecond):
@@ -184,7 +184,7 @@ func TestAnthropicGenerateItinerary_ClientTimeoutExceeded_ReturnsPromptContextDe
 }
 
 func TestAnthropicStreamItinerary_HappyPath_CollectsChunksUntilDone(t *testing.T) {
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		flusher, ok := w.(http.Flusher)
 		require.True(t, ok)
 

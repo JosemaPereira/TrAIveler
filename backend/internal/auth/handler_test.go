@@ -635,7 +635,7 @@ func TestUnitHandleCurrentUser_DeletedAccount_Returns401NotNotFound(t *testing.T
 	assert.Equal(t, "authentication_required", decodeBody(t, rec)["error"])
 }
 
-// Defence in depth: the route only mounts behind Authenticate, so a missing id
+// Defense in depth: the route only mounts behind Authenticate, so a missing id
 // means the gate was misconfigured. Fail closed rather than panic or leak.
 func TestUnitHandleCurrentUser_NoUserInContext_Returns401(t *testing.T) {
 	svc := authmocks.NewMockAccountService(t) // no expects: must not be reached
