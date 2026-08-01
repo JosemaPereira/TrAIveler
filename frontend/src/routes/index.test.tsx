@@ -95,7 +95,7 @@ describe('routes', () => {
       renderAt('/dashboard')
 
       expect(
-        screen.getByRole('heading', { name: 'Dashboard' })
+        screen.getByRole('heading', { name: /welcome back/i })
       ).toBeInTheDocument()
     })
 
@@ -162,7 +162,7 @@ describe('routes', () => {
 
       await waitFor(() => {
         expect(
-          screen.getByRole('heading', { name: 'Dashboard' })
+          screen.getByRole('heading', { name: /welcome back/i })
         ).toBeInTheDocument()
       })
     })
@@ -182,7 +182,7 @@ describe('routes', () => {
 
       await waitFor(() => {
         expect(
-          screen.getByRole('heading', { name: 'Dashboard' })
+          screen.getByRole('heading', { name: /welcome back/i })
         ).toBeInTheDocument()
       })
     })
@@ -218,7 +218,7 @@ describe('routes', () => {
 
       await waitFor(() => {
         expect(
-          screen.getByRole('heading', { name: 'Dashboard' })
+          screen.getByRole('heading', { name: /welcome back/i })
         ).toBeInTheDocument()
       })
     })

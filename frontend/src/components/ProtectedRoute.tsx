@@ -1,26 +1,32 @@
-import { Navigate, Outlet } from 'react-router'
+import { Navigate, Outlet, useLocation } from 'react-router'
 
 import { useIsAuthenticated } from '@/stores/auth-store'
 
 /**
- * Route guard for authenticated-only pages (Spec 004 / Spec 008 008-T036).
+ * Route guard for authenticated-only pages.
  *
  * Renders the matched child routes via `<Outlet />` when the auth store
- * reports an authenticated session; otherwise redirects to `/login`,
- * replacing the current history entry so the guarded URL is not left in the
- * back stack.
+ * reports an authenticated session; otherwise redirects to
+ * `/login?redirect=<attempted-path>`, replacing the current history entry so
+ * the guarded URL is not left in the back stack. The path is URL-encoded so
+ * `resolveLoginRedirect` can send the user back there after login.
  *
  * Authentication is derived from `useAuthStore` (the HTTP-only JWT cookie is
  * the real credential; the store mirrors session state — see
- * `stores/auth-store.ts`). Until the backend auth endpoints exist and a login
- * flow can populate the store, this correctly keeps every protected route
- * behind the login redirect.
+ * `stores/auth-store.ts`).
  */
 export function ProtectedRoute() {
   const isAuthenticated = useIsAuthenticated()
+  const location = useLocation()
 
   if (!isAuthenticated) {
-    return <Navigate to="/login" replace />
+    const attemptedPath = `${location.pathname}${location.search}`
+    return (
+      <Navigate
+        to={`/login?redirect=${encodeURIComponent(attemptedPath)}`}
+        replace
+      />
+    )
   }
 
   return <Outlet />
