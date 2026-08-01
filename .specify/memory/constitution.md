@@ -1,19 +1,18 @@
 <!--
 SYNC IMPACT REPORT
 ==================
-Version change: 1.3.0 → 1.4.0
+Version change: 1.4.0 → 1.4.1
 Modified principles: none
-Added sections: none (extended existing Technology Stack → Application Layer entry in place)
-Modified sections: Technology Stack (added swaggo/swag, swaggo/http-swagger/v2, swaggo/files as
-mandated API-documentation dependencies, promoted from spec 009-api-documentation)
+Added sections: none
+Modified sections: Technology Stack (Database line corrected 15.4 → 15.18 — routine CVE-review
+version bump, issue #211; not a mandated-stack decision change, PostgreSQL 15.x remains the
+mandate)
 Removed sections: none
 Templates requiring updates:
-  ✅ .specify/templates/plan-template.md — Constitution Check section is generic; no update required
-  ✅ .specify/templates/spec-template.md — no impact; specs ownership already implicit in PM role
-  ✅ .specify/templates/tasks-template.md — no new task categories required
-Follow-up TODOs: All subsequent /speckit.plan and /speckit.tasks commands will now inherit the
-swaggo-based OpenAPI/Swagger toolchain automatically. Features that would replace it require
-explicit constitution amendment.
+  ✅ .specify/templates/plan-template.md — no impact
+  ✅ .specify/templates/spec-template.md — no impact
+  ✅ .specify/templates/tasks-template.md — no impact
+Follow-up TODOs: none — this is a patch-level factual correction, not a new decision.
 -->
 
 # TrAIveler Constitution
@@ -146,7 +145,7 @@ advisory only.
 - **Styling**: CSS Modules + CSS custom properties (no CSS-in-JS runtime or utility-class framework
   unless explicitly adopted by constitution amendment).
 - **Icons**: single icon library project-wide (Lucide React is the default).
-- **Database**: PostgreSQL 15.4 on Amazon RDS.
+- **Database**: PostgreSQL 15.18 on Amazon RDS.
 - **AI Provider**: Anthropic Claude API for itinerary generation.
 
 ### Infrastructure Layer (NON-NEGOTIABLE)
@@ -279,4 +278,4 @@ blocking. Complexity that cannot be justified against Principle II (Simplicity) 
 For runtime development guidance refer to `docs/coding-guidelines.md`, `docs/testing-guidelines.md`,
 and `docs/ui-guidelines.md`.
 
-**Version**: 1.4.0 | **Ratified**: 2026-07-02 | **Last Amended**: 2026-07-10
+**Version**: 1.4.1 | **Ratified**: 2026-07-02 | **Last Amended**: 2026-08-01

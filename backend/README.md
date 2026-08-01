@@ -69,7 +69,7 @@ The backend exposes a RESTful JSON API consumed by the frontend SPA. Its primary
 |---------|----------------|
 | Language | Go 1.26 |
 | HTTP router | `github.com/go-chi/chi/v5` |
-| Database driver | `github.com/jackc/pgx/v5` (PostgreSQL 15.4, no ORM) |
+| Database driver | `github.com/jackc/pgx/v5` (PostgreSQL 15.18, no ORM) |
 | Migrations | `github.com/pressly/goose/v3` |
 | Auth tokens | `github.com/golang-jwt/jwt/v5` (HTTP-only cookies) |
 | AI provider | Local dev/MVP: **Ollama** (`internal/ai/ollama_client.go`, `net/http`, no SDK) running a Gemma model — see [docs/local-ai-setup.md](../docs/local-ai-setup.md). Staging/production: **Anthropic Claude** (`internal/ai/anthropic.go`, `github.com/anthropics/anthropic-sdk-go`) |

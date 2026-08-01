@@ -52,7 +52,10 @@ Authenticated account with role-based permissions (admin/partner).
 - `email` (VARCHAR(255), UNIQUE) — RFC 5322 compliant
 - `password_hash` (TEXT) — bcrypt with cost factor 12+
 - `role` (ENUM: 'admin' | 'partner') — determines permissions, immutable after creation
-- `subscription_id` (UUID, FK → subscriptions.id, NULLABLE, SET NULL)
+- `has_subscription` (BOOLEAN, NOT NULL, DEFAULT FALSE) — denormalized flag for the JWT claim;
+  a `subscription_id` FK was originally planned here but deliberately dropped in favor of this
+  flag plus the Subscription entity's own `user_id` unique index (see
+  `migrations/005_alter_users_add_auth_fields.sql` and the Subscription entity below)
 - `last_login_at` (TIMESTAMP, NULLABLE)
 - `created_at` (TIMESTAMP, DEFAULT NOW())
 - `updated_at` (TIMESTAMP, DEFAULT NOW())
@@ -84,7 +87,6 @@ Authenticated account with role-based permissions (admin/partner).
 
 **Indexes**:
 - `idx_users_email` (UNIQUE, expression: LOWER(email)) — case-insensitive login queries
-- `idx_users_subscription_id` — subscription lookup
 
 ---
 
@@ -240,19 +242,24 @@ VALUES ('00000000-0000-0000-0000-000000000001', 'basic', 1, 1);
 
 Links user account to a plan. Tracks mock payment reference for future integration.
 
-**Key Attributes**:
+**Key Attributes** (as-built, `migrations/007_create_subscriptions_table.sql` +
+`migrations/016_alter_subscriptions_add_period_columns.sql`):
 - `id` (UUID, PK)
 - `user_id` (UUID, FK → users.id, CASCADE)
 - `plan_id` (UUID, FK → plans.id, RESTRICT)
-- `status` (ENUM: 'stub_pending' | 'active' | 'cancelled')
+- `status` (ENUM: 'stub_pending' | 'active' | 'cancelled' | 'expired')
 - `stub_payment_ref` (VARCHAR(100), NULLABLE) — provider transaction ID from stub
+- `current_period_start` / `current_period_end` (TIMESTAMP, NULLABLE) — the current 30-day billing
+  period; nil for `stub_pending`, stamped at creation for `active` (issue #207)
+- `grace_period_ends_at` (TIMESTAMP, NULLABLE) — set on cancellation; owned trips stay read-only
+  until this passes, then the subscription moves to `expired`
 - `created_at` (TIMESTAMP, DEFAULT NOW())
 - `cancelled_at` (TIMESTAMP, NULLABLE)
 
 **Validation Rules**:
 - [DB] `user_id` NOT NULL (FK constraint)
 - [DB] `plan_id` NOT NULL (FK constraint)
-- [DB] `status` must be 'stub_pending', 'active', or 'cancelled' (ENUM constraint)
+- [DB] `status` must be 'stub_pending', 'active', 'cancelled', or 'expired' (CHECK constraint)
 - [Logic] Only one active subscription per user (enforced before insert)
 
 **Business Rules**:
@@ -261,7 +268,8 @@ Links user account to a plan. Tracks mock payment reference for future integrati
 
 **State Transitions** (Forward-Only):
 - `stub_pending` → `active`: Stub checkout confirmation received
-- `active` → `cancelled`: User cancels subscription
+- `active` → `cancelled`: User cancels subscription; `grace_period_ends_at` set
+- `cancelled` → `expired`: Grace period elapses without renewal
 - Rationale: No reactivation flow; user creates new subscription to resume service
 
 **Cascade Behavior**:

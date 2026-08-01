@@ -138,7 +138,7 @@ This is a **documentation feature** that completes the canonical domain model re
 
 **Independent Test**: Developer can identify which indexes to create for performant queries
 
-- [ ] T039 [P] Verify User entity indexes documented (idx_users_email UNIQUE expression index for case-insensitive lookup, idx_users_subscription_id) in specs/006-core-domain-model/data-model.md
+- [ ] T039 [P] Verify User entity indexes documented (idx_users_email UNIQUE expression index for case-insensitive lookup) in specs/006-core-domain-model/data-model.md
 - [ ] T040 [P] Verify Trip entity indexes documented (idx_trips_creator_id for user's trip list, idx_trips_status for published/draft filtering)
 - [ ] T041 [P] Verify Day entity indexes documented (idx_days_trip_id for trip detail queries, idx_days_destination_id for destination usage)
 - [ ] T042 [P] Verify Activity entity indexes documented (idx_activities_day_id for day detail queries ordered by sequence)

@@ -57,7 +57,7 @@ staging and production environments. Its primary jobs are:
 | Cloud provider | AWS (us-east-1 region) |
 | State management | S3 backend with DynamoDB locking |
 | Compute | ECS Fargate (ARM64 Graviton2) |
-| Database | Amazon RDS PostgreSQL 15.4 |
+| Database | Amazon RDS PostgreSQL 15.18 |
 | Load balancing | Application Load Balancer (ALB) |
 | CDN | Amazon CloudFront |
 | Storage | Amazon S3 |

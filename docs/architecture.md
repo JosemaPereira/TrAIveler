@@ -17,7 +17,7 @@ graph TD
     CF[CloudFront CDN<br/>React build artifacts from S3<br/>Global edge caching, HTTPS]
     ALB[Application Load Balancer<br/>HTTPS termination<br/>Health checks → /healthz<br/>Connection draining]
     ECS[ECS Fargate Cluster<br/>Go 1.26+ RESTful API<br/>ARM64 Graviton2 containers<br/>Auto-scaling 1-5 tasks staging<br/>Stateless horizontal scaling]
-    RDS[Amazon RDS<br/>PostgreSQL 15.4<br/>Multi-AZ prod<br/>Single-AZ stage]
+    RDS[Amazon RDS<br/>PostgreSQL 15.18<br/>Multi-AZ prod<br/>Single-AZ stage]
     AI[Anthropic AI API<br/>Claude external<br/>Itinerary generation<br/>Multi-turn conversation]
     Secrets[AWS Secrets Manager<br/>DB passwords<br/>API keys<br/>JWT secrets]
 
@@ -108,7 +108,7 @@ graph TD
 - `GET /suggestions`, `POST /suggestions`, `PATCH /suggestions/:id`
 - `GET /healthz`
 
-### Database (PostgreSQL 15.4 on Amazon RDS)
+### Database (PostgreSQL 15.18 on Amazon RDS)
 
 **Schema** (8 core tables):
 1. `users` - User accounts (email, password hash, subscription_id)
@@ -293,7 +293,7 @@ graph TD
     User[End User Browser]
     FE[React 19 SPA — Vite dev server :5173<br/>ErrorBoundary → QueryClientProvider → RouterProvider<br/>Single real route: placeholder HomePage]
     API[Go 1.26 API — cmd/api<br/>Chi router<br/>Middleware: RequestID → Logger → Recovery → CORS → BodySize<br/>GET /healthz, /api/v1/examples reference resource, /swagger/*]
-    DB[(PostgreSQL 15.4<br/>docker-compose locally; RDS module authored, not applied)]
+    DB[(PostgreSQL 15.18<br/>docker-compose locally; RDS module authored, not applied)]
     AI[Ollama + Gemma — local dev default<br/>AnthropicClient built for staging/production]
     TF[6 Terraform modules<br/>vpc · ecs · rds · alb · cloudfront · secrets<br/>validate/fmt clean, never applied]
 
@@ -387,7 +387,7 @@ are future-sprint work.
 ### Infrastructure (`infra/`)
 
 Six Terraform modules exist and pass `terraform validate` / `terraform fmt -check -recursive`:
-`vpc`, `ecs` (Fargate, ARM64/Graviton2 task definitions), `rds` (PostgreSQL 15.4), `alb`
+`vpc`, `ecs` (Fargate, ARM64/Graviton2 task definitions), `rds` (PostgreSQL 15.18), `alb`
 (`/healthz`-checked target group), `cloudfront` (S3 origin via OAI, SPA 404→`/index.html`
 rewrite), and `secrets` (AI API key, JWT signing key — DB credentials are created directly by the
 `rds` module). The root `infra/main.tf` wires all six via module outputs; `infra/environments/

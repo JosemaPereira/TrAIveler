@@ -14,5 +14,5 @@ import (
 // Be Deliberate Architecture, Not Drift"). If this ever needs to change, it
 // should change here once, not independently in five test files.
 func TestPostgresImage_MatchesRuntimePin(t *testing.T) {
-	assert.Equal(t, "postgres:15.4-alpine", testdb.PostgresImage)
+	assert.Equal(t, "postgres:15.18-alpine", testdb.PostgresImage)
 }

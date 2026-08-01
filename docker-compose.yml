@@ -1,7 +1,7 @@
 # Docker Compose configuration for TrAIveler local development environment
 #
 # This file orchestrates three services for local development:
-# 1. PostgreSQL 15.4 database with persistent storage
+# 1. PostgreSQL 15.18 database with persistent storage
 # 2. Ollama server running a local Gemma model (free, no API key — the MVP/local-dev
 #    AI backend; see docs/local-ai-setup.md)
 # 3. Go backend API with automatic rebuild and health monitoring
@@ -29,7 +29,7 @@ services:
   # PostgreSQL Database Service
   # ============================================================================
   postgres:
-    image: postgres:15.4-alpine
+    image: postgres:15.18-alpine
     container_name: traveler-db
     restart: unless-stopped
     

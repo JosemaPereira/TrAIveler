@@ -8,4 +8,4 @@ package testdb
 // the same version as the runtime/RDS image in docker-compose.yml — a
 // deliberate architectural decision (see patterns-discovered.md's "A
 // Version Pin Can Be Deliberate Architecture, Not Drift"), not staleness.
-const PostgresImage = "postgres:15.4-alpine"
+const PostgresImage = "postgres:15.18-alpine"
