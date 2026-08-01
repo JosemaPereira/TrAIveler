@@ -1,0 +1,38 @@
+/*
+ * Badge primitive styles.
+ * All design values reference tokens from src/styles/tokens.css — no hard-coded
+ * colors, spacing, or radii.
+ *
+ * Text color per variant is chosen for a minimum 4.5:1 contrast ratio against
+ * its background (WCAG 2.1 AA), not for brand consistency with other
+ * primitives: white text on --color-success or --color-warning only reaches
+ * ~3.3:1, so those two variants use --color-neutral-900 instead. --color-primary
+ * on --color-primary-subtle (the free variant) already clears 4.5:1 and doubles
+ * as the token's documented use case ("backgrounds, badges" in tokens.css).
+ */
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  padding: var(--space-1) var(--space-3);
+  border-radius: var(--radius-full);
+  font-family: var(--font-family-base);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+  line-height: var(--line-height-body);
+}
+
+.free {
+  background-color: var(--color-primary-subtle);
+  color: var(--color-primary);
+}
+
+.paid {
+  background-color: var(--color-success);
+  color: var(--color-neutral-900);
+}
+
+.pending {
+  background-color: var(--color-warning);
+  color: var(--color-neutral-900);
+}

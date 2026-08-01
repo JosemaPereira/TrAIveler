@@ -75,6 +75,34 @@ describe('routes', () => {
     })
   })
 
+  describe('when navigating to a guest-only route while authenticated', () => {
+    it('should redirect /login to the dashboard', () => {
+      useAuthStore.setState({ isAuthenticated: true })
+
+      renderAt('/login')
+
+      expect(
+        screen.getByRole('heading', { name: /welcome back/i })
+      ).toBeInTheDocument()
+      expect(
+        screen.queryByRole('heading', { name: 'Welcome Back' })
+      ).not.toBeInTheDocument()
+    })
+
+    it('should redirect /register to the dashboard', () => {
+      useAuthStore.setState({ isAuthenticated: true })
+
+      renderAt('/register')
+
+      expect(
+        screen.getByRole('heading', { name: /welcome back/i })
+      ).toBeInTheDocument()
+      expect(
+        screen.queryByRole('heading', { name: 'Create Your Account' })
+      ).not.toBeInTheDocument()
+    })
+  })
+
   describe('when navigating to a protected route while unauthenticated', () => {
     it('should redirect /dashboard to the login page', () => {
       renderAt('/dashboard')
