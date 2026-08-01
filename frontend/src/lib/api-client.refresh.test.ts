@@ -1,8 +1,8 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { http, HttpResponse } from 'msw'
 
-import { API_BASE_URL } from '../test/msw/handlers'
-import { server } from '../test/msw/server'
+import { API_BASE_URL } from '@/test/msw/handlers'
+import { server } from '@/test/msw/server'
 import { api, apiFetch, setSessionExpiredHandler } from './api-client'
 
 /**

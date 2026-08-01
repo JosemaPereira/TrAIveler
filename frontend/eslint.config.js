@@ -64,6 +64,14 @@ export default tseslint.config(
       // Explicit return types add noise without significant benefit
       '@typescript-eslint/explicit-function-return-type': 'off',
       '@typescript-eslint/explicit-module-boundary-types': 'off',
+
+      // MANDATORY: Ban parent-relative imports ('../...') in favor of the '@/' path alias
+      // (mapped to './src' in tsconfig.json / vite.config.ts). Same-directory imports
+      // ('./Foo.module.css', co-located test/type files) are unaffected and stay relative.
+      'no-restricted-imports': [
+        'error',
+        { patterns: [{ group: ['../*'], message: "Use the '@/' path alias instead of a parent-relative import (e.g. '@/lib/api-client')." }] },
+      ],
     },
   },
 )

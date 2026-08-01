@@ -1,10 +1,10 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { http, HttpResponse } from 'msw'
 
-import { apiFetch, setSessionExpiredHandler } from '../../lib/api-client'
-import { useAuthStore } from '../../stores/auth-store'
-import { API_BASE_URL, testUser } from '../../test/msw/handlers'
-import { server } from '../../test/msw/server'
+import { apiFetch, setSessionExpiredHandler } from '@/lib/api-client'
+import { useAuthStore } from '@/stores/auth-store'
+import { API_BASE_URL, testUser } from '@/test/msw/handlers'
+import { server } from '@/test/msw/server'
 import {
   handleSessionExpired,
   installSessionExpiryHandler,

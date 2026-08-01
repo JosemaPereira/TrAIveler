@@ -1,8 +1,8 @@
 import { useMutation } from '@tanstack/react-query'
 
-import { useAuthStore } from '../../../stores/auth-store'
-import { authApi } from '../services/authApi'
-import type { RegisterRequest, RegisterResponse } from '../types'
+import { useAuthStore } from '@/stores/auth-store'
+import { authApi } from '@/features/auth/services/authApi'
+import type { RegisterRequest, RegisterResponse } from '@/features/auth/types'
 
 /**
  * Mutation for `POST /auth/register`.

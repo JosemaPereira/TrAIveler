@@ -1,5 +1,5 @@
-import { setSessionExpiredHandler } from '../../lib/api-client'
-import { useAuthStore } from '../../stores/auth-store'
+import { setSessionExpiredHandler } from '@/lib/api-client'
+import { useAuthStore } from '@/stores/auth-store'
 
 const LOGIN_PATH = '/login'
 

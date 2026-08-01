@@ -1,11 +1,11 @@
-import { api } from '../../../lib/api-client'
+import { api } from '@/lib/api-client'
 import type {
   CurrentUserResponse,
   LoginRequest,
   LoginResponse,
   RegisterRequest,
   RegisterResponse,
-} from '../types'
+} from '@/features/auth/types'
 
 /**
  * HTTP surface for authentication, built on the fetch-based

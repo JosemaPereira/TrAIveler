@@ -1,7 +1,7 @@
 import { act, renderHook } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
-import { api, APIError } from '../lib/api-client'
+import { api, APIError } from '@/lib/api-client'
 import type { User } from './auth-store'
 import {
   useAuthLoading,

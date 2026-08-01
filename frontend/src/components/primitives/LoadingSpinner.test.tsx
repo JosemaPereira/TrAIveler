@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { render, screen } from '@testing-library/react'
 import { LoadingSpinner } from './LoadingSpinner'
 import styles from './LoadingSpinner.module.css'
-import { cssClass } from '../../test/cssModule'
+import { cssClass } from '@/test/cssModule'
 
 describe('<LoadingSpinner />', () => {
   describe('when rendered with default props', () => {

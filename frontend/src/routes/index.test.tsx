@@ -4,8 +4,8 @@ import userEvent from '@testing-library/user-event'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { createMemoryRouter, RouterProvider } from 'react-router'
 
-import { useAuthStore } from '../stores/auth-store'
-import { testUser } from '../test/msw/handlers'
+import { useAuthStore } from '@/stores/auth-store'
+import { testUser } from '@/test/msw/handlers'
 import { routes } from './index'
 
 // RegisterPage/LoginPage use TanStack Query (via useRegister/useLogin), so

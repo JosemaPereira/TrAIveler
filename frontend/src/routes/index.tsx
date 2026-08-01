@@ -1,7 +1,7 @@
 import { createBrowserRouter } from 'react-router'
 import type { RouteObject } from 'react-router'
 
-import { ProtectedRoute } from '../components/ProtectedRoute'
+import { ProtectedRoute } from '@/components/ProtectedRoute'
 import { DashboardPage } from './DashboardPage'
 import { HomePage } from './HomePage'
 import { LoginPage } from './LoginPage'

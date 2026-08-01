@@ -3,7 +3,7 @@ import { renderHook } from '@testing-library/react'
 import { MemoryRouter } from 'react-router'
 import type { ReactNode } from 'react'
 
-import { APIError } from '../lib/api-client'
+import { APIError } from '@/lib/api-client'
 import { useErrorHandler } from './useErrorHandler'
 
 const mockNavigate = vi.fn()

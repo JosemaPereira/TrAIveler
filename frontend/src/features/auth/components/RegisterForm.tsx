@@ -1,16 +1,16 @@
 import { useState } from 'react'
 import type { ChangeEvent, SyntheticEvent } from 'react'
 
-import { Button } from '../../../components/primitives/Button'
-import { Input } from '../../../components/primitives/Input'
-import { Label } from '../../../components/primitives/Label'
-import { getErrorMessage, getFieldErrors } from '../../../lib/query-client'
-import { useRegister } from '../hooks/useRegister'
+import { Button } from '@/components/primitives/Button'
+import { Input } from '@/components/primitives/Input'
+import { Label } from '@/components/primitives/Label'
+import { getErrorMessage, getFieldErrors } from '@/lib/query-client'
+import { useRegister } from '@/features/auth/hooks/useRegister'
 import {
   isValidEmail,
   isValidFullName,
   validatePasswordStrength,
-} from '../validation'
+} from '@/features/auth/validation'
 import styles from './RegisterForm.module.css'
 
 export interface RegisterFormProps {

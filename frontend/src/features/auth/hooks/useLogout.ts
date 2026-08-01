@@ -1,8 +1,8 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useNavigate } from 'react-router'
 
-import { useAuthStore } from '../../../stores/auth-store'
-import { authApi } from '../services/authApi'
+import { useAuthStore } from '@/stores/auth-store'
+import { authApi } from '@/features/auth/services/authApi'
 
 /**
  * Mutation for `POST /auth/logout`.

@@ -2,7 +2,7 @@ import { render, screen } from '@testing-library/react'
 import { createMemoryRouter, RouterProvider } from 'react-router'
 import { beforeEach, describe, expect, it } from 'vitest'
 
-import { useAuthStore } from '../stores/auth-store'
+import { useAuthStore } from '@/stores/auth-store'
 import { ProtectedRoute } from './ProtectedRoute'
 
 // Minimal route tree: a public /login target and a protected /dashboard behind

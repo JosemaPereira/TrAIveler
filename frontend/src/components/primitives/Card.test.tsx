@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { render, screen } from '@testing-library/react'
 import { Card } from './Card'
 import styles from './Card.module.css'
-import { cssClass } from '../../test/cssModule'
+import { cssClass } from '@/test/cssModule'
 
 describe('<Card />', () => {
   describe('when rendered with default props', () => {
