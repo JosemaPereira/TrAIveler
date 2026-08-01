@@ -88,7 +88,7 @@ func (h *Handler) RegisterRoutes(r chi.Router) {
 
 // handleCreate godoc
 // @Summary     Create a new example
-// @Description Creates an example resource for demonstration purposes
+// @Description Creates an example resource for demonstration purposes (009-T020 scratch-branch drift proof — do not merge)
 // @Tags        examples
 // @Accept      json
 // @Produce     json
