@@ -402,8 +402,18 @@ creation is fully documented and reproducible (`infra/README.md`) but deliberate
 ### Divergences from the original Spec 005 plan worth flagging
 
 - The promoted architecture above (from specs 001-003) describes 8+ domain database tables and
-  roughly 15 REST endpoint groups; none of that domain layer is built. The only real HTTP surface
-  today is `/healthz` and the throwaway `internal/example` reference CRUD resource.
+  roughly 15 REST endpoint groups; most of that domain layer (trips, days, activities,
+  destinations, collaborators, suggestions, conversation sessions) is still unbuilt. **Updated
+  2026-08-01 (Sprint 6):** the authentication vertical is no longer aspirational — `POST
+  /auth/register`, `/auth/login`, `/auth/refresh`, `/auth/logout`, and `GET /auth/me` are real,
+  tested endpoints (`backend/internal/auth/handler.go`), gated by `middleware.Authenticate` on
+  `/api/v1` (see `backend/README.md`'s Project Structure for the full `internal/auth/`,
+  `internal/auth/jwt/`, `internal/auth/ratelimit/`, and `internal/subscription/` breakdown). The
+  only remaining purely-scaffolded surface is `/healthz` and the throwaway `internal/example`
+  reference CRUD resource, alongside the still-unbuilt trip/collaboration domain above. The
+  `users` table's real columns (`has_subscription` instead of the `subscription_id` shown in the
+  schema list above, plus other as-built differences) are tracked in `docs/data-model.md`'s "As-
+  Built Schema Diagram" — that document is the authority for real column names, not this section.
 - Local development defaults to **Ollama + Gemma**, not Anthropic Claude — a documented product
   decision made during implementation (not present in the original spec text), to avoid requiring
   an API key for MVP testing. Staging/production still target Anthropic Claude as originally

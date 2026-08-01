@@ -9,7 +9,7 @@ repositories, AI integration, observability middleware, and security primitives.
 
 ---
 
-> **Implementation Status**: 🔄 Sprint 5 in progress (as of 2026-07-15) — Sprints 1–4 delivered
+> **Implementation Status**: ✅ Sprint 6 complete (closed 2026-08-01) — Sprints 1–4 delivered
 > configuration, linting, the PostgreSQL client (`internal/database/`, issue #53),
 > observability/security middleware (`internal/middleware/`, issue #54), domain error handling
 > (`internal/errors/`, issue #56), the HTTP server entry point (`cmd/api/`, issue #57), the AI
@@ -21,12 +21,28 @@ repositories, AI integration, observability middleware, and security primitives.
 > (users/refresh_tokens/jwt_signing_keys/security_events), the **flat** `internal/auth/` package
 > (bcrypt password hashing + validation), `internal/observability/` (correlation IDs,
 > `LogSecurityEvent`), the shared `internal/database/migrations` config package, and config-driven
-> pool sizing. The Chi router exposes `GET /healthz`, the demo `/api/v1/examples` CRUD resource,
-> and `/swagger/*`. **No real domain HTTP package exists yet**: `internal/{trip, itinerary,
-> conversation, suggestion}` are unbuilt, `internal/{subscription, collaboration, security}` are
-> `doc.go` scaffolds, and `pkg/{health, middleware, response}` shown under "Target" were superseded
-> by the "everything under `internal/`" convention. `internal/example/` itself is throwaway
-> reference code — it must be deleted once the first real domain package ships (tracked in
+> pool sizing. **Sprint 6** (issues #167–#184, #195, PRs #186–#202, closed 2026-08-01) shipped the
+> full authentication vertical end-to-end, wired at runtime rather than left inert: `internal/auth/`
+> grew from the flat bcrypt/validation helpers into real HTTP handlers (`handler.go` — `POST
+> /auth/register`, `/auth/login`, `/auth/refresh`, `/auth/logout`, `GET /auth/me`), a service
+> (`service.go` — registration, rate-limited login with no email-enumeration, optimistic-locking
+> updates) and a repository (`repository.go`); its `jwt/` subpackage gained a `Generator`/`Validator`
+> pair with `kid`-based multi-key rotation, a `KeyProvider`/`StaticKeyProvider`/`LoadKeyFromPEM` key
+> seam, an `Issuer` (initial token pair) and `Refresher` (one-time-use refresh rotation); its new
+> `ratelimit/` subpackage adds a progressive-delay, account-keyed login throttle. `middleware.Authenticate`
+> (`internal/middleware/auth.go`) is now actually mounted — `cmd/api/auth.go` composes the whole
+> vertical (key provider, generator, issuer, refresher, subscription service, auth service, handler)
+> and `cmd/api/token_validator.go` adapts it into the gate `cmd/api/routes.go` applies to `/api/v1`.
+> `internal/subscription/` grew past its `doc.go` scaffold into a real `models.go`/`repository.go`/
+> `service.go` (charge-then-persist via a `payment/` subpackage's `PaymentProvider` seam and
+> always-succeeds `StubPaymentProvider`) — but it still has **no HTTP handler/routes of its own**;
+> registration/login reach it only through `internal/auth`'s composition. `internal/{collaboration,
+> security}` remain `doc.go` scaffolds only (still unbuilt). The Chi router exposes `GET /healthz`,
+> the auth endpoints above, the demo `/api/v1/examples` CRUD resource, and `/swagger/*`.
+> `internal/{trip, itinerary, conversation, suggestion}` are still unbuilt, and `pkg/{health,
+> middleware, response}` shown under "Target" remain superseded by the "everything under
+> `internal/`" convention. `internal/example/` itself is still throwaway reference code — it must be
+> deleted once the first real domain package ships (tracked in
 > `.github/memory/patterns-discovered.md`), not a permanent feature.
 
 ---
@@ -70,7 +86,7 @@ The backend exposes a RESTful JSON API consumed by the frontend SPA. Its primary
 
 ### Current
 
-Everything below is real, built, and unit-tested as of mid-Sprint 5 (2026-07-15):
+Everything below is real, built, and unit-tested as of Sprint 6 closure (2026-08-01):
 
 ```
 backend/
@@ -80,7 +96,7 @@ backend/
 │       ├── server.go                 # HTTPServer: builds the Chi router, middleware chain, /healthz handler, and the internal/example wiring
 │       ├── auth.go                   # buildAuthComponents(): composes the auth vertical (JWT keys/generator/issuer/refresher, subscription + auth services, handler)
 │       ├── token_validator.go        # *jwt.Validator → middleware.TokenValidator adapter (008-T207; lives in main to break the jwt→errors→middleware cycle)
-│       └── routes.go                 # registerRoutes(): single place new endpoints are wired up (/healthz public; /api/v1 split into a public and an Authenticate-gated group; /swagger/* gated)
+│       └── routes.go                 # registerRoutes(): single place new endpoints are wired up (/healthz public; /api/v1 split into a public and an Authenticate-gated group; /swagger/* gated in production only)
 ├── internal/                         # Domain packages — not importable outside this module
 │   ├── middleware/
 │   │   ├── request_id.go             # Generates/propagates X-Request-ID correlation ID (NFR-OBS-003)
@@ -107,23 +123,37 @@ backend/
 │   │   ├── client.go                 # pgxpool pooling (min/max conns from DB_MIN/MAX_CONNECTIONS via caller), fail-fast retry, DI-friendly interface
 │   │   ├── migrations/               # Shared goose config: Dir (absolute path to backend/migrations/) + SetDialect() — used by all integration tests
 │   │   └── mocks/                    # Generated database.Client mock (vektra/mockery)
-│   ├── auth/                         # Auth package: flat security helpers (Spec 004/008, PR #155) + two subpackages — deliberately no password/ subpackage
+│   ├── auth/                         # Full auth vertical (Spec 004/008, Sprint 6, issues #167–#184): flat package + two subpackages — deliberately no password/ subpackage
 │   │   ├── password.go               # HashPassword/ComparePassword (bcrypt cost 12, per docs/security.md)
 │   │   ├── validator.go              # ValidatePassword: 8-72 chars, upper/lower/digit
-│   │   ├── jwt/                       # JWT token primitives (issue #144, 008-T019/T020/T021)
+│   │   ├── models.go                 # User/RefreshToken domain models + Register/Login request/response DTOs (issues #167/#169)
+│   │   ├── repository.go             # PostgresUserRepository/PostgresRefreshTokenRepository: CRUD + optimistic locking on User.Version (issue #175)
+│   │   ├── service.go                # Service: Register (uniqueness, hashing, optional subscription), Login (rate-limited, no email enumeration) (issue #176)
+│   │   ├── handler.go                # HTTP handlers: POST /auth/register /login /refresh /logout, GET /auth/me — the canonical swag-annotation reference alongside internal/example (issues #177/#178/#195)
+│   │   ├── jwt/                       # JWT token primitives (issue #144, 008-T019/T020/T021, wired live in Sprint 6)
 │   │   │   ├── generator.go          # Generator (NewGenerator): signs RS256 access tokens with the primary key, stamps the kid header
 │   │   │   ├── validator.go          # Validator (NewValidator): verifies access tokens, selecting the key per-token by kid (multi-key rotation); locked to RS256
-│   │   │   ├── refresher.go          # Refresher (NewRefresher): one-time-use refresh-token rotation (validate → revoke old → issue new pair); RefreshTokenStore + SubscriptionResolver seams (impls deferred)
+│   │   │   ├── issuer.go             # Issuer (NewIssuer): mints the initial access+refresh token pair for a freshly authenticated session
+│   │   │   ├── refresher.go          # Refresher (NewRefresher): one-time-use refresh-token rotation (validate → revoke old → issue new pair) against the real RefreshTokenStore + subscription.Resolver
 │   │   │   ├── keys.go               # KeyProvider interface + StaticKeyProvider (in-memory) + LoadKeyFromPEM (raw-PEM loader, ≥2048-bit)
 │   │   │   ├── claims.go             # Claims: registered claims + has_subscription; issuer constant
 │   │   │   └── doc.go                # Package overview
-│   │   └── ratelimit/                # Account-level login-attempt throttle (this branch; consumer is the future login service, NOT middleware)
-│   │       ├── limiter.go            # Limiter (New): progressive delay 2^(attempts-5)s after 5 failures in a 15-min window; CheckRateLimit/RecordFailure/Reset
-│   │       └── store.go              # store: concurrency-safe in-memory TTL map keyed by email (package doc lives here)
+│   │   ├── ratelimit/                # Account-level login-attempt throttle, consumed by auth.Service.Login (issue #176)
+│   │   │   ├── limiter.go            # Limiter (New): progressive delay 2^(attempts-5)s after 5 failures in a 15-min window; CheckRateLimit/RecordFailure/Reset
+│   │   │   └── store.go              # store: concurrency-safe in-memory TTL map keyed by email (package doc lives here)
+│   │   └── mocks/                    # Generated UserRepository/RefreshTokenRepository mocks (vektra/mockery)
 │   ├── observability/                # Correlation IDs + security event logging (Spec 004, PR #155)
 │   │   ├── correlation.go            # GenerateCorrelationID
 │   │   └── logger.go                 # LogSecurityEvent(correlationID, eventType, userID, severity, ipAddress, userAgent, details) — structured JSON, matches the security_events table
-│   ├── subscription/                 # doc.go scaffold only (Spec 008 Phase 3+, unbuilt)
+│   ├── subscription/                 # Billing domain (Spec 008, issues #167/#169/#168/#175); no HTTP handler/routes of its own yet — reached only through internal/auth's composition
+│   │   ├── models.go                 # Subscription entity + Validate (matches migrations/007_create_subscriptions_table.sql — no period/version columns yet)
+│   │   ├── repository.go             # PostgresRepository (Create/GetByUserID/Update/Cancel) + Resolver adapter (NewResolver) feeding jwt.Refresher's has_subscription re-check
+│   │   ├── payment/                  # Payment-processing seam (issue #168)
+│   │   │   ├── provider.go           # PaymentProvider interface: ProcessPayment(ctx, token, planID) (string, error)
+│   │   │   ├── stub.go               # StubPaymentProvider: always succeeds, logs "[DEMO] Payment processed" — no real gateway integrated yet
+│   │   │   └── mocks/                # Generated PaymentProvider mock (vektra/mockery)
+│   │   ├── service.go                # Service.CreateSubscription: charges the payment provider, persists only on success (issue #176)
+│   │   └── mocks/                    # Generated Repository mock (vektra/mockery)
 │   ├── collaboration/                # doc.go scaffold only (Spec 008 Phase 3+, unbuilt)
 │   ├── security/                     # doc.go scaffold only (Spec 008 Phase 3+, unbuilt)
 │   └── example/                      # Canonical model→repository→service→handler reference pattern (issue #58)
@@ -142,6 +172,17 @@ backend/
     ├── 002_create_refresh_tokens_table.sql   # jwt_signing_keys, security_events
     ├── 003_create_jwt_signing_keys_table.sql
     ├── 004_create_security_events_table.sql
+    ├── 005_alter_users_add_auth_fields.sql       # Sprint 6 (Spec 008): full_name/has_subscription/
+    ├── 006_create_plans_table.sql                # failed_login_attempts/version on users, plus
+    ├── 007_create_subscriptions_table.sql        # plans/subscriptions/password_reset_tokens and the
+    ├── 008_create_password_reset_tokens_table.sql # security_events.email ALTER — see docs/data-model.md's
+    ├── 009_alter_security_events_add_email.sql   # "As-Built Migration Numbering" note for why 001-015
+    ├── 010_create_trips_table.sql                # don't match that doc's target 16-entity numbering
+    ├── 011_create_collaborators_table.sql
+    ├── 012_create_suggestions_table.sql
+    ├── 013_create_destinations_table.sql
+    ├── 014_create_days_table.sql
+    ├── 015_create_activities_table.sql
     └── 20260710120000_create_examples_table.sql  # Goose timestamp-versioned migration for the examples table
 ```
 
@@ -306,7 +347,7 @@ a descriptive error if a required variable is missing or a value is out of range
 | `AI_STREAMING_CHUNK_SIZE` | `4096` | Buffer size (bytes) for streaming AI responses |
 | `COOKIE_DOMAIN` | `localhost` | Domain attribute set on the auth cookie |
 | `JWT_EXPIRATION` | `24h` | Access token lifetime |
-| `REFRESH_TOKEN_EXPIRATION` | `7 days` | Refresh token lifetime |
+| `REFRESH_TOKEN_EXPIRATION` | `720h` (30 days) | Refresh token lifetime |
 | `BCRYPT_COST` | `12` | Loaded/validated by `config.Load()`, but **not currently consumed**: `internal/auth/password.go` hardcodes `const bcryptCost = 12` per `docs/security.md` — a non-default value has no effect today |
 | `COOKIE_SECURE` | `false` (`true` in production) | Whether the auth cookie requires HTTPS |
 | `LOG_LEVEL` | `info` | Minimum log level (`debug`, `info`, `warn`, `error`) |
@@ -369,10 +410,12 @@ For a step-by-step walkthrough (expand a tag, execute a real `POST /api/v1/examp
 confirm the response matches what `curl` would return), see [Scenario 2 of
 `specs/009-api-documentation/quickstart.md`](../specs/009-api-documentation/quickstart.md#scenario-2--interactive-ui-real-request).
 
-`/swagger/*` is **gated** (008-T208): it is registered with the same `middleware.Authenticate`
-chain as the authenticated `/api/v1` group in `cmd/api/routes.go`, so open it in a browser that
-already holds an `access_token` cookie — e.g. after `POST /api/v1/auth/login` — otherwise it
-answers `401 authentication_required`.
+`/swagger/*` is gated (008-T208) with the same `middleware.Authenticate` chain as the authenticated
+`/api/v1` group in `cmd/api/routes.go`, but **only when `Config.IsProduction()`** (post-closure fix,
+PR #204 — gating it unconditionally caused a 401 on a fresh local checkout hitting
+`/swagger/index.html` before any login). In development it is open with no cookie required; in
+production, open it in a browser that already holds an `access_token` cookie — e.g. after
+`POST /api/v1/auth/login` — otherwise it answers `401 authentication_required`.
 
 ---
 
@@ -385,7 +428,7 @@ golangci-lint run ./...         # lint — must pass with zero errors before mer
 
 make test                       # unit tests only (no Docker required) — go test -tags=test -v ./... -short
 make test-all                   # ALL tests, including testcontainers — requires Colima/Docker running
-make test-coverage              # coverage report (CI configuration) — target: ≥80% for internal/
+make test-coverage              # coverage report (CI configuration) — target: ≥90% for internal/
 go tool cover -func=coverage.out
 
 gosec -severity high -confidence medium ./...   # SAST scan — zero HIGH findings required
@@ -627,7 +670,8 @@ All versioned endpoints are prefixed `/api/v1`. Authentication uses an HTTP-only
 
 Since issue #179 (008-T208) `cmd/api/routes.go` splits `/api/v1` into a **public** group and an
 **authenticated** group carrying `middleware.Authenticate`; `/healthz` sits outside both, and
-`/swagger/*` sits inside the authenticated one.
+`/swagger/*` is gated the same way, but only when `Config.IsProduction()` (PR #204) — open in
+development.
 
 | Group | Endpoints | Auth |
 |-------|-----------|------|
@@ -635,7 +679,7 @@ Since issue #179 (008-T208) `cmd/api/routes.go` splits `/api/v1` into a **public
 | Auth (public) | `POST /api/v1/auth/register`, `/api/v1/auth/login`, `/api/v1/auth/refresh` | None — refresh authenticates with the `refresh_token` cookie |
 | Auth (authenticated) | `POST /api/v1/auth/logout`, `GET /api/v1/auth/me` | Required (`access_token` cookie) |
 | Examples (reference pattern, throwaway — see [Project Structure](#project-structure)) | `GET/POST /api/v1/examples`, `GET/PUT/DELETE /api/v1/examples/:id` | Required (`access_token` cookie) |
-| API docs | `GET /swagger/index.html`, `GET /swagger/doc.json` | Required (`access_token` cookie) |
+| API docs | `GET /swagger/index.html`, `GET /swagger/doc.json` | Required in production only (`access_token` cookie); open in development |
 
 ### Planned (not yet built)
 
@@ -692,7 +736,7 @@ gate unless the PR actually touches `backend/**`; the `push` trigger to `main` i
 to `backend/**` directly.
 
 1. **Lint** — `golangci-lint` (errcheck, govet, staticcheck, revive, gosec); must pass with zero errors.
-2. **Test** — `make test-coverage` (`go test -tags=test -short -race -coverprofile=coverage.out`) against a `postgres:15.4-alpine` service container — pinned to match the RDS `engine_version` planned for staging/production, not a stale version (target: ≥80% coverage for `internal/`).
+2. **Test** — `make test-coverage` (`go test -tags=test -short -race -coverprofile=coverage.out`). No PostgreSQL service container: `-short` skips every testcontainer-gated, DB-backed test, so nothing in CI needs a live database (one was configured here until 2026-07-16, but nothing ever connected to it) — target: ≥90% coverage for `internal/`.
 3. **Build** — multi-stage Docker image for `linux/arm64`, tagged with the git SHA and uploaded as an artifact (not yet pushed to ECR — planned for Sprint 3).
 
 ---

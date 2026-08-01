@@ -62,8 +62,8 @@ These requirements are binding across all future specs. Any proposed feature or 
 
 | ID | Requirement | Measurable Target | Validation Method |
 |----|-------------|-------------------|-------------------|
-| **NFR-MAINT-001** | Backend business-logic code MUST maintain minimum test coverage | ≥ 80% line coverage for Go packages in `internal/` | `go test -coverprofile` in CI; coverage gate fails if below 80% |
-| **NFR-MAINT-002** | Frontend shared components and hooks MUST maintain minimum test coverage | ≥ 80% line coverage for files in `src/components/` and `src/hooks/` | Vitest coverage report in CI; gate fails if below 80% |
+| **NFR-MAINT-001** | Backend business-logic code MUST maintain minimum test coverage | ≥ 90% line coverage for Go packages in `internal/` | `go test -coverprofile` in CI; coverage gate fails if below 90% |
+| **NFR-MAINT-002** | Frontend shared components and hooks MUST maintain minimum test coverage | ≥ 90% line coverage for files in `src/components/` and `src/hooks/` | Vitest coverage report in CI; gate fails if below 90% |
 | **NFR-MAINT-003** | All code MUST pass automated linting with zero errors before merge | `golangci-lint` (Go) and ESLint (TypeScript) report zero errors on every PR | Lint gates in CI; PRs cannot be merged while lint gates failing |
 | **NFR-MAINT-004** | All public API contracts MUST be documented before shipping | Every REST endpoint has entry in `specs/*/contracts/api.md` with request/response schema | Contract-review checklist item on every PR adding/modifying endpoint |
 | **NFR-MAINT-005** | Dead code and commented-out code MUST not be committed | Zero instances of commented-out code blocks or unreachable code detected by linters | ESLint `no-unused-vars`, `no-unreachable`; `staticcheck` (Go) |
