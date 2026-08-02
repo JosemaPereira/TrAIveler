@@ -1,11 +1,8 @@
 /**
- * Auth state management and token refresh logic for the frontend.
- *
- * Scaffolding placeholder for Spec 004 (Security & Authentication/
- * Authorization Model, see specs/004-security-auth-model/). The real
- * implementation — session state, JWT access/refresh token handling, and
- * automatic refresh — lands in a later Spec 004 issue, once the backend
- * auth endpoints (specs/004-security-auth-model/tasks.md, User Story 1)
- * exist. `export {}` keeps this file a valid ES module in the meantime.
+ * Unused placeholder left over from early Spec 004 scaffolding. The
+ * functionality this file was reserved for — session state and access/refresh
+ * token handling — has since landed as `stores/auth-store.ts` (Zustand
+ * session state) and the refresh logic in `lib/api-client.ts`, not here; this
+ * module has no remaining imports. `export {}` keeps it a valid ES module.
  */
 export {}
