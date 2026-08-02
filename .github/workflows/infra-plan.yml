@@ -39,10 +39,10 @@ on:
   pull_request:
   workflow_dispatch:
 
-# Least-privilege default token: dorny/paths-filter (changes job) needs
-# pull-requests:read to list a PR's changed files via the API, else it fails
-# with "Resource not accessible by integration". The terraform-plan job sets
-# its own job-level permissions (id-token/pull-requests:write for OIDC + PR
+# Least-privilege default token: the `changes` job (delegated to detect-changes.yml, shared with
+# backend-ci.yml/frontend-ci.yml) needs pull-requests:read for dorny/paths-filter to list a PR's
+# changed files via the API, else it fails with "Resource not accessible by integration". The
+# terraform-plan job sets its own job-level permissions (id-token/pull-requests:write for OIDC + PR
 # comments), which fully override this default for that job.
 permissions:
   contents: read
@@ -55,22 +55,7 @@ concurrency:
 
 jobs:
   changes:
-    name: Detect Changed Areas
-    runs-on: ubuntu-latest
-    outputs:
-      infra: ${{ steps.filter.outputs.infra }}
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Filter changed paths
-        id: filter
-        uses: dorny/paths-filter@v3
-        with:
-          filters: |
-            infra:
-              - 'infra/**'
-              - '.github/workflows/infra-plan.yml'
+    uses: ./.github/workflows/detect-changes.yml
 
   validate:
     name: Validate Terraform Configuration

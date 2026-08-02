@@ -1,0 +1,63 @@
+# Detect Changed Areas - Shared Reusable Workflow
+#
+# Single source of truth for the path-filter logic that backend-ci.yml, frontend-ci.yml, and
+# infra-plan.yml each used to duplicate as their own `changes` job (checkout + dorny/paths-filter,
+# identical except for the filtered paths). Called via `workflow_call` instead.
+#
+# Each filter below deliberately includes this file's own path alongside its area's paths: editing
+# the shared filter logic changes what counts as a "backend"/"a11y"/"infra" change for all three
+# callers, so a change here is treated as touching every area rather than silently trusting the edit.
+
+name: Detect Changed Areas
+
+on:
+  workflow_call:
+    outputs:
+      backend:
+        description: "true if backend/** or this shared filter changed"
+        value: ${{ jobs.changes.outputs.backend }}
+      a11y:
+        description: "true if frontend/**, e2e/**, lighthouserc.yml, or this shared filter changed"
+        value: ${{ jobs.changes.outputs.a11y }}
+      infra:
+        description: "true if infra/** or this shared filter changed"
+        value: ${{ jobs.changes.outputs.infra }}
+
+# Least-privilege: dorny/paths-filter needs pull-requests:read to list a PR's changed files via the
+# API (otherwise it fails with "Resource not accessible by integration"); checkout needs
+# contents:read. Callers already grant at least this much at their own workflow level.
+permissions:
+  contents: read
+  pull-requests: read
+
+jobs:
+  changes:
+    name: Detect Changed Areas
+    runs-on: ubuntu-latest
+    outputs:
+      backend: ${{ steps.filter.outputs.backend }}
+      a11y: ${{ steps.filter.outputs.a11y }}
+      infra: ${{ steps.filter.outputs.infra }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Filter changed paths
+        id: filter
+        uses: dorny/paths-filter@v3
+        with:
+          filters: |
+            backend:
+              - 'backend/**'
+              - '.github/workflows/backend-ci.yml'
+              - '.github/workflows/detect-changes.yml'
+            a11y:
+              - 'frontend/**'
+              - 'e2e/**'
+              - 'lighthouserc.yml'
+              - '.github/workflows/frontend-ci.yml'
+              - '.github/workflows/detect-changes.yml'
+            infra:
+              - 'infra/**'
+              - '.github/workflows/infra-plan.yml'
+              - '.github/workflows/detect-changes.yml'

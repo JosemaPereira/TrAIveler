@@ -37,12 +37,13 @@ on:
     paths:
       - 'backend/**'
       - '.github/workflows/backend-ci.yml'
+      - '.github/workflows/detect-changes.yml'
   workflow_dispatch:
 
-# Least-privilege token: dorny/paths-filter needs pull-requests:read to list a
-# PR's changed files via the API (otherwise the changes job fails with
-# "Resource not accessible by integration"); checkout needs contents:read;
-# the roadmap-status-drift step's `gh issue list` needs issues:read.
+# Least-privilege token: the `changes` job (delegated to detect-changes.yml, shared with
+# frontend-ci.yml/infra-plan.yml) needs pull-requests:read for dorny/paths-filter to list a PR's
+# changed files via the API (otherwise it fails with "Resource not accessible by integration");
+# checkout needs contents:read; the roadmap-status-drift step's `gh issue list` needs issues:read.
 permissions:
   contents: read
   pull-requests: read
@@ -55,22 +56,7 @@ concurrency:
 
 jobs:
   changes:
-    name: Detect Changed Areas
-    runs-on: ubuntu-latest
-    outputs:
-      backend: ${{ steps.filter.outputs.backend }}
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Filter changed paths
-        id: filter
-        uses: dorny/paths-filter@v3
-        with:
-          filters: |
-            backend:
-              - 'backend/**'
-              - '.github/workflows/backend-ci.yml'
+    uses: ./.github/workflows/detect-changes.yml
 
   lint-test:
     name: Backend Lint & Test
