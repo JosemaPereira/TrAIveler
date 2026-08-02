@@ -80,21 +80,34 @@ type ServerConfig struct {
 }
 
 // DatabaseConfig contains PostgreSQL connection settings.
+//
+// MaxIdleTime/MaxLifetime are not consumed yet: database.NewClient() only
+// accepts minConns/maxConns and hardcodes MaxConnIdleTime (30m)/
+// MaxConnLifetime (1h) itself, so a non-default DB_MAX_IDLE_TIME/
+// DB_MAX_LIFETIME passes Load() but has no effect on the running pool today
+// (same "loaded but not wired to a consumer" class noted on LogConfig above).
 type DatabaseConfig struct {
-	URL            string // DATABASE_URL (required)
-	MaxConnections int    // DB_MAX_CONNECTIONS (default: 25)
-	MinConnections int    // DB_MIN_CONNECTIONS (default: 5)
-	MaxIdleTime    time.Duration
-	MaxLifetime    time.Duration
+	URL            string        // DATABASE_URL (required)
+	MaxConnections int           // DB_MAX_CONNECTIONS (default: 25)
+	MinConnections int           // DB_MIN_CONNECTIONS (default: 5)
+	MaxIdleTime    time.Duration // DB_MAX_IDLE_TIME (default: 15m; see note above)
+	MaxLifetime    time.Duration // DB_MAX_LIFETIME (default: 1h; see note above)
 }
 
 // AIConfig contains AI provider settings shared across both supported
 // backends (Ollama, Anthropic), plus each backend's own settings.
+//
+// Provider/Timeout/MaxRetries all reach NewAIClient (client.go) and the
+// concrete constructor it picks. StreamingChunk does not yet: neither
+// NewOllamaClient nor NewAnthropicClient accepts a chunk-size parameter, so a
+// non-default AI_STREAMING_CHUNK_SIZE has no effect today (same
+// "loaded but not wired to a consumer" class noted on LogConfig above) —
+// streaming buffering is presently left to each SDK's own defaults.
 type AIConfig struct {
 	Provider       string        // AI_PROVIDER (default: "ollama" in development, "anthropic" in production)
 	Timeout        time.Duration // AI_TIMEOUT (default: 60s)
 	MaxRetries     int           // AI_MAX_RETRIES (default: 3)
-	StreamingChunk int           // AI_STREAMING_CHUNK_SIZE (default: 4096)
+	StreamingChunk int           // AI_STREAMING_CHUNK_SIZE (default: 4096; see note above)
 	Anthropic      AnthropicConfig
 	Ollama         OllamaConfig
 }
@@ -143,6 +156,13 @@ type RateLimitConfig struct {
 }
 
 // LogConfig contains structured logging settings.
+//
+// Neither field is consumed yet: cmd/api/main.go builds its slog.Logger with
+// a hardcoded slog.NewJSONHandler and slog.LevelInfo, so a non-default
+// LOG_LEVEL/LOG_FORMAT passes Load()'s validation but has no effect on the
+// running logger today (same "loaded but not wired to a consumer" class as
+// AuthConfig.BcryptCost was before 004-T137/004-T138 — see the consumption
+// audit on AuthConfig above).
 type LogConfig struct {
 	Level  string // LOG_LEVEL (default: info)
 	Format string // LOG_FORMAT (default: json)

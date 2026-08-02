@@ -146,7 +146,7 @@ backend/
 │   │   ├── correlation.go            # GenerateCorrelationID
 │   │   └── logger.go                 # LogSecurityEvent(correlationID, eventType, userID, severity, ipAddress, userAgent, details) — structured JSON, matches the security_events table
 │   ├── subscription/                 # Billing domain (Spec 008, issues #167/#169/#168/#175); no HTTP handler/routes of its own yet — reached only through internal/auth's composition
-│   │   ├── models.go                 # Subscription entity + Validate (matches migrations/007_create_subscriptions_table.sql — no period/version columns yet)
+│   │   ├── models.go                 # Subscription entity + Validate (matches migrations 007 + 016 — current_period_start/end added by 016; a version/optimistic-locking column remains undeferred)
 │   │   ├── repository.go             # PostgresRepository (Create/GetByUserID/Update/Cancel) + Resolver adapter (NewResolver) feeding jwt.Refresher's has_subscription re-check
 │   │   ├── payment/                  # Payment-processing seam (issue #168)
 │   │   │   ├── provider.go           # PaymentProvider interface: ProcessPayment(ctx, token, planID) (string, error)
@@ -176,13 +176,14 @@ backend/
     ├── 006_create_plans_table.sql                # failed_login_attempts/version on users, plus
     ├── 007_create_subscriptions_table.sql        # plans/subscriptions/password_reset_tokens and the
     ├── 008_create_password_reset_tokens_table.sql # security_events.email ALTER — see docs/data-model.md's
-    ├── 009_alter_security_events_add_email.sql   # "As-Built Migration Numbering" note for why 001-015
+    ├── 009_alter_security_events_add_email.sql   # "As-Built Migration Numbering" note for why 001-016
     ├── 010_create_trips_table.sql                # don't match that doc's target 16-entity numbering
     ├── 011_create_collaborators_table.sql
     ├── 012_create_suggestions_table.sql
     ├── 013_create_destinations_table.sql
     ├── 014_create_days_table.sql
     ├── 015_create_activities_table.sql
+    ├── 016_alter_subscriptions_add_period_columns.sql # current_period_start/end on subscriptions (issue #207)
     └── 20260710120000_create_examples_table.sql  # Goose timestamp-versioned migration for the examples table
 ```
 
@@ -336,22 +337,26 @@ a descriptive error if a required variable is missing or a value is out of range
 | `HTTP_WRITE_TIMEOUT` | `30s` | Max duration before timing out writes of the response |
 | `HTTP_IDLE_TIMEOUT` | `120s` | Max time to wait for the next request on a keep-alive connection |
 | `ALLOWED_CORS_ORIGINS` | `http://localhost:5173` | Comma-separated exact-match allow-list consumed by the CORS middleware (`internal/middleware/cors.go`) |
+| `RATE_LIMIT_REQUESTS` | `0` (disabled) | Global per-client-IP request budget per window (`internal/middleware/rate_limit.go`); the middleware is only mounted when this is > 0 (`cmd/api/server.go`) — a coarse abuse guard, separate from the account-keyed login throttle in `internal/auth/ratelimit/` |
+| `RATE_LIMIT_WINDOW` | `1m` | Window over which `RATE_LIMIT_REQUESTS` is counted |
 | `DB_MAX_CONNECTIONS` | `25` | Maximum concurrent connections in the PostgreSQL pool |
 | `DB_MIN_CONNECTIONS` | `5` | Minimum idle connections maintained in the PostgreSQL pool |
+| `DB_MAX_IDLE_TIME` | `15m` | Loaded/validated by `config.Load()`, but **not currently consumed**: `database.NewClient()` only accepts `minConns`/`maxConns` and hardcodes `MaxConnIdleTime` to 30 minutes (`internal/database/client.go`) — a non-default value has no effect today |
+| `DB_MAX_LIFETIME` | `1h` | Loaded/validated by `config.Load()`, but **not currently consumed**: `database.NewClient()` hardcodes `MaxConnLifetime` to 1 hour (`internal/database/client.go`) — a non-default value has no effect today |
 | `AI_PROVIDER` | `ollama` (dev) / `anthropic` (prod) | Selects the `ai.AIClient` backend; `config.Load()` fails fast on any other value — see [docs/local-ai-setup.md](../docs/local-ai-setup.md) |
 | `OLLAMA_HOST` | `http://localhost:11434` | Local Ollama server base URL (`http://ollama:11434` under `docker-compose`) |
 | `OLLAMA_MODEL` | `gemma3:4b` | Ollama model tag; must be pulled first (`ollama pull gemma3:4b`) |
 | `ANTHROPIC_MODEL` | `claude-3-5-sonnet-20241022` | Anthropic model used when `AI_PROVIDER=anthropic` |
 | `AI_TIMEOUT` | `60s` | Timeout applied to AI provider requests (shared across providers) |
 | `AI_MAX_RETRIES` | `3` | Max retry attempts for failed AI provider requests (shared across providers) |
-| `AI_STREAMING_CHUNK_SIZE` | `4096` | Buffer size (bytes) for streaming AI responses |
+| `AI_STREAMING_CHUNK_SIZE` | `4096` | Loaded by `config.Load()`, but **not currently consumed**: neither `NewOllamaClient` nor `NewAnthropicClient` accepts a chunk-size parameter — a non-default value has no effect today |
 | `COOKIE_DOMAIN` | `localhost` | Domain attribute set on the auth cookie |
 | `JWT_EXPIRATION` | `24h` | Access token lifetime |
 | `REFRESH_TOKEN_EXPIRATION` | `720h` (30 days) | Refresh token lifetime |
 | `BCRYPT_COST` | `12` | Loaded/validated by `config.Load()`, but **not currently consumed**: `internal/auth/password.go` hardcodes `const bcryptCost = 12` per `docs/security.md` — a non-default value has no effect today |
 | `COOKIE_SECURE` | `false` (`true` in production) | Whether the auth cookie requires HTTPS |
-| `LOG_LEVEL` | `info` | Minimum log level (`debug`, `info`, `warn`, `error`) |
-| `LOG_FORMAT` | `json` | Structured log output format |
+| `LOG_LEVEL` | `info` | Validated by `config.Load()` (must be `debug`/`info`/`warn`/`error`), but **not currently consumed**: `cmd/api/main.go` hardcodes its `slog.HandlerOptions{Level: slog.LevelInfo}` — a non-default value passes validation but has no effect on the running logger today |
+| `LOG_FORMAT` | `json` | Loaded by `config.Load()`, but **not currently consumed**: `cmd/api/main.go` always builds `slog.NewJSONHandler` — a non-default value has no effect today |
 
 ---
 
@@ -457,7 +462,9 @@ the initial connection up to 3 times (2s delay) and pings before returning, so a
 fail-fast and terminal — callers don't need a separate health check after construction. Pool sizing
 is driven by `DB_MAX_CONNECTIONS`/`DB_MIN_CONNECTIONS` (see [Environment
 Variables](#environment-variables)); connections are recycled after 1h (`MaxConnLifetime`) or 30m
-idle (`MaxConnIdleTime`).
+idle (`MaxConnIdleTime`) — both **hardcoded** in `internal/database/client.go`, not read from
+`DB_MAX_LIFETIME`/`DB_MAX_IDLE_TIME` (see the note on those two variables in [Environment
+Variables](#environment-variables)).
 
 Mocks are generated with `vektra/mockery` (`make mocks`) into `<package>/mocks/`. See
 [Mock Standards](../docs/mock-standards.md) and `internal/example/service_test.go` for a complete
@@ -731,13 +738,21 @@ docker run -p 8080:8080 \
 
 Workflow: [`.github/workflows/backend-ci.yml`](../.github/workflows/backend-ci.yml) — the `pull_request`
 trigger runs unconditionally on every PR (deliberately not `paths:`-filtered, so the required status
-check never gets stuck at "Expected"), but its `lint`/`test`/`build` jobs are skipped via an `if:`
-gate unless the PR actually touches `backend/**`; the `push` trigger to `main` is `paths:`-filtered
-to `backend/**` directly.
+check never gets stuck at "Expected"), but its `lint-test`/`build` jobs are skipped via an `if:`
+gate (driven by a separate `changes` job using `dorny/paths-filter`) unless the PR actually touches
+`backend/**`; the `push` trigger to `main` is `paths:`-filtered to `backend/**` directly.
+
+`lint-test` runs these steps in order (same job, so lint failing fast skips the slower steps after it):
 
 1. **Lint** — `golangci-lint` (errcheck, govet, staticcheck, revive, gosec); must pass with zero errors.
-2. **Test** — `make test-coverage` (`go test -tags=test -short -race -coverprofile=coverage.out`). No PostgreSQL service container: `-short` skips every testcontainer-gated, DB-backed test, so nothing in CI needs a live database (one was configured here until 2026-07-16, but nothing ever connected to it) — target: ≥90% coverage for `internal/`.
-3. **Build** — multi-stage Docker image for `linux/arm64`, tagged with the git SHA and uploaded as an artifact (not yet pushed to ECR — planned for Sprint 3).
+2. **Test** — `make test-coverage` (`go test -tags=test -short -race -coverprofile=coverage.out`), then uploads `coverage.out` as a build artifact. No PostgreSQL service container: `-short` skips every testcontainer-gated, DB-backed test, so nothing in CI needs a live database (one was configured here until 2026-07-16, but nothing ever connected to it) — target: ≥90% coverage for `internal/`.
+3. **Swagger drift** — regenerates `backend/docs/` via `make swagger` and fails the build if that produces an uncommitted diff, catching a `swag` annotation change whose regenerated contract was never committed (see [API Documentation Enforcement](../CLAUDE.md#api-documentation-enforcement-mandatory)).
+4. **Roadmap status drift** — `scripts/check-roadmap-status-drift.py` fails the build if `docs/roadmap.md`'s Status column disagrees with a linked GitHub issue that has since closed.
+
+The separate **`build`** job builds the multi-stage Docker image for `linux/arm64` to validate the
+`Dockerfile` builds; the image itself is **not** uploaded anywhere (no ECR push yet — planned for
+Sprint 3) and only warms the GitHub Actions layer cache (`cache-to: type=gha`) for that future job to
+reuse.
 
 ---
 

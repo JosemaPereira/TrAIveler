@@ -8,7 +8,11 @@
 // specs/004-security-auth-model/data-model.md.
 //
 // Key material is sourced through KeyProvider and refresh-token persistence
-// through RefreshTokenStore. Only in-memory/static implementations ship here;
-// the Secrets Manager key loader and PostgreSQL store land with later flows
-// (Spec 008 Sprint 6-7, Spec 004 Phase 3).
+// through RefreshTokenStore — both interfaces, implemented outside this
+// package. KeyProvider only has an in-memory StaticKeyProvider today; the
+// Secrets Manager key loader is still pending (roadmap tasks
+// 004-T070–004-T072, gated on 003-T045). RefreshTokenStore is already backed
+// by a real PostgreSQL implementation (internal/auth.RefreshStore over
+// PostgresRefreshTokenRepository, wired in cmd/api/auth.go) — that part
+// landed in Sprint 6 (issue #175).
 package jwt
