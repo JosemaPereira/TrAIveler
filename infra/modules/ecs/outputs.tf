@@ -2,9 +2,8 @@
 #
 # Exposes cluster/service/task-definition/log-group identifiers, plus this
 # module's own security group ID. ecs_security_group_id is additive (not in
-# the original flat output list) — infra/modules/rds/variables.tf already
-# declares an ecs_security_group_id input expecting to consume exactly this
-# value once root-module wiring closes the dependency graph.
+# the original flat output list) — infra/modules/rds/variables.tf declares a
+# matching input, wired to this output in infra/main.tf's rds module block.
 
 output "cluster_name" {
   description = "Name of the ECS cluster"

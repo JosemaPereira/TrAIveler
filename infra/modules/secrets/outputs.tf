@@ -1,8 +1,9 @@
 # Secrets Module Outputs
 #
-# Exposes the ARNs of the AI API key and JWT signing key secrets, consumed
-# by the ECS module and downstream root module wiring to grant task-level
-# read access via IAM.
+# Exposes the ARNs of the AI API key and JWT signing key secrets. Not yet
+# wired to any consumer: infra/main.tf doesn't reference module.secrets'
+# outputs, so the ECS task role has no IAM read access to these ARNs yet.
+# That wiring is tracked separately (003-T033 / G-INFRA-IAM-MODULE, Backlog).
 
 output "ai_api_key_secret_arn" {
   description = "ARN of the Secrets Manager secret holding the AI API key"

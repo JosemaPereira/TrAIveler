@@ -1,8 +1,11 @@
 # RDS Module Outputs
 #
 # Exposes the database endpoint, database name, and the ARN of the
-# Secrets Manager secret holding the generated credentials, consumed by
-# the ECS module and downstream root module wiring.
+# Secrets Manager secret holding the generated credentials. Not yet wired to
+# any consumer: infra/main.tf doesn't pass these to the ecs module or expose
+# them as root outputs, so the backend has no way to receive DATABASE_URL or
+# read db_secret_arn via IAM yet. That wiring is future work (see 003-T033 /
+# G-INFRA-IAM-MODULE for the IAM half).
 
 output "db_endpoint" {
   description = "Connection endpoint of the RDS instance"

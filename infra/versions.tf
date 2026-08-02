@@ -5,24 +5,16 @@
 # automatic updates.
 
 terraform {
-  # Require Terraform >= 1.5
-  # Version 1.5 introduced:
-  # - import blocks for managing existing resources
-  # - check blocks for continuous validation
-  # - improvements to remote state data sources
+  # 1.5 is the floor to keep import blocks, check blocks, and improved
+  # remote state data sources available, in case future work needs them.
   required_version = ">= 1.5"
 
-  # AWS Provider configuration
   required_providers {
     aws = {
       source = "hashicorp/aws"
 
-      # Use AWS provider ~> 5.0 (any 5.x version, but not 6.x)
-      # Provider 5.x brings:
-      # - CloudFront function improvements
-      # - ECS task definition enhancements
-      # - RDS cluster improvements
-      # Constraint prevents major version upgrades that could break existing configurations
+      # Capped below 6.x: that major bump could break existing CloudFront
+      # function, ECS task definition, or RDS cluster resource configs.
       version = "~> 5.0"
     }
 
@@ -36,7 +28,6 @@ terraform {
   }
 }
 
-# AWS Provider Configuration
 # Region and authentication are configured via:
 # - Environment variables: AWS_REGION, AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY
 # - AWS profiles: AWS_PROFILE
@@ -44,8 +35,7 @@ terraform {
 provider "aws" {
   region = var.aws_region
 
-  # Default tags applied to all resources
-  # Enables cost tracking, ownership identification, and compliance
+  # Enables cost tracking, ownership identification, and compliance.
   default_tags {
     tags = {
       Project     = "TrAIveler"
@@ -55,8 +45,6 @@ provider "aws" {
   }
 }
 
-# Variable for AWS region
-# Override via terraform.tfvars or -var flag
 variable "aws_region" {
   description = "AWS region for resource deployment"
   type        = string

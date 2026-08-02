@@ -21,8 +21,8 @@
 #    security group ID. Both are added here as the minimum necessary input
 #    to implement the actual requirement; infra/modules/alb/outputs.tf gained
 #    a matching alb_security_group_id output (additive only, ALB module
-#    otherwise untouched). Root-module wiring that passes these through is a
-#    separate, already-tracked ticket (005-T102 / issue #90).
+#    otherwise untouched). Root-module wiring that passes these through
+#    landed in 005-T102 / issue #90 (infra/main.tf's ecs module block).
 # 2. aws_iam_role.ecs_task_execution: not itemized in the issue/tasks.md
 #    checklist at all, but T070 itself requires "container definition
 #    referencing the ECR image URL ... CloudWatch log configuration" — ECS
