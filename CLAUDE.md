@@ -3,17 +3,6 @@
 Instructions for Claude Code working in this repository. This file is loaded automatically at the
 start of every session.
 
-## Tool Hierarchy (MANDATORY)
-
-Claude Code is the **primary** AI tool for this project. GitHub Copilot is kept as an **auxiliary**
-tool only.
-
-- **This file (`CLAUDE.md`) is the canonical, source-of-truth instructions file.**
-- `.github/copilot-instructions.md` is a secondary mirror for Copilot. It must be kept in sync
-  **with this file**, never the other way around — changes to project context, policies, or
-  workflow are made here first, then reflected into `copilot-instructions.md`.
-- If the two files ever disagree, `CLAUDE.md` wins.
-
 ## Project Context
 
 - Create a web tool to plan trips to any destination in the world. The tool offers suggestions for
@@ -124,36 +113,30 @@ skip this now.
 
 Two different mechanisms are in play here, deliberately:
 
-**SpecKit (`speckit-*`) — official integration, not hand-ported.** This project uses GitHub's
-[spec-kit](https://github.com/github/spec-kit) CLI (`specify`). It was originally initialized with
-only the `copilot` integration; Claude Code was added as a second, coexisting integration via:
+**SpecKit (`speckit-*`) — official integration.** This project uses GitHub's
+[spec-kit](https://github.com/github/spec-kit) CLI (`specify`), with Claude Code as its sole
+integration:
 
 ```bash
-specify integration install claude --script sh --force
+specify integration install claude --script sh
 ```
 
-(`--force` is required only because `copilot` isn't declared "multi-install safe" — this does not
-touch or remove the Copilot integration. `copilot` remains the project's default integration;
-`claude` was added alongside it. Installed integrations and this default are tracked in
-`.specify/integration.json`.)
+Installed integrations are tracked in `.specify/integration.json`.
 
 This generated `.claude/skills/speckit-*/SKILL.md` (nine core spec-kit skills plus
-`speckit-taskstoissues`, a project-level extension already present for the Copilot integration) —
-invoke them directly as `/speckit-specify`, `/speckit-clarify`, `/speckit-plan`, `/speckit-tasks`,
-`/speckit-analyze`/`/speckit-checklist`, `/speckit-implement`,
-`/speckit-converge`/`/speckit-taskstoissues`. These are maintained upstream by spec-kit, not by us —
-to update them when spec-kit releases a new version, run `specify integration upgrade claude
---force` (diff-aware; review the diff before committing). Do not hand-edit files under
-`.claude/skills/speckit-*/` or hand-port speckit agents/commands elsewhere — that previously caused
-a naming collision with these official skills and was removed.
+`speckit-taskstoissues`, a project-level extension) — invoke them directly as `/speckit-specify`,
+`/speckit-clarify`, `/speckit-plan`, `/speckit-tasks`, `/speckit-analyze`/`/speckit-checklist`,
+`/speckit-implement`, `/speckit-converge`/`/speckit-taskstoissues`. These are maintained upstream by
+spec-kit, not by us — to update them when spec-kit releases a new version, run `specify integration
+upgrade claude --force` (diff-aware; review the diff before committing). Do not hand-edit files
+under `.claude/skills/speckit-*/` or hand-port speckit agents/commands elsewhere — that previously
+caused a naming collision with these official skills and was removed.
 
-**Everything else (`.claude/agents/`) — hand-ported from Copilot, since spec-kit doesn't cover
-them.** These mirror GitHub Copilot's non-SpecKit custom agents/prompts (`.github/agents/`,
-`.github/prompts/`) as Claude Code project subagents. Delegate to these by name (via the Agent
-tool) — either naturally ("implement X with TDD" auto-matches `tdd-developer`, since Claude
-delegates based on each subagent's `description`) or explicitly ("use the `commit-and-push`
-subagent") — instead of re-deriving their instructions inline. Each one is a self-contained
-persona and, where Copilot had a linked one-shot prompt, its task procedure is merged into the
+**Everything else (`.claude/agents/`) — this project's custom subagents, since spec-kit doesn't
+cover them.** Delegate to these by name (via the Agent tool) — either naturally ("implement X with
+TDD" auto-matches `tdd-developer`, since Claude delegates based on each subagent's `description`) or
+explicitly ("use the `commit-and-push` subagent") — instead of re-deriving their instructions
+inline. Each one is a self-contained persona, with any linked one-shot workflow merged into the
 same file as a `## Task: ...` section, to avoid duplicating large persona text across files.
 
 - **Role agents**: `code-reviewer`, `product-manager` (Plan Sprints, Create Sprint Issues),
@@ -167,34 +150,14 @@ duplicate of each subagent's `name`/`description` with no functional benefit ove
 name, and one more file to keep in sync per agent. If a `.claude/commands/<name>.md` collides with
 one of these subagent names later, remove the command, not the subagent.
 
-`.github/agents/` and `.github/prompts/` remain as the GitHub Copilot originals (auxiliary tool).
-The non-SpecKit ones are not mechanically mirrored the way `CLAUDE.md`/`copilot-instructions.md`
-are — the two formats diverge too much (different frontmatter, no subagent concept in Copilot) for
-an automatic sync. When updating one of those workflows' logic, update both sides by hand.
-
-**Drift detection (MANDATORY when touching either side)**: `scripts/agent-port-manifest.json`
-records the sha256 of each `.claude/agents/*.md` file and the Copilot `.github/agents/*.agent.md`
-/ `.github/prompts/*.prompt.md` file(s) it was ported from, as of the last time both sides were
-confirmed in sync. Run `python3 scripts/check-agent-drift.py` before and after editing any
-hand-ported agent/prompt (either the Copilot or the Claude side) — it reports which pairs drifted
-(`claude changed`, `copilot changed`, or `both changed`, meaning independent edits on both sides
-that need manual reconciliation) and exits non-zero if anything is out of sync. This works in both
-directions on purpose — Claude is the primary tool going forward, but nothing stops someone from
-editing the Copilot side directly, so both are checked. After manually porting a change to the
-other side, refresh the recorded hashes with `python3 scripts/check-agent-drift.py --update <name>`
-(or `--update all`). The script only detects drift; it never edits agent content itself — the
-adaptation rules above (copilot-instructions.md → CLAUDE.md references, `/slash-command` →
-subagent-delegation phrasing, merging a linked prompt into its persona's `## Task: ...` section)
-still apply when porting a change by hand.
-
 ## Shared Project Memory (MANDATORY)
 
-This repository has **one** memory system, shared byte-for-byte between Claude Code and GitHub
-Copilot under `.github/memory/`. The full protocol — including how to avoid conflicts and stale
-entries between tools — is canonical in **`.github/memory/README.md`**. Read it once per session
-and follow it; do not rely on the summary below if it ever seems to diverge, the README wins.
+This repository has **one** memory system, persisted under `.github/memory/`. The full protocol —
+including how to avoid conflicts and stale entries across concurrent sessions — is canonical in
+**`.github/memory/README.md`**. Read it once per session and follow it; do not rely on the summary
+below if it ever seems to diverge, the README wins.
 
-Claude Code follows the exact same obligations Copilot does:
+Claude Code's obligations:
 
 - **Session start**: before starting substantive work, read `.github/memory/session-notes.md`,
   `.github/memory/patterns-discovered.md`, and `.github/memory/scratch/working-notes.md`, and
@@ -205,7 +168,9 @@ Claude Code follows the exact same obligations Copilot does:
   its template, tagged with today's date and `**Tool**: Claude Code`.
 - **At the end of a significant session**: append a summary to `.github/memory/session-notes.md`
   using its template, tagged with today's date and `**Tool**: Claude Code`.
-- **Append-only**: never edit or delete another session's entry, regardless of which tool wrote it.
+- **Append-only**: never edit or delete another session's entry — including historical entries
+  tagged `GitHub Copilot` from before this project consolidated on Claude Code as its sole AI tool
+  (issue #212).
 
 Note: Claude Code also has its own persistent memory (`~/.claude/projects/.../memory/`) for
 cross-project user/feedback context — that is separate from this repo-local, tool-agnostic memory

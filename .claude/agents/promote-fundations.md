@@ -41,12 +41,9 @@ Promote into the right destination, wrapping generated content between markers
 - Reuse existing docs where they already cover a topic (e.g. keep functional-requirements.md, ui-guidelines.md, coding-guidelines.md, testing-guidelines.md as-is; add only what's missing).
 
 ## Step 4 — Wire references
-`CLAUDE.md` is the canonical instructions file; `.github/copilot-instructions.md` is kept as its auxiliary mirror and must always be updated to match it, never the other way around. Update references in both, in this order:
-
-1. First, update `CLAUDE.md`'s own "Documentation References" section so it lists every promoted doc with a one-line description, ensuring the agent reads them before generating code, tests, plans, or tasks. Do not remove existing references.
-2. Then, mirror the same addition into `.github/copilot-instructions.md`'s "Documentation References" section, keeping it consistent with what was just added to `CLAUDE.md`. Do not remove existing references there either.
+`CLAUDE.md` is the canonical instructions file. Update its own "Documentation References" section so it lists every promoted doc with a one-line description, ensuring the agent reads them before generating code, tests, plans, or tasks. Do not remove existing references.
 
 ## Step 5 — Report
-Summarize: specs promoted, destinations written/updated (constitution + which docs, and confirmation that both `CLAUDE.md` and `.github/copilot-instructions.md` were kept in sync), any decisions that were left open/ambiguous in the specs (flagged for the user to resolve), and a reminder that new features will now inherit this context. Recommend running this again whenever a foundational spec is refined.
+Summarize: specs promoted, destinations written/updated (constitution + which docs), any decisions that were left open/ambiguous in the specs (flagged for the user to resolve), and a reminder that new features will now inherit this context. Recommend running this again whenever a foundational spec is refined.
 
 Do NOT commit. Leave changes staged for review and suggest delegating to the `commit-and-push` subagent if approved.

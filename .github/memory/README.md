@@ -13,21 +13,19 @@ Use this memory system to:
 
 ## Single Source of Truth for Any AI Tool
 
-This system is **tool-agnostic and shared**: Claude Code, GitHub Copilot, and any other AI tool
-used in this repository read and write the exact same files under `.github/memory/`. There is no
-per-tool copy of memory.
+This system is **tool-agnostic**: any AI tool used in this repository reads and writes the exact
+same files under `.github/memory/`. There is no per-tool copy of memory — Claude Code is currently
+the only AI tool used on this project.
 
-This file is the **canonical protocol**. `CLAUDE.md` (primary) and `.github/copilot-instructions.md`
-(auxiliary) each summarize their tool's obligations under it, but the rules themselves live here
-only — so update the protocol here first, and it never drifts out of sync between tools.
+This file is the **canonical protocol**. `CLAUDE.md` summarizes Claude Code's obligations under it,
+but the rules themselves live here only — so update the protocol here first, and it never drifts
+out of sync.
 
 ## Two Types of Memory
 
 1. **Persistent Memory**
 
-   - Location: `CLAUDE.md` (primary, canonical — Claude Code is the primary AI tool for this
-     project). `.github/copilot-instructions.md` mirrors it for GitHub Copilot, kept as an
-     auxiliary tool.
+   - Location: `CLAUDE.md` (canonical — Claude Code is the sole AI tool for this project).
    - Role: Stable, foundational guidance (principles, workflows, responsibilities).
    - Changes: Infrequent and deliberate, made in `CLAUDE.md` first.
 
@@ -43,17 +41,19 @@ only — so update the protocol here first, and it never drifts out of sync betw
 - `scratch/working-notes.md`: Active session notes and in-progress thinking (NOT committed).
 - `scratch/.gitignore`: Ignores everything in scratch to keep ephemeral work out of git.
 
-## Avoiding Conflicts & Stale Entries Across Tools
+## Avoiding Conflicts & Stale Entries Across Concurrent Sessions
 
-Because Claude Code and Copilot sessions can run concurrently on different branches, follow these
-rules so entries never clash or silently overwrite each other:
+Because multiple Claude Code sessions can run concurrently on different branches (and this
+protocol remains tool-agnostic in case another AI tool is added later), follow these rules so
+entries never clash or silently overwrite each other:
 
 - **Append-only.** New entries go at the end of the relevant section. Never edit, reorder, or
   delete another session's entry — not even to "clean it up."
-- **Tag every new entry with the tool that wrote it.** Add a `**Tool**: Claude Code` or
-  `**Tool**: GitHub Copilot` line next to the date in every new `### Session: ...` and
-  `### Pattern Name` entry (see templates in each file). This makes provenance and freshness
-  obvious at a glance and is the main defense against confusion between tools.
+- **Tag every new entry with the tool that wrote it.** Add a `**Tool**: Claude Code` line next to
+  the date in every new `### Session: ...` and `### Pattern Name` entry (see templates in each
+  file). This makes provenance and freshness obvious at a glance. Historical entries tagged with a
+  different tool (e.g. GitHub Copilot, used on this project before the migration tracked in issue
+  #212) are kept as-is — append-only applies regardless of which tool wrote the entry.
 - **Sync before writing.** Pull the latest committed version of the memory files before appending,
   so a new entry lands after the true last entry rather than a stale local copy.
 - **On merge conflicts, keep both sides.** If a git merge conflicts inside these files, never
@@ -65,7 +65,7 @@ rules so entries never clash or silently overwrite each other:
 
 ## Session Start Protocol
 
-**MANDATORY for any AI tool working in this repository (Claude Code, GitHub Copilot, or others).
+**MANDATORY for any AI tool working in this repository (Claude Code, or others added later).
 Every new session must begin by loading memory files in this order:**
 
 1. Read `session-notes.md` — understand what has been built and decided

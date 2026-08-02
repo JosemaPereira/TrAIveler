@@ -40,11 +40,13 @@ on:
     paths:
       - 'frontend/**'
       - '.github/workflows/frontend-ci.yml'
+      - '.github/workflows/detect-changes.yml'
   workflow_dispatch:
 
-# Least-privilege token: dorny/paths-filter needs pull-requests:read to list a
-# PR's changed files via the API (otherwise the changes job fails with
-# "Resource not accessible by integration"); checkout needs contents:read.
+# Least-privilege token: the `changes` job (delegated to detect-changes.yml, shared with
+# backend-ci.yml/infra-plan.yml) needs pull-requests:read for dorny/paths-filter to list a PR's
+# changed files via the API (otherwise it fails with "Resource not accessible by integration");
+# checkout needs contents:read.
 permissions:
   contents: read
   pull-requests: read
@@ -55,29 +57,11 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  # `a11y` is a superset of the frontend paths: the accessibility job also cares about e2e/ specs
+  # and the Lighthouse config. The quality job is gated on `a11y` too, because the accessibility
+  # job consumes its frontend-dist artifact and must be able to depend on it existing.
   changes:
-    name: Detect Changed Areas
-    runs-on: ubuntu-latest
-    outputs:
-      # `a11y` is a superset of the frontend paths: the accessibility job also
-      # cares about e2e/ specs and the Lighthouse config. The quality job is
-      # gated on `a11y` too, because the accessibility job consumes its
-      # frontend-dist artifact and must be able to depend on it existing.
-      a11y: ${{ steps.filter.outputs.a11y }}
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Filter changed paths
-        id: filter
-        uses: dorny/paths-filter@v3
-        with:
-          filters: |
-            a11y:
-              - 'frontend/**'
-              - 'e2e/**'
-              - 'lighthouserc.yml'
-              - '.github/workflows/frontend-ci.yml'
+    uses: ./.github/workflows/detect-changes.yml
 
   quality:
     name: Frontend Lint, Test & Build
@@ -194,9 +178,24 @@ jobs:
         # (e2e/.gitignore), so there is no lockfile to install from.
         run: npm install
 
-      - name: Install Playwright browsers
+      - name: Cache Playwright browsers
+        id: playwright-cache
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-chromium-${{ runner.os }}-${{ hashFiles('e2e/package.json') }}
+
+      - name: Install Playwright browser (chromium)
+        # Skipped on cache hit: the binary download (not the OS deps below) is the slow part.
+        if: steps.playwright-cache.outputs.cache-hit != 'true'
         working-directory: e2e
-        run: npx playwright install --with-deps chromium
+        run: npx playwright install chromium
+
+      - name: Install Playwright OS dependencies
+        # Always runs: apt packages aren't restored by actions/cache (the runner image itself
+        # isn't cached), so this stays outside the cache-hit condition above.
+        working-directory: e2e
+        run: npx playwright install-deps chromium
 
       - name: Run Playwright accessibility specs
         working-directory: e2e

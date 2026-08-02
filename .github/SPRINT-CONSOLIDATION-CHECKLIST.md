@@ -193,7 +193,7 @@ At the end of each sprint, add a section to this file:
 ## References
 
 - [PM Workflow Consolidation](./.github/PM-WORKFLOW-CONSOLIDATION.md) — Detailed consolidation guide
-- [Copilot Instructions](./.github/copilot-instructions.md) — Task consolidation policy
+- [CLAUDE.md](../CLAUDE.md) — Task consolidation policy
 - [Issue Creation Guidelines](./.github/ISSUE-CREATION-GUIDELINES.md) — GitHub issue workflow
 
 ---

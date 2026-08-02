@@ -63,13 +63,12 @@ changed, not just because an implementation landed.
 | Document | Purpose |
 |----------|---------|
 | [roadmap.md](roadmap.md) | Source of truth for task existence, sprint assignment, and status — generated/reconciled by `/build-roadmap`, human-owned Priority/Status/Phase/Issue/Notes columns |
-| [project-workflow.md](project-workflow.md) | End-to-end operating manual: how the project was bootstrapped, the SpecKit + agentic-kit tooling, and the repeatable flow from a spec to a shipped, tracked piece of work (documents the Copilot invocation surface; see `CLAUDE.md` for Claude Code's equivalent, canonical mechanism) |
 
 ---
 
 ## Related, not in this directory
 
-- [CLAUDE.md](../CLAUDE.md) — canonical AI-agent instructions for this repo (source of truth; `.github/copilot-instructions.md` mirrors it)
+- [CLAUDE.md](../CLAUDE.md) — canonical AI-agent instructions for this repo (source of truth)
 - [.github/memory/](../.github/memory/) — shared, tool-agnostic session notes and discovered patterns
 - [specs/](../specs/) — the SpecKit spec/plan/tasks artifacts these docs are generated from
 - [infra/README.md](../infra/README.md), [backend/README.md](../backend/README.md), [frontend/README.md](../frontend/README.md), [e2e/README.md](../e2e/README.md) — per-area setup and current implementation status
