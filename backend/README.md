@@ -390,6 +390,30 @@ Or, once `.env` exists and Postgres is reachable, run the last two steps (migrat
 command with `make run` (from `backend/`) — it only skips Dockerizing the Go process itself, it
 still expects Postgres to already be running per the step above.
 
+### Seed local test users
+
+The steps above give you a running API, but an empty database — nothing to log in as yet. `make
+seed` (from `backend/`, requires `psql`) inserts two fixture users plus a sample trip directly via
+[`scripts/seed_local_dev.sql`](scripts/seed_local_dev.sql), so the frontend has something to
+authenticate against in a browser:
+
+```bash
+cd backend
+make seed
+```
+
+| Email | Password | Role | Subscription |
+| --- | --- | --- | --- |
+| `paying@traiveler.local` | `PayingUser123` | admin | active |
+| `free@traiveler.local` | `FreeUser123` | partner | none — invited as a collaborator on the paying user's trip |
+
+This is throwaway local-dev fixture data, not a migration — it never runs in CI or against
+staging/production. Idempotent (safe to re-run after `goose up`). See the script's header comment
+for the current caveat: the seeded Trip/Collaborator rows aren't rendered anywhere yet
+(`DashboardPage`/`TripDetailPage` are still hardcoded placeholders pending Sprint 8), but logging in
+as either user and seeing the `has_subscription`-driven "Subscriber" badge in `Navigation` already
+works today.
+
 ### Try the API (interactive Swagger UI)
 
 With the backend running (either setup path above), open the interactive Swagger UI in a browser:
