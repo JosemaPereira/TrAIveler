@@ -1,4 +1,4 @@
-.PHONY: help test test-unit test-integration test-coverage mocks lint fmt vet clean swagger run check-tools install-tools
+.PHONY: help test test-unit test-integration test-coverage mocks lint fmt vet clean swagger run seed check-tools install-tools
 
 # Default target
 help:
@@ -9,6 +9,7 @@ help:
 	@echo "  make mocks             - Generate mocks using mockery"
 	@echo "  make swagger           - Regenerate OpenAPI/Swagger docs from swag annotations"
 	@echo "  make run               - Start Postgres (Docker), migrate, and run the API via 'go run' for debugging"
+	@echo "  make seed              - Insert local-dev test users/trip (scripts/seed_local_dev.sql) via psql"
 	@echo "  make check-tools       - Verify the local dev tools needed for 'make run' are installed"
 	@echo "  make install-tools     - Install what 'make check-tools' can auto-install (mockery, goose)"
 	@echo "  make lint              - Run golangci-lint"
@@ -85,6 +86,22 @@ run:
 	set -a && . ./.env && set +a && \
 	goose -dir migrations postgres "$$DATABASE_URL" up && \
 	go run ./cmd/api
+
+# Insert local-dev-only test users (paying + free) and a sample trip so the
+# app has something to log into in a browser. See scripts/seed_local_dev.sql
+# for credentials and caveats. Idempotent -- safe to re-run. Never point this
+# at staging/production; it reads DATABASE_URL from your local .env only.
+seed:
+	@if [ ! -f .env ]; then \
+		echo "❌ backend/.env not found. Run: cp .env.example .env"; \
+		exit 1; \
+	fi
+	@if ! command -v psql >/dev/null 2>&1; then \
+		echo "❌ psql not found. Install the PostgreSQL client (e.g. 'brew install libpq')"; \
+		exit 1; \
+	fi
+	set -a && . ./.env && set +a && \
+	psql "$$DATABASE_URL" -f scripts/seed_local_dev.sql
 
 # Run linter (requires golangci-lint)
 lint:
