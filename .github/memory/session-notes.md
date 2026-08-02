@@ -439,6 +439,12 @@ Historical summaries of completed development sessions. Committed to git as a re
   4. Long-standing, still open: 002-T023 a11y gate `--pass-with-no-tests` (Sprint 9);
      `internal/example/` deletion waits on Sprint 8 (Trip); AWS-cost-avoidance constraint still in
      force.
+- **Correction (2026-08-02, found during Sprint 7 closure review)**: follow-up item 2 above is
+  **resolved**, not open. Issue #207 (G-008-AUTH-DEBT) closed via PR #214, which added migration
+  `016_alter_subscriptions_add_period_columns.sql` and populated `CurrentPeriodStart`/
+  `CurrentPeriodEnd` on `subscription.Subscription` — re-verified directly against
+  `backend/internal/subscription/models.go` and the `backend/migrations/` directory. Left as an
+  append here per this file's append-only rule rather than editing the original bullet.
 
 ---
 
