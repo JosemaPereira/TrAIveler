@@ -43,10 +43,10 @@ var swaggerUIBundleURLPattern = regexp.MustCompile(`url:\s*"([^"]+)"`)
 
 // startPostgresContainer starts a disposable PostgreSQL testcontainer and
 // returns its connection string. Mirrors
-// internal/database/client_test.go's setupPostgresContainer and
-// internal/example/repository_integration_test.go's setupRepositoryTestDB
-// (same image, credentials, and wait strategy) so this package follows the
-// same testcontainer convention already established elsewhere in the repo.
+// internal/database/client_test.go's setupPostgresContainer and every
+// repository package's setupRepositoryTestDB helper (same image,
+// credentials, and wait strategy) so this package follows the same
+// testcontainer convention already established elsewhere in the repo.
 // No migrations are applied here — the backend binary only needs a reachable
 // Postgres to start (database.NewClient's startup check is a bare `SELECT
 // 1`). Callers that do need schema apply it themselves via applyMigrations.
@@ -215,13 +215,13 @@ func TestSwaggerDocJSON_RouteMounted_ReturnsValidSwagger2Document(t *testing.T) 
 	assert.NotContains(t, doc, "components", "must not use OpenAPI v3's components container")
 }
 
-// TestSwaggerDocJSON_Paths_ContainsExampleEndpointsAndExcludesHealthz is
-// 009-T008. It asserts every internal/example endpoint appears in the parsed
+// TestSwaggerDocJSON_Paths_ContainsAuthEndpointsAndExcludesHealthz is
+// 009-T008. It asserts every internal/auth endpoint appears in the parsed
 // document's paths (relative to the /api/v1 basePath declared in
 // cmd/api/docs.go), and that /healthz - intentionally undocumented, per
 // research.md's "Excluding intentionally-undocumented endpoints" decision -
 // does not.
-func TestSwaggerDocJSON_Paths_ContainsExampleEndpointsAndExcludesHealthz(t *testing.T) {
+func TestSwaggerDocJSON_Paths_ContainsAuthEndpointsAndExcludesHealthz(t *testing.T) {
 	baseURL := setupAPITestServer(t)
 	sessionCookies := registerTestSession(t, baseURL)
 
@@ -237,16 +237,20 @@ func TestSwaggerDocJSON_Paths_ContainsExampleEndpointsAndExcludesHealthz(t *test
 	}
 	require.NoError(t, json.NewDecoder(resp.Body).Decode(&doc), "response body must be valid JSON")
 
-	// internal/example/handler.go mounts POST/GET /examples and
-	// GET/PUT/DELETE /examples/{id} under /api/v1 (see routes.go); paths in
-	// the generated document are relative to the /api/v1 basePath.
+	// internal/auth/handler.go mounts POST /auth/register, /auth/login,
+	// /auth/refresh, /auth/logout and GET /auth/me under /api/v1 (see
+	// routes.go); paths in the generated document are relative to the
+	// /api/v1 basePath.
 	expectedOperations := map[string][]string{
-		"/examples":      {"post", "get"},
-		"/examples/{id}": {"get", "put", "delete"},
+		"/auth/register": {"post"},
+		"/auth/login":    {"post"},
+		"/auth/refresh":  {"post"},
+		"/auth/logout":   {"post"},
+		"/auth/me":       {"get"},
 	}
 	for path, methods := range expectedOperations {
 		operations, ok := doc.Paths[path]
-		if !assert.True(t, ok, "expected internal/example endpoint %q to appear in the Swagger document's paths", path) {
+		if !assert.True(t, ok, "expected internal/auth endpoint %q to appear in the Swagger document's paths", path) {
 			continue
 		}
 		for _, method := range methods {

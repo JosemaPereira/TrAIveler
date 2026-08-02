@@ -28,16 +28,22 @@ internal/ai/
 └── mocks/
     └── ai_client_mock.go     # MockAIClient (generated)
 
-internal/example/              # Reference pattern (throwaway — see backend/README.md)
+internal/trip/                 # Repository-only domain package (issue #234, see backend/README.md)
 ├── repository.go             # Repository interface
-├── service.go                 # Service interface
 └── mocks/
-    ├── repository_mock.go    # MockRepository (generated)
-    └── service_mock.go       # MockService (generated)
+    └── repository_mock.go    # MockRepository (generated)
+
+internal/conversation/         # Repository-only domain package (issue #234, see backend/README.md)
+├── repository.go             # Repository interface
+└── mocks/
+    └── repository_mock.go    # MockRepository (generated)
 ```
 
-Future domain packages (e.g. `internal/trip/`, `internal/subscription/` — not yet built, see
-`backend/README.md`'s Project Structure) are expected to follow the same pattern once they exist.
+`internal/trip/` and `internal/conversation/` currently mock only the `Repository` interface —
+neither has a `service.go` yet, so there is no service-level mock in either package. Once they gain
+a service layer (future tickets 001-T035/001-T036), it is expected to follow the same
+repository-plus-service mock pattern `internal/subscription/` already uses (`Repository` mock +
+`payment.PaymentProvider` mock).
 
 ## Configuration
 
@@ -134,10 +140,11 @@ func TestService_WithMock(t *testing.T) {
 ## Examples
 
 ### Complete Example
-See: [service_test.go](../backend/internal/example/service_test.go) — mocks `Repository` via
-`examplemocks.NewMockRepository(t)` with the `EXPECT()` fluent API, covering both the happy path
-and `DomainError` propagation (`internal/example` is the canonical reference implementation, see
-`backend/README.md`'s Project Structure).
+See: [service_test.go](../backend/internal/auth/service_test.go) — mocks `UserRepository` via
+`authmocks.NewMockUserRepository(t)` with the `EXPECT()` fluent API. Two representative tests:
+`TestUnitRegister_NewEmailWithoutToken_CreatesUnsubscribedUser` (happy path) and
+`TestUnitRegister_ExistingEmail_ReturnsConflict` (`DomainError` propagation, asserted via
+`errors.As` and checking `domainErr.Code == "conflict"`).
 
 ### Generated Mock
 See: [client_mock.go](../backend/internal/database/mocks/client_mock.go)

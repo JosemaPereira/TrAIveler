@@ -19,7 +19,7 @@ import (
 // would create an import cycle. Exported (rather than the package-private
 // name used elsewhere in this file) so swag doc annotations across the
 // codebase can reference it directly, e.g. `@Failure 404 {object}
-// errors.ErrorResponse` in internal/example/handler.go.
+// errors.ErrorResponse` in internal/auth/handler.go.
 type ErrorResponse struct {
 	Error     string            `json:"error"`
 	Message   string            `json:"message"`

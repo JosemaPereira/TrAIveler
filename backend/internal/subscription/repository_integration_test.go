@@ -27,9 +27,9 @@ import (
 const basicPlanID = "00000000-0000-0000-0000-000000000001"
 
 // setupRepositoryTestDB starts a PostgreSQL testcontainer, applies goose
-// migrations, and returns a ready database.Client. Mirrors
-// internal/example/repository_integration_test.go's helper and its
-// testing.Short() skip convention.
+// migrations, and returns a ready database.Client. Mirrors the same helper
+// duplicated across every repository package in this codebase (trip,
+// conversation, auth, ...) and its testing.Short() skip convention.
 func setupRepositoryTestDB(t *testing.T, ctx context.Context) database.Client {
 	t.Helper()
 

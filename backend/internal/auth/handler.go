@@ -460,7 +460,7 @@ func toTokenPair(pair authjwt.TokenPair) TokenPair {
 
 // invalidRequestEnvelope is the invalid_request/400 body for a malformed request.
 // errors.DomainError has no 400 constructor, so this handler writes it directly
-// (mirrors internal/example/handler.go).
+// rather than going through errors.HandleError.
 type invalidRequestEnvelope struct {
 	Error     string `json:"error"`
 	Message   string `json:"message"`

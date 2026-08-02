@@ -157,8 +157,6 @@ func TestHTTPServer_ProtectedRoutes_NoAccessTokenCookie_Returns401Authentication
 		method string
 		path   string
 	}{
-		{name: "when an example collection route is requested", method: http.MethodGet, path: "/api/v1/examples"},
-		{name: "when an example item route is requested", method: http.MethodGet, path: "/api/v1/examples/some-id"},
 		{name: "when logout is requested", method: http.MethodPost, path: "/api/v1/auth/logout"},
 	}
 

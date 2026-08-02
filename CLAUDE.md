@@ -87,7 +87,7 @@ Whenever a backend endpoint is added, **or an existing endpoint's request/respon
 behavior changes**:
 
 - Add/update its `swag` doc-comment annotations per `specs/009-api-documentation/contracts/api.md`'s
-  shape (mirrors `internal/example/handler.go`, the canonical reference implementation — see
+  shape (mirrors `internal/auth/handler.go`, the canonical reference implementation — see
   `backend/README.md`).
 - Regenerate `backend/docs/` via `make swagger` and commit the regenerated artifact alongside the
   code change (it's a generated file — never hand-edit it).

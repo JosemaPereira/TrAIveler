@@ -44,21 +44,25 @@ import (
 
 Use `goimports` (or an equivalent tool) to keep imports sorted and remove unused imports automatically.
 
-**Real example** (`backend/internal/example/handler.go`), showing all three groups:
+**Real example** (`backend/internal/auth/handler.go`), showing all three groups:
 
 ```go
 import (
+    "context"
     "encoding/json"
     "fmt"
     "log/slog"
+    "net"
     "net/http"
-    "strconv"
-    "strings"
+    "time"
 
     "github.com/go-chi/chi/v5"
+    "github.com/google/uuid"
 
+    authjwt "github.com/JosemaPereira/TrAIveler/backend/internal/auth/jwt"
     domainerrors "github.com/JosemaPereira/TrAIveler/backend/internal/errors"
     "github.com/JosemaPereira/TrAIveler/backend/internal/middleware"
+    "github.com/JosemaPereira/TrAIveler/backend/internal/observability"
 )
 ```
 
@@ -418,20 +422,26 @@ backend/
     subscription/     # doc.go scaffold only (Spec 008, unbuilt)
     collaboration/    # doc.go scaffold only (Spec 008, unbuilt)
     security/         # doc.go scaffold only (Spec 008, unbuilt)
-    example/          # throwaway model→repository→service→handler reference pattern —
-                       # copy this layering for a real <domain>/ package (handler.go,
-                       # service.go, repository.go, model.go), then delete example/
+    trip/             # Trip/Destination/Day/Activity persistence (issue #234) —
+                       # model.go + repository.go only, no service/handler yet
+    conversation/     # ConversationSession/ConversationMessage persistence (issue #234) —
+                       # model.go + repository.go only, no service/handler yet
   pkg/                # deliberately empty (.gitkeep only) — dead by convention; new shared
                        # backend code goes under internal/, even when a spec/task literally
                        # names a pkg/... path
   config/
   migrations/         # goose migrations, flat and shared across specs (001-004 security
-                       # tables + the throwaway timestamp-versioned examples migration)
+                       # tables, 010-016 trip/subscription tables, 017-018 conversation tables)
 ```
 
-`internal/example/` is the reference for what a real `internal/<domain>/` package should look
-like — `handler.go`, `service.go`, `repository.go` (plus `model.go`) — until the first real domain
-(Trip) ships and it is deleted.
+`internal/trip/` and `internal/conversation/` are the current example of what a real
+`internal/<domain>/` package's **model→repository** layer looks like — `model.go` (entities) and
+`repository.go` (a small `Repository` interface plus its `PostgresRepository` implementation).
+Neither has a `service.go`/`handler.go` yet (future tickets 001-T035/001-T036); for that layering,
+see `internal/auth/` instead. This package pair replaced `internal/example/`, a throwaway
+model→repository→service→handler reference implementation deleted once these two real domain
+packages shipped (issue #234), per the standing convention documented in
+`.github/memory/patterns-discovered.md`.
 
 **Subpackage vs. flat convention (the "why subfolders" rule)**: introduce a subpackage
 (`internal/auth/jwt/`, `internal/auth/ratelimit/`) for a cohesive sub-domain that owns multiple
