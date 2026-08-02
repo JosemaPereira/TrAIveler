@@ -439,3 +439,77 @@ Historical summaries of completed development sessions. Committed to git as a re
   4. Long-standing, still open: 002-T023 a11y gate `--pass-with-no-tests` (Sprint 9);
      `internal/example/` deletion waits on Sprint 8 (Trip); AWS-cost-avoidance constraint still in
      force.
+
+---
+
+## Sprint 7 Implementation (Compacted)
+
+### Sessions: Sprint 7 Re-planning; GuestRoute + Badge Primitives; Repo-Wide Comment-Quality Sweep (Backend, Frontend, E2E, Infra)
+- **Date Range**: 2026-08-01 to 2026-08-02 (closed 2026-08-02 — 5 work items, issues #218–#222, PRs
+  #223–#229)
+- **Key Outcomes**:
+  - **Re-planning pass** (PR #223, 2026-08-01): the drafted 28-task Sprint 7 (Spec 001 Phase 2 +
+    Spec 008 Phase 3 Part 2) was found 26/28 tasks already Done/Superseded (Sprint 2/5/6 leakage) or
+    correctly re-scoped away this pass. The 6 Trip-dependent frontend tasks (`useTrips`, `TripCard`,
+    `TripDashboard`, etc.) plus their 4 backend-stub counterparts (008-T048–T051) moved to Sprint 8 —
+    no Trip backend exists yet to call, and building against a mock would be discarded the same
+    sprint the real endpoint lands (repeats the "available but not wired" anti-pattern this project
+    already rejected once in Sprint 6). A cross-spec duplicate-work risk was flagged for Sprint 8's
+    own planning, not resolved here: Spec 008's `internal/collaboration/` Trip stub vs. Spec 001
+    Phase 3's real AI-backed `internal/trip/` Trip backend, and Spec 008's `TripCard` vs. Spec 001's
+    own `TripCard`. 001-T030 (stub Checkout page) was deliberately left unscheduled — the Sprint 6
+    registration flow never grew a caller for a standalone checkout page (payment is collected
+    inline via a demo-token checkbox), and the row likely overlaps 008-T186 (Post-MVP); flagged as an
+    open product question, not decided unilaterally. Real remaining spec-sourced scope came out to
+    one 2-task work item (`GuestRoute` + `Badge`); user confirmed accepting a deliberately light
+    sprint rather than pulling Sprint 8 scope forward. User separately requested a repo-wide code
+    comment-quality audit (not derived from any spec), scoped as 4 standalone work items per
+    `.github/SPRINT-CONSOLIDATION-CHECKLIST.md`'s explicit "different tech stacks stay separate"
+    rule (Go, React/TypeScript, Playwright/TypeScript, Terraform/HCL).
+  - **#218 G-SPRINT7-FRONTEND-SHELL-GAPS** (PR #224): `frontend/src/components/GuestRoute.tsx`
+    (redirects authenticated users away from `/login`/`/register` to `/dashboard`, mirroring
+    `ProtectedRoute`'s existing `useIsAuthenticated()` gate) + `Badge` primitive
+    (`components/primitives/Badge.tsx`, variant-based, design-token-driven). Closed both halves of
+    001-T027 and 001-T028; the roadmap's own note flags this pre-empts 008-T083 (Phase 4 US2), which
+    should be marked Superseded when reached.
+  - **#219 G-SPRINT7-COMMENT-AUDIT-BACKEND** (PR #225): swept `backend/` (Go) — corrected stale
+    package `doc.go` comments (`auth/jwt`, `concurrency`, `observability` had drifted from what they
+    actually implement), documented three loaded-but-unconsumed config fields, updated
+    `backend/README.md`.
+  - **#220 G-SPRINT7-COMMENT-AUDIT-FRONTEND** (PR #228): swept all 78 `.ts`/`.tsx` files in
+    `frontend/src/` — already exceptionally clean (no restating/overlong comments found). One defect
+    surfaced: `lib/auth.ts` and `lib/authContext.tsx` are dead Spec-004 scaffolding placeholders
+    (their functionality shipped elsewhere as `stores/auth-store.ts` and `lib/api-client.ts`'s
+    refresh interceptor) with zero remaining imports — flagged rather than deleted (out of scope for
+    a comment-only pass), tracked at closure as its own issue, #231 (no gating condition, unlike
+    #210's Sprint-8-triggered cleanup).
+  - **#221 G-SPRINT7-COMMENT-AUDIT-E2E** (PR #227): swept `e2e/tests/` and `e2e/fixtures/` — only
+    `e2e/tests/sample.spec.ts` had real content (four restating comments removed, header tightened);
+    the rest of the tree is `.gitkeep`-only placeholders, correctly left untouched.
+  - **#222 G-SPRINT7-COMMENT-AUDIT-INFRA** (PR #229): swept `infra/` (Terraform/HCL) — most of the 23
+    `.tf`/`.tfvars` files were already clean; `backend.tf`/`versions.tf` had restating comments
+    removed (also fixing an S3-state-key example that described the local-backend path format
+    instead of the real one); `modules/ecs/{main,outputs}.tf` had stale "wiring not done yet"
+    comments corrected now that root-module wiring (005-T102/#90) actually shipped;
+    `modules/rds/outputs.tf` and `modules/secrets/outputs.tf` had comments falsely claiming their
+    outputs are consumed downstream — verified via grep that neither actually is, corrected to point
+    at the real open follow-up (003-T033 / G-INFRA-IAM-MODULE, Backlog).
+- **Key Decisions**:
+  - Consolidation was applied in both directions this sprint: the two genuinely-open spec-sourced
+    tasks (`GuestRoute`, `Badge`) were merged into one work item per the checklist's normal rules,
+    while the four comment-audit tasks were deliberately kept as four *separate* work items because
+    they span four different tech stacks — the checklist's own "DON'T consolidate" example.
+  - The comment-quality rubric applied consistently across all four sweeps: remove or rewrite
+    comments that restate what the code already shows, are excessively long relative to what they
+    explain, or add nothing beyond the obvious — keep only comments explaining a non-obvious WHY
+    (hidden constraint, subtle invariant, workaround). All four passes were read-only/no-behavior-
+    change by design; the backend and infra sweeps additionally corrected factually stale claims
+    they encountered along the way (drifted `doc.go` comments, drifted wiring-status comments),
+    which is a natural side effect of actually reading the code closely, not scope creep.
+- **Sprint 7 closure** (2026-08-02): one narrative-note drift found and fixed — #222's roadmap Notes
+  cell still said "PR open" after PR #229 had already merged (the automated
+  `check-roadmap-status-drift.py` gate only checks the Status column, not free-text Notes, so this
+  class of drift needs a manual look at closure, not just the script). `gh issue list --state open`
+  re-confirmed exactly 3 items (#209, #210, #212), none targeting Sprint 7. Two items carried
+  forward, neither blocking closure: 001-T030 still awaits a product decision (see re-planning notes
+  above); the #220 dead-code finding got its own tracking issue, #231.
