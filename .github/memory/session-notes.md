@@ -575,3 +575,15 @@ Historical summaries of completed development sessions. Committed to git as a re
   had their auto-generated mocks pruned and are hand-faked in tests instead, per the existing
   `mockery --all` pruning convention. No HTTP handlers or `cmd/api` wiring — that's 001-T038/T039
   (issue #237), not yet started.
+- **Same PR, follow-up (2026-08-02)**: PR #246's `Backend CI` run failed on the (removed) `Check
+  roadmap Status matches live GitHub issue state` step — not because of anything in this PR, but
+  because `main` already carried unrelated drift from PR #244 (issue #238, rows 001-T041–T045 never
+  flipped Backlog→Done). User asked to remove the roadmap-status-drift gate entirely rather than
+  chase this class of false-positive again; see the new `patterns-discovered.md` entry *A
+  Whole-Document Drift Gate Fails PRs on Pre-Existing Drift They Didn't Cause* for the reasoning.
+  Deleted `scripts/check-roadmap-status-drift.py`/`check_roadmap_status_drift_test.py`, removed the
+  `backend-ci.yml` step + its now-unused `issues: read` permission, updated `backend/README.md`'s CI
+  section, and appended a "Removed" note to its own originating roadmap row (002-T049) rather than
+  rewriting that row's Done history. Also fixed the 001-T041–T045 drift that triggered this in the
+  first place (flipped to Done, same dated drift-fix note style as 001-T033/T034 above) — all folded
+  into the same PR #246 per the user's explicit "add it to this PR" instruction.
