@@ -1,6 +1,7 @@
 import { http, HttpResponse } from 'msw'
 
 import type { Subscription } from '@/features/auth/types'
+import type { Trip } from '@/features/trips/types'
 import type { User } from '@/stores/auth-store'
 
 /**
@@ -26,6 +27,19 @@ export const testSubscription: Subscription = {
   plan_id: '00000000-0000-0000-0000-000000000001',
   status: 'active',
   created_at: '2026-01-01T00:00:00Z',
+}
+
+/** Wire-shape trip fixture, matching `backend/internal/trip/model.go`. */
+export const testTrip: Trip = {
+  id: '33333333-3333-3333-3333-333333333333',
+  creator_id: testUser.id,
+  title: 'Two weeks in Japan',
+  description: 'Tokyo, Kyoto, Osaka',
+  status: 'draft',
+  archived: false,
+  version: 1,
+  created_at: '2026-01-01T00:00:00Z',
+  updated_at: '2026-01-01T00:00:00Z',
 }
 
 /**
