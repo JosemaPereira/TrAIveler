@@ -18,9 +18,10 @@ import (
 // anthropicMaxTokens bounds the length of a single non-streaming itinerary
 // generation response. This is a first-pass fixed value (not yet
 // config-driven); tuning it against real itinerary sizes, and any
-// structured-output/tool-forcing to guarantee valid JSON, is deferred to
-// spec 008 (trip-generation business logic) — the same scope limit
-// OllamaClient.buildMessages already documents for prompt construction.
+// structured-output/tool-forcing to *guarantee* schema-valid JSON (today's
+// schema compliance is prompt-instructed only — see internal/itinerary's
+// SystemPrompt — not enforced by the API), remain unimplemented follow-up
+// work, not yet assigned to a ticket.
 const anthropicMaxTokens = 4096
 
 // ErrProviderUnavailable is the sentinel identifying an AIClient failure
@@ -102,10 +103,12 @@ func NewAnthropicClient(apiKey, model string, timeout time.Duration, maxRetries 
 // buildMessages converts the request's conversation history into Anthropic
 // message params. Anthropic's Messages API only recognizes "user" and
 // "assistant" turns (a system prompt is a separate top-level field, not a
-// message role) — any history role other than "assistant" is sent as a user
-// turn. Itinerary-specific system prompt construction, tool-calling, and
-// trip-generation business logic are out of scope here and belong to spec
-// 008, mirroring OllamaClient.buildMessages' same scope limit.
+// message role — see buildSystem, which handles req.SystemPrompt) — any
+// history role other than "assistant" is sent as a user turn.
+// Itinerary-specific system prompt *content*, tool-calling, and
+// trip-generation business logic are out of scope here and belong to
+// internal/itinerary (001-T037/issue #236), mirroring OllamaClient.buildMessages'
+// same scope limit.
 func (c *AnthropicClient) buildMessages(req ItineraryRequest) []anthropic.MessageParam {
 	messages := make([]anthropic.MessageParam, 0, len(req.ConversationHistory))
 	for _, m := range req.ConversationHistory {
@@ -117,6 +120,17 @@ func (c *AnthropicClient) buildMessages(req ItineraryRequest) []anthropic.Messag
 		}
 	}
 	return messages
+}
+
+// buildSystem returns the system prompt param for req, or nil when
+// req.SystemPrompt is empty — Anthropic's Messages API takes the system
+// prompt as a separate top-level field (MessageNewParams.System), not a
+// message role, unlike buildMessages' user/assistant turns.
+func (c *AnthropicClient) buildSystem(req ItineraryRequest) []anthropic.TextBlockParam {
+	if req.SystemPrompt == "" {
+		return nil
+	}
+	return []anthropic.TextBlockParam{{Text: req.SystemPrompt}}
 }
 
 // wrapError translates a raw SDK error into this package's error
@@ -164,12 +178,14 @@ func retryAfter(resp *http.Response) time.Duration {
 // GenerateItinerary creates a complete trip itinerary from conversation
 // history via a single (non-streaming) Anthropic Messages API call. Like
 // OllamaClient.GenerateItinerary, the model's response text is parsed
-// directly as itinerary JSON — enforcing a structured-output format is
-// deferred to spec 008.
+// directly as itinerary JSON — the response shape is instructed via
+// req.SystemPrompt (see internal/itinerary), not enforced by the API's own
+// structured-output/tool-forcing features (see anthropicMaxTokens' comment).
 func (c *AnthropicClient) GenerateItinerary(ctx context.Context, req ItineraryRequest) (*ItineraryResponse, error) {
 	message, err := c.client.Messages.New(ctx, anthropic.MessageNewParams{
 		Model:     c.model,
 		MaxTokens: anthropicMaxTokens,
+		System:    c.buildSystem(req),
 		Messages:  c.buildMessages(req),
 	})
 	if err != nil {
@@ -210,6 +226,7 @@ func (c *AnthropicClient) StreamItinerary(ctx context.Context, req ItineraryRequ
 		stream := c.client.Messages.NewStreaming(ctx, anthropic.MessageNewParams{
 			Model:     c.model,
 			MaxTokens: anthropicMaxTokens,
+			System:    c.buildSystem(req),
 			Messages:  c.buildMessages(req),
 		})
 		defer closeStream(stream)

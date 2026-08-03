@@ -587,3 +587,117 @@ Historical summaries of completed development sessions. Committed to git as a re
   rewriting that row's Done history. Also fixed the 001-T041–T045 drift that triggered this in the
   first place (flipped to Done, same dated drift-fix note style as 001-T033/T034 above) — all folded
   into the same PR #246 per the user's explicit "add it to this PR" instruction.
+
+### Session: #236 001-T037 — Itinerary Service (AI-Backed Trip Generation)
+- **Date**: 2026-08-02
+- **Tool**: Claude Code
+- **What was accomplished**: Implemented the sprint's flagged highest-risk task — new package
+  `backend/internal/itinerary` (`Service.Continue`, implementing `conversation.ItineraryGenerator`,
+  compile-time-asserted) — via `tdd-developer` (strict Red-Green-Refactor) from a design brief the
+  parent session wrote after reading the real `internal/ai`/`internal/trip`/`internal/conversation`
+  code (the issue body's "tool-use" language turned out to describe plain JSON parsing — neither
+  `AnthropicClient` nor `OllamaClient` implement real Anthropic tool-use; see Key findings). Ran in
+  parallel with a documentation pass per explicit user instruction ("implement + review/update docs
+  at the same time"). Independently re-verified by the parent session (rebuild/vet/lint, full
+  `-tags=test` suite re-run against real Postgres via Colima — including packages the subagent didn't
+  touch, to catch regressions — diff read in full) before trusting the subagent's self-report; a
+  `technical-writer` pass then reviewed all doc-comment and prose changes.
+- **Key findings and decisions**:
+  - **Resolved 001-T037's own flagged design gap** (recorded in its roadmap row Notes at Sprint 8
+    planning): `conversation.ItineraryGenerator.Continue` needs a free-text `reply`/`ready` bool, but
+    `ai.AIClient.GenerateItinerary`/`StreamItinerary` return a structured `ItineraryResponse` with no
+    reply field. The roadmap row's own guess ("likely via Claude tool-use branching") was **not**
+    what got built — real Anthropic tool-use (function-calling blocks) would have meant touching two
+    already-shipped, fully-tested provider clients' request/response handling non-additively, raising
+    blast radius on the sprint's already-highest-risk ticket for no functional gain. Instead:
+    `ai.ItineraryResponse` gained `Ready bool`/`Reply string`, `ai.ItineraryRequest` gained
+    `SystemPrompt string` (additive, zero-value-safe — every existing call site/test unaffected) —
+    applied by `AnthropicClient` via the Messages API's native `System` field, by `OllamaClient` via a
+    prepended `role:"system"` message. `internal/itinerary.SystemPrompt` (`prompt.go`) is what makes
+    the model actually emit that shape; the AI provider clients themselves stayed prompt-construction-
+    free, exactly as their own pre-existing doc comments already specified.
+  - **`ai.Destination` gained `Region`/`Latitude`/`Longitude`** — a second, independent schema gap:
+    `trip.Destination`'s DB columns are NOT NULL for lat/long, but the AI response type only carried
+    `Name`/`Country`. Asking the model to supply them (rather than a separate geocoding lookup) was
+    the minimal-scope fix.
+  - **`Continue` calls `StreamItinerary`, not `GenerateItinerary`**, accumulating chunks to a `Done`
+    signal before parsing once — deliberately exercises the streaming path (this ticket's literal
+    "stream the response" scope, and the first real caller of that method) even though `Continue`'s
+    own interface is synchronous and returns only a complete value, never partial chunks.
+  - **Architecture note surfaced for the *next* ticket, not this one**: because `Continue` is
+    synchronous, 001-T039's future SSE handler will get one complete reply per turn from
+    `conversation.Service.SendMessage`, not live token-by-token AI deltas — the interface fixed by
+    already-merged 001-T036 has no channel to forward partial chunks through. Recorded on
+    `docs/roadmap.md`'s 001-T039 row (previously empty Notes cell) and as a dated "Scope
+    reconciliation" section appended to issue #237's body (which had specifically claimed "SSE stream
+    delivers incremental tokens" in its own Verification checklist) — see *Roadmap Row Notes Are the
+    Only Channel Future Issue Bodies Inherit Context Through*.
+  - Destination persistence dedupes by `(name, country)` within one `Continue` call — an N-day stay
+    in one city produces one `CreateDestination` call, not N; the DB's lack of a uniqueness
+    constraint on destinations tolerates cross-operation variation (documented rationale), not
+    same-operation duplication.
+  - `Persister` (the `itinerary` package's consumer-owned persistence port —
+    `CreateDestination`/`UpsertDay`/`UpsertActivity`, satisfied structurally by `trip.Repository`) was
+    deliberately **not** added to `.mockery.yaml`, hand-faked in tests instead — same pruning
+    convention as `conversation.ItineraryGenerator`/`trip.SubscriptionLookup`.
+  - No `cmd/api` wiring, no `PromptValidator`/`OutputSanitizer` wiring — both explicitly separate,
+    already-tracked future tickets (002-T029/T030), confirmed via roadmap grep before starting so
+    scope stayed tight on an already-large ticket.
+  - **Doc debt found and fixed in the same pass, predating this ticket**: `docs/architecture.md`'s
+    dated changelog and `backend/README.md`'s Project Structure tree had never been updated for
+    #235/#246 (Trip+Conversation *services* landing) — both still said "repository-only, no
+    service/handler yet" after the services had already shipped. Fixed alongside this ticket's own
+    doc updates rather than filed as a separate follow-up, since the itinerary-service update touched
+    the same paragraphs anyway. `docs/local-ai-setup.md` also had a stale "expected until spec 008"
+    troubleshooting note (spec 008's trip-generation business logic was reassigned to spec 001 back at
+    Sprint 7 planning) — corrected to reference `internal/itinerary`.
+- **Outcomes**: `go build`/`go vet`/`golangci-lint run` clean; `go test -tags=test
+  ./internal/itinerary/...` 10/10 pass, 98.3% coverage; full backend suite (`go test -tags=test
+  ./...`) green against real Postgres, zero regressions anywhere else. `backend/internal/itinerary/
+  {doc,prompt,service}.go` + `service_test.go` (new), `backend/internal/ai/{types,anthropic,
+  ollama_client}.go` (+ their `_test.go` files, additive). Not yet committed/pushed — pending the
+  user's explicit go-ahead, same flow as #235/#246.
+
+### Session: Chat Misuse-Prevention Follow-Ups (issues #247–#250)
+- **Date**: 2026-08-03
+- **Tool**: Claude Code
+- **What was accomplished**: User asked, in Spanish, two direct security questions about the just-built
+  chat: (1) whether `SystemPrompt` is shared by both AI clients, (2) how to stop brute-force/off-scope
+  misuse and system overload. Answered both from code (not memory) — confirmed `itinerary.SystemPrompt`
+  is one constant applied via each client's native mechanism, and that `PromptValidator`/
+  `OutputSanitizer` are both still no-op stubs, `middleware.RateLimit` is per-IP and disabled by default,
+  and `conversation.Session.TotalTokens` is never populated. User then asked to open whatever issues were
+  needed to guard against misuse/off-scope use. Opened 4 GitHub issues, all traced through new/existing
+  `docs/roadmap.md` rows rather than created ad hoc, per this repo's "everything traces to a roadmap row"
+  convention:
+  - **#247** (002-T025/T026/T029/T031, `G-SEC-PROMPT-VALIDATOR`): the already-existing Sprint 9 rows for
+    implementing/wiring `PromptValidator` had no issue yet — gave them one, same pattern as #209's "give
+    it its own tracking artifact." Noted 002-T029's HTTP-wiring half stays blocked on 001-T038 (#237),
+    but `Validate` should also be called from `conversation.Service.SendMessage` directly — the actual
+    chokepoint every turn passes through today, regardless of which handler eventually exists.
+  - **#248** (002-T027/T028/T030, `G-SEC-OUTPUT-SANITIZER`): same treatment for `OutputSanitizer`. Its
+    blocker, 001-T037, is now Done — flagged as **newly unblocked**, with the real call sites
+    (`itinerary.Service.persist`/`persistActivities`/`resolveDestination`) named explicitly so the next
+    session doesn't have to rediscover them.
+  - **#249** (002-T051/T052, new rows, `G-SEC-CONVERSATION-LIMITS`): a gap with **no existing roadmap
+    row at all** — confirmed by reading code, not assumed: `conversation_messages.content` is
+    unconstrained `TEXT`, `SendMessage` validates nothing before appending, and `Session.TotalTokens` is
+    scanned back from every query but never written (the repository's own doc comment admits this).
+    Flagged a real design snag for 002-T052 up front rather than letting the next session discover it
+    cold: `AIClient.StreamChunk` carries no token-count field at all, so `itinerary.Service.Continue`
+    (which drives `StreamItinerary`, not `GenerateItinerary`) has no token usage to record even once
+    wired — `GenerateItinerary` populates `Metadata.TokensUsed` from the provider response, but the
+    streaming path never surfaces the equivalent.
+  - **#250** (002-T053, new row, standalone): per-subscription AI usage quota — deliberately did **not**
+    invent business numbers (e.g. "50 turns/day"). Marked the ticket itself with an explicit "needs a
+    product decision" header, proposed a starting number only as a labeled suggestion, and kept it a
+    separate issue from #249 since it needs different stakeholder input (product, not just engineering)
+    and a schema change (`plans` has no AI-volume column, only seat-count limits today).
+- **Key decisions**: consolidated by the same spec/module/no-blocking-dep rule as everywhere else in
+  this repo (`G-SEC-PROMPT-VALIDATOR`/`G-SEC-OUTPUT-SANITIZER` groups already existed in the roadmap;
+  reused them rather than inventing new group names) — but kept #250 standalone specifically because it
+  needs different stakeholder input than its technical siblings, matching the consolidation checklist's
+  own "don't merge things needing separate decisions" carve-out. All 4 issues got roadmap rows/backfilled
+  Issue links first, issues second — never created an issue without a roadmap row behind it.
+- **Outcomes**: `docs/roadmap.md` rows 002-T025–T031 backfilled with Issue links + short Notes; 3 new
+  rows (002-T051/T052/T053) added. No code changed this session — pure planning/triage output.

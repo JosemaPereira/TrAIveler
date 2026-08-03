@@ -23,11 +23,13 @@ import (
 // eventually cross an HTTP boundary in handlers built on this package.
 func TestItineraryResponse_JSONRoundTrip_PreservesFields(t *testing.T) {
 	original := ai.ItineraryResponse{
-		Destinations: []ai.Destination{{Name: "Lisbon", Country: "PT"}},
+		Ready:        true,
+		Reply:        "Your itinerary is ready!",
+		Destinations: []ai.Destination{{Name: "Lisbon", Country: "PT", Region: "Lisbon District", Latitude: 38.7223, Longitude: -9.1393}},
 		Days: []ai.Day{
 			{
 				DayNumber:   1,
-				Destination: ai.Destination{Name: "Lisbon", Country: "PT"},
+				Destination: ai.Destination{Name: "Lisbon", Country: "PT", Region: "Lisbon District", Latitude: 38.7223, Longitude: -9.1393},
 				Activities: []ai.Activity{
 					{Title: "Belém Tower", Type: "visit", Description: "Historic tower", SequenceOrder: 1},
 				},

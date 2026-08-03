@@ -74,11 +74,18 @@ func NewOllamaClient(host, model string, timeout time.Duration, maxRetries int, 
 }
 
 // buildMessages converts the request's conversation history into Ollama
-// chat messages. This is a pure forwarding step — itinerary-specific system
-// prompt construction, tool-calling, and trip-generation business logic are
-// out of scope here and belong to spec 008.
+// chat messages, prepending req.SystemPrompt as a leading role:"system"
+// message when non-empty — Ollama's /api/chat endpoint accepts a system
+// message natively, unlike Anthropic's separate top-level System field (see
+// AnthropicClient.buildSystem). Beyond that, this is a pure forwarding step
+// — itinerary-specific prompt content, tool-calling, and trip-generation
+// business logic are out of scope here and belong to internal/itinerary
+// (001-T037/issue #236).
 func (c *OllamaClient) buildMessages(req ItineraryRequest) []ollamaMessage {
-	messages := make([]ollamaMessage, 0, len(req.ConversationHistory))
+	messages := make([]ollamaMessage, 0, len(req.ConversationHistory)+1)
+	if req.SystemPrompt != "" {
+		messages = append(messages, ollamaMessage{Role: "system", Content: req.SystemPrompt})
+	}
 	for _, m := range req.ConversationHistory {
 		messages = append(messages, ollamaMessage(m))
 	}

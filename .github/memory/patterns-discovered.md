@@ -38,6 +38,11 @@ the file **and** add a line here.
   a startup panic, not a compile error; bit the public-vs-gated `/api/v1` split.
 - *A Long-Blocked Task Can Be Blocked on a Premise That Was Never True* — verify the blocker exists
   in the canonical model before waiting another sprint for it (004-T011/`itinerary_items`).
+- *Reconcile a Schema Mismatch Additively, Not by Adding Tool-Use/New Methods to Already-Tested
+  Clients* — new zero-value-safe struct fields beat a provider's native tool-use feature when the
+  parsing logic doesn't actually need to change.
+- *Accumulate a Provider's Streaming Response Behind a Synchronous Interface Method* — a nil-out-
+  channel `select` loop lets a channel-based API sit behind an already-fixed synchronous contract.
 
 ### Go backend — testing
 
@@ -1010,3 +1015,57 @@ Read these before trusting any spec/issue text.
   Notes columns generally can.
 - **Related**: `.github/workflows/backend-ci.yml`, `docs/roadmap.md` row 002-T049,
   `sprint-closure-status-drift-check` (personal memory)
+
+---
+
+### Reconcile a Schema Mismatch Additively, Not by Adding Tool-Use/New Methods to Already-Tested Clients
+
+- **Discovered**: 2026-08-02 — **Tool**: Claude Code
+- **Context**: `internal/itinerary.Service.Continue` (issue #236) needed a free-text `reply` +
+  `ready` bool, but `ai.AIClient.GenerateItinerary`/`StreamItinerary` returned a structured
+  `ItineraryResponse` with no such field — a gap the ticket's own roadmap-row Notes had flagged and
+  guessed would need "Claude tool-use branching (a 'still gathering info' tool vs a 'finalize
+  itinerary' tool)."
+- **Problem**: Implementing real Anthropic tool-use (function-calling blocks, `tool_choice`, parsing
+  `tool_use` content blocks) would have meant non-additive changes to two already-shipped, fully
+  unit-tested provider clients (`AnthropicClient`, `OllamaClient`) on top of an already-flagged
+  highest-risk ticket — new request-building and response-parsing branches in both, plus an
+  Ollama-side equivalent that doesn't have native tool-calling in the same shape. High blast radius
+  for a problem that doesn't actually need real tool-use to solve.
+- **Solution**: Extend the shared response/request structs **additively** instead: new zero-value-
+  safe fields (`ItineraryResponse.Ready`/`Reply`, `ItineraryRequest.SystemPrompt`,
+  `Destination.Region`/`Latitude`/`Longitude`), populated by prompting the model to emit them in the
+  same JSON blob it already returns (both clients already just `json.Unmarshal` the model's raw text
+  into the response struct — new fields are free to add, no parsing-logic change needed in either
+  client). The *caller* (`internal/itinerary`) owns the actual prompt instructions and shape
+  enforcement; the AI clients stay exactly as prompt-construction-agnostic as their pre-existing doc
+  comments already said they should be. Every existing call site/test is unaffected since the new
+  fields default to their zero value. Before reaching for a provider's native structured-output/
+  tool-use feature to resolve a request/response shape mismatch, check whether an additive struct
+  field plus a system-prompt instruction gets the same result without touching already-tested
+  client code at all.
+- **Related**: `backend/internal/ai/types.go`, `backend/internal/itinerary/{service,prompt}.go`,
+  `docs/roadmap.md` row 001-T037
+
+---
+
+### Accumulate a Provider's Streaming Response Behind a Synchronous Interface Method
+
+- **Discovered**: 2026-08-02 — **Tool**: Claude Code
+- **Context**: `internal/itinerary.Service.Continue` implements `conversation.ItineraryGenerator`
+  (fixed by already-merged 001-T036): `Continue(ctx, tripID, history) (reply string, ready bool, err
+  error)` — synchronous, no channel in its return signature.
+- **Problem**: The ticket's own scope explicitly wanted `AIClient.StreamItinerary` exercised (the
+  first real caller of that method), not the simpler `GenerateItinerary`, but a synchronous method
+  has nowhere to forward partial `StreamChunk`s to a caller.
+- **Solution**: Call `StreamItinerary` internally and accumulate `StreamChunk.Content` into a
+  `strings.Builder` inside the implementation, using a `select` loop that nils out each channel
+  (`chunkCh`/`errCh`) once observed closed so the loop stops considering it — avoids a busy-loop
+  against an always-ready closed channel, and terminates cleanly on the first `Done` chunk or the
+  first error. Parse the fully-accumulated text once, after the loop exits. This gets the streaming
+  round-trip's benefits (already-built, already-tested provider code path; no duplicate non-streaming
+  request-building logic) while still satisfying a synchronous interface contract — useful any time a
+  channel-based provider API needs to sit behind a synchronous consumer-owned interface that can't be
+  changed (here, because a sibling ticket had already fixed `Continue`'s signature).
+- **Related**: `backend/internal/itinerary/service.go` (`accumulateStream`),
+  `backend/internal/conversation/service.go` (`ItineraryGenerator`)
