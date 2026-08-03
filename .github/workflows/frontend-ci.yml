@@ -46,10 +46,13 @@ on:
 # Least-privilege token: the `changes` job (delegated to detect-changes.yml, shared with
 # backend-ci.yml/infra-plan.yml) needs pull-requests:read for dorny/paths-filter to list a PR's
 # changed files via the API (otherwise it fails with "Resource not accessible by integration");
-# checkout needs contents:read.
+# checkout needs contents:read. statuses:write lets the `accessibility` job's Lighthouse CI step
+# publish its own GitHub status check (LHCI_GITHUB_TOKEN below) instead of only reporting via the
+# job's own exit code.
 permissions:
   contents: read
   pull-requests: read
+  statuses: write
 
 # Prevent concurrent runs on the same PR
 concurrency:
@@ -211,6 +214,15 @@ jobs:
         # than a version pinned separately here, so the CI version always
         # matches frontend/package.json's declared range.
         working-directory: frontend
+        env:
+          # @lhci/cli's yargs config reads any LHCI_-prefixed env var (cli.js's
+          # `.env('LHCI')`) and maps it to the matching `upload.*` option — this
+          # becomes the `githubToken` option, letting `lhci autorun`'s upload
+          # step POST a commit status via the GitHub Statuses API instead of
+          # printing "No GitHub token set, skipping GitHub status check."
+          # Requires `statuses: write` above; no separate secret to create,
+          # the auto-issued per-run GITHUB_TOKEN already covers this repo.
+          LHCI_GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: npx lhci autorun --config=../lighthouserc.yml
 
   # TODO Sprint 10: S3 + CloudFront Deployment Job
