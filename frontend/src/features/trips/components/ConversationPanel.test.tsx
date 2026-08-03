@@ -39,7 +39,9 @@ describe('<ConversationPanel />', () => {
     it('should render the message input and send button', () => {
       renderPanel()
 
-      expect(screen.getByRole('textbox', { name: /message/i })).toBeInTheDocument()
+      expect(
+        screen.getByRole('textbox', { name: /message/i })
+      ).toBeInTheDocument()
       expect(screen.getByRole('button', { name: /send/i })).toBeInTheDocument()
     })
   })

@@ -34,9 +34,7 @@ describe('<DaySection />', () => {
     it('should show the plain day heading', () => {
       renderDaySection({ label: undefined })
 
-      expect(
-        screen.getByRole('heading', { name: 'Day 1' })
-      ).toBeInTheDocument()
+      expect(screen.getByRole('heading', { name: 'Day 1' })).toBeInTheDocument()
     })
   })
 
@@ -44,9 +42,9 @@ describe('<DaySection />', () => {
     it('should show the day heading including the label', () => {
       renderDaySection({ label: 'Arrival in Paris' })
 
-      expect(
-        screen.getByRole('heading', { name: /day 1/i })
-      ).toHaveTextContent('Arrival in Paris')
+      expect(screen.getByRole('heading', { name: /day 1/i })).toHaveTextContent(
+        'Arrival in Paris'
+      )
     })
   })
 

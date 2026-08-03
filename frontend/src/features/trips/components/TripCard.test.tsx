@@ -31,10 +31,7 @@ describe('<TripCard />', () => {
     it('should link to the trip detail page', () => {
       renderTripCard({ id: 'trip-42' })
 
-      expect(screen.getByRole('link')).toHaveAttribute(
-        'href',
-        '/trips/trip-42'
-      )
+      expect(screen.getByRole('link')).toHaveAttribute('href', '/trips/trip-42')
     })
 
     it('should render the joined destination names', () => {

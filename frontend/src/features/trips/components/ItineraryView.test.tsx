@@ -105,7 +105,9 @@ describe('<ItineraryView />', () => {
     it('should render an empty-state message', () => {
       renderItineraryView({ days: [] })
 
-      expect(screen.getByText(/itinerary not yet generated/i)).toBeInTheDocument()
+      expect(
+        screen.getByText(/itinerary not yet generated/i)
+      ).toBeInTheDocument()
     })
   })
 })
