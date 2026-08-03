@@ -365,7 +365,14 @@ Beyond auth, domain packages remained scaffolds/unbuilt as of this sub-section's
 unbuilt, and `internal/{subscription, collaboration, security}` were empty scaffolds. **Updated for
 Sprint 8 (issue #234):** `internal/trip/` and `internal/conversation/` now exist as real,
 repository-only packages (`model.go` + `repository.go`, no service/handler yet) — see the
-"Divergences" note below. `backend/docs/` (a generated Swagger 2.0/OpenAPI contract, `swaggo/swag`)
+"Divergences" note below. **Updated 2026-08-02 (Sprint 8, issues #235/#236):** both packages have
+since gained a `service.go` (business logic, no knowledge of HTTP or SQL), and a third package,
+`internal/itinerary/`, now exists alongside them: `Service` implements
+`conversation.ItineraryGenerator`, driving `AIClient.StreamItinerary` through a schema-guided system
+prompt and persisting the resulting Destination/Day/Activity rows through `trip.Repository` once the
+AI reports the conversation ready. All three remain **HTTP-handler-free** — no domain route beyond
+auth is mounted yet — see `backend/README.md`'s "Itinerary service" section and the "Divergences"
+note below for the fuller picture. `backend/docs/` (a generated Swagger 2.0/OpenAPI contract, `swaggo/swag`)
 is produced from Go doc-comment annotations on real handlers — as of Sprint 8, that means
 `internal/auth/handler.go`'s (the reference implementation this sub-section originally cited,
 `internal/example/handler.go`, was deleted once real domain packages shipped, issue #234) — and
@@ -424,7 +431,12 @@ creation is fully documented and reproducible (`infra/README.md`) but deliberate
   repositories, `internal/trip/` (Trip/Destination/Day/Activity) and `internal/conversation/`
   (ConversationSession/ConversationMessage). Both are **repository-only**, with no HTTP surface yet,
   so they don't change the "no domain routes mounted beyond auth" picture above; the remaining
-  scaffolded surface is now `/healthz` plus the still-unbuilt trip/collaboration HTTP layer. The
+  scaffolded surface is now `/healthz` plus the still-unbuilt trip/collaboration HTTP layer.
+  **Updated 2026-08-02 (Sprint 8, issues #235/#236):** both packages gained a `service.go`, and a
+  third package, `internal/itinerary/` (no HTTP surface either), now implements
+  `conversation.ItineraryGenerator` end-to-end against a real `AIClient`. This still doesn't change
+  the "no domain routes mounted beyond auth" picture — all three remain HTTP-handler-free until
+  001-T038/T039/T040 (issue #237). The
   `users` table's real columns (`has_subscription` instead of the `subscription_id` shown in the
   schema list above, plus other as-built differences) are tracked in `docs/data-model.md`'s "As-
   Built Schema Diagram" — that document is the authority for real column names, not this section.

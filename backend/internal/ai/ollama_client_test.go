@@ -79,6 +79,72 @@ func TestGenerateItinerary_Success_ReturnsParsedItinerary(t *testing.T) {
 	assert.Equal(t, 30, resp.Metadata.TokensUsed)
 }
 
+func TestGenerateItinerary_WithSystemPrompt_PrependsSystemMessage(t *testing.T) {
+	var gotMessages []struct {
+		Role    string `json:"role"`
+		Content string `json:"content"`
+	}
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		var wireReq ollamaChatWireRequest
+		require.NoError(t, json.NewDecoder(r.Body).Decode(&wireReq))
+		gotMessages = wireReq.Messages
+
+		content := `{"destinations":[],"days":[],"activities":[],"metadata":{"model":"","provider":"","tokens_used":0}}`
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(map[string]any{
+			"model":             "gemma3:4b",
+			"message":           map[string]string{"role": "assistant", "content": content},
+			"done":              true,
+			"prompt_eval_count": 1,
+			"eval_count":        1,
+		})
+	}))
+	defer server.Close()
+
+	client := ai.NewOllamaClient(server.URL, "gemma3:4b", 5*time.Second, 3, nil)
+	req := newTestRequest(t)
+	req.SystemPrompt = "You are a travel-planning assistant."
+
+	_, err := client.GenerateItinerary(context.Background(), req)
+
+	require.NoError(t, err)
+	require.Len(t, gotMessages, 2, "a non-empty SystemPrompt must be prepended as an extra message")
+	assert.Equal(t, "system", gotMessages[0].Role)
+	assert.Equal(t, "You are a travel-planning assistant.", gotMessages[0].Content)
+	assert.Equal(t, "user", gotMessages[1].Role)
+}
+
+func TestGenerateItinerary_EmptySystemPrompt_DoesNotPrependSystemMessage(t *testing.T) {
+	var gotMessages []struct {
+		Role    string `json:"role"`
+		Content string `json:"content"`
+	}
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		var wireReq ollamaChatWireRequest
+		require.NoError(t, json.NewDecoder(r.Body).Decode(&wireReq))
+		gotMessages = wireReq.Messages
+
+		content := `{"destinations":[],"days":[],"activities":[],"metadata":{"model":"","provider":"","tokens_used":0}}`
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(map[string]any{
+			"model":             "gemma3:4b",
+			"message":           map[string]string{"role": "assistant", "content": content},
+			"done":              true,
+			"prompt_eval_count": 1,
+			"eval_count":        1,
+		})
+	}))
+	defer server.Close()
+
+	client := ai.NewOllamaClient(server.URL, "gemma3:4b", 5*time.Second, 3, nil)
+
+	_, err := client.GenerateItinerary(context.Background(), newTestRequest(t))
+
+	require.NoError(t, err)
+	require.Len(t, gotMessages, 1, "an empty SystemPrompt must preserve existing behavior: no extra message")
+	assert.Equal(t, "user", gotMessages[0].Role)
+}
+
 func TestGenerateItinerary_MalformedContentJSON_ReturnsWrappedError(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		w.Header().Set("Content-Type", "application/json")

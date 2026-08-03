@@ -91,7 +91,7 @@ The backend exposes a RESTful JSON API consumed by the frontend SPA. Its primary
 
 ### Current
 
-Everything below is real, built, and unit-tested as of Sprint 6 closure (2026-08-01):
+Everything below is real, built, and unit-tested as of Sprint 8 in-progress (2026-08-02):
 
 ```
 backend/
@@ -161,14 +161,20 @@ backend/
 │   │   └── mocks/                    # Generated Repository mock (vektra/mockery)
 │   ├── collaboration/                # doc.go scaffold only (Spec 008 Phase 3+, unbuilt)
 │   ├── security/                     # doc.go scaffold only (Spec 008 Phase 3+, unbuilt)
-│   ├── trip/                         # Trip/Destination/Day/Activity persistence (001-T033, issue #234); repository-only, no service/handler yet
+│   ├── trip/                         # Trip/Destination/Day/Activity persistence + business logic (001-T033/T035, issues #234/#235); no HTTP handler yet
 │   │   ├── model.go                  # Trip, Destination, Day, Activity entities + status/type constants (docs/data-model.md)
-│   │   ├── repository.go             # PostgresRepository: CreateTrip, ListTripsByUser, FindTripByID, DeleteTrip, CreateDestination, UpsertDay, UpsertActivity (optimistic-locking), DeleteActivity
+│   │   ├── repository.go             # PostgresRepository: CreateTrip, ListTripsByUser, FindTripByID, UpdateTrip (optimistic-locking), DeleteTrip, CreateDestination, UpsertDay, UpsertActivity (optimistic-locking), DeleteActivity
+│   │   ├── service.go                # Service: Create (admin-only), List, Get (404-not-403 anti-enumeration), Update/Delete (Forbidden on non-owner, subscription-gated, forward-only status transitions)
 │   │   └── mocks/                    # Generated Repository mock (vektra/mockery)
-│   └── conversation/                 # ConversationSession/ConversationMessage persistence (001-T034, issue #234); repository-only, no service/handler yet
-│       ├── model.go                  # Session, Message entities + status/role constants (docs/data-model.md)
-│       ├── repository.go             # PostgresRepository: CreateSession, GetSessionByTrip, AppendMessage, ListMessages
-│       └── mocks/                    # Generated Repository mock (vektra/mockery)
+│   ├── conversation/                 # ConversationSession/ConversationMessage persistence + business logic (001-T034/T036, issues #234/#235); no HTTP handler yet
+│   │   ├── model.go                  # Session, Message entities + status/role constants (docs/data-model.md)
+│   │   ├── repository.go             # PostgresRepository: CreateSession, GetSessionByTrip, AppendMessage, ListMessages, CompleteSession
+│   │   ├── service.go                # Service: SendMessage (reuses/starts a session, appends turns, delegates to an ItineraryGenerator), GetHistory
+│   │   └── mocks/                    # Generated Repository mock (vektra/mockery)
+│   └── itinerary/                    # Drives the AI conversation and persists the resulting itinerary (001-T037, issue #236); no HTTP handler yet
+│       ├── doc.go                    # Package overview
+│       ├── prompt.go                 # SystemPrompt: instructs the AI provider how to conduct the conversation and shape its JSON reply
+│       └── service.go                # Service: implements conversation.ItineraryGenerator.Continue — streams AIClient.StreamItinerary, parses the ready/reply JSON shape, persists Destination/Day/Activity rows via trip.Repository (structurally, through a narrow Persister port)
 ├── pkg/                              # Deliberately empty (.gitkeep in database/ and config/) — dead by convention; shared code goes under internal/
 ├── config/
 │   ├── config.go                     # Env var loading with fail-fast validation on missing required vars
@@ -195,15 +201,21 @@ backend/
     └── 018_create_conversation_messages_table.sql # internal/conversation's Message table
 ```
 
-> **`internal/trip/` and `internal/conversation/` are the current example of the model→repository
-> layering** for a new domain package (docs/data-model.md's `§Trip`/`§Destination`/`§Day`/`§Activity`
-> and `§ConversationSession`/`§ConversationMessage`). Both shipped repository-only in Sprint 8 (issue
-> #234, 001-T033/001-T034): `model.go` (entities plus status/type constants mirroring each table's
-> `CHECK` constraint) and `repository.go` (`PostgresRepository` implementing a small,
+> **`internal/trip/` and `internal/conversation/` are the current example of the model→repository→
+> service layering** for a new domain package (docs/data-model.md's `§Trip`/`§Destination`/`§Day`/
+> `§Activity` and `§ConversationSession`/`§ConversationMessage`). Both shipped repository-only in
+> Sprint 8 (issue #234, 001-T033/001-T034): `model.go` (entities plus status/type constants mirroring
+> each table's `CHECK` constraint) and `repository.go` (`PostgresRepository` implementing a small,
 > consumer-defined `Repository` interface, returning `NotFound`/`Conflict` domain errors on
-> single-row lookups and the version-checked `UpsertActivity` update). Neither package has a service
-> or HTTP handler layer yet — that's future work (001-T035/001-T036) — so don't copy them for the
-> service/handler layers of a new package; see `internal/auth/` for that instead.
+> single-row lookups and the version-checked `UpsertActivity`/`UpdateTrip` update). Both then gained
+> their `service.go` (issue #235, 001-T035/001-T036) — business logic with no knowledge of HTTP or
+> SQL. Neither package has an HTTP handler layer yet — that's future work (001-T038/T039/T040, issue
+> #237) — so don't copy them for the handler layer of a new package; see `internal/auth/` for that
+> instead. `internal/itinerary/` (issue #236, 001-T037) is a third example worth reading alongside
+> them: it has no `model.go` of its own (it operates on `ai.*` request/response types and persists
+> through `trip.Repository`, referenced structurally via a narrow `Persister` port — see "Itinerary
+> service" below) and implements `conversation.ItineraryGenerator`, the interface-first seam
+> `conversation.Service.SendMessage` depends on rather than importing `internal/ai` directly.
 >
 > **`internal/auth/handler.go` is the canonical example for `swag` doc-comment annotations.**
 > Every handler function in that file carries a `swag` doc block (`@Summary`,
@@ -247,13 +259,14 @@ backend/
 Not yet built. Listed here so contributors know where new domain code is expected to land, per the
 architecture in [`docs/architecture.md`](../docs/architecture.md) and the API contract in
 [`specs/001-product-vision-scope/contracts/api.md`](../specs/001-product-vision-scope/contracts/api.md).
-Three caveats vs. the tree below: `internal/auth/` already exists as a **flat** package holding the
+Four caveats vs. the tree below: `internal/auth/` already exists as a **flat** package holding the
 password utilities (see "Current" above) — its future handler/service/repository files land in that
 same flat package, not a subpackage; `internal/trip/` and `internal/conversation/` already have their
-`model.go`/`repository.go` built (see "Current" above, issue #234) — only `handler.go`/`service.go`
-remain target; and the `pkg/{health, middleware, response}` block is superseded by the "everything
-under `internal/`" convention (health lives in `cmd/api/server.go`, middleware in
-`internal/middleware/`):
+`model.go`/`repository.go`/`service.go` built (see "Current" above, issues #234/#235) — only
+`handler.go` remains target; `internal/itinerary/` already has its `service.go` built (issue #236,
+no `model.go` of its own — see "Current" above) — only `handler.go` remains target; and the
+`pkg/{health, middleware, response}` block is superseded by the "everything under `internal/`"
+convention (health lives in `cmd/api/server.go`, middleware in `internal/middleware/`):
 
 ```
 backend/
@@ -268,8 +281,7 @@ backend/
 │   │   ├── service.go                # Trip service: CRUD, plan-limit enforcement for collaborators
 │   │   └── repository.go             # Trip, Destination, Day, Activity, Collaborator DB operations
 │   ├── itinerary/
-│   │   ├── handler.go                # POST /trips/:id/generate — prompt validation + AI dispatch
-│   │   └── service.go                # Build Claude prompt, stream response, parse tool-use, persist
+│   │   └── handler.go                # POST /trips/:id/generate — prompt validation + AI dispatch
 │   ├── conversation/
 │   │   ├── handler.go                # POST/GET /trips/:id/conversation — SSE streaming
 │   │   └── service.go                # Multi-turn session management, anchor-place detection
@@ -662,9 +674,10 @@ local [Ollama](https://ollama.com) server's native `/api/chat` endpoint, used fo
 and MVP testing (product decision, not upstream-mandated by this ticket) — free, no API key. It
 requests `format: "json"` from Ollama to force valid-JSON model output, retries transient failures
 (connection errors, 5xx) with linear backoff, and streams newline-delimited response chunks over a
-channel for `StreamItinerary`. It does not build itinerary-specific system prompts or do
-schema-guided generation — it forwards `ConversationHistory` as-is; that's spec 008's job. See
-[docs/local-ai-setup.md](../docs/local-ai-setup.md) for setup.
+channel for `StreamItinerary`. It forwards `ConversationHistory` as-is, prepending
+`ItineraryRequest.SystemPrompt` as a leading `role: "system"` message when one is set — it never
+builds that prompt's *content* itself; that belongs to the caller (`internal/itinerary`, see below).
+See [docs/local-ai-setup.md](../docs/local-ai-setup.md) for setup.
 
 `AnthropicClient` (`anthropic.go`) is the Anthropic-backed `AIClient` implementation for
 staging/production (`AI_PROVIDER=anthropic`, `docs/roadmap.md` task `005-T112`), built on the
@@ -674,7 +687,10 @@ loop; a 429/503 response that survives every retry attempt is returned as a
 `*ProviderUnavailableError` (wrapping the `ErrProviderUnavailable` sentinel) instead of an opaque
 error, so callers can distinguish "provider is transiently unavailable" from other failures. Like
 `OllamaClient`, it forwards `ConversationHistory` as-is and parses the model's response text
-directly as itinerary JSON — schema-guided generation is spec 008's job.
+directly as itinerary JSON; it applies `ItineraryRequest.SystemPrompt` via the Messages API's native
+top-level `System` field rather than as a message role. Response-schema compliance is
+prompt-instructed by the caller, not enforced through the API's structured-output/tool-forcing
+features — see "Itinerary service" below.
 
 `NewAIClient` (`client.go`) is the single factory that picks between `OllamaClient` and
 `AnthropicClient` based on `config.AIConfig.Provider`, so callers depend only on the `AIClient`
@@ -683,6 +699,39 @@ factory-adjacent helper that turns a `*ProviderUnavailableError` into a `"servic
 `*errors.DomainError` carrying a `Retry-After` hint (`errors.ServiceUnavailable`,
 `internal/errors/types.go`) — `writeErrorResponse` (`internal/errors/handler.go`) sets the
 `Retry-After` response header from it (005-T113).
+
+### Itinerary service (`internal/itinerary/`)
+
+`Service` (`service.go`) implements `conversation.ItineraryGenerator` (`internal/conversation`'s
+interface-first seam — see that package's doc comment): `Continue(ctx, tripID, history)` is the sole
+entry point, called once per user turn by `conversation.Service.SendMessage`.
+
+It drives `AIClient.StreamItinerary` — the first real caller of that method — accumulating
+`StreamChunk.Content` until the `Done` chunk, then parses the accumulated text as JSON into
+`ai.ItineraryResponse`. `SystemPrompt` (`prompt.go`) is what makes that parse meaningful: it
+instructs the model to reply with `{"ready": false, "reply": "<clarifying question>"}` while it
+still needs more information, or the full `{"ready": true, "reply": ..., "days": [...]}` shape once
+it has enough to plan the trip — the traveler's constraints (destination, dates, budget, pace,
+group size, interests) are deliberately not modeled as a structured request field, since `Continue`'s
+signature carries none; the model extracts them from the free-text conversation history itself,
+matching `specs/001-product-vision-scope/contracts/api.md`'s own example turn.
+
+When the response is `ready`, `Service` persists it through `Persister` — a narrow, consumer-owned
+port (`CreateDestination`/`UpsertDay`/`UpsertActivity`) satisfied structurally by `trip.Repository`,
+with no explicit wiring needed and no generated mock (hand-faked in tests, same as
+`conversation.ItineraryGenerator` and `trip.SubscriptionLookup` — see "Mockery: Generation + Scope"
+in `.github/memory/patterns-discovered.md`). Persistence dedupes `Destination` rows by `(name,
+country)` within a single `Continue` call, so a multi-day stay in one city produces one destination
+row, not one per day. Any `AIClient` error is run through `ai.TranslateError` before propagating, so
+a provider outage surfaces as a `service_unavailable` domain error with a `Retry-After` hint rather
+than an opaque failure — this is currently the only `TranslateError` call site in the codebase, and
+the convention future `AIClient` callers should follow.
+
+This package has no HTTP handler or `cmd/api` wiring yet — `conversation.Service`/`trip.Service`
+aren't wired into the composition root either, since no HTTP layer exists for either domain yet (see
+"Planned (not yet built)" below). It also doesn't call `PromptValidator`/`OutputSanitizer`
+(`internal/ai/validator.go`/`sanitizer.go`) — both stay separate, already-tracked future tickets
+(`docs/roadmap.md` 002-T029/T030).
 
 ### HTTP server (`cmd/api/`)
 

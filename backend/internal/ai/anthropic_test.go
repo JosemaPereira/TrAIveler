@@ -22,7 +22,10 @@ import (
 // anthropicMessageWireRequest mirrors the wire shape AnthropicClient sends,
 // used by the fake server to decode incoming requests.
 type anthropicMessageWireRequest struct {
-	Model    string `json:"model"`
+	Model  string `json:"model"`
+	System []struct {
+		Text string `json:"text"`
+	} `json:"system"`
 	Messages []struct {
 		Role    string `json:"role"`
 		Content []struct {
@@ -181,6 +184,92 @@ func TestAnthropicGenerateItinerary_ClientTimeoutExceeded_ReturnsPromptContextDe
 	require.Error(t, err)
 	assert.Nil(t, resp)
 	assert.ErrorIs(t, err, context.DeadlineExceeded)
+}
+
+func TestAnthropicGenerateItinerary_WithSystemPrompt_ForwardsSystemField(t *testing.T) {
+	var gotSystem []struct {
+		Text string `json:"text"`
+	}
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		var wireReq anthropicMessageWireRequest
+		require.NoError(t, json.NewDecoder(r.Body).Decode(&wireReq))
+		gotSystem = wireReq.System
+
+		content := `{"destinations":[],"days":[],"activities":[],"metadata":{"model":"","provider":"","tokens_used":0}}`
+		writeAnthropicSuccess(w, "claude-3-5-sonnet-20241022", content, 1, 1)
+	}))
+	defer server.Close()
+
+	client := ai.NewAnthropicClient("test-key", "claude-3-5-sonnet-20241022", 5*time.Second, 3,
+		option.WithBaseURL(server.URL), option.WithHTTPClient(server.Client()))
+
+	req := newTestRequest(t)
+	req.SystemPrompt = "You are a travel-planning assistant."
+
+	_, err := client.GenerateItinerary(context.Background(), req)
+
+	require.NoError(t, err)
+	require.Len(t, gotSystem, 1, "the system prompt must be forwarded as a single system text block")
+	assert.Equal(t, "You are a travel-planning assistant.", gotSystem[0].Text)
+}
+
+func TestAnthropicGenerateItinerary_EmptySystemPrompt_OmitsSystemField(t *testing.T) {
+	var gotSystem []struct {
+		Text string `json:"text"`
+	}
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		var wireReq anthropicMessageWireRequest
+		require.NoError(t, json.NewDecoder(r.Body).Decode(&wireReq))
+		gotSystem = wireReq.System
+
+		content := `{"destinations":[],"days":[],"activities":[],"metadata":{"model":"","provider":"","tokens_used":0}}`
+		writeAnthropicSuccess(w, "claude-3-5-sonnet-latest", content, 1, 1)
+	}))
+	defer server.Close()
+
+	client := ai.NewAnthropicClient("test-key", "claude-3-5-sonnet-20241022", 5*time.Second, 3,
+		option.WithBaseURL(server.URL), option.WithHTTPClient(server.Client()))
+
+	_, err := client.GenerateItinerary(context.Background(), newTestRequest(t))
+
+	require.NoError(t, err)
+	assert.Empty(t, gotSystem, "an empty SystemPrompt must not add a system field, preserving existing behavior")
+}
+
+func TestAnthropicStreamItinerary_WithSystemPrompt_ForwardsSystemField(t *testing.T) {
+	var gotSystem []struct {
+		Text string `json:"text"`
+	}
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		var wireReq anthropicMessageWireRequest
+		require.NoError(t, json.NewDecoder(r.Body).Decode(&wireReq))
+		gotSystem = wireReq.System
+
+		flusher, ok := w.(http.Flusher)
+		require.True(t, ok)
+		w.Header().Set("Content-Type", "text/event-stream")
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write([]byte("event: message_stop\ndata: {\"type\":\"message_stop\"}\n\n"))
+		flusher.Flush()
+	}))
+	defer server.Close()
+
+	client := ai.NewAnthropicClient("test-key", "claude-3-5-sonnet-20241022", 5*time.Second, 3,
+		option.WithBaseURL(server.URL), option.WithHTTPClient(server.Client()))
+
+	req := newTestRequest(t)
+	req.SystemPrompt = "You are a travel-planning assistant."
+
+	chunkCh, errCh := client.StreamItinerary(context.Background(), req)
+	//nolint:revive // intentional drain loop: block until the channel closes, body has nothing to do
+	for range chunkCh {
+	}
+	for err := range errCh {
+		t.Fatalf("unexpected error from stream: %v", err)
+	}
+
+	require.Len(t, gotSystem, 1, "the system prompt must be forwarded as a single system text block")
+	assert.Equal(t, "You are a travel-planning assistant.", gotSystem[0].Text)
 }
 
 func TestAnthropicStreamItinerary_HappyPath_CollectsChunksUntilDone(t *testing.T) {

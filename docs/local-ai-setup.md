@@ -140,5 +140,9 @@ handling (`Retry-After`) work for that path.
 - **Model responses are slow or the container OOMs**: drop to a smaller model tag (`gemma3:1b`) or
   raise the `ollama` service's resource limits in `docker-compose.yml`.
 - **`ollama: parse itinerary JSON content` errors**: the model didn't return content matching
-  `ai.ItineraryResponse`'s shape. Expected until spec 008 adds real system-prompt/schema guidance —
-  `OllamaClient` forwards `ConversationHistory` as-is today (see `ollama_client.go`).
+  `ai.ItineraryResponse`'s shape. Real conversations go through `internal/itinerary.Service`
+  (001-T037), which builds the schema-guided system prompt and sets `ItineraryRequest.SystemPrompt`
+  before calling `AIClient` — see `backend/README.md`'s "Itinerary service" section. This error is
+  still expected if you call `OllamaClient`/`AIClient` directly (e.g. from a script or a lower-level
+  test) without setting `SystemPrompt`: `buildMessages` only forwards `ConversationHistory` as-is
+  (see `ollama_client.go`), so the model has no schema instructions to follow.

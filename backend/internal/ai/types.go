@@ -23,18 +23,29 @@ type TravelPreferences struct {
 
 // ItineraryRequest carries everything needed to generate or continue an
 // itinerary: the trip being planned, the conversation so far, and the
-// traveler's preferences.
+// traveler's preferences. SystemPrompt, when non-empty, is forwarded by each
+// AIClient implementation using its provider's native system-prompt
+// mechanism (see AnthropicClient/OllamaClient's buildMessages) — it is the
+// caller's responsibility to build the actual instruction text (see
+// internal/itinerary, 001-T037/issue #236).
 type ItineraryRequest struct {
 	TripID              string            `json:"trip_id"`
 	ConversationHistory []Message         `json:"conversation_history"`
 	Preferences         TravelPreferences `json:"preferences"`
+	SystemPrompt        string            `json:"system_prompt,omitempty"`
 }
 
 // Destination identifies a place within an itinerary, matching
 // docs/data-model.md's Destination entity (Country is ISO 3166-1 alpha-2).
+// Region/Latitude/Longitude mirror trip.Destination's NOT NULL database
+// columns, so an AI-produced Destination carries everything the persistence
+// layer (internal/itinerary) needs without a separate lookup.
 type Destination struct {
-	Name    string `json:"name"`
-	Country string `json:"country"`
+	Name      string  `json:"name"`
+	Country   string  `json:"country"`
+	Region    string  `json:"region,omitempty"`
+	Latitude  float64 `json:"latitude"`
+	Longitude float64 `json:"longitude"`
 }
 
 // Activity is a single planned item within a Day, matching docs/data-model.md's
@@ -63,7 +74,14 @@ type ResponseMetadata struct {
 }
 
 // ItineraryResponse is the structured result of generating a trip itinerary.
+// Ready/Reply carry the conversational-turn shape used by
+// internal/itinerary.Service.Continue: Ready reports whether the model has
+// gathered enough information to produce the full itinerary (Destinations/
+// Days populated) or is still asking a clarifying question (Reply holds that
+// question, Destinations/Days empty).
 type ItineraryResponse struct {
+	Ready        bool             `json:"ready"`
+	Reply        string           `json:"reply"`
 	Destinations []Destination    `json:"destinations"`
 	Days         []Day            `json:"days"`
 	Activities   []Activity       `json:"activities"`
