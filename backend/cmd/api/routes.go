@@ -21,7 +21,11 @@ import (
 // entry points that cannot require an access token — register, login, and
 // refresh (008-T149: "no auth middleware, uses refresh token from cookie") —
 // and an authenticated group carrying middleware.Authenticate for everything
-// else.
+// else. Trip and Conversation endpoints (001-T038/001-T039/001-T040) are
+// fully authenticated (specs/001-product-vision-scope/contracts/api.md line
+// 195: "All trip endpoints require authentication"), so both mount inside
+// the authenticated group, with no public sub-routes of their own — unlike
+// auth's public/protected split.
 //
 // /swagger/* is gated too, but only in production, which is how this
 // delivers specs/009-api-documentation/research.md's "Auth gating for
@@ -30,9 +34,11 @@ import (
 // before any login was even possible (issue #192 Task C). Outside
 // production the route is mounted with no middleware at all.
 //
-// Both auth groups register full paths (`/auth/login`, not a nested
-// r.Route("/auth", ...)) because Chi panics when the same pattern is routed
-// twice on one tree, which two sibling /auth subtrees would do.
+// Every group here registers full paths (e.g. `/auth/login`, `/trips`, not
+// a nested r.Route("/auth", ...) / r.Route("/trips", ...)) because Chi
+// panics when the same pattern is routed twice on one tree, which sibling
+// subtrees sharing a prefix (auth's public/protected split; trip.Handler and
+// conversation.Handler both owning parts of /trips) would do.
 func (s *HTTPServer) registerRoutes() {
 	s.router.Get("/healthz", s.handleHealthz)
 
@@ -45,12 +51,8 @@ func (s *HTTPServer) registerRoutes() {
 			r.Use(authenticate)
 
 			s.authHandler.RegisterProtectedRoutes(r)
-
-			// Test-only seam, nil in production — see the field's doc on
-			// HTTPServer for why it exists and when to delete it.
-			if s.extraProtectedRoutes != nil {
-				s.extraProtectedRoutes(r)
-			}
+			s.tripHandler.RegisterRoutes(r)
+			s.conversationHandler.RegisterRoutes(r)
 		})
 	})
 

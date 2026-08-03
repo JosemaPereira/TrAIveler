@@ -29,7 +29,12 @@ import (
 )
 
 // testConfig returns a minimal, valid *config.Config for tests that don't
-// need config.Load()'s environment-variable plumbing.
+// need config.Load()'s environment-variable plumbing. AI.Provider is set to
+// "ollama" (config.Load's own non-production default) so buildTripComponents
+// (cmd/api/trip.go) can construct a real ai.NewAIClient — NewHTTPServer
+// wires the Trip/Conversation vertical unconditionally, so every test config
+// needs a provider ai.NewAIClient recognizes, even though these HTTP-layer
+// tests never actually call the AI client.
 func testConfig(t *testing.T) *config.Config {
 	t.Helper()
 
@@ -40,6 +45,11 @@ func testConfig(t *testing.T) *config.Config {
 			ReadTimeout:  15 * time.Second,
 			WriteTimeout: 15 * time.Second,
 			IdleTimeout:  60 * time.Second,
+		},
+		AI: config.AIConfig{
+			Provider: "ollama",
+			Timeout:  60 * time.Second,
+			Ollama:   config.OllamaConfig{Host: "http://localhost:11434", Model: "gemma3:4b"},
 		},
 	}
 }

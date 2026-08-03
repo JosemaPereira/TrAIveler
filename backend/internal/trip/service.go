@@ -66,9 +66,24 @@ func (s *Service) Create(ctx context.Context, userID, role, title string, descri
 	return tr, nil
 }
 
-// List returns every trip owned by userID.
+// List returns every non-archived trip owned by userID. Archived is excluded
+// here rather than at the repository layer (008-T103 carry-over, cited by
+// 001-T038): filtering visibility is business logic, and ListTripsByUser's
+// own doc comment already commits to no pagination, so there is no
+// query-param override to preserve.
 func (s *Service) List(ctx context.Context, userID string) ([]*Trip, error) {
-	return s.repo.ListTripsByUser(ctx, userID)
+	trips, err := s.repo.ListTripsByUser(ctx, userID)
+	if err != nil {
+		return nil, err
+	}
+
+	visible := make([]*Trip, 0, len(trips))
+	for _, tr := range trips {
+		if !tr.Archived {
+			visible = append(visible, tr)
+		}
+	}
+	return visible, nil
 }
 
 // Get returns the trip identified by tripID, provided userID owns it.

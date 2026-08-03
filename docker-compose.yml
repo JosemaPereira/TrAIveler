@@ -159,9 +159,15 @@ services:
       # ANTHROPIC_MODEL: claude-3-5-sonnet-20241022
       
       # Authentication configuration
-      # ⚠️  SECURITY: Generate actual key for production environments
-      # Generate with: openssl rand -base64 32
-      JWT_SIGNING_KEY: ${JWT_SIGNING_KEY:-dev_jwt_key_do_not_use_in_production}
+      # ⚠️  SECURITY: JWT_SIGNING_KEY must be a real RS256 PEM private key in production —
+      # never a plain string like the old placeholder here, which cmd/api/auth.go's
+      # jwt.LoadKeyFromPEM cannot parse (it isn't PEM at all, and even a real key needs to be
+      # RSA, not a base64 secret — RS256, not HMAC, see docs/security.md). Left empty by
+      # default so buildKeyProvider's own fallback generates an ephemeral in-memory RSA key for
+      # local dev (config.go: "not required in development for local testing"); set a real one
+      # via a host env var (`export JWT_SIGNING_KEY="$(openssl genrsa 2048)"`) or backend/.env
+      # only if you need sessions to survive a container restart.
+      JWT_SIGNING_KEY: ${JWT_SIGNING_KEY:-}
       COOKIE_SECURE: "false"  # Set to "true" in production with HTTPS
       
       # Logging configuration
