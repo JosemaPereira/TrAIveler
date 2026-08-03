@@ -1,0 +1,98 @@
+/*
+ * TripCard feature styles.
+ * All values reference design tokens from src/styles/tokens.css — no hard-coded
+ * colors, spacing, radii, or shadows. Trip status ('draft'/'published') is local
+ * markup here (not the Badge primitive, whose variant union is for subscription
+ * tiers), still driven entirely by CSS custom properties.
+ */
+
+.link {
+  display: block;
+  color: inherit;
+  text-decoration: none;
+}
+
+.link:hover .title {
+  color: var(--color-primary);
+}
+
+.card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  height: 100%;
+  transition: box-shadow var(--transition-fast);
+}
+
+.link:hover .card {
+  box-shadow: var(--shadow-md);
+}
+
+.header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-2);
+}
+
+.title {
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-bold);
+  color: var(--color-neutral-900);
+  margin: 0;
+  transition: color var(--transition-fast);
+}
+
+.statusBadge {
+  flex-shrink: 0;
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+  padding: var(--space-1) var(--space-2);
+  border-radius: var(--radius-full);
+  white-space: nowrap;
+}
+
+.draft {
+  color: var(--color-warning);
+  background-color: var(--color-neutral-100);
+}
+
+.published {
+  color: var(--color-success);
+  background-color: var(--color-primary-subtle);
+}
+
+.destinations {
+  font-size: var(--font-size-base);
+  color: var(--color-neutral-600);
+  margin: 0;
+}
+
+.meta {
+  display: flex;
+  gap: var(--space-4);
+  font-size: var(--font-size-sm);
+  color: var(--color-neutral-600);
+  margin-top: auto;
+}
+
+/* Skeleton (loading) state — same footprint as the real content. */
+.skeleton {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.skeletonTitle {
+  height: var(--space-6);
+  width: 70%;
+  border-radius: var(--radius-sm);
+  background-color: var(--color-neutral-300);
+}
+
+.skeletonLine {
+  height: var(--space-3);
+  width: 50%;
+  border-radius: var(--radius-sm);
+  background-color: var(--color-neutral-300);
+}
