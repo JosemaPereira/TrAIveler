@@ -519,3 +519,71 @@ Historical summaries of completed development sessions. Committed to git as a re
   re-confirmed exactly 3 items (#209, #210, #212), none targeting Sprint 7. Two items carried
   forward, neither blocking closure: 001-T030 still awaits a product decision (see re-planning notes
   above); the #220 dead-code finding got its own tracking issue, #231.
+
+---
+
+## Sprint 8 Implementation (Detailed)
+
+### Session: #235 G-US1-SERVICES — Trip + Conversation Services
+- **Date**: 2026-08-02
+- **Tool**: Claude Code
+- **What was accomplished**: Implemented 001-T035 (`backend/internal/trip/service.go`) and 001-T036
+  (`backend/internal/conversation/service.go`) via the `tdd-developer` subagent (strict Red-Green-
+  Refactor), independently re-verified by the parent session (rebuild/vet/lint/full test suite
+  re-run against real Postgres via Colima, diff read in full) before trusting it. Committed on
+  `feature/trip-conversation-services` (932cc36 implementation, 59c3616 roadmap update) — **not yet
+  pushed or opened as a PR**, pending explicit go-ahead.
+- **Key findings and decisions**:
+  - Found and filled two real gaps in the already-merged repository layer (001-T033/T034, PR #243)
+    that neither original ticket scoped: `trip.Repository.UpdateTrip` (version-checked CAS,
+    NotFound-vs-Conflict disambiguation mirroring `auth.PostgresUserRepository.UpdateUser`/
+    `resolveUpdateMiss`) and `conversation.Repository.CompleteSession` (plain conditional update, no
+    version column on Session).
+  - Trip service authorization has a deliberate split: `Get` returns `NotFound` (not `Forbidden`) for
+    a non-owner — anti-ID-enumeration, carried forward from superseded row 008-T105 — while
+    `Update`/`Delete` return `Forbidden`, carried forward from superseded 008-T107/T109's literal
+    original text. `Update` accepts an active-or-grace-period subscription (`Subscription.IsActive`);
+    `Delete` requires strictly `StatusActive` (stricter — grace period is not enough to delete).
+    `Update` also enforces the forward-only status transition (`draft`→`published` only).
+  - **Resolved a real forward-dependency conflict**: 001-T036's task text says SendMessage "calls
+    itinerary service," but the Itinerary service (001-T037) is a separate, not-yet-built ticket and
+    is explicitly this sprint's designated first real `internal/ai.AIClient` caller. Rather than call
+    `AIClient` directly from the Conversation service (which would preempt 001-T037's own design
+    work), defined a new interface-first seam, `conversation.ItineraryGenerator{ Continue(ctx,
+    tripID, history []ai.Message) (reply string, ready bool, err error) }`, left unimplemented here —
+    the same deferred-implementation pattern already used for `jwt.RefreshTokenStore`/
+    `SubscriptionResolver`. The decision, including the exact signature and an open question about
+    reconciling it with `AIClient.GenerateItinerary`'s structured (non-free-text) response shape, was
+    written into 001-T037's `docs/roadmap.md` row Notes (already-created issue #236) per the
+    established "Roadmap Row Notes Are the Only Channel Future Issue Bodies Inherit Context Through"
+    rule.
+  - `conversation.Service` deliberately does no trip-ownership check of its own — left to the future
+    HTTP handler (001-T039), expected to call `trip.Service.Get` (whose anti-enumeration 404 already
+    covers it) before reaching the Conversation service, the same way nested REST resources inherit
+    their parent's access control.
+  - Root `docs/data-model.md` (not `specs/001-product-vision-scope/data-model.md`/`contracts/api.md`,
+    both confirmed stale against the real merged schema — no `user_id` on `ConversationSession`, no
+    `sequence_order` on `ConversationMessage`) was used as the schema authority throughout.
+  - **Fixed unrelated roadmap status drift found along the way**: 001-T033/T034 rows were still
+    `Backlog` despite PR #243 having merged and issue #234 having closed on 2026-08-02 (or earlier) —
+    flipped to `Done` with a dated drift-fix note, same class of gap the sprint-closure discipline
+    exists to catch, just caught mid-sprint this time.
+- **Outcomes**: Both services build/vet/lint clean; `go test -tags=test ./internal/trip/...
+  ./internal/conversation/...` all pass (44 trip + 23 conversation tests combined
+  unit+integration), 91.2%/91.7% coverage, every `service.go` function at 100%. Mocks regenerated via
+  `make mocks`; the two new small consumer-owned ports (`SubscriptionLookup`, `ItineraryGenerator`)
+  had their auto-generated mocks pruned and are hand-faked in tests instead, per the existing
+  `mockery --all` pruning convention. No HTTP handlers or `cmd/api` wiring — that's 001-T038/T039
+  (issue #237), not yet started.
+- **Same PR, follow-up (2026-08-02)**: PR #246's `Backend CI` run failed on the (removed) `Check
+  roadmap Status matches live GitHub issue state` step — not because of anything in this PR, but
+  because `main` already carried unrelated drift from PR #244 (issue #238, rows 001-T041–T045 never
+  flipped Backlog→Done). User asked to remove the roadmap-status-drift gate entirely rather than
+  chase this class of false-positive again; see the new `patterns-discovered.md` entry *A
+  Whole-Document Drift Gate Fails PRs on Pre-Existing Drift They Didn't Cause* for the reasoning.
+  Deleted `scripts/check-roadmap-status-drift.py`/`check_roadmap_status_drift_test.py`, removed the
+  `backend-ci.yml` step + its now-unused `issues: read` permission, updated `backend/README.md`'s CI
+  section, and appended a "Removed" note to its own originating roadmap row (002-T049) rather than
+  rewriting that row's Done history. Also fixed the 001-T041–T045 drift that triggered this in the
+  first place (flipped to Done, same dated drift-fix note style as 001-T033/T034 above) — all folded
+  into the same PR #246 per the user's explicit "add it to this PR" instruction.

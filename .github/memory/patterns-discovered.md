@@ -83,6 +83,8 @@ the file **and** add a line here.
   gate can be internally correct yet ship permanently red.
 - *`permissions:` on a Workflow Silently Denies `gh` Calls a Local Session Would Allow* — least-
   privilege scoping and a new `gh` subcommand are easy to add in different sessions.
+- *A Whole-Document Drift Gate Fails PRs on Pre-Existing Drift They Didn't Cause* — why
+  `roadmap-status-drift` was removed; scope a gate to the PR's own diff or don't automate it.
 
 ### Authority, docs & process
 
@@ -975,4 +977,36 @@ Read these before trusting any spec/issue text.
   is broad), which is exactly why it's easy to miss on a repo where some workflows are scoped and
   others aren't.
 - **Related**: `.github/workflows/backend-ci.yml`, *Least-Privilege Token* comment above its
-  `permissions:` block, `scripts/check-roadmap-status-drift.py`
+  `permissions:` block, `scripts/check-roadmap-status-drift.py` (this step was itself removed
+  2026-08-02 — see *A Whole-Document Drift Gate Fails PRs on Pre-Existing Drift They Didn't Cause*
+  below)
+
+---
+
+### A Whole-Document Drift Gate Fails PRs on Pre-Existing Drift They Didn't Cause
+
+- **Discovered**: 2026-08-02 — **Tool**: Claude Code
+- **Context**: `roadmap-status-drift` CI step (002-T049, added Sprint 6) — scans every row of
+  `docs/roadmap.md` against live GitHub issue state on every PR, regardless of what that PR touches.
+- **Problem**: PR #246 (issues #235/001-T035-T036, an unrelated backend service change) failed this
+  required check on `main`'s pre-existing drift from a *different* merged PR (#244, issue #238,
+  rows 001-T041–T045 never flipped Backlog→Done). A whole-repo/whole-document consistency gate — as
+  opposed to a gate scoped to files the PR itself changed (`swagger-drift`, which only compares
+  `backend/docs/` against what the PR's own `swag` annotations would regenerate) — has no way to
+  distinguish "this PR introduced drift" from "drift already existed on `main` and nobody's PR
+  happened to touch it yet." Every future PR inherits every not-yet-fixed row as a blocker, so the
+  gate's failure rate tracks the total backlog of unfixed drift, not the quality of the PR under
+  review — the opposite of what a required check should do. Removed entirely at the user's explicit
+  request rather than patched, since scoping it to "only rows touched by this diff" would have
+  required either a Notes-column diff (fragile) or per-row git blame (a much bigger rebuild than the
+  gate's original scope).
+- **Solution**: Before adding a required CI check that validates a document/artifact's *entire*
+  current state rather than just the diff a PR introduces, consider whether drift can accumulate on
+  `main` between runs of whatever manually fixes it (here: sprint closure). If so, either scope the
+  check to the PR's own changed lines, or accept that periodic manual reconciliation (this repo's
+  `sprint-closure-status-drift-check`, `.github/memory/session-notes.md`) is the right mechanism and
+  skip automating it as a merge-blocking gate at all — automating it only pays off if the underlying
+  artifact can't drift *between* check runs, which a hand-maintained Markdown table full of narrative
+  Notes columns generally can.
+- **Related**: `.github/workflows/backend-ci.yml`, `docs/roadmap.md` row 002-T049,
+  `sprint-closure-status-drift-check` (personal memory)

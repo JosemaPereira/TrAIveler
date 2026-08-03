@@ -19,8 +19,8 @@ type Repository interface {
 	// CreateSession inserts session, which must already have ID/TripID/
 	// Status populated by the caller. Populates StartedAt/TotalTokens/
 	// AIProvider/CreatedAt from the database defaults. Plain insert: the
-	// "only one in_progress session per trip" business rule is owned by the
-	// future Conversation service, not this repository.
+	// "only one in_progress session per trip" business rule is owned by
+	// Service (SendMessage's resolveActiveSession), not this repository.
 	CreateSession(ctx context.Context, session *Session) error
 	// GetSessionByTrip returns the most recently started session for
 	// tripID, or a domain NotFound error if the trip has no sessions.
@@ -28,14 +28,21 @@ type Repository interface {
 	// AppendMessage inserts message, which must already have SessionID/Role/
 	// Content populated by the caller. Populates ID/Timestamp from the
 	// database defaults. Plain insert: it does not update the parent
-	// Session's TotalTokens — that aggregation belongs to the future
-	// Conversation service.
+	// Session's TotalTokens — that aggregation belongs to Service (not yet
+	// implemented there).
 	AppendMessage(ctx context.Context, message *Message) error
 	// ListMessages returns every message for sessionID in chronological
 	// order (docs/data-model.md §ConversationMessage's "Business Rules").
 	// Returns an empty (non-nil) slice, not an error, when the session has
 	// no messages.
 	ListMessages(ctx context.Context, sessionID string) ([]*Message, error)
+	// CompleteSession marks the session identified by sessionID completed,
+	// stamping completed_at=NOW() (docs/data-model.md §ConversationSession:
+	// "Session marked completed when user accepts final itinerary"). Session
+	// carries no version column, so this is a plain conditional update, not
+	// an optimistic-locking one. No rows affected (unknown id) is reported
+	// as a domain NotFound.
+	CompleteSession(ctx context.Context, sessionID string) error
 }
 
 // PostgresRepository implements Repository using the shared pgx pool exposed
@@ -136,4 +143,23 @@ func (r *PostgresRepository) ListMessages(ctx context.Context, sessionID string)
 	}
 
 	return messages, nil
+}
+
+// CompleteSession marks sessionID completed; see the Repository interface
+// doc comment.
+func (r *PostgresRepository) CompleteSession(ctx context.Context, sessionID string) error {
+	const query = `
+		UPDATE conversation_sessions
+		SET status = $1, completed_at = NOW()
+		WHERE id = $2`
+
+	tag, err := r.db.Pool().Exec(ctx, query, StatusCompleted, sessionID)
+	if err != nil {
+		return fmt.Errorf("complete conversation session: %w", err)
+	}
+	if tag.RowsAffected() == 0 {
+		return domainerrors.NotFound("conversation session", sessionID)
+	}
+
+	return nil
 }

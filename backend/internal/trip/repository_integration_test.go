@@ -82,9 +82,9 @@ func seedUser(t *testing.T, ctx context.Context, db database.Client, suffix stri
 	return id
 }
 
-// newTestTrip builds a Trip for creatorID with a fresh ID, mirroring the
-// future Trip service's UUID generation (repository.CreateTrip requires ID
-// to already be set).
+// newTestTrip builds a Trip for creatorID with a fresh ID, mirroring
+// Service.Create's UUID generation (repository.CreateTrip requires ID to
+// already be set).
 func newTestTrip(creatorID, suffix string) *Trip {
 	return &Trip{
 		ID:        uuid.New().String(),
@@ -201,6 +201,76 @@ func TestIntegrationListTripsByUser_NoTrips_ReturnsEmptySlice(t *testing.T) {
 
 	require.NoError(t, err)
 	assert.Empty(t, trips)
+}
+
+func TestIntegrationUpdateTrip_MatchingVersion_UpdatesAndIncrementsVersion(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping testcontainer test in short mode")
+	}
+	ctx := context.Background()
+	db := setupRepositoryTestDB(t, ctx)
+	repo := NewPostgresRepository(db)
+	creatorID := seedUser(t, ctx, db, "update-1")
+	created := newTestTrip(creatorID, "update-1")
+	require.NoError(t, repo.CreateTrip(ctx, created))
+
+	created.Title = "Updated Title"
+	created.Status = TripStatusPublished
+	err := repo.UpdateTrip(ctx, created)
+
+	require.NoError(t, err)
+	assert.Equal(t, 2, created.Version)
+
+	reloaded, err := repo.FindTripByID(ctx, created.ID)
+	require.NoError(t, err)
+	assert.Equal(t, "Updated Title", reloaded.Title)
+	assert.Equal(t, TripStatusPublished, reloaded.Status)
+	assert.Equal(t, 2, reloaded.Version)
+}
+
+func TestIntegrationUpdateTrip_StaleVersion_ReturnsConflict(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping testcontainer test in short mode")
+	}
+	ctx := context.Background()
+	db := setupRepositoryTestDB(t, ctx)
+	repo := NewPostgresRepository(db)
+	creatorID := seedUser(t, ctx, db, "update-conflict")
+	created := newTestTrip(creatorID, "update-conflict")
+	require.NoError(t, repo.CreateTrip(ctx, created))
+
+	stale := *created
+	stale.Version = created.Version + 99 // simulate a version that no longer matches
+	stale.Title = "Stale Update"
+
+	err := repo.UpdateTrip(ctx, &stale)
+
+	require.Error(t, err)
+	var domainErr *domainerrors.DomainError
+	require.ErrorAs(t, err, &domainErr)
+	assert.Equal(t, "conflict", domainErr.Code)
+}
+
+func TestIntegrationUpdateTrip_MissingID_ReturnsNotFound(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping testcontainer test in short mode")
+	}
+	ctx := context.Background()
+	db := setupRepositoryTestDB(t, ctx)
+	repo := NewPostgresRepository(db)
+
+	missing := &Trip{
+		ID:      "00000000-0000-0000-0000-000000000000",
+		Title:   "Ghost Trip",
+		Status:  TripStatusDraft,
+		Version: 1,
+	}
+	err := repo.UpdateTrip(ctx, missing)
+
+	require.Error(t, err)
+	var domainErr *domainerrors.DomainError
+	require.ErrorAs(t, err, &domainErr)
+	assert.Equal(t, "not_found", domainErr.Code)
 }
 
 func TestIntegrationDeleteTrip_ExistingID_RemovesRow(t *testing.T) {

@@ -791,7 +791,6 @@ gate (driven by a separate `changes` job using `dorny/paths-filter`) unless the 
 1. **Lint** — `golangci-lint` (errcheck, govet, staticcheck, revive, gosec); must pass with zero errors.
 2. **Test** — `make test-coverage` (`go test -tags=test -short -race -coverprofile=coverage.out`), then uploads `coverage.out` as a build artifact. No PostgreSQL service container: `-short` skips every testcontainer-gated, DB-backed test, so nothing in CI needs a live database (one was configured here until 2026-07-16, but nothing ever connected to it) — target: ≥90% coverage for `internal/`.
 3. **Swagger drift** — regenerates `backend/docs/` via `make swagger` and fails the build if that produces an uncommitted diff, catching a `swag` annotation change whose regenerated contract was never committed (see [API Documentation Enforcement](../CLAUDE.md#api-documentation-enforcement-mandatory)).
-4. **Roadmap status drift** — `scripts/check-roadmap-status-drift.py` fails the build if `docs/roadmap.md`'s Status column disagrees with a linked GitHub issue that has since closed.
 
 The separate **`build`** job builds the multi-stage Docker image for `linux/arm64` to validate the
 `Dockerfile` builds; the image itself is **not** uploaded anywhere (no ECR push yet — planned for

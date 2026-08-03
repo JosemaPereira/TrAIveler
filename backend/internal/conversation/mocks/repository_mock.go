@@ -71,6 +71,53 @@ func (_c *MockRepository_AppendMessage_Call) RunAndReturn(run func(context.Conte
 	return _c
 }
 
+// CompleteSession provides a mock function with given fields: ctx, sessionID
+func (_m *MockRepository) CompleteSession(ctx context.Context, sessionID string) error {
+	ret := _m.Called(ctx, sessionID)
+
+	if len(ret) == 0 {
+		panic("no return value specified for CompleteSession")
+	}
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func(context.Context, string) error); ok {
+		r0 = rf(ctx, sessionID)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
+}
+
+// MockRepository_CompleteSession_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'CompleteSession'
+type MockRepository_CompleteSession_Call struct {
+	*mock.Call
+}
+
+// CompleteSession is a helper method to define mock.On call
+//   - ctx context.Context
+//   - sessionID string
+func (_e *MockRepository_Expecter) CompleteSession(ctx interface{}, sessionID interface{}) *MockRepository_CompleteSession_Call {
+	return &MockRepository_CompleteSession_Call{Call: _e.mock.On("CompleteSession", ctx, sessionID)}
+}
+
+func (_c *MockRepository_CompleteSession_Call) Run(run func(ctx context.Context, sessionID string)) *MockRepository_CompleteSession_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(context.Context), args[1].(string))
+	})
+	return _c
+}
+
+func (_c *MockRepository_CompleteSession_Call) Return(_a0 error) *MockRepository_CompleteSession_Call {
+	_c.Call.Return(_a0)
+	return _c
+}
+
+func (_c *MockRepository_CompleteSession_Call) RunAndReturn(run func(context.Context, string) error) *MockRepository_CompleteSession_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // CreateSession provides a mock function with given fields: ctx, session
 func (_m *MockRepository) CreateSession(ctx context.Context, session *conversation.Session) error {
 	ret := _m.Called(ctx, session)

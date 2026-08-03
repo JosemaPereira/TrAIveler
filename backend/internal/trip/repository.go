@@ -30,6 +30,15 @@ type Repository interface {
 	// FindTripByID returns the trip with the given ID, or a domain NotFound
 	// error if no row matches.
 	FindTripByID(ctx context.Context, id string) (*Trip, error)
+	// UpdateTrip writes the mutable trip fields (title, description, status)
+	// for trip.ID using optimistic locking on trip.Version: the UPDATE
+	// matches on id AND version and increments version atomically, with
+	// RETURNING feeding the new version/updated_at back into trip. A
+	// zero-row result is disambiguated by a follow-up existence check
+	// (mirrors auth.PostgresUserRepository.UpdateUser/resolveUpdateMiss): a
+	// present id means the version was stale (domain Conflict), an absent
+	// id means the trip is gone (domain NotFound).
+	UpdateTrip(ctx context.Context, trip *Trip) error
 	// DeleteTrip removes the trip with the given ID (and, via ON DELETE
 	// CASCADE, every Day/Activity/ConversationSession under it). Deleting an
 	// ID that doesn't exist is reported as a domain NotFound.
@@ -138,6 +147,42 @@ func (r *PostgresRepository) FindTripByID(ctx context.Context, id string) (*Trip
 	}
 
 	return &tr, nil
+}
+
+// UpdateTrip writes trip's mutable fields; see the Repository interface doc
+// comment.
+func (r *PostgresRepository) UpdateTrip(ctx context.Context, trip *Trip) error {
+	const query = `
+		UPDATE trips
+		SET title = $1, description = $2, status = $3, updated_at = NOW(), version = version + 1
+		WHERE id = $4 AND version = $5
+		RETURNING version, updated_at`
+
+	err := r.db.Pool().QueryRow(ctx, query,
+		trip.Title, trip.Description, trip.Status, trip.ID, trip.Version,
+	).Scan(&trip.Version, &trip.UpdatedAt)
+	if err == nil {
+		return nil
+	}
+	if errors.Is(err, pgx.ErrNoRows) {
+		return r.resolveTripUpdateMiss(ctx, trip.ID)
+	}
+	return fmt.Errorf("update trip: %w", err)
+}
+
+// resolveTripUpdateMiss disambiguates a zero-row optimistic update on trips:
+// an existing id means the version was stale (Conflict); a missing id means
+// NotFound.
+func (r *PostgresRepository) resolveTripUpdateMiss(ctx context.Context, id string) error {
+	var exists bool
+	err := r.db.Pool().QueryRow(ctx, "SELECT EXISTS (SELECT 1 FROM trips WHERE id = $1)", id).Scan(&exists)
+	if err != nil {
+		return fmt.Errorf("check trip existence: %w", err)
+	}
+	if exists {
+		return domainerrors.Conflict(fmt.Sprintf("trip %q was modified concurrently", id))
+	}
+	return domainerrors.NotFound("trip", id)
 }
 
 // DeleteTrip removes the trip with the given id; see the Repository

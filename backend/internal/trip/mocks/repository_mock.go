@@ -330,6 +330,53 @@ func (_c *MockRepository_ListTripsByUser_Call) RunAndReturn(run func(context.Con
 	return _c
 }
 
+// UpdateTrip provides a mock function with given fields: ctx, _a1
+func (_m *MockRepository) UpdateTrip(ctx context.Context, _a1 *trip.Trip) error {
+	ret := _m.Called(ctx, _a1)
+
+	if len(ret) == 0 {
+		panic("no return value specified for UpdateTrip")
+	}
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func(context.Context, *trip.Trip) error); ok {
+		r0 = rf(ctx, _a1)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
+}
+
+// MockRepository_UpdateTrip_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'UpdateTrip'
+type MockRepository_UpdateTrip_Call struct {
+	*mock.Call
+}
+
+// UpdateTrip is a helper method to define mock.On call
+//   - ctx context.Context
+//   - _a1 *trip.Trip
+func (_e *MockRepository_Expecter) UpdateTrip(ctx interface{}, _a1 interface{}) *MockRepository_UpdateTrip_Call {
+	return &MockRepository_UpdateTrip_Call{Call: _e.mock.On("UpdateTrip", ctx, _a1)}
+}
+
+func (_c *MockRepository_UpdateTrip_Call) Run(run func(ctx context.Context, _a1 *trip.Trip)) *MockRepository_UpdateTrip_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(context.Context), args[1].(*trip.Trip))
+	})
+	return _c
+}
+
+func (_c *MockRepository_UpdateTrip_Call) Return(_a0 error) *MockRepository_UpdateTrip_Call {
+	_c.Call.Return(_a0)
+	return _c
+}
+
+func (_c *MockRepository_UpdateTrip_Call) RunAndReturn(run func(context.Context, *trip.Trip) error) *MockRepository_UpdateTrip_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // UpsertActivity provides a mock function with given fields: ctx, activity
 func (_m *MockRepository) UpsertActivity(ctx context.Context, activity *trip.Activity) error {
 	ret := _m.Called(ctx, activity)

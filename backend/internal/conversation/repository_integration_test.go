@@ -91,9 +91,9 @@ func seedTrip(t *testing.T, ctx context.Context, db database.Client, suffix stri
 	return tripID
 }
 
-// newTestSession builds a Session for tripID with a fresh ID, mirroring the
-// future Conversation service's UUID generation (repository.CreateSession
-// requires ID to already be set).
+// newTestSession builds a Session for tripID with a fresh ID, mirroring
+// Service.startSession's UUID generation (repository.CreateSession requires
+// ID to already be set).
 func newTestSession(tripID string) *Session {
 	return &Session{
 		ID:     uuid.New().String(),
@@ -228,4 +228,43 @@ func TestIntegrationListMessages_NoMessages_ReturnsEmptySlice(t *testing.T) {
 
 	require.NoError(t, err)
 	assert.Empty(t, messages)
+}
+
+func TestIntegrationCompleteSession_ExistingID_MarksCompletedWithTimestamp(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping testcontainer test in short mode")
+	}
+	ctx := context.Background()
+	db := setupRepositoryTestDB(t, ctx)
+	repo := NewPostgresRepository(db)
+	tripID := seedTrip(t, ctx, db, "complete-1")
+	session := newTestSession(tripID)
+	require.NoError(t, repo.CreateSession(ctx, session))
+
+	err := repo.CompleteSession(ctx, session.ID)
+	require.NoError(t, err)
+
+	var status string
+	var completedAt time.Time
+	require.NoError(t, db.Pool().QueryRow(ctx,
+		`SELECT status, completed_at FROM conversation_sessions WHERE id = $1`, session.ID,
+	).Scan(&status, &completedAt))
+	assert.Equal(t, StatusCompleted, status)
+	assert.False(t, completedAt.IsZero())
+}
+
+func TestIntegrationCompleteSession_MissingID_ReturnsNotFound(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping testcontainer test in short mode")
+	}
+	ctx := context.Background()
+	db := setupRepositoryTestDB(t, ctx)
+	repo := NewPostgresRepository(db)
+
+	err := repo.CompleteSession(ctx, "00000000-0000-0000-0000-000000000000")
+
+	require.Error(t, err)
+	var domainErr *domainerrors.DomainError
+	require.ErrorAs(t, err, &domainErr)
+	assert.Equal(t, "not_found", domainErr.Code)
 }

@@ -1,10 +1,10 @@
 // Package conversation persists ConversationSession and ConversationMessage
 // (docs/data-model.md §ConversationSession/§ConversationMessage) — the
-// AI-assisted trip planning conversation history. This package is
-// repository-only (001-T034): it has no service or HTTP layer of its own,
-// and it deliberately owns no business rules (e.g. "only one in_progress
-// session per trip at a time") — those belong to the future Conversation
-// service that consumes this Repository (001-T036).
+// AI-assisted trip planning conversation history. Persistence lives in
+// repository.go (001-T034); business rules (e.g. "only one in_progress
+// session per trip at a time") live in Service (001-T036, service.go). The
+// package still has no HTTP layer of its own — that is a separate,
+// not-yet-built ticket (001-T039).
 package conversation
 
 import "time"
@@ -46,8 +46,9 @@ type Session struct {
 // Message is a single message within a Session — a system prompt, user
 // input, or AI response (docs/data-model.md §ConversationMessage). Content
 // sanitization (bluemonday for assistant output) and validation (
-// PromptValidator for user input) are [Logic] rules owned by the future
-// Conversation service, not enforced at this persistence layer.
+// PromptValidator for user input) are [Logic] rules owned by Service (not
+// yet implemented there — see docs/roadmap.md), not enforced at this
+// persistence layer.
 type Message struct {
 	ID         string    `json:"id" db:"id"`
 	SessionID  string    `json:"session_id" db:"session_id"`
