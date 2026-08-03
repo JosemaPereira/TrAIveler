@@ -1,0 +1,60 @@
+/*
+ * DaySection composite styles.
+ * All values reference design tokens from src/styles/tokens.css — no hard-coded
+ * colors, spacing, radii, or shadows.
+ */
+
+.daySection {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding: var(--space-4);
+  border-radius: var(--radius-lg);
+  background-color: var(--color-neutral-100);
+}
+
+.heading {
+  font-size: var(--font-size-xl);
+  font-weight: var(--font-weight-bold);
+  color: var(--color-neutral-900);
+  margin: 0;
+}
+
+.emptyMessage {
+  font-size: var(--font-size-sm);
+  color: var(--color-neutral-600);
+  margin: 0;
+}
+
+.activityList {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.activityListItem {
+  display: block;
+}
+
+/* Skeleton (loading) state — same footprint as the real content. */
+.skeletonHeading {
+  height: var(--space-6);
+  width: 40%;
+  border-radius: var(--radius-sm);
+  background-color: var(--color-neutral-300);
+}
+
+.skeletonList {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.skeletonActivity {
+  height: var(--space-12);
+  border-radius: var(--radius-md);
+  background-color: var(--color-neutral-300);
+}
