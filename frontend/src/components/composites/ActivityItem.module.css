@@ -1,0 +1,102 @@
+/*
+ * ActivityItem composite styles.
+ * All values reference design tokens from src/styles/tokens.css — no hard-coded
+ * colors, spacing, radii, or shadows.
+ */
+
+.activityItem {
+  display: flex;
+  gap: var(--space-3);
+  align-items: flex-start;
+  padding: var(--space-3);
+  border-radius: var(--radius-md);
+  background-color: var(--color-white);
+}
+
+.icon {
+  flex-shrink: 0;
+  width: var(--space-6);
+  height: var(--space-6);
+  color: var(--color-primary);
+}
+
+.body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  min-width: 0;
+}
+
+.header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.title {
+  font-size: var(--font-size-base);
+  font-weight: var(--font-weight-bold);
+  color: var(--color-neutral-900);
+  margin: 0;
+}
+
+.typeLabel {
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-neutral-600);
+  text-transform: uppercase;
+}
+
+.aiBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-primary);
+  background-color: var(--color-primary-subtle);
+  padding: var(--space-1) var(--space-2);
+  border-radius: var(--radius-full);
+}
+
+.aiIcon {
+  width: var(--space-3);
+  height: var(--space-3);
+}
+
+.description {
+  font-size: var(--font-size-sm);
+  color: var(--color-neutral-600);
+  margin: 0;
+}
+
+/* Skeleton (loading) state — same footprint as the real content. */
+.skeletonIcon {
+  flex-shrink: 0;
+  width: var(--space-6);
+  height: var(--space-6);
+  border-radius: var(--radius-full);
+  background-color: var(--color-neutral-300);
+}
+
+.skeletonBody {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  flex: 1;
+}
+
+.skeletonLine {
+  height: var(--space-3);
+  width: 60%;
+  border-radius: var(--radius-sm);
+  background-color: var(--color-neutral-300);
+}
+
+.skeletonLineShort {
+  height: var(--space-3);
+  width: 35%;
+  border-radius: var(--radius-sm);
+  background-color: var(--color-neutral-300);
+}
