@@ -101,6 +101,7 @@ backend/
 │       ├── server.go                 # HTTPServer: builds the Chi router, middleware chain, and the /healthz handler
 │       ├── auth.go                   # buildAuthComponents(): composes the auth vertical (JWT keys/generator/issuer/refresher, subscription + auth services, handler)
 │       ├── token_validator.go        # *jwt.Validator → middleware.TokenValidator adapter (008-T207; lives in main to break the jwt→errors→middleware cycle)
+│       ├── trip.go                   # buildTripComponents(): composes the Trip/Conversation vertical (repos, AI client, Itinerary service, Trip/Conversation handlers) (001-T038/T039/T040, issue #237)
 │       └── routes.go                 # registerRoutes(): single place new endpoints are wired up (/healthz public; /api/v1 split into a public and an Authenticate-gated group; /swagger/* gated in production only)
 ├── internal/                         # Domain packages — not importable outside this module
 │   ├── middleware/
@@ -161,15 +162,17 @@ backend/
 │   │   └── mocks/                    # Generated Repository mock (vektra/mockery)
 │   ├── collaboration/                # doc.go scaffold only (Spec 008 Phase 3+, unbuilt)
 │   ├── security/                     # doc.go scaffold only (Spec 008 Phase 3+, unbuilt)
-│   ├── trip/                         # Trip/Destination/Day/Activity persistence + business logic (001-T033/T035, issues #234/#235); no HTTP handler yet
+│   ├── trip/                         # Trip/Destination/Day/Activity persistence + business logic + HTTP handler (001-T033/T035/T038, issues #234/#235/#237)
 │   │   ├── model.go                  # Trip, Destination, Day, Activity entities + status/type constants (docs/data-model.md)
 │   │   ├── repository.go             # PostgresRepository: CreateTrip, ListTripsByUser, FindTripByID, UpdateTrip (optimistic-locking), DeleteTrip, CreateDestination, UpsertDay, UpsertActivity (optimistic-locking), DeleteActivity
 │   │   ├── service.go                # Service: Create (admin-only), List, Get (404-not-403 anti-enumeration), Update/Delete (Forbidden on non-owner, subscription-gated, forward-only status transitions)
+│   │   ├── handler.go                # HTTP handlers: POST/GET /trips, GET/PUT/DELETE /trips/{id} — swag-annotated per internal/auth/handler.go's shape
 │   │   └── mocks/                    # Generated Repository mock (vektra/mockery)
-│   ├── conversation/                 # ConversationSession/ConversationMessage persistence + business logic (001-T034/T036, issues #234/#235); no HTTP handler yet
+│   ├── conversation/                 # ConversationSession/ConversationMessage persistence + business logic + HTTP handler (001-T034/T036/T039, issues #234/#235/#237)
 │   │   ├── model.go                  # Session, Message entities + status/role constants (docs/data-model.md)
 │   │   ├── repository.go             # PostgresRepository: CreateSession, GetSessionByTrip, AppendMessage, ListMessages, CompleteSession
 │   │   ├── service.go                # Service: SendMessage (reuses/starts a session, appends turns, delegates to an ItineraryGenerator), GetHistory
+│   │   ├── handler.go                # HTTP handlers: POST/GET /trips/{id}/conversation — the codebase's first text/event-stream endpoint (single SSE frame per turn), swag-annotated per internal/auth/handler.go's shape
 │   │   └── mocks/                    # Generated Repository mock (vektra/mockery)
 │   └── itinerary/                    # Drives the AI conversation and persists the resulting itinerary (001-T037, issue #236); no HTTP handler yet
 │       ├── doc.go                    # Package overview
@@ -209,10 +212,13 @@ backend/
 > consumer-defined `Repository` interface, returning `NotFound`/`Conflict` domain errors on
 > single-row lookups and the version-checked `UpsertActivity`/`UpdateTrip` update). Both then gained
 > their `service.go` (issue #235, 001-T035/001-T036) — business logic with no knowledge of HTTP or
-> SQL. Neither package has an HTTP handler layer yet — that's future work (001-T038/T039/T040, issue
-> #237) — so don't copy them for the handler layer of a new package; see `internal/auth/` for that
-> instead. `internal/itinerary/` (issue #236, 001-T037) is a third example worth reading alongside
-> them: it has no `model.go` of its own (it operates on `ai.*` request/response types and persists
+> SQL. Both then gained their `handler.go` (issue #237, 001-T038/T039/T040), mirroring
+> `internal/auth/handler.go`'s `swag`-annotation pattern (see below) — `trip.Handler` for
+> `/trips`/`/trips/{id}`, `conversation.Handler` for `/trips/{id}/conversation` (this codebase's
+> first `text/event-stream` endpoint: `Continue` is synchronous, so it emits exactly one SSE frame
+> per turn rather than a token relay). `internal/itinerary/` (issue #236, 001-T037) is a third
+> example worth reading alongside them: it has no `model.go` of its own (it operates on `ai.*`
+> request/response types and persists
 > through `trip.Repository`, referenced structurally via a narrow `Persister` port — see "Itinerary
 > service" below) and implements `conversation.ItineraryGenerator`, the interface-first seam
 > `conversation.Service.SendMessage` depends on rather than importing `internal/ai` directly.
@@ -446,11 +452,11 @@ With the backend running (either setup path above), open the interactive Swagger
 open http://localhost:8080/swagger/index.html
 ```
 
-The page renders every `swag`-annotated endpoint (today: the `internal/auth` endpoints — see
-[Project Structure](#project-structure)) and lets you send real requests against your locally
-running server via "Try it out" — the page loads its contract from the live `GET
-/swagger/doc.json` route, not a static or hand-edited copy, so it always reflects whatever `make
-swagger` last generated from the annotated handlers.
+The page renders every `swag`-annotated endpoint (today: the `internal/auth`, `internal/trip`, and
+`internal/conversation` endpoints — see [Project Structure](#project-structure)) and lets you send
+real requests against your locally running server via "Try it out" — the page loads its contract
+from the live `GET /swagger/doc.json` route, not a static or hand-edited copy, so it always
+reflects whatever `make swagger` last generated from the annotated handlers.
 
 Ignore the **Authorize** box. The contract's `CookieAuth` definition is an `apiKey` in the `Cookie`
 header (Swagger 2.0 has no cookie scheme — that is OpenAPI 3's `in: cookie`), and browsers refuse
@@ -464,8 +470,10 @@ or `GET /api/v1/auth/me` request — the response matches what `curl` would retu
 endpoint. [Scenario 2 of
 `specs/009-api-documentation/quickstart.md`](../specs/009-api-documentation/quickstart.md#scenario-2--interactive-ui-real-request)
 walks through the same UI mechanics against the now-deleted `internal/example` resource; read it as a
-historical record of the flow, not a runnable step, until that scenario is updated. The interactive
-demo will cover trip data once `internal/trip` grows an HTTP layer (001-T035).
+historical record of the flow, not a runnable step, until that scenario is updated. The `trips` and
+`conversation` tags cover trip CRUD and the planning conversation (001-T038/001-T039), including the
+`POST /trips/{id}/conversation` `text/event-stream` endpoint — note Swagger UI's "Try it out" renders
+its single SSE frame as a plain response body, not a live stream.
 
 `/swagger/*` is gated (008-T208) with the same `middleware.Authenticate` chain as the authenticated
 `/api/v1` group in `cmd/api/routes.go`, but **only when `Config.IsProduction()`** (post-closure fix,
