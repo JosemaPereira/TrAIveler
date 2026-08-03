@@ -79,7 +79,9 @@ Read the following files before generating code, tests, or UI for this project:
 
 - Test-Driven Development: Red-Green-Refactor
 - Incremental, small, and testable changes
-- Validation before commit: tests pass, no lint errors
+- Validation before commit: tests pass, no lint errors, no formatting issues (frontend:
+  `npm run format:check` before every commit — CI's Prettier gate catches unformatted files late;
+  do not rely on it to be the first check)
 
 ## API Documentation Enforcement (MANDATORY)
 

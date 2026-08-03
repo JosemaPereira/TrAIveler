@@ -65,7 +65,8 @@ export interface Message {
 }
 
 /** Conversation session status, mirroring the conversation_sessions table CHECK constraint. */
-export type ConversationSessionStatus = 'in_progress' | 'completed' | 'abandoned'
+export type ConversationSessionStatus =
+  'in_progress' | 'completed' | 'abandoned'
 
 /** `GET /trips/:id/conversation` body — the session's status plus every message so far. */
 export interface ConversationHistoryResponse {

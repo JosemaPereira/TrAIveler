@@ -101,10 +101,7 @@ function parseSseFrame(raw: string): unknown {
  * simplification for this issue's scope, and refresh-and-replay would need
  * to redo this same raw fetch + SSE parse rather than reuse `apiFetch`'s.
  */
-async function postSseMessage<T>(
-  endpoint: string,
-  body: unknown
-): Promise<T> {
+async function postSseMessage<T>(endpoint: string, body: unknown): Promise<T> {
   const response = await fetch(`${getBaseUrl()}${endpoint}`, {
     method: 'POST',
     headers: {
