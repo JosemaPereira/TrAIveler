@@ -13,8 +13,10 @@ import (
 	"github.com/JosemaPereira/TrAIveler/backend/config"
 	"github.com/JosemaPereira/TrAIveler/backend/internal/auth"
 	"github.com/JosemaPereira/TrAIveler/backend/internal/auth/jwt"
+	"github.com/JosemaPereira/TrAIveler/backend/internal/conversation"
 	"github.com/JosemaPereira/TrAIveler/backend/internal/database"
 	"github.com/JosemaPereira/TrAIveler/backend/internal/middleware"
+	"github.com/JosemaPereira/TrAIveler/backend/internal/trip"
 )
 
 // healthzTimeout bounds the database ping issued by /healthz.
@@ -35,21 +37,18 @@ type HTTPServer struct {
 	cfg         *config.Config
 	logger      *slog.Logger
 	authHandler *auth.Handler
+	// tripHandler and conversationHandler carry the first
+	// subscription-gated production routes (PUT/DELETE /trips/{id}), which
+	// is what proves 008-T209's gate/context propagation now — see
+	// docs/roadmap.md 001-T038/001-T039/001-T040.
+	tripHandler         *trip.Handler
+	conversationHandler *conversation.Handler
 	// tokenValidator backs the Authenticate gate on the authenticated route
 	// group. It defaults to the JWT-backed adapter over the very key set
 	// buildAuthComponents signs with — one key provider, never two — and is
 	// overridable through a serverOption so wiring tests need no real RSA keys.
 	tokenValidator middleware.TokenValidator
-	// extraProtectedRoutes registers additional routes inside the authenticated
-	// /api/v1 group. It is always nil in production: it exists only because no
-	// production handler reads middleware.HasSubscriptionFromContext yet, while
-	// 008-T209 requires proving that the gate really populates that context at
-	// the composition root — which needs some handler behind the gate to observe
-	// it from. Delete this field, its three guarded lines in registerRoutes, and
-	// withProtectedRoutes in routes_test.go as soon as a real
-	// subscription-gated route lands and can carry that assertion instead.
-	extraProtectedRoutes func(chi.Router)
-	startTime            time.Time
+	startTime      time.Time
 }
 
 // serverOption customizes an HTTPServer before its routes are registered. The
@@ -87,14 +86,23 @@ func NewHTTPServer(db database.Client, cfg *config.Config, logger *slog.Logger, 
 		return nil, fmt.Errorf("build auth components: %w", err)
 	}
 
+	// The Trip/Conversation vertical is composed in buildTripComponents
+	// (cmd/api/trip.go), mirroring the auth vertical above.
+	tripComps, err := buildTripComponents(cfg, db)
+	if err != nil {
+		return nil, fmt.Errorf("build trip components: %w", err)
+	}
+
 	s := &HTTPServer{
-		router:         router,
-		db:             db,
-		cfg:            cfg,
-		logger:         logger,
-		authHandler:    authComps.handler,
-		tokenValidator: newJWTTokenValidator(jwt.NewValidator(authComps.keyProvider)),
-		startTime:      time.Now(),
+		router:              router,
+		db:                  db,
+		cfg:                 cfg,
+		logger:              logger,
+		authHandler:         authComps.handler,
+		tripHandler:         tripComps.tripHandler,
+		conversationHandler: tripComps.conversationHandler,
+		tokenValidator:      newJWTTokenValidator(jwt.NewValidator(authComps.keyProvider)),
+		startTime:           time.Now(),
 	}
 
 	for _, opt := range opts {

@@ -29,9 +29,11 @@ packages:
   github.com/JosemaPereira/TrAIveler/backend/internal/trip:
     interfaces:
       Repository:
+      Manager:
   github.com/JosemaPereira/TrAIveler/backend/internal/conversation:
     interfaces:
       Repository:
+      Manager:
   github.com/JosemaPereira/TrAIveler/backend/internal/subscription/payment:
     interfaces:
       PaymentProvider:

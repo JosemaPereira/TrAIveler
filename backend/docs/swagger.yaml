@@ -62,6 +62,57 @@ definitions:
       message:
         type: string
     type: object
+  conversation.HistoryResponse:
+    properties:
+      messages:
+        items:
+          $ref: '#/definitions/conversation.Message'
+        type: array
+      session_id:
+        type: string
+      status:
+        type: string
+    type: object
+  conversation.Message:
+    properties:
+      content:
+        type: string
+      id:
+        type: string
+      role:
+        type: string
+      session_id:
+        type: string
+      timestamp:
+        type: string
+      token_count:
+        type: integer
+    type: object
+  conversation.SendMessageRequest:
+    properties:
+      message:
+        type: string
+    type: object
+  conversation.SendMessageResponse:
+    properties:
+      itinerary_ready:
+        type: boolean
+      message:
+        type: string
+      role:
+        type: string
+      session_id:
+        type: string
+    type: object
+  conversation.invalidRequestEnvelope:
+    properties:
+      error:
+        type: string
+      message:
+        type: string
+      request_id:
+        type: string
+    type: object
   errors.ErrorResponse:
     properties:
       details:
@@ -104,6 +155,64 @@ definitions:
       status:
         type: string
       user_id:
+        type: string
+    type: object
+  trip.CreateTripRequest:
+    properties:
+      description:
+        type: string
+      title:
+        type: string
+    type: object
+  trip.ListResponse:
+    properties:
+      trips:
+        items:
+          $ref: '#/definitions/trip.Trip'
+        type: array
+    type: object
+  trip.Response:
+    properties:
+      trip:
+        $ref: '#/definitions/trip.Trip'
+    type: object
+  trip.Trip:
+    properties:
+      archived:
+        type: boolean
+      created_at:
+        type: string
+      creator_id:
+        type: string
+      description:
+        type: string
+      id:
+        type: string
+      status:
+        type: string
+      title:
+        type: string
+      updated_at:
+        type: string
+      version:
+        type: integer
+    type: object
+  trip.UpdateTripRequest:
+    properties:
+      description:
+        type: string
+      status:
+        type: string
+      title:
+        type: string
+    type: object
+  trip.invalidRequestEnvelope:
+    properties:
+      error:
+        type: string
+      message:
+        type: string
+      request_id:
         type: string
     type: object
 info:
@@ -295,6 +404,301 @@ paths:
       summary: Register a new account
       tags:
       - auth
+  /trips:
+    get:
+      description: Returns every non-archived trip owned by the authenticated user.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/trip.ListResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/errors.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/errors.ErrorResponse'
+      security:
+      - CookieAuth: []
+      summary: List trips
+      tags:
+      - trips
+    post:
+      consumes:
+      - application/json
+      description: |-
+        Creates a new draft trip owned by the authenticated user. Only an admin may create a
+        trip; any other role is rejected with 403 forbidden.
+      parameters:
+      - description: Trip payload
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/trip.CreateTripRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/trip.Response'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/trip.invalidRequestEnvelope'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/errors.ErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/errors.ErrorResponse'
+        "422":
+          description: Unprocessable Entity
+          schema:
+            $ref: '#/definitions/errors.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/errors.ErrorResponse'
+      security:
+      - CookieAuth: []
+      summary: Create a trip
+      tags:
+      - trips
+  /trips/{id}:
+    delete:
+      description: |-
+        Deletes the trip identified by id (cascading to its days/activities/conversation
+        sessions), provided the authenticated user is its creator and currently holds a
+        strictly active subscription.
+      parameters:
+      - description: Trip ID
+        in: path
+        name: id
+        required: true
+        type: string
+      responses:
+        "204":
+          description: No Content
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/errors.ErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/errors.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/errors.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/errors.ErrorResponse'
+      security:
+      - CookieAuth: []
+      summary: Delete a trip
+      tags:
+      - trips
+    get:
+      description: |-
+        Returns the trip identified by id, provided the authenticated user owns it. A trip
+        owned by someone else is reported as 404, not 403, so a non-owner cannot distinguish
+        "doesn't exist" from "exists but isn't yours" (anti-enumeration).
+      parameters:
+      - description: Trip ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/trip.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/errors.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/errors.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/errors.ErrorResponse'
+      security:
+      - CookieAuth: []
+      summary: Get a trip
+      tags:
+      - trips
+    put:
+      consumes:
+      - application/json
+      description: |-
+        Updates title/description/status for the trip identified by id, provided the
+        authenticated user is its creator and currently holds an active-or-grace-period
+        subscription. Requires an If-Match header carrying the trip's current version
+        (optimistic locking); a stale version returns 409 conflict.
+      parameters:
+      - description: Trip ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Current trip version
+        in: header
+        name: If-Match
+        required: true
+        type: string
+      - description: Trip payload
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/trip.UpdateTripRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/trip.Response'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/trip.invalidRequestEnvelope'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/errors.ErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/errors.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/errors.ErrorResponse'
+        "409":
+          description: Conflict
+          schema:
+            $ref: '#/definitions/errors.ErrorResponse'
+        "422":
+          description: Unprocessable Entity
+          schema:
+            $ref: '#/definitions/errors.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/errors.ErrorResponse'
+      security:
+      - CookieAuth: []
+      summary: Update a trip
+      tags:
+      - trips
+  /trips/{id}/conversation:
+    get:
+      description: |-
+        Returns the trip's most recent planning conversation session and its messages in
+        chronological order.
+      parameters:
+      - description: Trip ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/conversation.HistoryResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/errors.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/errors.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/errors.ErrorResponse'
+      security:
+      - CookieAuth: []
+      summary: Get conversation history
+      tags:
+      - conversation
+    post:
+      consumes:
+      - application/json
+      description: |-
+        Appends a user message to the trip's planning conversation and returns the AI's next
+        turn as a single Server-Sent Event. Continue is synchronous — one complete reply per
+        turn, not token-by-token streaming — so exactly one "data:" frame is written.
+        itinerary_ready signals the conversation has produced a persisted itinerary.
+      parameters:
+      - description: Trip ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: User message
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/conversation.SendMessageRequest'
+      produces:
+      - text/event-stream
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/conversation.SendMessageResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/conversation.invalidRequestEnvelope'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/errors.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/errors.ErrorResponse'
+        "422":
+          description: Unprocessable Entity
+          schema:
+            $ref: '#/definitions/errors.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/errors.ErrorResponse'
+        "503":
+          description: Service Unavailable
+          schema:
+            $ref: '#/definitions/errors.ErrorResponse'
+      security:
+      - CookieAuth: []
+      summary: Send a conversation turn
+      tags:
+      - conversation
 securityDefinitions:
   CookieAuth:
     description: 'Session authentication via the HTTP-only `access_token` cookie set

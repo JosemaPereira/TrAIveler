@@ -12,7 +12,6 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/go-chi/chi/v5"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
@@ -25,7 +24,6 @@ import (
 
 const (
 	gatedUserID       = "33333333-3333-3333-3333-333333333333"
-	probePath         = "/api/v1/auth-probe"
 	anyAccessTokenVal = "any-access-token-value"
 )
 
@@ -52,37 +50,24 @@ func withTokenValidator(validator middleware.TokenValidator) serverOption {
 	return func(s *HTTPServer) { s.tokenValidator = validator }
 }
 
-// withProtectedRoutes mounts extra routes inside the authenticated /api/v1
-// group, so a test can observe what a handler behind the gate actually sees.
-// It drives HTTPServer.extraProtectedRoutes and shares that field's lifetime:
-// both go away once a real subscription-gated route exists to assert
-// 008-T209's context propagation against.
-func withProtectedRoutes(register func(chi.Router)) serverOption {
-	return func(s *HTTPServer) { s.extraProtectedRoutes = register }
-}
-
 // newGatedServer builds a server whose gate accepts every presented cookie and
-// reports the given claims, optionally mounting extra probe routes inside the
-// authenticated group. Uses the default (non-production) test config.
-func newGatedServer(t *testing.T, db database.Client, extra ...serverOption) (*HTTPServer, *fakeTokenValidator) {
+// reports the given claims. Uses the default (non-production) test config.
+func newGatedServer(t *testing.T, db database.Client) (*HTTPServer, *fakeTokenValidator) {
 	t.Helper()
-	return newGatedServerWithConfig(t, db, testConfig(t), extra...)
+	return newGatedServerWithConfig(t, db, testConfig(t))
 }
 
 // newGatedServerWithConfig is newGatedServer parametrized by cfg, so a test can
 // exercise environment-dependent behavior — e.g. /swagger/* only being gated in
 // production (issue #192 Task C) — without duplicating the fake-validator wiring.
-func newGatedServerWithConfig(
-	t *testing.T, db database.Client, cfg *config.Config, extra ...serverOption,
-) (*HTTPServer, *fakeTokenValidator) {
+func newGatedServerWithConfig(t *testing.T, db database.Client, cfg *config.Config) (*HTTPServer, *fakeTokenValidator) {
 	t.Helper()
 
 	validator := &fakeTokenValidator{
 		claims: middleware.AuthClaims{UserID: gatedUserID, HasSubscription: true},
 	}
-	opts := append([]serverOption{withTokenValidator(validator)}, extra...)
 
-	srv, err := NewHTTPServer(db, cfg, testLogger(t), opts...)
+	srv, err := NewHTTPServer(db, cfg, testLogger(t), withTokenValidator(validator))
 	require.NoError(t, err)
 
 	return srv, validator
@@ -270,38 +255,6 @@ func TestHTTPServer_PublicRoutes_ReachableWithoutAuthentication(t *testing.T) {
 				"a public route must not be guarded by the Authenticate gate")
 		})
 	}
-}
-
-func TestHTTPServer_ProtectedRoutes_ValidAccessTokenCookie_ReachesHandlerWithUserContext(t *testing.T) {
-	// Arrange
-	var (
-		gotUserID    string
-		gotUserOK    bool
-		gotHasSub    bool
-		gotHasSubOK  bool
-		probeReached bool
-	)
-	probe := withProtectedRoutes(func(r chi.Router) {
-		r.Get("/auth-probe", func(w http.ResponseWriter, r *http.Request) {
-			probeReached = true
-			gotUserID, gotUserOK = middleware.UserIDFromContext(r.Context())
-			gotHasSub, gotHasSubOK = middleware.HasSubscriptionFromContext(r.Context())
-			w.WriteHeader(http.StatusOK)
-		})
-	})
-	srv, validator := newGatedServer(t, dbmocks.NewMockClient(t), probe)
-
-	// Act
-	rec := doRequest(t, srv, http.MethodGet, probePath, true)
-
-	// Assert
-	require.Equal(t, http.StatusOK, rec.Code)
-	assert.True(t, probeReached, "a valid cookie must let the request through to the handler")
-	assert.Equal(t, 1, validator.callCount)
-	assert.True(t, gotUserOK, "middleware.UserIDFromContext must resolve inside the protected group")
-	assert.Equal(t, gatedUserID, gotUserID)
-	assert.True(t, gotHasSubOK, "middleware.HasSubscriptionFromContext must resolve inside the protected group")
-	assert.True(t, gotHasSub)
 }
 
 // TestHTTPServer_SwaggerRoutes_NonProductionConfig_ServesWithoutAuthentication

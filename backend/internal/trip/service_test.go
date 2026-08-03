@@ -135,6 +135,24 @@ func TestUnitList_DelegatesToRepository(t *testing.T) {
 	assert.Equal(t, want, got)
 }
 
+// TestUnitList_ArchivedTrips_ExcludedFromResults covers the 008-T103
+// carry-over cited by 001-T038: Trip.Archived exists as a column but nothing
+// yet sets it true, so this is the first behavioral test of the filter.
+// Non-archived order is preserved, matching the repository's own ordering.
+func TestUnitList_ArchivedTrips_ExcludedFromResults(t *testing.T) {
+	repo := tripmocks.NewMockRepository(t)
+	visible := &trip.Trip{ID: testTripID, CreatorID: testUserID, Archived: false}
+	archived := &trip.Trip{ID: testOtherID, CreatorID: testUserID, Archived: true}
+	repo.EXPECT().ListTripsByUser(mock.Anything, testUserID).
+		Return([]*trip.Trip{visible, archived}, nil).Once()
+	svc := trip.NewService(repo, &fakeSubscriptionLookup{})
+
+	got, err := svc.List(context.Background(), testUserID)
+
+	require.NoError(t, err)
+	assert.Equal(t, []*trip.Trip{visible}, got)
+}
+
 // --- Get ---
 
 func TestUnitGet_OwnedTrip_ReturnsTrip(t *testing.T) {
