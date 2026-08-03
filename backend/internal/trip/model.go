@@ -1,9 +1,9 @@
 // Package trip persists Trip, Destination, Day, and Activity — the core
 // itinerary domain (docs/data-model.md §Trip/§Destination/§Day/§Activity).
-// This package is repository-only (001-T033): it has no service or HTTP
-// layer of its own, and it deliberately owns no business rules (e.g.
-// "only admin creates trips") — those belong to the future Trip service
-// that consumes this Repository (001-T035).
+// Persistence lives in repository.go (001-T033); business rules (e.g. "only
+// admin creates trips") live in Service (001-T035, service.go). The package
+// still has no HTTP layer of its own — that is a separate, not-yet-built
+// ticket (001-T038/T039).
 package trip
 
 import "time"
@@ -27,7 +27,7 @@ const (
 // Trip is the top-level container for a planned journey (docs/data-model.md
 // §Trip). Description is nullable in the database; a nil pointer means no
 // description was set. Version is the optimistic-locking counter enforced by
-// UpsertActivity for Activity and, in the future Trip service, for Trip's own
+// UpsertActivity for Activity and, in Service, for Trip's own
 // admin-modification updates.
 type Trip struct {
 	ID          string    `json:"id" db:"id"`
