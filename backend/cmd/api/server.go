@@ -14,7 +14,6 @@ import (
 	"github.com/JosemaPereira/TrAIveler/backend/internal/auth"
 	"github.com/JosemaPereira/TrAIveler/backend/internal/auth/jwt"
 	"github.com/JosemaPereira/TrAIveler/backend/internal/database"
-	"github.com/JosemaPereira/TrAIveler/backend/internal/example"
 	"github.com/JosemaPereira/TrAIveler/backend/internal/middleware"
 )
 
@@ -31,12 +30,11 @@ var version = "0.1.0"
 // structured logger together and exposes the API's operational HTTP
 // endpoints. Domain routes are registered the same way in routes.go.
 type HTTPServer struct {
-	router         *chi.Mux
-	db             database.Client
-	cfg            *config.Config
-	logger         *slog.Logger
-	exampleHandler *example.Handler
-	authHandler    *auth.Handler
+	router      *chi.Mux
+	db          database.Client
+	cfg         *config.Config
+	logger      *slog.Logger
+	authHandler *auth.Handler
 	// tokenValidator backs the Authenticate gate on the authenticated route
 	// group. It defaults to the JWT-backed adapter over the very key set
 	// buildAuthComponents signs with — one key provider, never two — and is
@@ -81,15 +79,6 @@ func NewHTTPServer(db database.Client, cfg *config.Config, logger *slog.Logger, 
 	router.Use(middleware.CORS(cfg.Server.AllowedCORS))
 	router.Use(middleware.BodySize)
 
-	// internal/example is the canonical layered-pattern reference (model ->
-	// repository -> service -> handler); wiring it here is what makes it a
-	// runnable demo instead of just unit-tested code in isolation. Future
-	// domain packages (Trip, User, ...) follow the same three-line
-	// construction and get mounted the same way in registerRoutes below.
-	exampleRepo := example.NewPostgresRepository(db)
-	exampleService := example.NewService(exampleRepo)
-	exampleHandler := example.NewHandler(exampleService)
-
 	// The auth vertical (register/login/refresh/logout) is composed in
 	// buildAuthComponents (cmd/api/auth.go), which can fail on fatal
 	// misconfiguration.
@@ -103,7 +92,6 @@ func NewHTTPServer(db database.Client, cfg *config.Config, logger *slog.Logger, 
 		db:             db,
 		cfg:            cfg,
 		logger:         logger,
-		exampleHandler: exampleHandler,
 		authHandler:    authComps.handler,
 		tokenValidator: newJWTTokenValidator(jwt.NewValidator(authComps.keyProvider)),
 		startTime:      time.Now(),

@@ -4,7 +4,7 @@
 // OpenAPI metadata (title, version, description, base path, and the shared
 // security definition) for the generated contract in backend/docs/.
 // Endpoint-level annotations live directly above each handler function, per
-// swag convention — see internal/example/handler.go, the canonical reference
+// swag convention — see internal/auth/handler.go, the canonical reference
 // for the annotation shape.
 // The package doc comment for `main` itself lives in cmd/api/main.go.
 //

@@ -20,14 +20,16 @@ packages:
   github.com/JosemaPereira/TrAIveler/backend/internal/ai:
     interfaces:
       AIClient:
-  github.com/JosemaPereira/TrAIveler/backend/internal/example:
-    interfaces:
-      Repository:
-      Service:
   github.com/JosemaPereira/TrAIveler/backend/internal/middleware:
     interfaces:
       TokenValidator:
   github.com/JosemaPereira/TrAIveler/backend/internal/subscription:
+    interfaces:
+      Repository:
+  github.com/JosemaPereira/TrAIveler/backend/internal/trip:
+    interfaces:
+      Repository:
+  github.com/JosemaPereira/TrAIveler/backend/internal/conversation:
     interfaces:
       Repository:
   github.com/JosemaPereira/TrAIveler/backend/internal/subscription/payment:

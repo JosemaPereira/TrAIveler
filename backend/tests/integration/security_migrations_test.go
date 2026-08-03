@@ -20,8 +20,8 @@
 // migration added here: goose.Up applies one directory in strict version order
 // and stops at the first failure, so a migration referencing a not-yet-created
 // table breaks every goose.Up(sqlDB, migrations.Dir) call in the repo —
-// internal/example's and error_test.go's included — not just this package's.
-// That is why 013/014/015 land in destinations → days → activities order.
+// error_test.go's included — not just this package's. That is why 013/014/015
+// land in destinations → days → activities order.
 package integration
 
 import (
@@ -41,8 +41,7 @@ import (
 // coreVersion is the goose version of the last Phase-1/2/3 security table
 // migration (004-T006 to 004-T009: users, refresh_tokens, jwt_signing_keys,
 // security_events). Stopping goose UpTo/DownTo here deliberately avoids
-// touching the pre-existing examples-table migration (version
-// 20260710120000, which sorts after these).
+// touching any later migration in the directory.
 const coreVersion = 4
 
 // openMigrationDB opens a database/sql handle against a fresh postgres

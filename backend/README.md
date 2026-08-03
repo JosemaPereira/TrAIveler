@@ -38,12 +38,17 @@ repositories, AI integration, observability middleware, and security primitives.
 > always-succeeds `StubPaymentProvider`) — but it still has **no HTTP handler/routes of its own**;
 > registration/login reach it only through `internal/auth`'s composition. `internal/{collaboration,
 > security}` remain `doc.go` scaffolds only (still unbuilt). The Chi router exposes `GET /healthz`,
-> the auth endpoints above, the demo `/api/v1/examples` CRUD resource, and `/swagger/*`.
-> `internal/{trip, itinerary, conversation, suggestion}` are still unbuilt, and `pkg/{health,
-> middleware, response}` shown under "Target" remain superseded by the "everything under
-> `internal/`" convention. `internal/example/` itself is still throwaway reference code — it must be
-> deleted once the first real domain package ships (tracked in
-> `.github/memory/patterns-discovered.md`), not a permanent feature.
+> the auth endpoints above, and `/swagger/*`. **Sprint 8** (issue #234, G-US1-REPOS) added the first
+> real domain repositories — `internal/trip/` (Trip/Destination/Day/Activity) and
+> `internal/conversation/` (ConversationSession/ConversationMessage) — and, per the standing
+> "`internal/example/` is throwaway — delete on first real domain" convention
+> (`.github/memory/patterns-discovered.md`), deleted `internal/example/` entirely: all its files and
+> mocks, its `.mockery.yaml` entries, the `/api/v1/examples` route mount, and its timestamp-versioned
+> migration. Both new packages are **repository-only** so far — no service or HTTP handler layer yet,
+> so neither is mounted on any route (that's future work, 001-T035/T036) — and the canonical
+> `swag`-annotation reference is now `internal/auth/handler.go`. `internal/{itinerary, suggestion}`
+> remain unbuilt, and `pkg/{health, middleware, response}` shown under "Target" remain superseded by
+> the "everything under `internal/`" convention.
 
 ---
 
@@ -93,7 +98,7 @@ backend/
 ├── cmd/
 │   └── api/
 │       ├── main.go                   # Process entry point: config → DB client → HTTP server → graceful shutdown
-│       ├── server.go                 # HTTPServer: builds the Chi router, middleware chain, /healthz handler, and the internal/example wiring
+│       ├── server.go                 # HTTPServer: builds the Chi router, middleware chain, and the /healthz handler
 │       ├── auth.go                   # buildAuthComponents(): composes the auth vertical (JWT keys/generator/issuer/refresher, subscription + auth services, handler)
 │       ├── token_validator.go        # *jwt.Validator → middleware.TokenValidator adapter (008-T207; lives in main to break the jwt→errors→middleware cycle)
 │       └── routes.go                 # registerRoutes(): single place new endpoints are wired up (/healthz public; /api/v1 split into a public and an Authenticate-gated group; /swagger/* gated in production only)
@@ -129,7 +134,7 @@ backend/
 │   │   ├── models.go                 # User/RefreshToken domain models + Register/Login request/response DTOs (issues #167/#169)
 │   │   ├── repository.go             # PostgresUserRepository/PostgresRefreshTokenRepository: CRUD + optimistic locking on User.Version (issue #175)
 │   │   ├── service.go                # Service: Register (uniqueness, hashing, optional subscription), Login (rate-limited, no email enumeration) (issue #176)
-│   │   ├── handler.go                # HTTP handlers: POST /auth/register /login /refresh /logout, GET /auth/me — the canonical swag-annotation reference alongside internal/example (issues #177/#178/#195)
+│   │   ├── handler.go                # HTTP handlers: POST /auth/register /login /refresh /logout, GET /auth/me — the canonical swag-annotation reference (issues #177/#178/#195)
 │   │   ├── jwt/                       # JWT token primitives (issue #144, 008-T019/T020/T021, wired live in Sprint 6)
 │   │   │   ├── generator.go          # Generator (NewGenerator): signs RS256 access tokens with the primary key, stamps the kid header
 │   │   │   ├── validator.go          # Validator (NewValidator): verifies access tokens, selecting the key per-token by kid (multi-key rotation); locked to RS256
@@ -156,12 +161,14 @@ backend/
 │   │   └── mocks/                    # Generated Repository mock (vektra/mockery)
 │   ├── collaboration/                # doc.go scaffold only (Spec 008 Phase 3+, unbuilt)
 │   ├── security/                     # doc.go scaffold only (Spec 008 Phase 3+, unbuilt)
-│   └── example/                      # Canonical model→repository→service→handler reference pattern (issue #58)
-│       ├── model.go                  # Example entity + validation
-│       ├── repository.go             # PostgresRepository: CRUD + optimistic-locking (version column)
-│       ├── service.go                # Business logic layer, calls repository
-│       ├── handler.go                # HTTP handlers mounted at /api/v1/examples (If-Match optimistic-locking header)
-│       └── mocks/                    # Generated repository/service mocks (vektra/mockery)
+│   ├── trip/                         # Trip/Destination/Day/Activity persistence (001-T033, issue #234); repository-only, no service/handler yet
+│   │   ├── model.go                  # Trip, Destination, Day, Activity entities + status/type constants (docs/data-model.md)
+│   │   ├── repository.go             # PostgresRepository: CreateTrip, ListTripsByUser, FindTripByID, DeleteTrip, CreateDestination, UpsertDay, UpsertActivity (optimistic-locking), DeleteActivity
+│   │   └── mocks/                    # Generated Repository mock (vektra/mockery)
+│   └── conversation/                 # ConversationSession/ConversationMessage persistence (001-T034, issue #234); repository-only, no service/handler yet
+│       ├── model.go                  # Session, Message entities + status/role constants (docs/data-model.md)
+│       ├── repository.go             # PostgresRepository: CreateSession, GetSessionByTrip, AppendMessage, ListMessages
+│       └── mocks/                    # Generated Repository mock (vektra/mockery)
 ├── pkg/                              # Deliberately empty (.gitkeep in database/ and config/) — dead by convention; shared code goes under internal/
 ├── config/
 │   ├── config.go                     # Env var loading with fail-fast validation on missing required vars
@@ -184,19 +191,22 @@ backend/
     ├── 014_create_days_table.sql
     ├── 015_create_activities_table.sql
     ├── 016_alter_subscriptions_add_period_columns.sql # current_period_start/end on subscriptions (issue #207)
-    └── 20260710120000_create_examples_table.sql  # Goose timestamp-versioned migration for the examples table
+    ├── 017_create_conversation_sessions_table.sql # Sprint 8 (issue #234): internal/conversation's Session table
+    └── 018_create_conversation_messages_table.sql # internal/conversation's Message table
 ```
 
-> **`internal/example/` is throwaway reference code, not a permanent feature.** It exists solely to
-> demonstrate the model→repository→service→handler layering, optimistic locking, and pagination
-> conventions new domain packages should follow — it must be deleted once the first real domain
-> package (e.g. Trip) ships. Its migration is deliberately timestamp-versioned
-> (`20260710120000_...`) rather than sequentially numbered, because the sequential `001`–`016`
-> range is reserved for the real foundational domain tables cataloged in
-> [`docs/data-model.md`](../docs/data-model.md).
+> **`internal/trip/` and `internal/conversation/` are the current example of the model→repository
+> layering** for a new domain package (docs/data-model.md's `§Trip`/`§Destination`/`§Day`/`§Activity`
+> and `§ConversationSession`/`§ConversationMessage`). Both shipped repository-only in Sprint 8 (issue
+> #234, 001-T033/001-T034): `model.go` (entities plus status/type constants mirroring each table's
+> `CHECK` constraint) and `repository.go` (`PostgresRepository` implementing a small,
+> consumer-defined `Repository` interface, returning `NotFound`/`Conflict` domain errors on
+> single-row lookups and the version-checked `UpsertActivity` update). Neither package has a service
+> or HTTP handler layer yet — that's future work (001-T035/001-T036) — so don't copy them for the
+> service/handler layers of a new package; see `internal/auth/` for that instead.
 >
-> **`internal/example/handler.go` is also the canonical example for `swag` doc-comment
-> annotations.** Every handler function in that file carries a `swag` doc block (`@Summary`,
+> **`internal/auth/handler.go` is the canonical example for `swag` doc-comment annotations.**
+> Every handler function in that file carries a `swag` doc block (`@Summary`,
 > `@Description`, `@Tags`, `@Accept`/`@Produce`, `@Param`, `@Success`, `@Failure`, `@Security
 > CookieAuth`, `@Router`) directly above its function definition, matching the shape defined in
 > [`specs/009-api-documentation/contracts/api.md`](../specs/009-api-documentation/contracts/api.md).
@@ -206,10 +216,10 @@ backend/
 > authentication is the HTTP-only `access_token` cookie only. Add `@Security` to a handler if and
 > only if it is mounted in the authenticated route group, and pair it with
 > `@Failure 401 {object} errors.ErrorResponse`.
-> When adding a real domain handler (Trip, Auth, ...), copy this file's annotation pattern rather
-> than inventing a new one: reference request/response types with `{object} <TypeName>` (unexported
-> types in the same package resolve fine — see `example.createRequest`/`example.listResponse` in
-> the generated `backend/docs/swagger.json`), reference the shared error envelope as
+> When adding a real domain handler (Trip, Conversation, ...), copy this file's annotation pattern
+> rather than inventing a new one: reference request/response types with `{object} <TypeName>`
+> (unexported types in the same package resolve fine — see `auth.invalidRequestEnvelope` in the
+> generated `backend/docs/swagger.json`), reference the shared error envelope as
 > `errors.ErrorResponse` (its exported name in `internal/errors/handler.go`, added specifically so
 > `swag` annotations elsewhere in the codebase can resolve it — always use the target package's
 > real name, e.g. `errors`, not a local import alias like `domainerrors`), and run `make swagger`
@@ -237,11 +247,13 @@ backend/
 Not yet built. Listed here so contributors know where new domain code is expected to land, per the
 architecture in [`docs/architecture.md`](../docs/architecture.md) and the API contract in
 [`specs/001-product-vision-scope/contracts/api.md`](../specs/001-product-vision-scope/contracts/api.md).
-Two caveats vs. the tree below: `internal/auth/` already exists as a **flat** package holding the
+Three caveats vs. the tree below: `internal/auth/` already exists as a **flat** package holding the
 password utilities (see "Current" above) — its future handler/service/repository files land in that
-same flat package, not a subpackage; and the `pkg/{health, middleware, response}` block is
-superseded by the "everything under `internal/`" convention (health lives in `cmd/api/server.go`,
-middleware in `internal/middleware/`):
+same flat package, not a subpackage; `internal/trip/` and `internal/conversation/` already have their
+`model.go`/`repository.go` built (see "Current" above, issue #234) — only `handler.go`/`service.go`
+remain target; and the `pkg/{health, middleware, response}` block is superseded by the "everything
+under `internal/`" convention (health lives in `cmd/api/server.go`, middleware in
+`internal/middleware/`):
 
 ```
 backend/
@@ -422,11 +434,11 @@ With the backend running (either setup path above), open the interactive Swagger
 open http://localhost:8080/swagger/index.html
 ```
 
-The page renders every `swag`-annotated endpoint (today: the `internal/auth` endpoints and the
-`internal/example` reference resource — see [Project Structure](#project-structure)) and lets you
-send real requests against your locally running server via "Try it out" — the page loads its
-contract from the live `GET /swagger/doc.json` route, not a static or hand-edited copy, so it
-always reflects whatever `make swagger` last generated from the annotated handlers.
+The page renders every `swag`-annotated endpoint (today: the `internal/auth` endpoints — see
+[Project Structure](#project-structure)) and lets you send real requests against your locally
+running server via "Try it out" — the page loads its contract from the live `GET
+/swagger/doc.json` route, not a static or hand-edited copy, so it always reflects whatever `make
+swagger` last generated from the annotated handlers.
 
 Ignore the **Authorize** box. The contract's `CookieAuth` definition is an `apiKey` in the `Cookie`
 header (Swagger 2.0 has no cookie scheme — that is OpenAPI 3's `in: cookie`), and browsers refuse
@@ -435,9 +447,13 @@ the UI is same-origin with the API and behind the same gate, so the browser that
 page already holds the `access_token` cookie and attaches it to every "Try it out" request
 automatically.
 
-For a step-by-step walkthrough (expand a tag, execute a real `POST /api/v1/examples` request, and
-confirm the response matches what `curl` would return), see [Scenario 2 of
-`specs/009-api-documentation/quickstart.md`](../specs/009-api-documentation/quickstart.md#scenario-2--interactive-ui-real-request).
+For a step-by-step walkthrough, expand the `auth` tag and execute a real `POST /api/v1/auth/register`
+or `GET /api/v1/auth/me` request — the response matches what `curl` would return against the same
+endpoint. [Scenario 2 of
+`specs/009-api-documentation/quickstart.md`](../specs/009-api-documentation/quickstart.md#scenario-2--interactive-ui-real-request)
+walks through the same UI mechanics against the now-deleted `internal/example` resource; read it as a
+historical record of the flow, not a runnable step, until that scenario is updated. The interactive
+demo will cover trip data once `internal/trip` grows an HTTP layer (001-T035).
 
 `/swagger/*` is gated (008-T208) with the same `middleware.Authenticate` chain as the authenticated
 `/api/v1` group in `cmd/api/routes.go`, but **only when `Config.IsProduction()`** (post-closure fix,
@@ -491,8 +507,8 @@ idle (`MaxConnIdleTime`) — both **hardcoded** in `internal/database/client.go`
 Variables](#environment-variables)).
 
 Mocks are generated with `vektra/mockery` (`make mocks`) into `<package>/mocks/`. See
-[Mock Standards](../docs/mock-standards.md) and `internal/example/service_test.go` for a complete
-usage example (`examplemocks.NewMockRepository(t)` with the fluent `EXPECT()` API).
+[Mock Standards](../docs/mock-standards.md) and `internal/auth/service_test.go` for a complete
+usage example (`authmocks.NewMockUserRepository(t)` with the fluent `EXPECT()` API).
 
 ### Middleware (`internal/middleware/`)
 
@@ -546,28 +562,30 @@ future domain/business handler (trips, suggestions, auth, ...) to use. The two c
 implementation because `internal/errors` already imports `middleware` (for
 `RequestIDFromContext`); a reverse import would create an import cycle.
 
-Wired into a real handler as of issue #58 (`internal/example/`, the reference pattern described in
-[Project Structure](#project-structure)): its `handler.go` calls `errors.HandleError()` on every
-error path, and `service.go`/`repository.go` construct `Conflict`/`NotFound` `DomainError`s for
-duplicate emails, missing rows, and optimistic-locking version mismatches. `/healthz` still uses its
-own local `writeJSON` in `cmd/api/server.go`, unrelated to this package — it predates `internal/errors`
-and has no domain-error case to report.
+Wired into real handlers since Sprint 6 (`internal/auth/handler.go`, issues #177/#178) and at the
+repository layer by `internal/trip/` and `internal/conversation/` (Sprint 8, issue #234): `handler.go`
+calls `errors.HandleError()` on every error path, and the domain packages' `service.go`/
+`repository.go` construct `Conflict`/`NotFound` `DomainError`s for duplicate emails, missing rows,
+and optimistic-locking version mismatches. `/healthz` still uses its own local `writeJSON` in
+`cmd/api/server.go`, unrelated to this package — it predates `internal/errors` and has no
+domain-error case to report.
 
-**Concrete examples**, matching the real shipped code in `internal/example/`:
+**Concrete examples**, matching the real shipped code in `internal/trip/` and `internal/auth/`:
 
-1. **Creating a domain error** — `repository.go`'s `Create` reports a racing duplicate email as a
-   `Conflict`, and its `scanOne` helper (shared by `FindByID`/`FindByEmail`) reports a missing row
-   as a `NotFound`:
+1. **Creating a domain error** — `internal/trip/repository.go`'s
+   `updateActivityWithVersionCheck` reports a lost optimistic-locking race as a `Conflict`, and
+   `FindTripByID` reports a missing row as a `NotFound`:
 
    ```go
-   // repository.go — Create: translate a UNIQUE-violation into a domain error
-   if errors.As(err, &pgErr) && pgErr.Code == uniqueViolationCode {
-       return domainerrors.Conflict(fmt.Sprintf("an example with email %q already exists", ex.Email))
+   // repository.go — updateActivityWithVersionCheck: zero rows affected means
+   // either the id doesn't exist or the version is stale; both collapse to Conflict
+   if errors.Is(err, pgx.ErrNoRows) {
+       return domainerrors.Conflict("activity was modified by another request")
    }
 
-   // repository.go — scanOne: translate "no rows" into a domain error
+   // repository.go — FindTripByID: translate "no rows" into a domain error
    if errors.Is(err, pgx.ErrNoRows) {
-       return nil, domainerrors.NotFound("example", fmt.Sprintf("%v", arg))
+       return nil, domainerrors.NotFound("trip", id)
    }
    ```
 
@@ -575,34 +593,36 @@ and has no domain-error case to report.
    listed above; both build a fresh `*DomainError` with no wrapped `Err`, since there is no
    lower-level cause worth preserving for either case.
 
-2. **Wrapping instead of translating** — the same `scanOne` method also shows the *other* path, for
+2. **Wrapping instead of translating** — the same file's `CreateTrip` shows the *other* path, for
    an error that stays unmapped:
 
    ```go
-   return nil, fmt.Errorf("find example: %w", err)
+   return fmt.Errorf("create trip: %w", err)
    ```
 
    This wrapped error is **not** a `*DomainError` and does not wrap one, so it falls straight
    through `HandleError`'s `errors.As(err, &domainErr)` check into the generic branch: the client
    only ever sees `internal_error`/500, while the real cause is logged server-side via
    `slog.Default()` with the request ID attached. This is exactly the mechanism
-   `tests/integration/error_test.go` (a sibling PR, #131, not yet merged as of this writing)
-   exercises for a DB-timeout scenario — asserting a generic 500 body reaches the client while the
+   `tests/integration/error_test.go` exercises for a DB-timeout scenario — a locked `users` table
+   makes `GET /api/v1/auth/me` fail — asserting a generic 500 body reaches the client while the
    specific timeout error still lands in the logs.
 
-3. **Handler translation** — every handler in `handler.go` follows the same one-line pattern to
-   turn a service error into the standard envelope; `handleGet` is the simplest example:
+3. **Handler translation** — every handler in `internal/auth/handler.go` follows the same one-line
+   pattern to turn a service error into the standard envelope; `handleRegister` is a representative
+   example:
 
    ```go
-   ex, err := h.service.GetExample(r.Context(), id)
+   resp, err := h.service.Register(r.Context(), req)
    if err != nil {
        domainerrors.HandleError(w, r, err)
        return
    }
    ```
 
-   Any future domain handler (trips, suggestions, auth, ...) should follow this exact shape — the
-   handler decides nothing about status codes or envelope shape, `HandleError` owns that entirely.
+   Any future domain handler (trip, conversation, suggestions, ...) should follow this exact shape —
+   the handler decides nothing about status codes or envelope shape, `HandleError` owns that
+   entirely.
 
 4. **Retry/backoff on an outbound dependency** — see
    [AI client foundation](#ai-client-foundation-internalai) below for `AnthropicClient`'s approach:
@@ -621,7 +641,7 @@ and has no domain-error case to report.
    ```text
    X-Request-ID: 6f1a9e2e-52f0-4b2b-9d21-9d6a7d9e0c31            <- response header
 
-   {"error":"not_found","message":"example with ID \"abc\" not found",
+   {"error":"not_found","message":"trip with ID \"abc\" not found",
     "request_id":"6f1a9e2e-52f0-4b2b-9d21-9d6a7d9e0c31"}         <- response body
    ```
 
@@ -709,14 +729,14 @@ development.
 | Health | `GET /healthz` | None (public, unversioned) |
 | Auth (public) | `POST /api/v1/auth/register`, `/api/v1/auth/login`, `/api/v1/auth/refresh` | None — refresh authenticates with the `refresh_token` cookie |
 | Auth (authenticated) | `POST /api/v1/auth/logout`, `GET /api/v1/auth/me` | Required (`access_token` cookie) |
-| Examples (reference pattern, throwaway — see [Project Structure](#project-structure)) | `GET/POST /api/v1/examples`, `GET/PUT/DELETE /api/v1/examples/:id` | Required (`access_token` cookie) |
 | API docs | `GET /swagger/index.html`, `GET /swagger/doc.json` | Required in production only (`access_token` cookie); open in development |
 
 ### Planned (not yet built)
 
 The domain routes below are the target API contract and have no HTTP surface yet (`internal/auth/`
 and `internal/subscription/` exist as packages, but only the auth endpoints listed under "Built
-today" are mounted; `internal/{trip, itinerary, conversation, suggestion}` are unbuilt — see
+today" are mounted; `internal/trip/` and `internal/conversation/` exist as repository-only packages
+with no HTTP surface yet, issue #234; `internal/{itinerary, suggestion}` are entirely unbuilt — see
 [Project Structure](#project-structure)'s "Target" tree):
 
 | Group | Endpoints | Auth |

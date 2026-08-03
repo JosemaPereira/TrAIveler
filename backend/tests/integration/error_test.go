@@ -17,7 +17,6 @@ import (
 
 	"github.com/JosemaPereira/TrAIveler/backend/internal/database/migrations"
 	domainerrors "github.com/JosemaPereira/TrAIveler/backend/internal/errors"
-	"github.com/JosemaPereira/TrAIveler/backend/internal/example"
 )
 
 // lockHoldStatementTimeoutMillis is the statement_timeout (ms) applied only
@@ -41,38 +40,12 @@ func applyMigrations(t *testing.T, databaseURL string) {
 	require.NoError(t, goose.Up(sqlDB, migrations.Dir), "failed to apply goose migrations")
 }
 
-// createExample POSTs a row via the running app and returns its ID, so the
-// DB-timeout scenario below has something real to GET. /api/v1/examples sits in
-// the authenticated route group (008-T208), so the caller's session cookies are
-// attached to the request.
-func createExample(t *testing.T, baseURL string, cookies []*http.Cookie) string {
-	t.Helper()
-
-	payload, err := json.Marshal(map[string]string{
-		"name":  "DB Timeout Test Example",
-		"email": fmt.Sprintf("db-timeout-test-%d@example.com", time.Now().UnixNano()),
-	})
-	require.NoError(t, err)
-
-	req := newAuthenticatedRequest(t, http.MethodPost, baseURL+"/api/v1/examples", cookies, payload)
-	resp, err := http.DefaultClient.Do(req)
-	require.NoError(t, err, "POST /api/v1/examples must succeed at the transport level")
-	defer resp.Body.Close()
-	require.Equal(t, http.StatusCreated, resp.StatusCode, "expected the setup POST to succeed")
-
-	var created example.Example
-	require.NoError(t, json.NewDecoder(resp.Body).Decode(&created), "response body must be valid JSON")
-	require.NotEmpty(t, created.ID, "expected the created example to have a generated ID")
-
-	return created.ID
-}
-
-// holdExclusiveTableLock locks the examples table in ACCESS EXCLUSIVE mode
-// on a connection independent of the app's pool — blocking even a plain
-// SELECT — until the returned release func runs. statement_timeout counts
-// time spent waiting on a lock, so once this is held, any connection with a
-// statement_timeout (including the app's) gets its blocked query canceled
-// by Postgres once that timeout elapses.
+// holdExclusiveTableLock locks the users table in ACCESS EXCLUSIVE mode on a
+// connection independent of the app's pool — blocking even a plain SELECT —
+// until the returned release func runs. statement_timeout counts time spent
+// waiting on a lock, so once this is held, any connection with a
+// statement_timeout (including the app's) gets its blocked query canceled by
+// Postgres once that timeout elapses.
 func holdExclusiveTableLock(t *testing.T, ctx context.Context, databaseURL string) (release func()) {
 	t.Helper()
 
@@ -85,8 +58,8 @@ func holdExclusiveTableLock(t *testing.T, ctx context.Context, databaseURL strin
 	tx, err := conn.BeginTx(ctx, nil)
 	require.NoError(t, err, "failed to begin the lock-holding transaction")
 
-	_, err = tx.ExecContext(ctx, "LOCK TABLE examples IN ACCESS EXCLUSIVE MODE")
-	require.NoError(t, err, "failed to acquire ACCESS EXCLUSIVE lock on examples")
+	_, err = tx.ExecContext(ctx, "LOCK TABLE users IN ACCESS EXCLUSIVE MODE")
+	require.NoError(t, err, "failed to acquire ACCESS EXCLUSIVE lock on users")
 
 	return func() {
 		if err := tx.Rollback(); err != nil {
@@ -101,14 +74,15 @@ func holdExclusiveTableLock(t *testing.T, ctx context.Context, databaseURL strin
 	}
 }
 
-// TestGetExample_DBQueryCanceledByStatementTimeout_ReturnsCorrelatedInternalError
+// TestGetCurrentUser_DBQueryCanceledByStatementTimeout_ReturnsCorrelatedInternalError
 // (005-T118) uses a real Postgres-canceled query, not a short-circuited one,
 // to prove the resulting 500 internal_error carries a correlation ID
 // consistent between the response header and the structured error body.
-// scanOne wraps any non-ErrNoRows failure as a plain error (not a
-// *domainerrors.DomainError), so HandleError maps it to the unmapped
-// internal_error/500 path.
-func TestGetExample_DBQueryCanceledByStatementTimeout_ReturnsCorrelatedInternalError(t *testing.T) {
+// GetUserByID's scanUser helper wraps any non-ErrNoRows failure as a plain
+// error (not a *domainerrors.DomainError), and Service.CurrentUser returns
+// it unchanged, so HandleError maps it to the unmapped internal_error/500
+// path.
+func TestGetCurrentUser_DBQueryCanceledByStatementTimeout_ReturnsCorrelatedInternalError(t *testing.T) {
 	if testing.Short() {
 		t.Skip("skipping integration test requiring a container runtime in short mode")
 	}
@@ -125,10 +99,10 @@ func TestGetExample_DBQueryCanceledByStatementTimeout_ReturnsCorrelatedInternalE
 	binPath := buildAPIBinary(t)
 	baseURL := startAPIServer(t, ctx, binPath, appDatabaseURL)
 
-	// /api/v1 is gated since 008-T208, so this black-box test needs a genuine
-	// session before it can touch the example routes.
+	// registerTestSession itself writes to the users table (POST
+	// /api/v1/auth/register), so it must complete before the exclusive lock
+	// below is acquired.
 	sessionCookies := registerTestSession(t, baseURL)
-	exampleID := createExample(t, baseURL, sessionCookies)
 
 	release := holdExclusiveTableLock(t, ctx, databaseURL)
 	defer release()
@@ -137,7 +111,7 @@ func TestGetExample_DBQueryCanceledByStatementTimeout_ReturnsCorrelatedInternalE
 	// broken, this fails fast instead of hanging until the surrounding go
 	// test timeout.
 	client := &http.Client{Timeout: 5 * time.Second}
-	resp := authenticatedGet(t, client, baseURL+"/api/v1/examples/"+exampleID, sessionCookies)
+	resp := authenticatedGet(t, client, baseURL+"/api/v1/auth/me", sessionCookies)
 	defer resp.Body.Close()
 
 	assert.Equal(t, http.StatusInternalServerError, resp.StatusCode,

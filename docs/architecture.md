@@ -292,7 +292,7 @@ and per-module notes.
 graph TD
     User[End User Browser]
     FE[React 19 SPA — Vite dev server :5173<br/>ErrorBoundary → QueryClientProvider → RouterProvider<br/>Single real route: placeholder HomePage]
-    API[Go 1.26 API — cmd/api<br/>Chi router<br/>Middleware: RequestID → Logger → Recovery → CORS → BodySize<br/>GET /healthz, /api/v1/examples reference resource, /swagger/*]
+    API[Go 1.26 API — cmd/api<br/>Chi router<br/>Middleware: RequestID → Logger → Recovery → CORS → BodySize<br/>GET /healthz, /api/v1/auth/* (Sprint 6), /swagger/*]
     DB[(PostgreSQL 15.18<br/>docker-compose locally; RDS module authored, not applied)]
     AI[Ollama + Gemma — local dev default<br/>AnthropicClient built for staging/production]
     TF[6 Terraform modules<br/>vpc · ecs · rds · alb · cloudfront · secrets<br/>validate/fmt clean, never applied]
@@ -332,10 +332,12 @@ retry/backoff to the SDK's own `option.WithMaxRetries`/`option.WithRequestTimeou
 exhausted-retries 429/503 as a `service_unavailable` `DomainError` with a `Retry-After` hint). See
 [Local AI Setup](local-ai-setup.md).
 
-`internal/example/` is a throwaway model→repository→service→handler reference implementation
+`internal/example/` was a throwaway model→repository→service→handler reference implementation
 (CRUD + optimistic locking via a `version` column, pagination, `swag` annotations for every
-handler) — it demonstrates the layering every future real domain package should copy, and must be
-deleted once the first one (Trip, targeted Sprint 8 per `docs/roadmap.md`) ships.
+handler) that demonstrated the layering new domain packages should copy. Per that plan, it was
+deleted in Sprint 8 (issue #234) once the first real domain packages —
+`internal/trip/`/`internal/conversation/`, both repository-only so far — shipped; see the
+"Divergences" note below and `backend/README.md` for the current state.
 
 Sprint 5 (specs 004/008, PRs #153–#157) added the security foundation:
 
@@ -351,18 +353,24 @@ Sprint 5 (specs 004/008, PRs #153–#157) added the security foundation:
 - **`internal/database/migrations/`** — shared goose migration config (`Dir`, `SetDialect()`)
   used by all integration tests; the `.sql` files themselves live flat in `backend/migrations/`
   (shared across specs — `001`–`004` create `users`/`refresh_tokens`/`jwt_signing_keys`/
-  `security_events`, plus the throwaway timestamp-versioned `examples` migration). `pkg/` remains
+  `security_events`; later migrations add the trip/subscription domain tables and, as of Sprint 8,
+  `internal/conversation`'s tables (`017`–`018`, issue #234)). `pkg/` remains
   deliberately empty (`.gitkeep` only) — shared backend code goes under `internal/`, per the
   established convention.
 - **Config-driven pool sizing** — `database.NewClient` now takes `minConns`/`maxConns` from
   `DB_MIN_CONNECTIONS`/`DB_MAX_CONNECTIONS` (defaults 5/25) instead of hardcoding them.
 
-Beyond that, **no real domain package exists yet**: `internal/{trip, itinerary, conversation,
-suggestion}` from the original spec text are still unbuilt, and
-`internal/{subscription, collaboration, security}` are empty scaffolds. `backend/docs/` (a generated Swagger 2.0/OpenAPI
-contract, `swaggo/swag`) is produced from `internal/example/handler.go`'s doc-comment annotations
-and served at `/swagger/index.html` / `/swagger/doc.json`, unauthenticated for now (see the
-"Planned Addendum" section below, which predates this status update and remains accurate).
+Beyond auth, domain packages remained scaffolds/unbuilt as of this sub-section's Sprint 5 writing:
+`internal/{trip, itinerary, conversation, suggestion}` from the original spec text were still
+unbuilt, and `internal/{subscription, collaboration, security}` were empty scaffolds. **Updated for
+Sprint 8 (issue #234):** `internal/trip/` and `internal/conversation/` now exist as real,
+repository-only packages (`model.go` + `repository.go`, no service/handler yet) — see the
+"Divergences" note below. `backend/docs/` (a generated Swagger 2.0/OpenAPI contract, `swaggo/swag`)
+is produced from Go doc-comment annotations on real handlers — as of Sprint 8, that means
+`internal/auth/handler.go`'s (the reference implementation this sub-section originally cited,
+`internal/example/handler.go`, was deleted once real domain packages shipped, issue #234) — and
+served at `/swagger/index.html` / `/swagger/doc.json`, unauthenticated for now (see the "Planned
+Addendum" section below, which predates this status update and remains accurate).
 
 ### Frontend (`frontend/`)
 
@@ -408,9 +416,15 @@ creation is fully documented and reproducible (`infra/README.md`) but deliberate
   /auth/register`, `/auth/login`, `/auth/refresh`, `/auth/logout`, and `GET /auth/me` are real,
   tested endpoints (`backend/internal/auth/handler.go`), gated by `middleware.Authenticate` on
   `/api/v1` (see `backend/README.md`'s Project Structure for the full `internal/auth/`,
-  `internal/auth/jwt/`, `internal/auth/ratelimit/`, and `internal/subscription/` breakdown). The
-  only remaining purely-scaffolded surface is `/healthz` and the throwaway `internal/example`
-  reference CRUD resource, alongside the still-unbuilt trip/collaboration domain above. The
+  `internal/auth/jwt/`, `internal/auth/ratelimit/`, and `internal/subscription/` breakdown). At that
+  point the only remaining purely-scaffolded surface was `/healthz` and the throwaway
+  `internal/example` reference CRUD resource, alongside the still-unbuilt trip/collaboration domain
+  above. **Updated 2026-08-02 (Sprint 8, issue #234):** `internal/example/` has since been deleted
+  entirely — its route mount, migration, and mocks are gone — replaced by the first real domain
+  repositories, `internal/trip/` (Trip/Destination/Day/Activity) and `internal/conversation/`
+  (ConversationSession/ConversationMessage). Both are **repository-only**, with no HTTP surface yet,
+  so they don't change the "no domain routes mounted beyond auth" picture above; the remaining
+  scaffolded surface is now `/healthz` plus the still-unbuilt trip/collaboration HTTP layer. The
   `users` table's real columns (`has_subscription` instead of the `subscription_id` shown in the
   schema list above, plus other as-built differences) are tracked in `docs/data-model.md`'s "As-
   Built Schema Diagram" — that document is the authority for real column names, not this section.

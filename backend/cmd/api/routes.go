@@ -44,7 +44,6 @@ func (s *HTTPServer) registerRoutes() {
 		r.Group(func(r chi.Router) {
 			r.Use(authenticate)
 
-			s.exampleHandler.RegisterRoutes(r)
 			s.authHandler.RegisterProtectedRoutes(r)
 
 			// Test-only seam, nil in production — see the field's doc on

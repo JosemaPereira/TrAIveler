@@ -166,10 +166,11 @@ func TestService_ProcessData_WithRunFunction(t *testing.T) {
 
 #### Repository Integration Tests with Optional Testcontainers
 
-A repository's DB-backed methods (`Create`/`FindByID`/`FindByEmail`/`Update`/`Delete`/`List` in
-`backend/internal/example/repository.go`) aren't exercised by the service-layer mock-based tests
-above — they need a real PostgreSQL connection. Rather than requiring Docker for every local test
-run, these tests are gated behind Go's `testing.Short()`:
+A repository's DB-backed methods (e.g. `CreateTrip`/`FindTripByID`/`UpsertActivity` in
+`backend/internal/trip/repository.go`, or `CreateSession`/`AppendMessage` in
+`backend/internal/conversation/repository.go`) aren't exercised by the service-layer mock-based
+tests above — they need a real PostgreSQL connection. Rather than requiring Docker for every local
+test run, these tests are gated behind Go's `testing.Short()`:
 
 - **`make test`** (default, CI's fast lane) — `go test -tags=test ./... -short`, skips
   testcontainer-gated tests entirely. No Docker/Colima required.
@@ -177,16 +178,22 @@ run, these tests are gated behind Go's `testing.Short()`:
   testcontainers. Requires [Colima](https://github.com/abiosoft/colima) (`colima start --cpu 2
   --memory 4`) or another Docker-compatible runtime running locally.
 - **`make test-coverage`** — the actual CI coverage target; same `-short` flag as `make test`, so
-  it does **not** exercise `repository.go`'s DB-backed methods. This is expected, not a bug: see
-  `specs/005-system-architecture/validation-results.md` (005-T128) for the concrete before/after
-  coverage numbers this produces (64.1% short-mode vs. 89.1% full-suite for
-  `internal/example`'s combined service+repository code).
+  it does **not** exercise `repository.go`'s DB-backed methods in any package that has them
+  (including `internal/trip`/`internal/conversation`). This is expected, not a bug: see
+  `specs/005-system-architecture/validation-results.md` (005-T128) for a concrete illustration of
+  the resulting short-mode-vs-full-suite coverage gap, measured historically against the
+  now-deleted `internal/example` reference package (64.1% short-mode vs. 89.1% full-suite for its
+  combined service+repository code) — the same mechanism, not the same numbers, applies to any
+  current package with testcontainer-gated repository tests.
 
-`backend/internal/example/repository_integration_test.go` is the reference implementation: it
-starts a real `postgres:16-alpine` container via `testcontainers-go`, applies the goose migrations
-from `backend/migrations/`, and exercises the repository against it — see
-`setupRepositoryTestDB(t, ctx)` in that file, which mirrors `backend/internal/database/client_test.go`'s
-container-setup helper. See also `backend/TESTING.md` for the full command reference.
+`backend/internal/trip/repository_integration_test.go` and
+`backend/internal/conversation/repository_integration_test.go` are the reference implementations:
+each starts a real Postgres container via `testcontainers-go` (image pinned by the shared
+`internal/testdb.PostgresImage` constant), applies the goose migrations from `backend/migrations/`,
+and exercises its package's repository against it — see `setupRepositoryTestDB(t, ctx)` in either
+file, which follows the same `t.Helper()`-based container-setup pattern as
+`backend/internal/database/client_test.go`. See also `backend/TESTING.md` for the full command
+reference.
 
 ### Frontend (React / TypeScript)
 
@@ -314,13 +321,15 @@ Coverage is a floor, not a goal. Prioritize meaningful tests over achieving a pe
 
 **Observed numbers (Spec 005 validation sweep, 2026-07-13 — see
 `specs/005-system-architecture/validation-results.md` for full detail)**: backend
-`internal/example` (service + repository combined) measured **89.1%** with the full,
-Colima-backed test run — marginally under the 90% floor adopted on 2026-07-16 (the floor was 80%
-at the time of that sweep), so the next backend change in that package should close the ~1-point
-gap. The CI/`make test-coverage` lane alone (short mode, no testcontainers) reads a lower
-**64.1%** by design, since `repository.go`'s DB-backed methods are only exercised by the
-testcontainer-gated test (see "Repository Integration Tests with Optional Testcontainers" above)
-— not a real shortfall. Frontend coverage **is enforced at 90%** (statements, branches, functions,
+`internal/example` — the throwaway reference package deleted in Sprint 8 (issue #234; see
+`backend/README.md`) — measured **89.1%** with the full, Colima-backed test run (service +
+repository combined) against the 90% floor adopted on 2026-07-16 (the floor was 80% at the time of
+that sweep). The CI/`make test-coverage` lane alone (short mode, no testcontainers) read a lower
+**64.1%** by design, since `repository.go`'s DB-backed methods were only exercised by the
+testcontainer-gated test (see "Repository Integration Tests with Optional Testcontainers" above) —
+not a real shortfall. The same short-mode-vs-full-suite pattern now applies to
+`internal/trip`/`internal/conversation`'s repository tests; no coverage sweep has been recorded for
+them yet as of this writing. Frontend coverage **is enforced at 90%** (statements, branches, functions,
 lines) via `thresholds` in `vitest.config.ts`, so `npm run test:coverage` and the CI coverage step
 fail below that floor (this supersedes the enforcement gap formerly tracked as roadmap task
 `002-T041`); 136/136 frontend tests pass across 15 files as of the same sweep.
