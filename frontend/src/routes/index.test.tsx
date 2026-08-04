@@ -3,9 +3,11 @@ import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { createMemoryRouter, RouterProvider } from 'react-router'
+import { http, HttpResponse } from 'msw'
 
 import { useAuthStore } from '@/stores/auth-store'
-import { testUser } from '@/test/msw/handlers'
+import { API_BASE_URL, testTrip, testUser } from '@/test/msw/handlers'
+import { server } from '@/test/msw/server'
 import { routes } from './index'
 
 // RegisterPage/LoginPage use TanStack Query (via useRegister/useLogin), so
@@ -30,12 +32,24 @@ function renderAt(path: string) {
 
 // Zustand store is a module-singleton: reset before each test so the
 // protected-route assertions don't leak an authenticated session.
+//
+// DashboardPage now fetches `GET /trips` (useTrips), and every scenario
+// below that lands on /dashboard goes through it — register/login redirects,
+// the protected-route probe, etc. A default empty-list handler is
+// registered here (rather than per-test) so those flows do not each need
+// their own trips stub; the one test that actually cares about trip-detail
+// content overrides it explicitly.
 beforeEach(() => {
   useAuthStore.setState({
     isAuthenticated: false,
     user: null,
     isLoading: false,
   })
+  server.use(
+    http.get(`${API_BASE_URL}/trips`, () =>
+      HttpResponse.json({ trips: [] }, { status: 200 })
+    )
+  )
 })
 
 describe('routes', () => {
@@ -127,12 +141,21 @@ describe('routes', () => {
       ).toBeInTheDocument()
     })
 
-    it('should render the trip-detail page for /trips/:id', () => {
-      useAuthStore.setState({ isAuthenticated: true })
+    it('should render the trip-detail page for /trips/:id', async () => {
+      useAuthStore.setState({ isAuthenticated: true, user: testUser })
+      server.use(
+        http.get(`${API_BASE_URL}/trips/${testTrip.id}`, () =>
+          HttpResponse.json({ trip: testTrip }, { status: 200 })
+        )
+      )
 
-      renderAt('/trips/trip_1')
+      renderAt(`/trips/${testTrip.id}`)
 
-      expect(screen.getByRole('heading', { name: 'Trip' })).toBeInTheDocument()
+      await waitFor(() => {
+        expect(
+          screen.getByRole('heading', { name: testTrip.title })
+        ).toBeInTheDocument()
+      })
     })
 
     it('should render the settings page', () => {

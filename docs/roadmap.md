@@ -1228,13 +1228,15 @@ _Checkpoint: Design system complete, all components accessible, consistent visua
 | 008-T181 | Create useCancelSubscription hook in frontend/src/features/subscription/hooks/useCancelSubscription.ts: TanStack Query mutation for DELETE /subscriptions/:id, invalidates subscription and user queries on success | G-008-SUBSCRIPTION-HOOKS | | P2 | Backlog | 008-T031 | yes | | |
 | 008-T182 | Create useRenewSubscription hook in frontend/src/features/subscription/hooks/useRenewSubscription.ts: TanStack Query mutation for POST /subscriptions/:id/renew, invalidates subscription, user, and trips queries on success | G-008-SUBSCRIPTION-HOOKS | | P2 | Backlog | 008-T031 | yes | | |
 | 008-T183 | Create useUpgrade hook in frontend/src/features/subscription/hooks/useUpgrade.ts: TanStack Query mutation for POST /subscriptions (upgrade Free User to Paid User), updates authStore.user.has_subscription=true on success, invalidates trips query to show restored/enabled trip creation | G-008-SUBSCRIPTION-HOOKS | | P2 | Backlog | 008-T031 | yes | | |
-| 008-T184 | Create GracePeriodBanner component in frontend/src/features/subscription/components/GracePeriodBanner.tsx: Banner with type='warning', message "Your subscription has expired. Renew to continue editing your trips. Read-only access until [grace_period_ends_at].", "Renew Subscription" button, uses useRenewSubscription hook | | | P2 | Backlog | 008-T085, 008-T182 | no | | |
+| 008-T213 | Implement GET /subscriptions/me handler in backend/internal/subscription/handler.go: resolves the signed-in user's own subscription (status, grace_period_ends_at) via the existing `Repository.GetByUserID`, returns 200 with subscription JSON or 404 if the user has never subscribed; register the route in backend/cmd/api/main.go behind auth middleware | G-008-SUBSCRIPTION | 9 | P2 | Backlog | 008-T041, 008-T027, 008-T030 | no | https://github.com/JosemaPereira/TrAIveler/issues/254 | Added 2026-08-04 (Sprint 8 wrap-up): flagged during 001-T047/T048/T049/008-T118 (issue #240) — the frontend has no way to distinguish "no subscription" from "in grace period" (`User.has_subscription` is the only signal it has today; `Subscription.grace_period_ends_at` is returned once at registration and never persisted). 008-T184/T187/T188/T190 all assume a `subscription` object with `status`/`grace_period_ends_at` is already available client-side, but no existing row actually creates the endpoint that supplies it — this row fills that gap. `Service` has no passthrough method yet either; add one alongside the handler rather than calling `Repository` directly from it. Scheduled into Sprint 9 (2026-08-04, user decision) ahead of the rest of Phase 9 (still unscheduled) since it unblocks #240's deferred grace-period banner. |
+| 008-T214 | Create subscriptionApi + useSubscription hook in frontend/src/features/subscription/services/subscriptionApi.ts and frontend/src/features/subscription/hooks/useSubscription.ts: TanStack Query for GET /subscriptions/me, following the tripsApi/useTripDetail conventions (features/<domain>/{services,hooks}/, snake_case wire types); null/404 result means no subscription (not an error state) | G-008-SUBSCRIPTION-HOOKS | 9 | P2 | Backlog | 008-T213 | no | https://github.com/JosemaPereira/TrAIveler/issues/255 | Added 2026-08-04 (Sprint 8 wrap-up), frontend half of 008-T213 — kept a separate row/issue per this repo's mandatory tech-stack split (`.github/SPRINT-CONSOLIDATION-CHECKLIST.md`). Unblocks 008-T184/T187/T188/T190's grace-period banner work, which today has no real data source. Scheduled into Sprint 9 (2026-08-04, user decision) alongside its backend counterpart 008-T213. |
+| 008-T184 | Create GracePeriodBanner component in frontend/src/features/subscription/components/GracePeriodBanner.tsx: Banner with type='warning', message "Your subscription has expired. Renew to continue editing your trips. Read-only access until [grace_period_ends_at].", "Renew Subscription" button, uses useRenewSubscription hook | | | P2 | Backlog | 008-T085, 008-T182, 008-T214 | no | | |
 | 008-T185 | Create UpgradePrompt component in frontend/src/features/subscription/components/UpgradePrompt.tsx: Banner with type='info', message "Upgrade to create your own trips", "Subscribe Now" button opens payment flow, uses useUpgrade hook | | | P2 | Backlog | 008-T085, 008-T183 | no | | |
 | 008-T186 | Create SubscriptionCheckout component in frontend/src/features/subscription/components/SubscriptionCheckout.tsx: form with plan selection (Monthly $9.99), payment stub labeled "[DEMO] Subscription Checkout", "Complete Subscription" button (always succeeds), uses useUpgrade or POST /subscriptions mutation depending on context (register vs upgrade) | | | P2 | Backlog | 008-T056, 008-T183 | no | | |
 | 008-T187 | Modify TripDashboard in frontend/src/features/trips/components/TripDashboard.tsx: if user.has_subscription=false AND subscription.status='cancelled' AND grace_period_ends_at NOT NULL, display GracePeriodBanner at top; if user.has_subscription=false AND no subscription, display UpgradePrompt | | | P2 | Backlog | 008-T093, 008-T184, 008-T185 | no | | |
 | 008-T188 | Modify TripDetailPage in frontend/src/features/trips/pages/TripDetailPage.tsx: if user is creator AND in grace period (has_subscription=false, grace_period_ends_at>now), disable "Edit Trip" and "Delete Trip" buttons with tooltip "Renew subscription to edit", show GracePeriodBanner | | | P2 | Backlog | 008-T118, 008-T184 | no | | |
 | 008-T189 | Create UpgradePage in frontend/src/features/subscription/pages/UpgradePage.tsx: renders SubscriptionCheckout, heading "Upgrade to Paid User", displays plan benefits (create unlimited trips, invite collaborators, AI itinerary generation), uses useUpgrade hook, redirects to /dashboard on success | | | P2 | Backlog | 008-T186, 008-T036 | no | | |
-| 008-T190 | Modify Navigation component in frontend/src/components/features/Navigation.tsx: if user.has_subscription=false AND no subscription, show "Upgrade" button in nav; if in grace period, show "Renew" button | | | P2 | Backlog | 008-T122 | no | | |
+| 008-T190 | Modify Navigation component in frontend/src/components/features/Navigation.tsx: if user.has_subscription=false AND no subscription, show "Upgrade" button in nav; if in grace period, show "Renew" button | | | P2 | Backlog | 008-T122, 008-T214 | no | | |
 
 _Checkpoint: Subscription lifecycle complete with grace period, archival, and restoration (additional feature complete and independently testable)_
 
@@ -2261,7 +2263,7 @@ Sprint 8 actually runs long, same as any prior sprint that overran would have re
 
 **Goal**: Wire security validators and implement NFR CI gates (accessibility, performance, security).
 
-**Scope**: Spec 002 Phases 3-5 + Spec 004 Phase 3
+**Scope**: Spec 002 Phases 3-5 + Spec 004 Phase 3 + Spec 008 subscription-status data layer (008-T213/T214, added 2026-08-04)
 
 | Work Items | Task Count | Key Deliverables |
 |------------|------------|------------------|
@@ -2269,14 +2271,20 @@ Sprint 8 actually runs long, same as any prior sprint that overran would have re
 | Accessibility gates | 8 | axe-core + LHCI, privacy policy page, @accessibility E2E tag |
 | Security validation | 12 | Prompt injection validator (YAML deny-list), output sanitizer (bluemonday), GDPR user deletion, CI gates (gosec, gitleaks) |
 | Security backend implementation | 32 | Wire PromptValidator into handlers, OutputSanitizer into services, security logging, multi-key JWT storage |
+| Subscription status data layer | 2 | `GET /subscriptions/me` handler (008-T213), `subscriptionApi`/`useSubscription` hook (008-T214) — unblocks #240's deferred grace-period banner |
 
-**Total**: 56 tasks  
+**Total**: 58 tasks  
 **Risks**: Load test threshold tuning, CI gate false positives  
 **Dependencies**: Sprint 8 complete  
 **Carried-forward cleanup**: issue [#209](https://github.com/JosemaPereira/TrAIveler/issues/209)
 (a11y CI gate still bridges on `--pass-with-no-tests` — this sprint's `@accessibility` E2E tag work
 (002-T023, the "Accessibility gates" row above) is exactly what resolves it; close #209 once that
 tag lands and the bridge is removed).
+**Added 2026-08-04** (user decision, out of band from the original Sprint 9 plan): 008-T213/T214
+(issues [#254](https://github.com/JosemaPereira/TrAIveler/issues/254)/[#255](https://github.com/JosemaPereira/TrAIveler/issues/255))
+were pulled forward from Phase 9's otherwise-unscheduled P2 backlog into Sprint 9 specifically
+because they unblock work `docs/roadmap.md` rows 008-T184/T187/T188/T190 still need — the rest of
+Phase 9 (Subscription Lifecycle Management) remains unscheduled.
 
 ---
 
