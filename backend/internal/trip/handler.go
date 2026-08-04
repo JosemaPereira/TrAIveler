@@ -41,6 +41,7 @@ type Manager interface {
 		status string,
 	) (*Trip, error)
 	Delete(ctx context.Context, userID, tripID string) error
+	GetItinerary(ctx context.Context, userID, tripID string) (*Itinerary, error)
 }
 
 // RoleLookup resolves the authenticated caller's current role, so the
@@ -84,6 +85,7 @@ func (h *Handler) RegisterRoutes(r chi.Router) {
 	r.Get("/trips/{id}", h.handleGet)
 	r.Put("/trips/{id}", h.handleUpdate)
 	r.Delete("/trips/{id}", h.handleDelete)
+	r.Get("/trips/{id}/itinerary", h.handleGetItinerary)
 }
 
 // CreateTripRequest is the POST /trips request body.
@@ -292,6 +294,38 @@ func (h *Handler) handleDelete(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.WriteHeader(http.StatusNoContent)
+}
+
+// handleGetItinerary godoc
+// @Summary     Get a trip's itinerary
+// @Description Returns the full nested itinerary (days, each with its destination and activities)
+// @Description for the trip identified by id, provided the authenticated user owns it. A trip
+// @Description owned by someone else is reported as 404, not 403, so a non-owner cannot distinguish
+// @Description "doesn't exist" from "exists but isn't yours" (anti-enumeration), mirroring handleGet.
+// @Tags        trips
+// @Produce     json
+// @Param       id path string true "Trip ID"
+// @Success     200 {object} Itinerary
+// @Failure     401 {object} errors.ErrorResponse
+// @Failure     404 {object} errors.ErrorResponse
+// @Failure     500 {object} errors.ErrorResponse
+// @Security    CookieAuth
+// @Router      /trips/{id}/itinerary [get]
+func (h *Handler) handleGetItinerary(w http.ResponseWriter, r *http.Request) {
+	userID, ok := requireUserID(w, r)
+	if !ok {
+		return
+	}
+
+	tripID := chi.URLParam(r, "id")
+
+	itin, err := h.service.GetItinerary(r.Context(), userID, tripID)
+	if err != nil {
+		domainerrors.HandleError(w, r, err)
+		return
+	}
+
+	respondJSON(w, http.StatusOK, itin)
 }
 
 // resolveRole looks up userID's current role via RoleLookup, for Create's

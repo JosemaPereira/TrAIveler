@@ -1,7 +1,12 @@
 import { http, HttpResponse } from 'msw'
 
 import type { Subscription } from '@/features/auth/types'
-import type { Trip } from '@/features/trips/types'
+import type {
+  Activity,
+  GetItineraryResponse,
+  ItineraryDay,
+  Trip,
+} from '@/features/trips/types'
 import type { User } from '@/stores/auth-store'
 
 /**
@@ -40,6 +45,34 @@ export const testTrip: Trip = {
   version: 1,
   created_at: '2026-01-01T00:00:00Z',
   updated_at: '2026-01-01T00:00:00Z',
+}
+
+/** Wire-shape activity fixture, matching `backend/internal/trip/model.go`. */
+export const testActivity: Activity = {
+  id: '44444444-4444-4444-4444-444444444444',
+  day_id: '55555555-5555-5555-5555-555555555555',
+  title: 'Fushimi Inari Shrine',
+  type: 'visit',
+  sequence_order: 1,
+  description: 'A shrine with thousands of vermillion torii gates.',
+  is_ai_generated: true,
+  version: 1,
+  created_at: '2026-01-01T00:00:00Z',
+  updated_at: '2026-01-01T00:00:00Z',
+}
+
+/** Wire-shape itinerary day fixture, matching `backend/internal/trip/model.go`. */
+export const testItineraryDay: ItineraryDay = {
+  id: '55555555-5555-5555-5555-555555555555',
+  day_number: 1,
+  label: 'Kyoto Day 1',
+  activities: [testActivity],
+}
+
+/** Wire-shape `GET /trips/:id/itinerary` response fixture, keyed to `testTrip.id`. */
+export const testItinerary: GetItineraryResponse = {
+  trip_id: testTrip.id,
+  days: [testItineraryDay],
 }
 
 /**

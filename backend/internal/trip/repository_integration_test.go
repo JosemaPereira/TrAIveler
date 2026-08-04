@@ -528,3 +528,145 @@ func TestIntegrationDeleteActivity_MissingID_ReturnsNotFound(t *testing.T) {
 	require.ErrorAs(t, err, &domainErr)
 	assert.Equal(t, "not_found", domainErr.Code)
 }
+
+func TestIntegrationListDaysByTrip_NoDays_ReturnsEmptySlice(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping testcontainer test in short mode")
+	}
+	ctx := context.Background()
+	db := setupRepositoryTestDB(t, ctx)
+	repo := NewPostgresRepository(db)
+	creatorID := seedUser(t, ctx, db, "days-empty")
+	tr := newTestTrip(creatorID, "days-empty")
+	require.NoError(t, repo.CreateTrip(ctx, tr))
+
+	days, err := repo.ListDaysByTrip(ctx, tr.ID)
+
+	require.NoError(t, err)
+	assert.Empty(t, days)
+}
+
+func TestIntegrationListDaysByTrip_MultipleDays_ReturnsOrderedByDayNumber(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping testcontainer test in short mode")
+	}
+	ctx := context.Background()
+	db := setupRepositoryTestDB(t, ctx)
+	repo := NewPostgresRepository(db)
+	creatorID := seedUser(t, ctx, db, "days-order")
+	tr := newTestTrip(creatorID, "days-order")
+	require.NoError(t, repo.CreateTrip(ctx, tr))
+	third := &Day{TripID: tr.ID, DayNumber: 3}
+	require.NoError(t, repo.UpsertDay(ctx, third))
+	first := &Day{TripID: tr.ID, DayNumber: 1}
+	require.NoError(t, repo.UpsertDay(ctx, first))
+	second := &Day{TripID: tr.ID, DayNumber: 2}
+	require.NoError(t, repo.UpsertDay(ctx, second))
+
+	days, err := repo.ListDaysByTrip(ctx, tr.ID)
+
+	require.NoError(t, err)
+	require.Len(t, days, 3)
+	assert.Equal(t, []int{1, 2, 3}, []int{days[0].DayNumber, days[1].DayNumber, days[2].DayNumber})
+}
+
+func TestIntegrationListActivitiesByDayIDs_EmptyDayIDs_ReturnsEmptySliceWithoutQuery(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping testcontainer test in short mode")
+	}
+	ctx := context.Background()
+	db := setupRepositoryTestDB(t, ctx)
+	repo := NewPostgresRepository(db)
+
+	activities, err := repo.ListActivitiesByDayIDs(ctx, []string{})
+
+	require.NoError(t, err)
+	assert.Empty(t, activities)
+}
+
+func TestIntegrationListActivitiesByDayIDs_MultipleDays_ReturnsGroupedAndOrdered(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping testcontainer test in short mode")
+	}
+	ctx := context.Background()
+	db := setupRepositoryTestDB(t, ctx)
+	repo := NewPostgresRepository(db)
+	creatorID := seedUser(t, ctx, db, "activities-bulk")
+	tr := newTestTrip(creatorID, "activities-bulk")
+	require.NoError(t, repo.CreateTrip(ctx, tr))
+	dayOne := &Day{TripID: tr.ID, DayNumber: 1}
+	require.NoError(t, repo.UpsertDay(ctx, dayOne))
+	dayTwo := &Day{TripID: tr.ID, DayNumber: 2}
+	require.NoError(t, repo.UpsertDay(ctx, dayTwo))
+
+	dayOneSecond := &Activity{DayID: dayOne.ID, Title: "Second Stop", Type: ActivityTypeVisit, SequenceOrder: 2}
+	require.NoError(t, repo.UpsertActivity(ctx, dayOneSecond))
+	dayOneFirst := &Activity{DayID: dayOne.ID, Title: "First Stop", Type: ActivityTypeVisit, SequenceOrder: 1}
+	require.NoError(t, repo.UpsertActivity(ctx, dayOneFirst))
+	dayTwoFirst := &Activity{DayID: dayTwo.ID, Title: "Day Two Stop", Type: ActivityTypeVisit, SequenceOrder: 1}
+	require.NoError(t, repo.UpsertActivity(ctx, dayTwoFirst))
+
+	activities, err := repo.ListActivitiesByDayIDs(ctx, []string{dayOne.ID, dayTwo.ID})
+
+	require.NoError(t, err)
+	require.Len(t, activities, 3, "must bulk-fetch across every requested day ID in one call")
+
+	// day_id is a random UUID, so which day's rows sort first in the
+	// day_id-then-sequence_order ORDER BY is not deterministic from
+	// creation order — only group and check ordering within each group.
+	byDay := map[string][]*Activity{}
+	for _, a := range activities {
+		byDay[a.DayID] = append(byDay[a.DayID], a)
+	}
+	require.Len(t, byDay[dayOne.ID], 2)
+	assert.Equal(t, "First Stop", byDay[dayOne.ID][0].Title, "within a day, activities must be ordered by sequence_order")
+	assert.Equal(t, "Second Stop", byDay[dayOne.ID][1].Title)
+	require.Len(t, byDay[dayTwo.ID], 1)
+	assert.Equal(t, "Day Two Stop", byDay[dayTwo.ID][0].Title)
+
+	// Confirm the query's actual ORDER BY day_id, sequence_order clause: rows
+	// for the same day_id must be contiguous and internally sequence_order-
+	// ascending, regardless of which day comes first.
+	for i := 1; i < len(activities); i++ {
+		if activities[i].DayID == activities[i-1].DayID {
+			assert.LessOrEqual(t, activities[i-1].SequenceOrder, activities[i].SequenceOrder)
+		}
+	}
+}
+
+func TestIntegrationListDestinationsByIDs_EmptyIDs_ReturnsEmptySliceWithoutQuery(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping testcontainer test in short mode")
+	}
+	ctx := context.Background()
+	db := setupRepositoryTestDB(t, ctx)
+	repo := NewPostgresRepository(db)
+
+	destinations, err := repo.ListDestinationsByIDs(ctx, []string{})
+
+	require.NoError(t, err)
+	assert.Empty(t, destinations)
+}
+
+func TestIntegrationListDestinationsByIDs_MultipleIDs_ReturnsAllMatchingRows(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping testcontainer test in short mode")
+	}
+	ctx := context.Background()
+	db := setupRepositoryTestDB(t, ctx)
+	repo := NewPostgresRepository(db)
+	first := newTestDestination("bulk-1")
+	require.NoError(t, repo.CreateDestination(ctx, first))
+	second := newTestDestination("bulk-2")
+	require.NoError(t, repo.CreateDestination(ctx, second))
+	// A third, unrelated destination confirms the query filters by id, not returning everything.
+	third := newTestDestination("bulk-3")
+	require.NoError(t, repo.CreateDestination(ctx, third))
+
+	destinations, err := repo.ListDestinationsByIDs(ctx, []string{first.ID, second.ID})
+
+	require.NoError(t, err)
+	require.Len(t, destinations, 2)
+	gotIDs := []string{destinations[0].ID, destinations[1].ID}
+	assert.ElementsMatch(t, []string{first.ID, second.ID}, gotIDs)
+}

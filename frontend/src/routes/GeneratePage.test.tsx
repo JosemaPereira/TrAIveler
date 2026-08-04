@@ -4,7 +4,7 @@ import userEvent from '@testing-library/user-event'
 import { http, HttpResponse } from 'msw'
 
 import type { SendMessageResponse } from '@/features/trips/types'
-import { API_BASE_URL, testTrip } from '@/test/msw/handlers'
+import { API_BASE_URL, testItineraryDay, testTrip } from '@/test/msw/handlers'
 import { server } from '@/test/msw/server'
 import { createQueryWrapper } from '@/test/queryWrapper'
 import { GeneratePage } from './GeneratePage'
@@ -29,6 +29,14 @@ function mockCreateTrip(status: 201 | 422 = 201) {
             },
             { status }
           )
+    )
+  )
+}
+
+function mockGetItinerary(days: (typeof testItineraryDay)[] = []) {
+  server.use(
+    http.get(`${API_BASE_URL}/trips/${testTrip.id}/itinerary`, () =>
+      HttpResponse.json({ trip_id: testTrip.id, days }, { status: 200 })
     )
   )
 }
@@ -154,6 +162,7 @@ describe('<GeneratePage />', () => {
       const user = userEvent.setup()
       renderGeneratePage()
       await createTripAndReachConversation(user)
+      mockGetItinerary()
       mockSendMessage({
         session_id: 's1',
         role: 'assistant',
@@ -170,6 +179,26 @@ describe('<GeneratePage />', () => {
         ).toBeInTheDocument()
       })
       expect(screen.queryByRole('log')).not.toBeInTheDocument()
+    })
+
+    it('should render the generated itinerary days once they are available', async () => {
+      const user = userEvent.setup()
+      renderGeneratePage()
+      await createTripAndReachConversation(user)
+      mockGetItinerary([testItineraryDay])
+      mockSendMessage({
+        session_id: 's1',
+        role: 'assistant',
+        message: 'Generating your itinerary now.',
+        itinerary_ready: true,
+      })
+
+      await user.type(screen.getByLabelText('Message'), 'That sounds perfect')
+      await user.click(screen.getByRole('button', { name: 'Send' }))
+
+      await waitFor(() => {
+        expect(screen.getByText('Fushimi Inari Shrine')).toBeInTheDocument()
+      })
     })
   })
 })

@@ -5,8 +5,14 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { createMemoryRouter, RouterProvider } from 'react-router'
 import { http, HttpResponse } from 'msw'
 
+import type { GetItineraryResponse } from '@/features/trips/types'
 import { useAuthStore } from '@/stores/auth-store'
-import { API_BASE_URL, testTrip, testUser } from '@/test/msw/handlers'
+import {
+  API_BASE_URL,
+  testItineraryDay,
+  testTrip,
+  testUser,
+} from '@/test/msw/handlers'
 import { server } from '@/test/msw/server'
 import { TripDetailPage } from './TripDetailPage'
 
@@ -37,12 +43,27 @@ function mockGetTrip(trip = testTrip) {
   )
 }
 
+// Empty by default so tests that don't care about itinerary content aren't
+// forced to mock it individually — MSW's `onUnhandledRequest: 'error'` would
+// otherwise fail every test that renders this page. Tests that do care
+// override with their own `server.use(...)`.
+function mockGetItinerary(
+  itinerary: GetItineraryResponse = { trip_id: testTrip.id, days: [] }
+) {
+  server.use(
+    http.get(`${API_BASE_URL}/trips/${testTrip.id}/itinerary`, () =>
+      HttpResponse.json(itinerary, { status: 200 })
+    )
+  )
+}
+
 beforeEach(() => {
   useAuthStore.setState({
     isAuthenticated: true,
     user: testUser,
     isLoading: false,
   })
+  mockGetItinerary()
 })
 
 describe('<TripDetailPage />', () => {
@@ -196,6 +217,68 @@ describe('<TripDetailPage />', () => {
           })
         })
         expect(receivedIfMatch).toBe(String(testTrip.version))
+      })
+    })
+
+    describe('when the itinerary loads successfully', () => {
+      it('should render the itinerary days and activities', async () => {
+        mockGetTrip()
+        mockGetItinerary({ trip_id: testTrip.id, days: [testItineraryDay] })
+
+        renderAt(`/trips/${testTrip.id}`)
+
+        await waitFor(() => {
+          expect(
+            screen.getByRole('heading', { name: /day 1/i })
+          ).toBeInTheDocument()
+        })
+        expect(screen.getByText('Fushimi Inari Shrine')).toBeInTheDocument()
+      })
+    })
+
+    describe('when the itinerary has not been generated yet', () => {
+      it('should render the empty state', async () => {
+        mockGetTrip()
+        mockGetItinerary({ trip_id: testTrip.id, days: [] })
+
+        renderAt(`/trips/${testTrip.id}`)
+
+        await waitFor(() => {
+          expect(
+            screen.getByRole('heading', {
+              name: /itinerary not yet generated/i,
+            })
+          ).toBeInTheDocument()
+        })
+      })
+    })
+
+    describe('when fetching the itinerary fails', () => {
+      it('should render the itinerary error message with a retry action', async () => {
+        mockGetTrip()
+        server.use(
+          http.get(`${API_BASE_URL}/trips/${testTrip.id}/itinerary`, () =>
+            HttpResponse.json(
+              {
+                error: 'internal_error',
+                message: 'Could not load the itinerary',
+                request_id: 'req_itinerary_500',
+              },
+              { status: 500 }
+            )
+          )
+        )
+
+        renderAt(`/trips/${testTrip.id}`)
+
+        await waitFor(() => {
+          expect(
+            screen.getByText('Could not load the itinerary')
+          ).toBeInTheDocument()
+        })
+        expect(
+          screen.getByRole('button', { name: /try again/i })
+        ).toBeInTheDocument()
       })
     })
 

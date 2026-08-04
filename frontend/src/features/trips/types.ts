@@ -92,3 +92,60 @@ export interface SendMessageResponse {
   /** True once the AI-guided conversation has gathered enough to generate a full itinerary. */
   itinerary_ready: boolean
 }
+
+/** A geographic location shared across trips, mirroring `trip.Destination`. Region is nullable. */
+export interface Destination {
+  id: string
+  name: string
+  country: string
+  region?: string
+  latitude: number
+  longitude: number
+  created_at: string
+}
+
+/** Activity type values, mirroring the activities table CHECK constraint. */
+export type ActivityType = 'visit' | 'food' | 'logistics' | 'transfer'
+
+/**
+ * A specific event assigned to a day (a visit, meal, logistics step, or
+ * transfer), mirroring `trip.Activity`. `metadata` is left untyped (raw
+ * JSONB) — this codebase has no consumer of it yet.
+ */
+export interface Activity {
+  id: string
+  day_id: string
+  title: string
+  type: ActivityType
+  sequence_order: number
+  description?: string
+  is_ai_generated: boolean
+  metadata?: unknown
+  version: number
+  created_at: string
+  updated_at: string
+}
+
+/**
+ * One day within an `Itinerary`, with its destination (if any) and
+ * activities (sequence-ordered) nested inline, mirroring `trip.ItineraryDay`.
+ * `label`/`destination` are absent keys (not `null`) when the day has
+ * neither — see that struct's own doc comment.
+ */
+export interface ItineraryDay {
+  id: string
+  day_number: number
+  label?: string
+  destination?: Destination
+  activities: Activity[]
+}
+
+/**
+ * `GET /trips/:id/itinerary` body: the full nested itinerary (days, each
+ * with its destination and activities), mirroring `trip.Itinerary`. `days`
+ * is sorted by `day_number` ascending, always present (possibly empty).
+ */
+export interface GetItineraryResponse {
+  trip_id: string
+  days: ItineraryDay[]
+}

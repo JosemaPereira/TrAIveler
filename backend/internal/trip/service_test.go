@@ -456,3 +456,111 @@ func TestUnitDelete_ActiveSubscription_DeletesTrip(t *testing.T) {
 
 	require.NoError(t, err)
 }
+
+// --- GetItinerary ---
+
+const (
+	testDayOneID      = "22222222-2222-2222-2222-222222222222"
+	testDayTwoID      = "33333333-3333-3333-3333-333333333333"
+	testDestinationID = "44444444-4444-4444-4444-444444444444"
+)
+
+func TestUnitGetItinerary_OwnedTrip_AssemblesNestedDaysDestinationsAndActivities(t *testing.T) {
+	repo := tripmocks.NewMockRepository(t)
+	repo.EXPECT().FindTripByID(mock.Anything, testTripID).Return(ownedTrip(), nil).Once()
+
+	label := "Tokyo Day 1"
+	dayOne := &trip.Day{ID: testDayOneID, TripID: testTripID, DayNumber: 1, Label: &label, DestinationID: strPtr(testDestinationID)}
+	dayTwo := &trip.Day{ID: testDayTwoID, TripID: testTripID, DayNumber: 2} // no destination, no label
+	repo.EXPECT().ListDaysByTrip(mock.Anything, testTripID).Return([]*trip.Day{dayOne, dayTwo}, nil).Once()
+
+	activityOne := &trip.Activity{ID: "act-1", DayID: testDayOneID, Title: "Visit Museum", SequenceOrder: 1}
+	repo.EXPECT().
+		ListActivitiesByDayIDs(mock.Anything, mock.MatchedBy(func(ids []string) bool {
+			return len(ids) == 2 && ids[0] == testDayOneID && ids[1] == testDayTwoID
+		})).
+		Return([]*trip.Activity{activityOne}, nil).Once()
+
+	destination := &trip.Destination{ID: testDestinationID, Name: "Tokyo", Country: "JP"}
+	repo.EXPECT().
+		ListDestinationsByIDs(mock.Anything, []string{testDestinationID}).
+		Return([]*trip.Destination{destination}, nil).Once()
+
+	svc := trip.NewService(repo, &fakeSubscriptionLookup{})
+
+	got, err := svc.GetItinerary(context.Background(), testUserID, testTripID)
+
+	require.NoError(t, err)
+	require.NotNil(t, got)
+	assert.Equal(t, testTripID, got.TripID)
+	require.Len(t, got.Days, 2)
+
+	first := got.Days[0]
+	assert.Equal(t, testDayOneID, first.ID)
+	assert.Equal(t, 1, first.DayNumber)
+	require.NotNil(t, first.Label)
+	assert.Equal(t, label, *first.Label)
+	require.NotNil(t, first.Destination)
+	assert.Equal(t, testDestinationID, first.Destination.ID)
+	require.Len(t, first.Activities, 1)
+	assert.Equal(t, "Visit Museum", first.Activities[0].Title)
+
+	second := got.Days[1]
+	assert.Equal(t, testDayTwoID, second.ID)
+	assert.Nil(t, second.Label, "a day with no label must produce a nil Label, not an empty string")
+	assert.Nil(t, second.Destination, "a day with a nil DestinationID must produce a nil Destination")
+	assert.Empty(t, second.Activities, "a day with no activities must produce an empty, non-nil slice")
+}
+
+func TestUnitGetItinerary_TripHasNoDays_ReturnsEmptyDaysSlice(t *testing.T) {
+	repo := tripmocks.NewMockRepository(t)
+	repo.EXPECT().FindTripByID(mock.Anything, testTripID).Return(ownedTrip(), nil).Once()
+	repo.EXPECT().ListDaysByTrip(mock.Anything, testTripID).Return([]*trip.Day{}, nil).Once()
+	repo.EXPECT().ListActivitiesByDayIDs(mock.Anything, []string{}).Return([]*trip.Activity{}, nil).Once()
+	repo.EXPECT().ListDestinationsByIDs(mock.Anything, []string{}).Return([]*trip.Destination{}, nil).Once()
+	svc := trip.NewService(repo, &fakeSubscriptionLookup{})
+
+	got, err := svc.GetItinerary(context.Background(), testUserID, testTripID)
+
+	require.NoError(t, err)
+	require.NotNil(t, got)
+	assert.Empty(t, got.Days)
+}
+
+func TestUnitGetItinerary_NotOwner_ReturnsNotFoundWithoutFurtherRepositoryCalls(t *testing.T) {
+	repo := tripmocks.NewMockRepository(t)
+	// No ListDaysByTrip/ListActivitiesByDayIDs/ListDestinationsByIDs .EXPECT():
+	// the mock's default "must not be called" behavior proves Get's ownership
+	// check short-circuits before any itinerary data is fetched.
+	repo.EXPECT().FindTripByID(mock.Anything, testTripID).
+		Return(&trip.Trip{ID: testTripID, CreatorID: testOtherID}, nil).Once()
+	svc := trip.NewService(repo, &fakeSubscriptionLookup{})
+
+	got, err := svc.GetItinerary(context.Background(), testUserID, testTripID)
+
+	require.Error(t, err)
+	assert.Nil(t, got)
+	var domainErr *domainerrors.DomainError
+	require.ErrorAs(t, err, &domainErr)
+	assert.Equal(t, "not_found", domainErr.Code,
+		"a non-owner must see the same 404 Get would produce (anti-enumeration)")
+}
+
+func TestUnitGetItinerary_TripNotFound_PropagatesNotFound(t *testing.T) {
+	repo := tripmocks.NewMockRepository(t)
+	repo.EXPECT().FindTripByID(mock.Anything, testTripID).
+		Return(nil, domainerrors.NotFound("trip", testTripID)).Once()
+	svc := trip.NewService(repo, &fakeSubscriptionLookup{})
+
+	got, err := svc.GetItinerary(context.Background(), testUserID, testTripID)
+
+	require.Error(t, err)
+	assert.Nil(t, got)
+	var domainErr *domainerrors.DomainError
+	require.ErrorAs(t, err, &domainErr)
+	assert.Equal(t, "not_found", domainErr.Code)
+}
+
+// strPtr returns a pointer to s, a small helper for building nullable-field
+// fixtures inline.
+func strPtr(s string) *string { return &s }

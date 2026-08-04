@@ -271,6 +271,183 @@ func (_c *MockRepository_FindTripByID_Call) RunAndReturn(run func(context.Contex
 	return _c
 }
 
+// ListActivitiesByDayIDs provides a mock function with given fields: ctx, dayIDs
+func (_m *MockRepository) ListActivitiesByDayIDs(ctx context.Context, dayIDs []string) ([]*trip.Activity, error) {
+	ret := _m.Called(ctx, dayIDs)
+
+	if len(ret) == 0 {
+		panic("no return value specified for ListActivitiesByDayIDs")
+	}
+
+	var r0 []*trip.Activity
+	var r1 error
+	if rf, ok := ret.Get(0).(func(context.Context, []string) ([]*trip.Activity, error)); ok {
+		return rf(ctx, dayIDs)
+	}
+	if rf, ok := ret.Get(0).(func(context.Context, []string) []*trip.Activity); ok {
+		r0 = rf(ctx, dayIDs)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).([]*trip.Activity)
+		}
+	}
+
+	if rf, ok := ret.Get(1).(func(context.Context, []string) error); ok {
+		r1 = rf(ctx, dayIDs)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// MockRepository_ListActivitiesByDayIDs_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'ListActivitiesByDayIDs'
+type MockRepository_ListActivitiesByDayIDs_Call struct {
+	*mock.Call
+}
+
+// ListActivitiesByDayIDs is a helper method to define mock.On call
+//   - ctx context.Context
+//   - dayIDs []string
+func (_e *MockRepository_Expecter) ListActivitiesByDayIDs(ctx interface{}, dayIDs interface{}) *MockRepository_ListActivitiesByDayIDs_Call {
+	return &MockRepository_ListActivitiesByDayIDs_Call{Call: _e.mock.On("ListActivitiesByDayIDs", ctx, dayIDs)}
+}
+
+func (_c *MockRepository_ListActivitiesByDayIDs_Call) Run(run func(ctx context.Context, dayIDs []string)) *MockRepository_ListActivitiesByDayIDs_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(context.Context), args[1].([]string))
+	})
+	return _c
+}
+
+func (_c *MockRepository_ListActivitiesByDayIDs_Call) Return(_a0 []*trip.Activity, _a1 error) *MockRepository_ListActivitiesByDayIDs_Call {
+	_c.Call.Return(_a0, _a1)
+	return _c
+}
+
+func (_c *MockRepository_ListActivitiesByDayIDs_Call) RunAndReturn(run func(context.Context, []string) ([]*trip.Activity, error)) *MockRepository_ListActivitiesByDayIDs_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// ListDaysByTrip provides a mock function with given fields: ctx, tripID
+func (_m *MockRepository) ListDaysByTrip(ctx context.Context, tripID string) ([]*trip.Day, error) {
+	ret := _m.Called(ctx, tripID)
+
+	if len(ret) == 0 {
+		panic("no return value specified for ListDaysByTrip")
+	}
+
+	var r0 []*trip.Day
+	var r1 error
+	if rf, ok := ret.Get(0).(func(context.Context, string) ([]*trip.Day, error)); ok {
+		return rf(ctx, tripID)
+	}
+	if rf, ok := ret.Get(0).(func(context.Context, string) []*trip.Day); ok {
+		r0 = rf(ctx, tripID)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).([]*trip.Day)
+		}
+	}
+
+	if rf, ok := ret.Get(1).(func(context.Context, string) error); ok {
+		r1 = rf(ctx, tripID)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// MockRepository_ListDaysByTrip_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'ListDaysByTrip'
+type MockRepository_ListDaysByTrip_Call struct {
+	*mock.Call
+}
+
+// ListDaysByTrip is a helper method to define mock.On call
+//   - ctx context.Context
+//   - tripID string
+func (_e *MockRepository_Expecter) ListDaysByTrip(ctx interface{}, tripID interface{}) *MockRepository_ListDaysByTrip_Call {
+	return &MockRepository_ListDaysByTrip_Call{Call: _e.mock.On("ListDaysByTrip", ctx, tripID)}
+}
+
+func (_c *MockRepository_ListDaysByTrip_Call) Run(run func(ctx context.Context, tripID string)) *MockRepository_ListDaysByTrip_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(context.Context), args[1].(string))
+	})
+	return _c
+}
+
+func (_c *MockRepository_ListDaysByTrip_Call) Return(_a0 []*trip.Day, _a1 error) *MockRepository_ListDaysByTrip_Call {
+	_c.Call.Return(_a0, _a1)
+	return _c
+}
+
+func (_c *MockRepository_ListDaysByTrip_Call) RunAndReturn(run func(context.Context, string) ([]*trip.Day, error)) *MockRepository_ListDaysByTrip_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// ListDestinationsByIDs provides a mock function with given fields: ctx, ids
+func (_m *MockRepository) ListDestinationsByIDs(ctx context.Context, ids []string) ([]*trip.Destination, error) {
+	ret := _m.Called(ctx, ids)
+
+	if len(ret) == 0 {
+		panic("no return value specified for ListDestinationsByIDs")
+	}
+
+	var r0 []*trip.Destination
+	var r1 error
+	if rf, ok := ret.Get(0).(func(context.Context, []string) ([]*trip.Destination, error)); ok {
+		return rf(ctx, ids)
+	}
+	if rf, ok := ret.Get(0).(func(context.Context, []string) []*trip.Destination); ok {
+		r0 = rf(ctx, ids)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).([]*trip.Destination)
+		}
+	}
+
+	if rf, ok := ret.Get(1).(func(context.Context, []string) error); ok {
+		r1 = rf(ctx, ids)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// MockRepository_ListDestinationsByIDs_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'ListDestinationsByIDs'
+type MockRepository_ListDestinationsByIDs_Call struct {
+	*mock.Call
+}
+
+// ListDestinationsByIDs is a helper method to define mock.On call
+//   - ctx context.Context
+//   - ids []string
+func (_e *MockRepository_Expecter) ListDestinationsByIDs(ctx interface{}, ids interface{}) *MockRepository_ListDestinationsByIDs_Call {
+	return &MockRepository_ListDestinationsByIDs_Call{Call: _e.mock.On("ListDestinationsByIDs", ctx, ids)}
+}
+
+func (_c *MockRepository_ListDestinationsByIDs_Call) Run(run func(ctx context.Context, ids []string)) *MockRepository_ListDestinationsByIDs_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(context.Context), args[1].([]string))
+	})
+	return _c
+}
+
+func (_c *MockRepository_ListDestinationsByIDs_Call) Return(_a0 []*trip.Destination, _a1 error) *MockRepository_ListDestinationsByIDs_Call {
+	_c.Call.Return(_a0, _a1)
+	return _c
+}
+
+func (_c *MockRepository_ListDestinationsByIDs_Call) RunAndReturn(run func(context.Context, []string) ([]*trip.Destination, error)) *MockRepository_ListDestinationsByIDs_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // ListTripsByUser provides a mock function with given fields: ctx, userID
 func (_m *MockRepository) ListTripsByUser(ctx context.Context, userID string) ([]*trip.Trip, error) {
 	ret := _m.Called(ctx, userID)

@@ -194,6 +194,66 @@ func (_c *MockManager_Get_Call) RunAndReturn(run func(context.Context, string, s
 	return _c
 }
 
+// GetItinerary provides a mock function with given fields: ctx, userID, tripID
+func (_m *MockManager) GetItinerary(ctx context.Context, userID string, tripID string) (*trip.Itinerary, error) {
+	ret := _m.Called(ctx, userID, tripID)
+
+	if len(ret) == 0 {
+		panic("no return value specified for GetItinerary")
+	}
+
+	var r0 *trip.Itinerary
+	var r1 error
+	if rf, ok := ret.Get(0).(func(context.Context, string, string) (*trip.Itinerary, error)); ok {
+		return rf(ctx, userID, tripID)
+	}
+	if rf, ok := ret.Get(0).(func(context.Context, string, string) *trip.Itinerary); ok {
+		r0 = rf(ctx, userID, tripID)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*trip.Itinerary)
+		}
+	}
+
+	if rf, ok := ret.Get(1).(func(context.Context, string, string) error); ok {
+		r1 = rf(ctx, userID, tripID)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// MockManager_GetItinerary_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'GetItinerary'
+type MockManager_GetItinerary_Call struct {
+	*mock.Call
+}
+
+// GetItinerary is a helper method to define mock.On call
+//   - ctx context.Context
+//   - userID string
+//   - tripID string
+func (_e *MockManager_Expecter) GetItinerary(ctx interface{}, userID interface{}, tripID interface{}) *MockManager_GetItinerary_Call {
+	return &MockManager_GetItinerary_Call{Call: _e.mock.On("GetItinerary", ctx, userID, tripID)}
+}
+
+func (_c *MockManager_GetItinerary_Call) Run(run func(ctx context.Context, userID string, tripID string)) *MockManager_GetItinerary_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(context.Context), args[1].(string), args[2].(string))
+	})
+	return _c
+}
+
+func (_c *MockManager_GetItinerary_Call) Return(_a0 *trip.Itinerary, _a1 error) *MockManager_GetItinerary_Call {
+	_c.Call.Return(_a0, _a1)
+	return _c
+}
+
+func (_c *MockManager_GetItinerary_Call) RunAndReturn(run func(context.Context, string, string) (*trip.Itinerary, error)) *MockManager_GetItinerary_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // List provides a mock function with given fields: ctx, userID
 func (_m *MockManager) List(ctx context.Context, userID string) ([]*trip.Trip, error) {
 	ret := _m.Called(ctx, userID)

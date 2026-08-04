@@ -8,6 +8,10 @@ import { ConversationPanel } from '@/features/trips/components/ConversationPanel
 import { ItineraryView } from '@/features/trips/components/ItineraryView'
 import { useConversation } from '@/features/trips/hooks/useConversation'
 import { useCreateTrip } from '@/features/trips/hooks/useCreateTrip'
+import {
+  mapItineraryDaysToSections,
+  useItinerary,
+} from '@/features/trips/hooks/useItinerary'
 import { mapApiError } from '@/lib/error-handler'
 import styles from './GeneratePage.module.css'
 
@@ -32,6 +36,9 @@ export function GeneratePage() {
   const [tripId, setTripId] = useState<string>()
   const createTrip = useCreateTrip()
   const conversation = useConversation(tripId ?? '')
+  const itineraryQuery = useItinerary(tripId ?? '', {
+    enabled: Boolean(tripId) && conversation.itineraryReady,
+  })
 
   const createErrorInfo = createTrip.isError
     ? mapApiError(createTrip.error)
@@ -92,11 +99,10 @@ export function GeneratePage() {
       )}
 
       {tripId && conversation.itineraryReady && (
-        // No itinerary-content endpoint exists yet — same documented gap as
-        // TripDetailPage.tsx / useTripDetail.ts. ItineraryView's own "not yet
-        // generated" empty state is the correct representation here, not
-        // fabricated day/activity data.
-        <ItineraryView days={[]} />
+        <ItineraryView
+          days={mapItineraryDaysToSections(itineraryQuery.data?.days ?? [])}
+          isLoading={itineraryQuery.isLoading}
+        />
       )}
     </div>
   )

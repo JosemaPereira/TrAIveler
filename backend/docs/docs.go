@@ -691,6 +691,58 @@ const docTemplate = `{
                     }
                 }
             }
+        },
+        "/trips/{id}/itinerary": {
+            "get": {
+                "security": [
+                    {
+                        "CookieAuth": []
+                    }
+                ],
+                "description": "Returns the full nested itinerary (days, each with its destination and activities)\nfor the trip identified by id, provided the authenticated user owns it. A trip\nowned by someone else is reported as 404, not 403, so a non-owner cannot distinguish\n\"doesn't exist\" from \"exists but isn't yours\" (anti-enumeration), mirroring handleGet.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "trips"
+                ],
+                "summary": "Get a trip's itinerary",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Trip ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/trip.Itinerary"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/errors.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/errors.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/errors.ErrorResponse"
+                        }
+                    }
+                }
+            }
         }
     },
     "definitions": {
@@ -937,6 +989,47 @@ const docTemplate = `{
                 }
             }
         },
+        "trip.Activity": {
+            "type": "object",
+            "properties": {
+                "created_at": {
+                    "type": "string"
+                },
+                "day_id": {
+                    "type": "string"
+                },
+                "description": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "is_ai_generated": {
+                    "type": "boolean"
+                },
+                "metadata": {
+                    "type": "array",
+                    "items": {
+                        "type": "integer"
+                    }
+                },
+                "sequence_order": {
+                    "type": "integer"
+                },
+                "title": {
+                    "type": "string"
+                },
+                "type": {
+                    "type": "string"
+                },
+                "updated_at": {
+                    "type": "string"
+                },
+                "version": {
+                    "type": "integer"
+                }
+            }
+        },
         "trip.CreateTripRequest": {
             "type": "object",
             "properties": {
@@ -944,6 +1037,69 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "title": {
+                    "type": "string"
+                }
+            }
+        },
+        "trip.Destination": {
+            "type": "object",
+            "properties": {
+                "country": {
+                    "type": "string"
+                },
+                "created_at": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "latitude": {
+                    "type": "number"
+                },
+                "longitude": {
+                    "type": "number"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "region": {
+                    "type": "string"
+                }
+            }
+        },
+        "trip.Itinerary": {
+            "type": "object",
+            "properties": {
+                "days": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/trip.ItineraryDay"
+                    }
+                },
+                "trip_id": {
+                    "type": "string"
+                }
+            }
+        },
+        "trip.ItineraryDay": {
+            "type": "object",
+            "properties": {
+                "activities": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/trip.Activity"
+                    }
+                },
+                "day_number": {
+                    "type": "integer"
+                },
+                "destination": {
+                    "$ref": "#/definitions/trip.Destination"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "label": {
                     "type": "string"
                 }
             }
