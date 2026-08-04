@@ -102,7 +102,9 @@
 | 001-T047 | Implement Generate page (new trip form → ConversationPanel → ItineraryView on itinerary_ready) | G-US1-PAGES | 8 | P1 | Backlog | 001-T044, 001-T045, 001-T046 | no | https://github.com/JosemaPereira/TrAIveler/issues/240 | |
 | 001-T048 | Implement Trip detail page (ItineraryView, action bar: edit title, delete trip) | G-US1-PAGES | 8 | P1 | Backlog | 001-T045, 001-T046 | no | https://github.com/JosemaPereira/TrAIveler/issues/240 | Reconciliation note (2026-08-02, Sprint 8 planning): absorbs 008-T070 (Superseded). Real file already exists as a placeholder: `frontend/src/routes/TripDetailPage.tsx` (its own code comment already anticipates this content) — not this row's `pages/TripPage.tsx` nor 008-T070's `features/trips/pages/TripDetailPage.tsx`. 008-T118 (kept) layers subscription-aware edit/delete/grace-period wiring on top once this base page lands — grouped together in `G-US1-PAGES`. |
 | 001-T049 | Implement Dashboard page (TripCard grid, "New Trip" CTA, empty state illustration) | G-US1-PAGES | 8 | P1 | Backlog | 001-T041, 001-T046 | no | https://github.com/JosemaPereira/TrAIveler/issues/240 | Reconciliation note (2026-08-02, Sprint 8 planning): absorbs 008-T067 (Superseded). Real file already exists as a placeholder: `frontend/src/routes/DashboardPage.tsx` (its own code comment already anticipates this content). Preserve the cheap part of 008-T067's logic — `hasSubscription`-gated "Create Trip" button disabling (auth store already exposes `has_subscription`) — but defer the collaboration-aware "Shared with Me" section to Phase 4/6 (collaborators aren't built yet). |
-| 001-T050 | Add Playwright E2E spec: register → subscribe → generate itinerary via conversation → verify Day 1 | | 10 | P1 | Backlog | 001-T047, 001-T049, 001-T040 | no | | |
+| 001-T090 | Implement itinerary-read capability in backend/internal/trip/{repository,service,handler}.go: add `Repository` read methods for `Destination`/`Day`/`Activity` by trip (only write methods — `CreateDestination`/`UpsertDay`/`UpsertActivity` — exist today), a `Service` method assembling the full nested itinerary, and expose it via a new `GET /trips/{id}/itinerary` handler (mirrors the `/trips/{id}/conversation` sub-resource pattern rather than widening `GET /trips/{id}`'s existing flat response) | G-US1-ITINERARY-READ | 9 | P1 | Backlog | 001-T033, 001-T037 | no | https://github.com/JosemaPereira/TrAIveler/issues/257 | Added 2026-08-04 (Sprint 8 wrap-up): the single biggest gap blocking a genuinely demoable trip-generation flow, confirmed via code (`grep 'r\.\(Get\|Post\|Put\|Delete\)('` across every `backend/internal/*/handler.go`) — `internal/itinerary.Service.Continue` already persists days/activities to Postgres during the AI conversation (`UpsertDay`/`UpsertActivity` in `service.go`), but **no route anywhere returns them**; `GET /trips/{id}` only returns the flat `Trip` record. A user can complete the full AI conversation, reach `itinerary_ready`, and the generated itinerary is real in the DB — but there is currently no way to fetch it back for display. Blocks 001-T091 (frontend) and 001-T050 (E2E spec's own "verify Day 1" assertion, Sprint 10 — its Depends-on updated below). |
+| 001-T091 | Wire the real itinerary into the frontend: extend `frontend/src/features/trips/types.ts` with the itinerary wire shape, add a hook (e.g. `useItinerary(tripId)`, following `useTripDetail.ts`'s conventions) consuming 001-T090's endpoint, and replace the hardcoded `<ItineraryView days={[]} />` call sites in `frontend/src/routes/GeneratePage.tsx` (after `itinerary_ready`) and `frontend/src/routes/TripDetailPage.tsx` with real data mapped into `DaySectionProps`/`ActivityData` (`components/composites/{DaySection,ActivityItem}.tsx`) | G-US1-ITINERARY-HOOKS | 9 | P1 | Backlog | 001-T090 | no | https://github.com/JosemaPereira/TrAIveler/issues/258 | Added 2026-08-04 (Sprint 8 wrap-up), frontend half of 001-T090 — kept a separate row/issue per this repo's mandatory tech-stack split (`.github/SPRINT-CONSOLIDATION-CHECKLIST.md`). Once both land, the full register → subscribe → generate → conversation → visible itinerary flow is genuinely demoable end-to-end for the first time. |
+| 001-T050 | Add Playwright E2E spec: register → subscribe → generate itinerary via conversation → verify Day 1 | | 10 | P1 | Backlog | 001-T047, 001-T049, 001-T040, 001-T091 | no | | Depends-on extended 2026-08-04 to include 001-T091 — this spec's own "verify Day 1" assertion has no real itinerary content to verify against until the itinerary-read gap (001-T090/T091) is closed. |
 
 #### Phase 4 — User Story 2: Experienced Traveler, Off-the-Beaten-Path (Priority: P2)
 
@@ -2263,7 +2265,7 @@ Sprint 8 actually runs long, same as any prior sprint that overran would have re
 
 **Goal**: Wire security validators and implement NFR CI gates (accessibility, performance, security).
 
-**Scope**: Spec 002 Phases 3-5 + Spec 004 Phase 3 + Spec 008 subscription-status data layer (008-T213/T214, added 2026-08-04)
+**Scope**: Spec 002 Phases 3-5 + Spec 004 Phase 3 + Spec 008 subscription-status data layer (008-T213/T214, added 2026-08-04) + Spec 001 itinerary-read gap (001-T090/T091, added 2026-08-04)
 
 | Work Items | Task Count | Key Deliverables |
 |------------|------------|------------------|
@@ -2272,8 +2274,9 @@ Sprint 8 actually runs long, same as any prior sprint that overran would have re
 | Security validation | 12 | Prompt injection validator (YAML deny-list), output sanitizer (bluemonday), GDPR user deletion, CI gates (gosec, gitleaks) |
 | Security backend implementation | 32 | Wire PromptValidator into handlers, OutputSanitizer into services, security logging, multi-key JWT storage |
 | Subscription status data layer | 2 | `GET /subscriptions/me` handler (008-T213), `subscriptionApi`/`useSubscription` hook (008-T214) — unblocks #240's deferred grace-period banner |
+| Itinerary-read data layer | 2 | `GET /trips/{id}/itinerary` handler + repository reads (001-T090), frontend `useItinerary` hook wired into `ItineraryView` (001-T091) — the critical-path gap blocking a genuinely demoable trip-generation flow |
 
-**Total**: 58 tasks  
+**Total**: 60 tasks  
 **Risks**: Load test threshold tuning, CI gate false positives  
 **Dependencies**: Sprint 8 complete  
 **Carried-forward cleanup**: issue [#209](https://github.com/JosemaPereira/TrAIveler/issues/209)
@@ -2284,7 +2287,10 @@ tag lands and the bridge is removed).
 (issues [#254](https://github.com/JosemaPereira/TrAIveler/issues/254)/[#255](https://github.com/JosemaPereira/TrAIveler/issues/255))
 were pulled forward from Phase 9's otherwise-unscheduled P2 backlog into Sprint 9 specifically
 because they unblock work `docs/roadmap.md` rows 008-T184/T187/T188/T190 still need — the rest of
-Phase 9 (Subscription Lifecycle Management) remains unscheduled.
+Phase 9 (Subscription Lifecycle Management) remains unscheduled. 001-T090/T091 (issues TBD, opened
+same session) are net-new P1 Spec 001 rows, not a rescheduling — confirmed via a full-text search of
+this document for "itinerary" that no prior row covered fetching a generated itinerary back for
+display; scheduled straight into Sprint 9 since they are the critical path to a demoable site.
 
 ---
 

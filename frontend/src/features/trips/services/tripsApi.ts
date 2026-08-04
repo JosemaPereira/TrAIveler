@@ -2,6 +2,7 @@ import { api } from '@/lib/api-client'
 import type {
   CreateTripRequest,
   CreateTripResponse,
+  GetItineraryResponse,
   GetTripResponse,
   ListTripsResponse,
   UpdateTripRequest,
@@ -20,6 +21,7 @@ import type {
 export const tripKeys = {
   list: () => ['trips'] as const,
   detail: (id: string) => ['trips', id] as const,
+  itinerary: (id: string) => ['trips', id, 'itinerary'] as const,
 }
 
 /**
@@ -64,4 +66,13 @@ export const tripsApi = {
    * "all PUT/DELETE require If-Match" statement in docs/data-model.md.
    */
   delete: (id: string): Promise<void> => api.delete(`/trips/${id}`),
+
+  /**
+   * Resolves the full nested itinerary (days, each with its destination and
+   * activities) for a single trip. Same anti-enumeration 404 shape as `get`:
+   * a trip that doesn't exist and one that exists but isn't yours are
+   * indistinguishable from the caller's side.
+   */
+  getItinerary: (id: string): Promise<GetItineraryResponse> =>
+    api.get<GetItineraryResponse>(`/trips/${id}/itinerary`),
 }

@@ -63,6 +63,20 @@ type Repository interface {
 	// DeleteActivity removes the activity with the given ID. Deleting an ID
 	// that doesn't exist is reported as a domain NotFound.
 	DeleteActivity(ctx context.Context, id string) error
+	// ListDaysByTrip returns every Day for tripID, ordered by day_number
+	// ascending. Returns an empty (non-nil) slice, not an error, when the
+	// trip has no days.
+	ListDaysByTrip(ctx context.Context, tripID string) ([]*Day, error)
+	// ListActivitiesByDayIDs returns every Activity across dayIDs in one
+	// query (WHERE day_id = ANY($1)), ordered by day_id then
+	// sequence_order ascending, so a trip's full activity set resolves
+	// without one query per day. Returns an empty (non-nil) slice
+	// immediately, with no query, when dayIDs is empty.
+	ListActivitiesByDayIDs(ctx context.Context, dayIDs []string) ([]*Activity, error)
+	// ListDestinationsByIDs returns every Destination for ids in one query
+	// (WHERE id = ANY($1)). Returns an empty (non-nil) slice immediately,
+	// with no query, when ids is empty.
+	ListDestinationsByIDs(ctx context.Context, ids []string) ([]*Destination, error)
 }
 
 // PostgresRepository implements Repository using the shared pgx pool exposed
@@ -310,4 +324,107 @@ func (r *PostgresRepository) DeleteActivity(ctx context.Context, id string) erro
 	}
 
 	return nil
+}
+
+// ListDaysByTrip returns tripID's days; see the Repository interface doc
+// comment.
+func (r *PostgresRepository) ListDaysByTrip(ctx context.Context, tripID string) ([]*Day, error) {
+	const query = `
+		SELECT id, trip_id, destination_id, day_number, label, created_at
+		FROM days
+		WHERE trip_id = $1
+		ORDER BY day_number ASC`
+
+	rows, err := r.db.Pool().Query(ctx, query, tripID)
+	if err != nil {
+		return nil, fmt.Errorf("list days by trip: %w", err)
+	}
+	defer rows.Close()
+
+	days := []*Day{}
+	for rows.Next() {
+		var d Day
+		if err := rows.Scan(&d.ID, &d.TripID, &d.DestinationID, &d.DayNumber, &d.Label, &d.CreatedAt); err != nil {
+			return nil, fmt.Errorf("scan day row: %w", err)
+		}
+		days = append(days, &d)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("list days by trip: %w", err)
+	}
+
+	return days, nil
+}
+
+// ListActivitiesByDayIDs returns the activities across dayIDs; see the
+// Repository interface doc comment. Skips the round-trip entirely for an
+// empty dayIDs, rather than relying on an empty ANY($1) (legal SQL, but an
+// unnecessary query).
+func (r *PostgresRepository) ListActivitiesByDayIDs(ctx context.Context, dayIDs []string) ([]*Activity, error) {
+	if len(dayIDs) == 0 {
+		return []*Activity{}, nil
+	}
+
+	const query = `
+		SELECT id, day_id, title, type, sequence_order, description, is_ai_generated, metadata, version, created_at, updated_at
+		FROM activities
+		WHERE day_id = ANY($1)
+		ORDER BY day_id, sequence_order ASC`
+
+	rows, err := r.db.Pool().Query(ctx, query, dayIDs)
+	if err != nil {
+		return nil, fmt.Errorf("list activities by day ids: %w", err)
+	}
+	defer rows.Close()
+
+	activities := []*Activity{}
+	for rows.Next() {
+		var a Activity
+		if err := rows.Scan(
+			&a.ID, &a.DayID, &a.Title, &a.Type, &a.SequenceOrder,
+			&a.Description, &a.IsAIGenerated, &a.Metadata, &a.Version, &a.CreatedAt, &a.UpdatedAt,
+		); err != nil {
+			return nil, fmt.Errorf("scan activity row: %w", err)
+		}
+		activities = append(activities, &a)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("list activities by day ids: %w", err)
+	}
+
+	return activities, nil
+}
+
+// ListDestinationsByIDs returns the destinations for ids; see the Repository
+// interface doc comment. Skips the round-trip entirely for an empty ids,
+// same rationale as ListActivitiesByDayIDs.
+func (r *PostgresRepository) ListDestinationsByIDs(ctx context.Context, ids []string) ([]*Destination, error) {
+	if len(ids) == 0 {
+		return []*Destination{}, nil
+	}
+
+	const query = `
+		SELECT id, name, country, region, latitude, longitude, created_at
+		FROM destinations
+		WHERE id = ANY($1)`
+
+	rows, err := r.db.Pool().Query(ctx, query, ids)
+	if err != nil {
+		return nil, fmt.Errorf("list destinations by ids: %w", err)
+	}
+	defer rows.Close()
+
+	destinations := []*Destination{}
+	for rows.Next() {
+		var d Destination
+		if err := rows.Scan(&d.ID, &d.Name, &d.Country, &d.Region, &d.Latitude, &d.Longitude, &d.CreatedAt); err != nil {
+			return nil, fmt.Errorf("scan destination row: %w", err)
+		}
+		destinations = append(destinations, &d)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("list destinations by ids: %w", err)
+	}
+
+	return destinations, nil
 }

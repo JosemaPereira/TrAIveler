@@ -9,6 +9,10 @@ import { Input } from '@/components/primitives/Input'
 import { LoadingSpinner } from '@/components/primitives/LoadingSpinner'
 import { DeleteTripModal } from '@/features/trips/components/DeleteTripModal'
 import { ItineraryView } from '@/features/trips/components/ItineraryView'
+import {
+  mapItineraryDaysToSections,
+  useItinerary,
+} from '@/features/trips/hooks/useItinerary'
 import { useTripDetail } from '@/features/trips/hooks/useTripDetail'
 import { useUpdateTrip } from '@/features/trips/hooks/useUpdateTrip'
 import { useErrorHandler } from '@/hooks/useErrorHandler'
@@ -25,17 +29,25 @@ const DESCRIPTION_INPUT_LABEL = 'Description'
 
 /**
  * Trip detail page (`/trips/:id`). Fetches the flat `Trip` `useTripDetail`
- * resolves — see that hook's own doc comment for why there is no nested
- * itinerary content yet — and renders `ItineraryView` with an intentionally
- * empty `days` array, which the component already documents as its correct
- * "not yet generated" empty-state path. Do not fabricate itinerary data here.
+ * resolves for the header/action bar, and the nested itinerary (days,
+ * activities) separately via `useItinerary` — two queries against two
+ * endpoints, not one combined fetch, since `GET /trips/:id` deliberately
+ * still returns only the flat Trip. The itinerary fetch's own
+ * loading/error/retry state is handed straight to `ItineraryView`'s built-in
+ * props rather than hand-rolled here, since it only affects that one section
+ * of the page, not the page as a whole (contrast with `tripQuery`'s
+ * `errorInfo`, which gates the entire page).
  */
 export function TripDetailPage() {
   const { id } = useParams()
   const user = useUser()
   const tripQuery = useTripDetail(id ?? '')
+  const itineraryQuery = useItinerary(id ?? '')
   const updateTrip = useUpdateTrip()
   const errorInfo = useErrorHandler(tripQuery.error)
+  const itineraryErrorInfo = itineraryQuery.isError
+    ? mapApiError(itineraryQuery.error)
+    : null
 
   const [isEditing, setIsEditing] = useState(false)
   const [editTitle, setEditTitle] = useState('')
@@ -186,7 +198,12 @@ export function TripDetailPage() {
         </div>
       )}
 
-      <ItineraryView days={[]} />
+      <ItineraryView
+        days={mapItineraryDaysToSections(itineraryQuery.data?.days ?? [])}
+        isLoading={itineraryQuery.isLoading}
+        error={itineraryErrorInfo?.message}
+        onRetry={() => void itineraryQuery.refetch()}
+      />
 
       <DeleteTripModal
         tripId={trip.id}

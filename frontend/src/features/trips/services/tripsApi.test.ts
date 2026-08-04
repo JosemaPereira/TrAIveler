@@ -1,9 +1,9 @@
 import { describe, expect, it } from 'vitest'
 import { http, HttpResponse } from 'msw'
 
-import { API_BASE_URL, testTrip } from '@/test/msw/handlers'
+import { API_BASE_URL, testItinerary, testTrip } from '@/test/msw/handlers'
 import { server } from '@/test/msw/server'
-import { tripsApi } from './tripsApi'
+import { tripKeys, tripsApi } from './tripsApi'
 
 describe('tripsApi.list', () => {
   describe('when the request succeeds', () => {
@@ -216,6 +216,60 @@ describe('tripsApi.update', () => {
         })
       ).rejects.toMatchObject({ status: 409, code: 'conflict' })
     })
+  })
+})
+
+describe('tripsApi.getItinerary', () => {
+  describe('when the trip exists and is owned by the caller', () => {
+    it('should GET /trips/:id/itinerary and resolve with the itinerary', async () => {
+      let method: string | undefined
+      server.use(
+        http.get(
+          `${API_BASE_URL}/trips/${testTrip.id}/itinerary`,
+          ({ request }) => {
+            method = request.method
+            return HttpResponse.json(testItinerary, { status: 200 })
+          }
+        )
+      )
+
+      const result = await tripsApi.getItinerary(testTrip.id)
+
+      expect(method).toBe('GET')
+      expect(result).toEqual(testItinerary)
+    })
+  })
+
+  describe('when the trip does not exist or is not owned by the caller', () => {
+    it('should reject with a 404 APIError', async () => {
+      server.use(
+        http.get(`${API_BASE_URL}/trips/not-mine/itinerary`, () =>
+          HttpResponse.json(
+            {
+              error: 'not_found',
+              message: 'Trip not found',
+              request_id: 'req_itinerary_404',
+            },
+            { status: 404 }
+          )
+        )
+      )
+
+      await expect(tripsApi.getItinerary('not-mine')).rejects.toMatchObject({
+        status: 404,
+        code: 'not_found',
+      })
+    })
+  })
+})
+
+describe('tripKeys.itinerary', () => {
+  it('should build a key scoped under the trip detail key', () => {
+    expect(tripKeys.itinerary(testTrip.id)).toEqual([
+      'trips',
+      testTrip.id,
+      'itinerary',
+    ])
   })
 })
 

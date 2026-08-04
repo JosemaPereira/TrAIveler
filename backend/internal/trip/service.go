@@ -192,6 +192,78 @@ func (s *Service) Delete(ctx context.Context, userID, tripID string) error {
 	return s.repo.DeleteTrip(ctx, tripID)
 }
 
+// GetItinerary returns the full nested itinerary (Days -> Destination +
+// Activities) for tripID, provided userID owns it.
+//
+// Ownership/anti-enumeration is delegated entirely to Get: Get is called
+// first and its error (if any) is propagated as-is, so a trip owned by
+// someone else produces the exact same NotFound Get itself would, without
+// duplicating that check here. The returned *Trip is discarded once Get
+// succeeds — tripID is already known to the caller.
+//
+// Assembly avoids N+1 queries: ListDaysByTrip resolves every Day in one
+// query, then the distinct non-nil destination IDs referenced by those days
+// and the days' own IDs each feed one bulk ListDestinationsByIDs /
+// ListActivitiesByDayIDs call, regardless of how many days the trip has.
+func (s *Service) GetItinerary(ctx context.Context, userID, tripID string) (*Itinerary, error) {
+	if _, err := s.Get(ctx, userID, tripID); err != nil {
+		return nil, err
+	}
+
+	days, err := s.repo.ListDaysByTrip(ctx, tripID)
+	if err != nil {
+		return nil, err
+	}
+
+	dayIDs := make([]string, len(days))
+	destinationIDs := make([]string, 0, len(days))
+	seenDestinationIDs := make(map[string]bool, len(days))
+	for i, d := range days {
+		dayIDs[i] = d.ID
+		if d.DestinationID != nil && !seenDestinationIDs[*d.DestinationID] {
+			seenDestinationIDs[*d.DestinationID] = true
+			destinationIDs = append(destinationIDs, *d.DestinationID)
+		}
+	}
+
+	activities, err := s.repo.ListActivitiesByDayIDs(ctx, dayIDs)
+	if err != nil {
+		return nil, err
+	}
+	destinations, err := s.repo.ListDestinationsByIDs(ctx, destinationIDs)
+	if err != nil {
+		return nil, err
+	}
+
+	activitiesByDay := make(map[string][]*Activity, len(days))
+	for _, a := range activities {
+		activitiesByDay[a.DayID] = append(activitiesByDay[a.DayID], a)
+	}
+	destinationByID := make(map[string]*Destination, len(destinations))
+	for _, d := range destinations {
+		destinationByID[d.ID] = d
+	}
+
+	itinDays := make([]*ItineraryDay, len(days))
+	for i, d := range days {
+		itinDay := &ItineraryDay{
+			ID:         d.ID,
+			DayNumber:  d.DayNumber,
+			Label:      d.Label,
+			Activities: activitiesByDay[d.ID],
+		}
+		if itinDay.Activities == nil {
+			itinDay.Activities = []*Activity{}
+		}
+		if d.DestinationID != nil {
+			itinDay.Destination = destinationByID[*d.DestinationID]
+		}
+		itinDays[i] = itinDay
+	}
+
+	return &Itinerary{TripID: tripID, Days: itinDays}, nil
+}
+
 // resolveSubscription returns userID's subscription, or nil if the user has
 // none. A domain NotFound from the lookup is treated as "no subscription"
 // rather than propagated, so Update/Delete can fold it into their own

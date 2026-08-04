@@ -344,3 +344,70 @@ func TestUnitHandleDelete_TripNotFound_Returns404(t *testing.T) {
 
 	require.Equal(t, http.StatusNotFound, rec.Code)
 }
+
+// --- GetItinerary -------------------------------------------------------
+
+func TestUnitHandleGetItinerary_OwnedTrip_Returns200WithFlatItineraryBody(t *testing.T) {
+	svc := tripmocks.NewMockManager(t)
+	label := "Tokyo Day 1"
+	want := &trip.Itinerary{
+		TripID: handlerTripID,
+		Days: []*trip.ItineraryDay{
+			{
+				ID:        "day-1",
+				DayNumber: 1,
+				Label:     &label,
+				Destination: &trip.Destination{
+					ID: "dest-1", Name: "Tokyo", Country: "JP",
+				},
+				Activities: []*trip.Activity{
+					{ID: "act-1", DayID: "day-1", Title: "Visit Museum", SequenceOrder: 1},
+				},
+			},
+		},
+	}
+	svc.EXPECT().GetItinerary(mock.Anything, handlerUserID, handlerTripID).Return(want, nil).Once()
+
+	h := trip.NewHandler(svc, adminLookup())
+	rec := doAuthenticatedRequest(t, newGatedRouter(t, h), http.MethodGet,
+		"/api/v1/trips/"+handlerTripID+"/itinerary", "", nil)
+
+	require.Equal(t, http.StatusOK, rec.Code)
+	body := decodeBody(t, rec)
+	assert.Equal(t, handlerTripID, body["trip_id"], "the body must be the Itinerary directly, not wrapped in an envelope")
+	days, ok := body["days"].([]any)
+	require.True(t, ok)
+	require.Len(t, days, 1)
+	day := days[0].(map[string]any)
+	assert.Equal(t, float64(1), day["day_number"])
+	destination, ok := day["destination"].(map[string]any)
+	require.True(t, ok)
+	assert.Equal(t, "Tokyo", destination["name"])
+	activities, ok := day["activities"].([]any)
+	require.True(t, ok)
+	require.Len(t, activities, 1)
+}
+
+func TestUnitHandleGetItinerary_TripNotFound_Returns404(t *testing.T) {
+	svc := tripmocks.NewMockManager(t)
+	svc.EXPECT().GetItinerary(mock.Anything, handlerUserID, handlerTripID).
+		Return(nil, domainerrors.NotFound("trip", handlerTripID)).Once()
+
+	h := trip.NewHandler(svc, adminLookup())
+	rec := doAuthenticatedRequest(t, newGatedRouter(t, h), http.MethodGet,
+		"/api/v1/trips/"+handlerTripID+"/itinerary", "", nil)
+
+	require.Equal(t, http.StatusNotFound, rec.Code)
+	assert.Equal(t, "not_found", decodeBody(t, rec)["error"])
+}
+
+func TestUnitHandleGetItinerary_NoUserInContext_Returns401(t *testing.T) {
+	svc := tripmocks.NewMockManager(t) // no expects: must not be reached
+
+	h := trip.NewHandler(svc, adminLookup())
+	rec := doAuthenticatedRequest(t, newUngatedRouter(h), http.MethodGet,
+		"/api/v1/trips/"+handlerTripID+"/itinerary", "", nil)
+
+	require.Equal(t, http.StatusUnauthorized, rec.Code)
+	svc.AssertNotCalled(t, "GetItinerary")
+}

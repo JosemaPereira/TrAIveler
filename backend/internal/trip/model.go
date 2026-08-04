@@ -87,3 +87,25 @@ type Activity struct {
 	CreatedAt     time.Time `json:"created_at" db:"created_at"`
 	UpdatedAt     time.Time `json:"updated_at" db:"updated_at"`
 }
+
+// Itinerary is the full nested itinerary for a Trip (Day -> Destination +
+// Activities), assembled by Service.GetItinerary for GET
+// /trips/{id}/itinerary. Destination is nested per-day (not grouped as a
+// top-level destinations->days tree) because Day.DestinationID is nullable —
+// a day-centric shape has no orphan-grouping problem an inverted one would.
+type Itinerary struct {
+	TripID string          `json:"trip_id"`
+	Days   []*ItineraryDay `json:"days"`
+}
+
+// ItineraryDay is one Day within an Itinerary, with its Destination (if any)
+// and Activities (sequence-ordered) nested inline. Label/Destination are
+// omitted (omitempty) when nil, mirroring Day.Label/Day.DestinationID's own
+// nullability.
+type ItineraryDay struct {
+	ID          string       `json:"id"`
+	DayNumber   int          `json:"day_number"`
+	Label       *string      `json:"label,omitempty"`
+	Destination *Destination `json:"destination,omitempty"`
+	Activities  []*Activity  `json:"activities"`
+}
