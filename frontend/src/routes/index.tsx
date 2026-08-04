@@ -4,6 +4,7 @@ import type { RouteObject } from 'react-router'
 import { GuestRoute } from '@/components/GuestRoute'
 import { ProtectedRoute } from '@/components/ProtectedRoute'
 import { DashboardPage } from './DashboardPage'
+import { GeneratePage } from './GeneratePage'
 import { HomePage } from './HomePage'
 import { LoginPage } from './LoginPage'
 import { PasswordResetPage } from './PasswordResetPage'
@@ -38,6 +39,7 @@ export const routes: RouteObject[] = [
         element: <ProtectedRoute />,
         children: [
           { path: 'dashboard', element: <DashboardPage /> },
+          { path: 'generate', element: <GeneratePage /> },
           { path: 'trips/:id', element: <TripDetailPage /> },
           { path: 'settings', element: <SettingsPage /> },
         ],

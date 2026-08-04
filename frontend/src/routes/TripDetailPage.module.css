@@ -1,0 +1,29 @@
+/*
+ * TripDetailPage styles.
+ * All values reference design tokens from src/styles/tokens.css — no hard-coded
+ * colors, spacing, radii, or shadows.
+ */
+
+.actionBar {
+  display: flex;
+  gap: var(--space-3);
+  margin: var(--space-4) 0;
+}
+
+.editForm {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  max-width: 480px;
+}
+
+.editActions {
+  display: flex;
+  gap: var(--space-3);
+}
+
+.editError {
+  font-size: var(--font-size-sm);
+  color: var(--color-error);
+  margin: 0;
+}

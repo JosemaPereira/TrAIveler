@@ -1,0 +1,18 @@
+/*
+ * GeneratePage styles.
+ * All values reference design tokens from src/styles/tokens.css — no hard-coded
+ * colors, spacing, radii, or shadows.
+ */
+
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  max-width: 480px;
+}
+
+.error {
+  font-size: var(--font-size-sm);
+  color: var(--color-error);
+  margin: 0;
+}
